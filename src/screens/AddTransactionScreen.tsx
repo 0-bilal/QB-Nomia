@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
+import { ScreenScroll } from '../components/ScreenScroll'
 import type { TransactionType } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -15,10 +16,17 @@ export function AddTransactionScreen() {
   const { accounts, categories, incomeSources, addTransaction } = useData()
 
   const initialType = (searchParams.get('type') as TransactionType) || 'expense'
+  const toParam = searchParams.get('to') ?? undefined
+  const fromParam = searchParams.get('from') ?? undefined
+
   const [type, setType] = useState<TransactionType>(initialType)
   const [amount, setAmount] = useState('')
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
-  const [transferToId, setTransferToId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? '')
+  const [accountId, setAccountId] = useState(
+    () => fromParam ?? accounts.find((a) => a.id !== toParam)?.id ?? accounts[0]?.id ?? '',
+  )
+  const [transferToId, setTransferToId] = useState(
+    () => toParam ?? accounts.find((a) => a.id !== (fromParam ?? accounts[0]?.id))?.id ?? accounts[1]?.id ?? accounts[0]?.id ?? '',
+  )
   const [categoryId, setCategoryId] = useState(categories.find((c) => c.kind === 'expense')?.id ?? '')
   const [incomeSourceId, setIncomeSourceId] = useState(incomeSources[0]?.id ?? '')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
@@ -51,15 +59,29 @@ export function AddTransactionScreen() {
   }
 
   return (
-    <div dir="rtl" className="safe-top flex h-full flex-col px-5 pb-6 pt-8">
-      <div className="mb-6 flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-          إلغاء
-        </button>
-        <div className="text-base font-bold">إضافة حركة</div>
-        <div className="w-10" />
-      </div>
-
+    <ScreenScroll
+      header={
+        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
+          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
+            إلغاء
+          </button>
+          <div className="text-base font-bold">إضافة حركة</div>
+          <div className="w-10" />
+        </div>
+      }
+      footer={
+        <div className="px-5 pb-6 pt-3">
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
+            style={{ background: color }}
+          >
+            حفظ الحركة
+          </button>
+        </div>
+      }
+    >
       <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
         {(
           [
@@ -217,17 +239,8 @@ export function AddTransactionScreen() {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: عشاء مع الأصدقاء"
-        className="mb-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
-
-      <button
-        onClick={handleSave}
-        disabled={!canSave}
-        className="mt-auto rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
-        style={{ background: color }}
-      >
-        حفظ الحركة
-      </button>
-    </div>
+    </ScreenScroll>
   )
 }

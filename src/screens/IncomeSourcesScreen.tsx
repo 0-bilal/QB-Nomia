@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney } from '../lib/format'
+import { ScreenScroll } from '../components/ScreenScroll'
 
 export function IncomeSourcesScreen() {
   const { incomeSources, transactions } = useData()
@@ -13,25 +14,27 @@ export function IncomeSourcesScreen() {
   }
 
   return (
-    <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
-      <div className="mb-5 flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-          ← رجوع
-        </button>
-        <div className="text-base font-bold">مصادر الدخل</div>
-        <button
-          onClick={() => navigate('/income-sources/new')}
-          className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
-          style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
-          aria-label="إضافة مصدر دخل"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
-      </div>
-
+    <ScreenScroll
+      header={
+        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-5">
+          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
+            ← رجوع
+          </button>
+          <div className="text-base font-bold">مصادر الدخل</div>
+          <button
+            onClick={() => navigate('/income-sources/new')}
+            className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
+            style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
+            aria-label="إضافة مصدر دخل"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      }
+    >
       {incomeSources.length === 0 ? (
         <div className="py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد مصادر دخل بعد</div>
       ) : (
@@ -46,6 +49,6 @@ export function IncomeSourcesScreen() {
           ))}
         </div>
       )}
-    </div>
+    </ScreenScroll>
   )
 }

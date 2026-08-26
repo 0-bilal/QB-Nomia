@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney } from '../lib/format'
+import { ScreenScroll } from '../components/ScreenScroll'
 import type { Subscription } from '../types'
 
 function daysUntil(dateStr: string): number {
@@ -33,29 +34,32 @@ export function SubscriptionsScreen() {
   const [openId, setOpenId] = useState<string | null>(null)
 
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? ''
+  const wallets = accounts.filter((a) => a.type === 'wallet')
 
   return (
-    <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
-      <div className="mb-5 flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-          ← رجوع
-        </button>
-        <div className="text-base font-bold">الاشتراكات</div>
-        <button
-          onClick={() => navigate('/subscriptions/new')}
-          className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
-          style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
-          aria-label="إضافة اشتراك"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
-      </div>
-
+    <ScreenScroll
+      header={
+        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-5">
+          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
+            ← رجوع
+          </button>
+          <div className="text-base font-bold">الاشتراكات</div>
+          <button
+            onClick={() => navigate('/subscriptions/new')}
+            className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
+            style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
+            aria-label="إضافة اشتراك"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
+      }
+    >
       <div
-        className="mb-5 rounded-3xl border border-[var(--color-border)] p-4.5"
+        className="mb-4 rounded-3xl border border-[var(--color-border)] p-4.5"
         style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)' }}
       >
         <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">إجمالي الاشتراكات الشهرية</div>
@@ -63,6 +67,47 @@ export function SubscriptionsScreen() {
           {formatMoney(totalMonthlySubscriptions)}
         </div>
       </div>
+
+      <div className="mb-5">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[13px] font-bold text-[var(--color-text-2)]">المحافظ الرقمية</div>
+          <button
+            onClick={() => navigate('/accounts/new?type=wallet')}
+            className="text-[11.5px] font-semibold"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            + محفظة جديدة
+          </button>
+        </div>
+
+        {wallets.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
+            ما عندك محفظة رقمية بعد. أنشئ محفظة (مثل Google Play)، عبّيها بتحويل من الكاش أو البنكي، وسدد اشتراكاتك منها.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {wallets.map((w) => (
+              <div key={w.id} className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                <div>
+                  <div className="text-[13.5px] font-bold">{w.name}</div>
+                  <div className="num mt-0.5 text-[16px] font-bold" style={{ color: 'var(--color-accent)' }}>
+                    {formatMoney(w.balance)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate(`/add/transaction?type=transfer&to=${w.id}`)}
+                  className="rounded-full px-3.5 py-2 text-[12px] font-semibold"
+                  style={{ background: 'rgba(0,226,138,0.14)', color: 'var(--color-accent)' }}
+                >
+                  شحن المحفظة
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-2 text-[13px] font-bold text-[var(--color-text-2)]">كل الاشتراكات</div>
 
       {subscriptions.length === 0 ? (
         <div className="py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد اشتراكات بعد</div>
@@ -125,34 +170,34 @@ export function SubscriptionsScreen() {
                         تسجيل الدفع الآن (يخصم {formatMoney(sub.cost)} من {accountName(sub.accountId)})
                       </button>
                     )}
-                  <div className="flex gap-2">
-                    {sub.status === 'active' ? (
-                      <button
-                        onClick={() => setSubscriptionStatus(sub.id, 'paused')}
-                        className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
-                      >
-                        إيقاف مؤقت
-                      </button>
-                    ) : sub.status === 'paused' ? (
-                      <button
-                        onClick={() => setSubscriptionStatus(sub.id, 'active')}
-                        className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
-                      >
-                        استئناف
-                      </button>
-                    ) : null}
-                    {sub.status !== 'cancelled' && (
-                      <button
-                        onClick={() => setSubscriptionStatus(sub.id, 'cancelled')}
-                        className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }}
-                      >
-                        إلغاء الاشتراك
-                      </button>
-                    )}
-                  </div>
+                    <div className="flex gap-2">
+                      {sub.status === 'active' ? (
+                        <button
+                          onClick={() => setSubscriptionStatus(sub.id, 'paused')}
+                          className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
+                          style={{ background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
+                        >
+                          إيقاف مؤقت
+                        </button>
+                      ) : sub.status === 'paused' ? (
+                        <button
+                          onClick={() => setSubscriptionStatus(sub.id, 'active')}
+                          className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
+                          style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
+                        >
+                          استئناف
+                        </button>
+                      ) : null}
+                      {sub.status !== 'cancelled' && (
+                        <button
+                          onClick={() => setSubscriptionStatus(sub.id, 'cancelled')}
+                          className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
+                          style={{ background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }}
+                        >
+                          إلغاء الاشتراك
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -160,6 +205,6 @@ export function SubscriptionsScreen() {
           })}
         </div>
       )}
-    </div>
+    </ScreenScroll>
   )
 }

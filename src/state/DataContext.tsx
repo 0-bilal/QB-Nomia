@@ -231,6 +231,7 @@ export interface ActivityItem {
   subtitle: string
   amount: number
   color: string
+  accountIds: string[]
 }
 
 interface DataContextValue {
@@ -258,6 +259,8 @@ interface DataContextValue {
   addTransaction: (input: AddTransactionInput) => void
   categorySpentThisMonth: (categoryId: string) => number
   recentActivity: (limit?: number) => ActivityItem[]
+  accountActivity: (accountId: string, limit?: number) => ActivityItem[]
+  monthTotals: () => { income: number; expense: number }
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -333,6 +336,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .reduce((s, t) => s + t.amount, 0)
     }
 
+    function monthTotals(): { income: number; expense: number } {
+      const now = new Date()
+      const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      const monthTxns = transactions.filter((t) => t.date.startsWith(prefix))
+      return {
+        income: monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+        expense: monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+      }
+    }
+
     function accountName(id: string): string {
       return accounts.find((a) => a.id === id)?.name ?? ''
     }
@@ -346,7 +359,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return people.find((p) => p.id === id)?.name ?? '—'
     }
 
-    function recentActivity(limit = 5): ActivityItem[] {
+    function buildActivity(): ActivityItem[] {
       const fromTxns: ActivityItem[] = transactions.map((t) => {
         if (t.type === 'expense') {
           return {
@@ -357,6 +370,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             subtitle: accountName(t.accountId),
             amount: -t.amount,
             color: 'var(--color-expense)',
+            accountIds: [t.accountId],
           }
         }
         if (t.type === 'income') {
@@ -368,6 +382,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             subtitle: accountName(t.accountId),
             amount: t.amount,
             color: 'var(--color-income)',
+            accountIds: [t.accountId],
           }
         }
         return {
@@ -378,6 +393,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           subtitle: `${accountName(t.accountId)} ← ${accountName(t.transferToAccountId ?? '')}`,
           amount: -t.amount,
           color: 'var(--color-transfer)',
+          accountIds: [t.accountId, t.transferToAccountId].filter((x): x is string => Boolean(x)),
         }
       })
 
@@ -389,9 +405,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         subtitle: t.direction === 'given' ? 'أعطيته' : 'استلمت منه',
         amount: t.direction === 'given' ? -t.amount : t.amount,
         color: t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)',
+        accountIds: [t.accountId],
       }))
 
-      return [...fromTxns, ...fromLoans].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, limit)
+      return [...fromTxns, ...fromLoans].sort((a, b) => (a.date < b.date ? 1 : -1))
+    }
+
+    function recentActivity(limit = 5): ActivityItem[] {
+      return buildActivity().slice(0, limit)
+    }
+
+    function accountActivity(accountId: string, limit = 3): ActivityItem[] {
+      return buildActivity()
+        .filter((item) => item.accountIds.includes(accountId))
+        .map((item) => {
+          // التحويل يبدو موجب (وارد) لو نعرضه تحت الحساب المستلِم، وسالب (صادر) تحت حساب المصدر
+          if (item.kind === 'transfer' && item.accountIds[1] === accountId) {
+            return { ...item, amount: Math.abs(item.amount) }
+          }
+          return item
+        })
+        .slice(0, limit)
     }
 
     const totalMonthlySubscriptions = subscriptions
@@ -414,6 +448,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       personTransactions,
       categorySpentThisMonth,
       recentActivity,
+      accountActivity,
+      monthTotals,
       addPerson(input: AddPersonInput) {
         const person: Person = {
           id: makeId(),

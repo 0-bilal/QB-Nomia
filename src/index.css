@@ -27,20 +27,36 @@
   --color-text-3: #5c5c63;
 }
 
-html,
-body,
-#root {
-  height: 100vh;
-  height: 100dvh;
+/*
+  قفل الصفحة بالكامل كـ "تطبيق": body ثابت بحجم الشاشة تمامًا ولا يتمرر
+  إطلاقًا (position: fixed يمنع الـ rubber-band scroll على iOS Safari).
+  فقط الحاويات الداخلية المعلَّمة overflow-y-auto هي اللي تتمرر — هذا
+  يمنع إحساس "موقع ويب" ويخلي شريط التنقل وأي عنصر ثابت يبقى بمكانه.
+*/
+html {
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
   margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 * {

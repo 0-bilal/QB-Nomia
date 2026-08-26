@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
+import { ScreenScroll } from '../components/ScreenScroll'
 import type { BillingCycle } from '../types'
 
 function defaultRenewalDate(): string {
@@ -16,7 +17,7 @@ export function AddSubscriptionScreen() {
   const [provider, setProvider] = useState('')
   const [cost, setCost] = useState('')
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
+  const [accountId, setAccountId] = useState(accounts.find((a) => a.type === 'wallet')?.id ?? accounts[0]?.id ?? '')
   const [nextRenewalDate, setNextRenewalDate] = useState(defaultRenewalDate())
 
   const numericCost = Number(cost)
@@ -29,15 +30,29 @@ export function AddSubscriptionScreen() {
   }
 
   return (
-    <div dir="rtl" className="safe-top flex h-full flex-col px-5 pb-6 pt-8">
-      <div className="mb-6 flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-          إلغاء
-        </button>
-        <div className="text-base font-bold">إضافة اشتراك</div>
-        <div className="w-10" />
-      </div>
-
+    <ScreenScroll
+      header={
+        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
+          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
+            إلغاء
+          </button>
+          <div className="text-base font-bold">إضافة اشتراك</div>
+          <div className="w-10" />
+        </div>
+      }
+      footer={
+        <div className="px-5 pb-6 pt-3">
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
+            style={{ background: 'var(--color-subscription)' }}
+          >
+            حفظ الاشتراك
+          </button>
+        </div>
+      }
+    >
       <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الاشتراك</label>
       <input
         value={name}
@@ -111,17 +126,8 @@ export function AddSubscriptionScreen() {
         dir="ltr"
         value={nextRenewalDate}
         onChange={(e) => setNextRenewalDate(e.target.value)}
-        className="num mb-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
+        className="num mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
       />
-
-      <button
-        onClick={handleSave}
-        disabled={!canSave}
-        className="mt-auto rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
-        style={{ background: 'var(--color-subscription)' }}
-      >
-        حفظ الاشتراك
-      </button>
-    </div>
+    </ScreenScroll>
   )
 }

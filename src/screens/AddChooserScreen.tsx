@@ -1,18 +1,21 @@
 import { useNavigate } from 'react-router-dom'
+import { ScreenScroll } from '../components/ScreenScroll'
 
 export function AddChooserScreen() {
   const navigate = useNavigate()
 
   return (
-    <div dir="rtl" className="safe-top flex h-full flex-col px-5 pb-6 pt-8">
-      <div className="mb-8 flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-          إلغاء
-        </button>
-        <div className="text-base font-bold">إضافة حركة</div>
-        <div className="w-10" />
-      </div>
-
+    <ScreenScroll
+      header={
+        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-8">
+          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
+            إلغاء
+          </button>
+          <div className="text-base font-bold">إضافة حركة</div>
+          <div className="w-10" />
+        </div>
+      }
+    >
       <button
         onClick={() => navigate('/loans')}
         className="mb-3 flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5 text-right"
@@ -52,6 +55,6 @@ export function AddChooserScreen() {
           <div className="text-[11.5px] text-[var(--color-text-3)]">سجّل حركة على أحد حساباتك</div>
         </div>
       </button>
-    </div>
+    </ScreenScroll>
   )
 }

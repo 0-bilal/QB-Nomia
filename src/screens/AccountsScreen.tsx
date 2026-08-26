@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
-import { formatMoney } from '../lib/format'
+import { formatMoney, formatSigned, formatDate } from '../lib/format'
+import { ActivityIcon } from '../components/ActivityIcon'
 import type { Account } from '../types'
 
 const ICON_BG: Record<Account['type'], string> = {
@@ -54,8 +56,9 @@ function AccountIcon({ type }: { type: Account['type'] }) {
 }
 
 export function AccountsScreen() {
-  const { accounts, totalBalance } = useData()
+  const { accounts, totalBalance, accountActivity } = useData()
   const navigate = useNavigate()
+  const [openId, setOpenId] = useState<string | null>(null)
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
@@ -75,7 +78,7 @@ export function AccountsScreen() {
       </div>
 
       <div
-        className="mb-4.5 flex items-center justify-between rounded-3xl border border-[var(--color-border)] px-4.5 py-4"
+        className="mb-3.5 flex items-center justify-between rounded-3xl border border-[var(--color-border)] px-4.5 py-4"
         style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)' }}
       >
         <div>
@@ -85,42 +88,94 @@ export function AccountsScreen() {
         <div className="text-[11.5px] text-[var(--color-text-3)]">{accounts.length} حسابات نشطة</div>
       </div>
 
-      {accounts.map((a) => (
-        <div key={a.id} className="mb-3.5 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
-              style={{ width: 46, height: 46, background: ICON_BG[a.type], color: ICON_COLOR[a.type] }}
-            >
-              <AccountIcon type={a.type} />
-            </div>
-            <div className="flex-1">
-              <div className="text-[14.5px] font-bold">{a.name}</div>
-              <div className="text-[11.5px] text-[var(--color-text-3)]">
-                {a.goalLabel ? `هدف: ${a.goalLabel} — ${formatMoney(a.goalAmount ?? 0)}` : LABELS[a.type]}
-              </div>
-            </div>
-            <div className="num text-base font-bold">{formatMoney(a.balance)}</div>
-          </div>
+      <button
+        onClick={() => navigate('/add/transaction?type=transfer')}
+        className="mb-4.5 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-[13px] font-bold"
+        style={{ borderColor: 'rgba(124,108,255,0.35)', background: 'rgba(124,108,255,0.1)', color: 'var(--color-transfer)' }}
+      >
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="17,3 21,7 17,11" />
+          <path d="M3 7h18" />
+          <polyline points="7,21 3,17 7,13" />
+          <path d="M21 17H3" />
+        </svg>
+        تحويل بين الحسابات
+      </button>
 
-          {a.goalAmount ? (
-            <>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/6">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.min(100, (a.balance / a.goalAmount) * 100)}%`,
-                    background: 'linear-gradient(90deg, #F5B942, #F59E0B)',
-                  }}
-                />
+      {accounts.map((a) => {
+        const open = openId === a.id
+        const activity = open ? accountActivity(a.id, 3) : []
+        return (
+          <div key={a.id} className="mb-3.5 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5">
+            <button onClick={() => setOpenId(open ? null : a.id)} className="flex w-full items-center gap-3 text-right">
+              <div
+                className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
+                style={{ width: 46, height: 46, background: ICON_BG[a.type], color: ICON_COLOR[a.type] }}
+              >
+                <AccountIcon type={a.type} />
               </div>
-              <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
-                وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف
+              <div className="flex-1">
+                <div className="text-[14.5px] font-bold">{a.name}</div>
+                <div className="text-[11.5px] text-[var(--color-text-3)]">
+                  {a.goalLabel ? `هدف: ${a.goalLabel} — ${formatMoney(a.goalAmount ?? 0)}` : LABELS[a.type]}
+                </div>
               </div>
-            </>
-          ) : null}
-        </div>
-      ))}
+              <div className="num text-base font-bold">{formatMoney(a.balance)}</div>
+            </button>
+
+            {a.goalAmount ? (
+              <>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/6">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, (a.balance / a.goalAmount) * 100)}%`,
+                      background: 'linear-gradient(90deg, #F5B942, #F59E0B)',
+                    }}
+                  />
+                </div>
+                <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
+                  وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف
+                </div>
+              </>
+            ) : null}
+
+            {a.type === 'wallet' && (
+              <button
+                onClick={() => navigate(`/add/transaction?type=transfer&to=${a.id}`)}
+                className="mt-3 w-full rounded-xl py-2 text-[12px] font-semibold"
+                style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
+              >
+                شحن المحفظة
+              </button>
+            )}
+
+            {open && (
+              <div className="mt-3.5 border-t border-white/6 pt-3">
+                {activity.length === 0 ? (
+                  <div className="py-2 text-center text-[12px] text-[var(--color-text-3)]">لا توجد حركات على هذا الحساب بعد</div>
+                ) : (
+                  activity.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2.5 py-1.5">
+                      <div
+                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
+                        style={{ width: 32, height: 32, background: `${item.color}1f`, color: item.color }}
+                      >
+                        <ActivityIcon kind={item.kind} />
+                      </div>
+                      <div className="flex-1 text-[12px] font-semibold">{item.title}</div>
+                      <div className="text-[10.5px] text-[var(--color-text-3)]">{formatDate(item.date)}</div>
+                      <div className="num text-[12px] font-bold" style={{ color: item.color }}>
+                        {formatSigned(item.amount)}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData, type ActivityItem } from '../state/DataContext'
+import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
+import { ActivityIcon } from '../components/ActivityIcon'
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   if (hidden) {
@@ -21,43 +22,9 @@ function EyeIcon({ hidden }: { hidden: boolean }) {
   )
 }
 
-function ActivityIcon({ kind }: { kind: ActivityItem['kind'] }) {
-  if (kind === 'expense') {
-    return (
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <polyline points="6,13 12,19 18,13" />
-      </svg>
-    )
-  }
-  if (kind === 'income') {
-    return (
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="19" x2="12" y2="5" />
-        <polyline points="6,11 12,5 18,11" />
-      </svg>
-    )
-  }
-  if (kind === 'transfer') {
-    return (
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="17,3 21,7 17,11" />
-        <path d="M3 7h18" />
-        <polyline points="7,21 3,17 7,13" />
-        <path d="M21 17H3" />
-      </svg>
-    )
-  }
-  return (
-    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" />
-    </svg>
-  )
-}
-
 export function HomeScreen() {
-  const { accounts, totalBalance, totalMonthlySubscriptions, recentActivity } = useData()
+  const { accounts, totalBalance, totalMonthlySubscriptions, recentActivity, categories, categorySpentThisMonth, monthTotals } =
+    useData()
   const navigate = useNavigate()
   const [hidden, setHidden] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
@@ -67,6 +34,15 @@ export function HomeScreen() {
   const savings = accounts.find((a) => a.type === 'savings')?.balance ?? 0
 
   const activity = recentActivity(6)
+  const { income: monthIncome, expense: monthExpense } = monthTotals()
+
+  const topCategories = categories
+    .filter((c) => c.kind === 'expense')
+    .map((c) => ({ ...c, spent: categorySpentThisMonth(c.id) }))
+    .filter((c) => c.spent > 0)
+    .sort((a, b) => b.spent - a.spent)
+    .slice(0, 5)
+  const maxCategorySpent = topCategories[0]?.spent ?? 0
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
@@ -106,6 +82,60 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
+
+      <div className="mb-4 flex gap-2.5">
+        <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+          <div className="mb-2 flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--color-income)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="6,11 12,5 18,11" />
+            </svg>
+            <div className="text-[11.5px] text-[var(--color-text-2)]">دخل الشهر</div>
+          </div>
+          <div className="num text-[16px] font-bold" style={{ color: 'var(--color-income)' }}>
+            {mask(formatMoney(monthIncome))}
+          </div>
+        </div>
+        <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+          <div className="mb-2 flex items-center gap-1.5">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--color-expense)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <polyline points="6,13 12,19 18,13" />
+            </svg>
+            <div className="text-[11.5px] text-[var(--color-text-2)]">مصروف الشهر</div>
+          </div>
+          <div className="num text-[16px] font-bold" style={{ color: 'var(--color-expense)' }}>
+            {mask(formatMoney(monthExpense))}
+          </div>
+        </div>
+      </div>
+
+      {topCategories.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-[13px] font-bold text-[var(--color-text-2)]">أكثر الفئات إنفاقًا هذا الشهر</div>
+            <button onClick={() => navigate('/categories')} className="text-[11.5px] font-semibold" style={{ color: 'var(--color-accent)' }}>
+              عرض الكل
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            {topCategories.map((c) => (
+              <div key={c.id}>
+                <div className="mb-1 flex items-center justify-between text-[12.5px]">
+                  <div className="font-semibold">{c.name}</div>
+                  <div className="num font-semibold text-[var(--color-text-2)]">{mask(formatMoney(c.spent))}</div>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/6">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${maxCategorySpent ? (c.spent / maxCategorySpent) * 100 : 0}%`, background: 'var(--color-expense)' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {totalMonthlySubscriptions > 0 && (
         <button
