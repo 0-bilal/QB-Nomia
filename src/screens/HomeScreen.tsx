@@ -23,7 +23,7 @@ function EyeIcon({ hidden }: { hidden: boolean }) {
 }
 
 export function HomeScreen() {
-  const { accounts, totalBalance, totalMonthlySubscriptions, recentActivity, categories, categorySpentThisMonth, monthTotals } =
+  const { accounts, availableBalance, totalMonthlySubscriptions, recentActivity, categories, categorySpentThisMonth, monthTotals } =
     useData()
   const navigate = useNavigate()
   const [hidden, setHidden] = useState(false)
@@ -67,8 +67,8 @@ export function HomeScreen() {
         className="mb-4 rounded-3xl border border-[var(--color-border)] p-5.5"
         style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)', boxShadow: '0 0 40px -14px rgba(0,226,138,0.18)' }}
       >
-        <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">الرصيد الإجمالي</div>
-        <div className="num mb-4 text-[34px] font-bold tracking-tight">{mask(formatMoney(totalBalance))}</div>
+        <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">الرصيد المتاح</div>
+        <div className="num mb-4 text-[34px] font-bold tracking-tight">{mask(formatMoney(availableBalance))}</div>
         <div className="flex gap-2.5">
           {[
             ['كاش', cash],

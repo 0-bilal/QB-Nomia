@@ -142,6 +142,7 @@ interface DataContextValue {
   transactions: Transaction[]
   subscriptions: Subscription[]
   totalBalance: number
+  availableBalance: number
   totalMonthlySubscriptions: number
   addSubscription: (input: AddSubscriptionInput) => Subscription
   setSubscriptionStatus: (id: string, status: SubscriptionStatus) => void
@@ -413,6 +414,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
+      // ادخار ومحفظة رقمية مو رصيد جاهز للصرف فورًا — تُستثنى من "الرصيد
+      // المتاح" بالرئيسية (بخلاف totalBalance اللي يبقى مجموع كل الحسابات
+      // فعليًا لشاشة الحسابات نفسها).
+      availableBalance: accounts
+        .filter((a) => a.type === 'cash' || a.type === 'bank')
+        .reduce((s, a) => s + a.balance, 0),
       totalMonthlySubscriptions,
       totalOwedToMe,
       totalIOwe,
