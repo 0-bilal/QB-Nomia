@@ -103,7 +103,7 @@ const ITEMS = [
   { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
   { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
   { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
-  { label: 'مزامنة Google Sheets', desc: 'رفع وسحب بياناتك من جدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)', bg: 'rgba(45,212,191,0.12)' },
+  { label: 'مزامنة Google Sheets', desc: 'نسخة احتياطية تلقائية لجدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)', bg: 'rgba(45,212,191,0.12)' },
   { label: 'حول التطبيق', desc: 'الإصدار، المطوّر، ومعلومات عن QB-Nomia', to: '/about', icon: <InfoIcon />, color: 'var(--color-text-2)', bg: 'rgba(255,255,255,0.06)' },
 ]
 
