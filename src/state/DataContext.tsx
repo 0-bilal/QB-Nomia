@@ -159,6 +159,8 @@ interface DataContextValue {
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
   monthTotals: () => { income: number; expense: number }
+  monthlyTrend: (months?: number) => { label: string; income: number; expense: number }[]
+  financialHealthScore: () => number | null
   exportSnapshot: () => DataSnapshot
   importSnapshot: (snapshot: DataSnapshot) => void
 }
@@ -254,6 +256,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
         income: monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0),
         expense: monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
       }
+    }
+
+    function monthlyTrend(months = 6): { label: string; income: number; expense: number }[] {
+      const now = new Date()
+      const result: { label: string; income: number; expense: number }[] = []
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        const monthTxns = transactions.filter((t) => t.date.startsWith(prefix))
+        result.push({
+          label: d.toLocaleDateString('ar-SA-u-ca-gregory', { month: 'short' }),
+          income: monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+          expense: monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+        })
+      }
+      return result
+    }
+
+    /**
+     * مؤشر الصحة المالية الشهري (0-100): 70% منه نسبة الادخار هذا الشهر
+     * (دخل - مصروف / دخل)، و30% منه مدى خفّة عبء الاشتراكات الشهرية من الدخل.
+     * لا معنى له بدون دخل مسجّل هذا الشهر فيرجع null.
+     */
+    function financialHealthScore(): number | null {
+      const { income, expense } = monthTotals()
+      if (income <= 0) return null
+      const savingsRate = (income - expense) / income
+      const subscriptionBurden = totalMonthlySubscriptions / income
+      const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
+      const score = clamp01(savingsRate) * 70 + clamp01(1 - subscriptionBurden) * 30
+      return Math.round(score)
     }
 
     function accountName(id: string): string {
@@ -360,6 +393,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       recentActivity,
       accountActivity,
       monthTotals,
+      monthlyTrend,
+      financialHealthScore,
       addPerson(input: AddPersonInput) {
         const person: Person = {
           id: makeId(),

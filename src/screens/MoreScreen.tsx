@@ -7,7 +7,7 @@ const ITEMS = [
   { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories' },
   { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources' },
   { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions' },
-  { label: 'التقارير', desc: 'ملخصات ورسوم بيانية شهرية', soon: true },
+  { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports' },
   { label: 'مزامنة Google Sheets', desc: 'رفع وسحب بياناتك من جدولك', to: '/sync-settings' },
 ]
 
@@ -32,26 +32,18 @@ export function MoreScreen() {
       <div className="mb-5 text-xl font-bold">المزيد</div>
 
       <div className="mb-6 flex flex-col gap-2.5">
-        {ITEMS.map((item) => {
-          const Wrapper = item.to ? 'button' : 'div'
-          return (
-            <Wrapper
-              key={item.label}
-              onClick={item.to ? () => navigate(item.to!) : undefined}
-              className={`flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-right ${item.soon ? 'opacity-60' : ''}`}
-            >
-              <div>
-                <div className="text-[13.5px] font-bold">{item.label}</div>
-                <div className="text-[11.5px] text-[var(--color-text-3)]">{item.desc}</div>
-              </div>
-              {item.soon && (
-                <div className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}>
-                  قريبًا
-                </div>
-              )}
-            </Wrapper>
-          )
-        })}
+        {ITEMS.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => navigate(item.to)}
+            className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-right"
+          >
+            <div>
+              <div className="text-[13.5px] font-bold">{item.label}</div>
+              <div className="text-[11.5px] text-[var(--color-text-3)]">{item.desc}</div>
+            </div>
+          </button>
+        ))}
       </div>
 
       <button

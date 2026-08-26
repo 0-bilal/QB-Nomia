@@ -50,7 +50,7 @@ export function HomeScreen() {
         <div>
           <div className="mb-0.5 text-[13px] text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
           <div className="text-xs text-[var(--color-text-3)]">
-            {new Date().toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString('ar-SA-u-ca-gregory', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
         </div>
         <button

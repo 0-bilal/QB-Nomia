@@ -8,7 +8,9 @@ export function formatSigned(amount: number): string {
   return `${sign}${formatMoney(Math.abs(amount))}`
 }
 
+// ar-SA-u-ca-gregory: التقويم الميلادي صراحة — ar-SA لوحدها تستخدم التقويم
+// الهجري افتراضيًا بمتصفحات كثيرة، بينما كل تواريخ التطبيق ميلادية (ISO).
 export function formatDate(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('ar-SA-u-ca-gregory', { day: 'numeric', month: 'short' })
 }
