@@ -50,10 +50,27 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  /* يمنع إيماءة الزوم بالنقر المزدوج — التطبيق مقفول بحجم الشاشة أصلًا فما فيه داعي له. */
+  touch-action: manipulation;
+}
+
+/*
+  حجم الخط بأي حقل إدخال لازم يكون 16px فأكثر: أي حقل بخط أصغر يخلي
+  Safari/iOS يكبّر الصفحة تلقائيًا (zoom) بمجرد التركيز عليه، وبما إن
+  الصفحة مقفولة بـ position:fixed فوق، الزوم يعلق ويطلع شريط التنقل
+  السفلي برا حدود الشاشة المرئية بدل ما يرجع لوضعه الطبيعي. هذا override
+  مقصود فوق أي حجم خط أصغر معرَّف بمكان ثاني (Tailwind أو inline).
+*/
+input,
+select,
+textarea {
+  font-size: 16px !important;
 }
 
 #root {
   height: 100%;
+  max-width: 480px;
+  margin-inline: auto;
   overflow: hidden;
   display: flex;
   flex-direction: column;
