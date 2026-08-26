@@ -3,7 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
+import { activityEditPath } from '../lib/activityNav'
 import type { Account } from '../types'
+
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path d="M13.5 8 16 10.5" />
+    </svg>
+  )
+}
 
 const ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.12)',
@@ -123,6 +133,17 @@ export function AccountsScreen() {
               <div className="num text-base font-bold">{formatMoney(a.balance)}</div>
             </button>
 
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/accounts/${a.id}/edit`)
+              }}
+              className="mt-2.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-[var(--color-text-3)]"
+            >
+              <EditIcon />
+              تعديل الحساب
+            </button>
+
             {a.goalAmount ? (
               <>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/6">
@@ -156,7 +177,7 @@ export function AccountsScreen() {
                   <div className="py-2 text-center text-[12px] text-[var(--color-text-3)]">لا توجد حركات على هذا الحساب بعد</div>
                 ) : (
                   activity.map((item) => (
-                    <div key={item.id} className="flex items-center gap-2.5 py-1.5">
+                    <button key={item.id} onClick={() => navigate(activityEditPath(item))} className="flex w-full items-center gap-2.5 py-1.5 text-right">
                       <div
                         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
                         style={{ width: 32, height: 32, background: `${item.color}1f`, color: item.color }}
@@ -168,7 +189,7 @@ export function AccountsScreen() {
                       <div className="num text-[12px] font-bold" style={{ color: item.color }}>
                         {formatSigned(item.amount)}
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>

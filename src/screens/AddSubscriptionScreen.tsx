@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { DatePicker } from '../components/DatePicker'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import type { BillingCycle } from '../types'
 
 function defaultRenewalDate(): string {
@@ -12,21 +13,35 @@ function defaultRenewalDate(): string {
 }
 
 export function AddSubscriptionScreen() {
-  const { accounts, addSubscription } = useData()
+  const { id } = useParams<{ id?: string }>()
+  const { accounts, subscriptions, addSubscription, updateSubscription, deleteSubscription } = useData()
   const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [provider, setProvider] = useState('')
-  const [cost, setCost] = useState('')
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
-  const [accountId, setAccountId] = useState(accounts.find((a) => a.type === 'wallet')?.id ?? accounts[0]?.id ?? '')
-  const [nextRenewalDate, setNextRenewalDate] = useState(defaultRenewalDate())
+
+  const existing = id ? subscriptions.find((s) => s.id === id) : undefined
+  const isEditing = Boolean(existing)
+
+  const [name, setName] = useState(existing?.name ?? '')
+  const [provider, setProvider] = useState(existing?.provider ?? '')
+  const [cost, setCost] = useState(existing ? String(existing.cost) : '')
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(existing?.billingCycle ?? 'monthly')
+  const [accountId, setAccountId] = useState(existing?.accountId ?? accounts.find((a) => a.type === 'wallet')?.id ?? accounts[0]?.id ?? '')
+  const [nextRenewalDate, setNextRenewalDate] = useState(existing?.nextRenewalDate ?? defaultRenewalDate())
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const numericCost = Number(cost)
   const canSave = name.trim() && numericCost > 0 && accountId && nextRenewalDate
 
   function handleSave() {
     if (!canSave) return
-    addSubscription({ name, provider, cost: numericCost, billingCycle, nextRenewalDate, accountId })
+    const input = { name, provider, cost: numericCost, billingCycle, nextRenewalDate, accountId }
+    if (isEditing && id) updateSubscription(id, input)
+    else addSubscription(input)
+    navigate('/subscriptions', { replace: true })
+  }
+
+  function handleDelete() {
+    if (!id) return
+    deleteSubscription(id)
     navigate('/subscriptions', { replace: true })
   }
 
@@ -37,8 +52,14 @@ export function AddSubscriptionScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">إضافة اشتراك</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل اشتراك' : 'إضافة اشتراك'}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -49,11 +70,20 @@ export function AddSubscriptionScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: 'var(--color-subscription)' }}
           >
-            حفظ الاشتراك
+            {isEditing ? 'حفظ التعديلات' : 'حفظ الاشتراك'}
           </button>
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف الاشتراك"
+        message="بيتم حذف هذا الاشتراك نهائيًا — الحركات المالية المسجّلة له سابقًا ما تتأثر."
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الاشتراك</label>
       <input
         value={name}

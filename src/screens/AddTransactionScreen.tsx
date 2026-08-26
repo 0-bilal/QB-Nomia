@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { AmountPad } from '../components/AmountPad'
 import { DatePicker } from '../components/DatePicker'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import type { TransactionType } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -13,26 +14,37 @@ const TYPE_COLOR: Record<TransactionType, string> = {
 }
 
 export function AddTransactionScreen() {
+  const { id } = useParams<{ id?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { accounts, categories, incomeSources, addTransaction } = useData()
+  const { accounts, categories, incomeSources, transactions, addTransaction, updateTransaction, deleteTransaction } = useData()
 
-  const initialType = (searchParams.get('type') as TransactionType) || 'expense'
+  const existing = id ? transactions.find((t) => t.id === id) : undefined
+  const isEditing = Boolean(existing)
+
+  const initialType = existing?.type ?? ((searchParams.get('type') as TransactionType) || 'expense')
   const toParam = searchParams.get('to') ?? undefined
   const fromParam = searchParams.get('from') ?? undefined
 
   const [type, setType] = useState<TransactionType>(initialType)
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : '')
   const [accountId, setAccountId] = useState(
-    () => fromParam ?? accounts.find((a) => a.id !== toParam)?.id ?? accounts[0]?.id ?? '',
+    () => existing?.accountId ?? fromParam ?? accounts.find((a) => a.id !== toParam)?.id ?? accounts[0]?.id ?? '',
   )
   const [transferToId, setTransferToId] = useState(
-    () => toParam ?? accounts.find((a) => a.id !== (fromParam ?? accounts[0]?.id))?.id ?? accounts[1]?.id ?? accounts[0]?.id ?? '',
+    () =>
+      existing?.transferToAccountId ??
+      toParam ??
+      accounts.find((a) => a.id !== (fromParam ?? accounts[0]?.id))?.id ??
+      accounts[1]?.id ??
+      accounts[0]?.id ??
+      '',
   )
-  const [categoryId, setCategoryId] = useState(categories.find((c) => c.kind === 'expense')?.id ?? '')
-  const [incomeSourceId, setIncomeSourceId] = useState(incomeSources[0]?.id ?? '')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [note, setNote] = useState('')
+  const [categoryId, setCategoryId] = useState(existing?.categoryId ?? categories.find((c) => c.kind === 'expense')?.id ?? '')
+  const [incomeSourceId, setIncomeSourceId] = useState(existing?.incomeSourceId ?? incomeSources[0]?.id ?? '')
+  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState(existing?.note ?? '')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const color = TYPE_COLOR[type]
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
@@ -47,7 +59,7 @@ export function AddTransactionScreen() {
 
   function handleSave() {
     if (!canSave) return
-    addTransaction({
+    const input = {
       type,
       amount: numericAmount,
       date,
@@ -56,7 +68,19 @@ export function AddTransactionScreen() {
       incomeSourceId: type === 'income' ? incomeSourceId : undefined,
       transferToAccountId: type === 'transfer' ? transferToId : undefined,
       note,
-    })
+    }
+    if (isEditing && id) {
+      updateTransaction(id, input)
+      navigate(-1)
+    } else {
+      addTransaction(input)
+      navigate('/', { replace: true })
+    }
+  }
+
+  function handleDelete() {
+    if (!id) return
+    deleteTransaction(id)
     navigate('/', { replace: true })
   }
 
@@ -67,8 +91,14 @@ export function AddTransactionScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">إضافة حركة</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل حركة' : 'إضافة حركة'}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -79,11 +109,20 @@ export function AddTransactionScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: color }}
           >
-            حفظ الحركة
+            {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
           </button>
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف الحركة"
+        message="بيتم حذف هذي الحركة نهائيًا، ورصيد الحساب المرتبط بيرجع لوضعه قبلها."
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
       <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
         {(
           [

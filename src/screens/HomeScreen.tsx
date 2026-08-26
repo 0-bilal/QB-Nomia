@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
+import { activityEditPath } from '../lib/activityNav'
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   if (hidden) {
@@ -44,6 +45,12 @@ export function HomeScreen() {
     .slice(0, 5)
   const maxCategorySpent = topCategories[0]?.spent ?? 0
 
+  const budgetAlerts = categories
+    .filter((c) => c.kind === 'expense' && c.budgetLimit)
+    .map((c) => ({ ...c, spent: categorySpentThisMonth(c.id), pct: (categorySpentThisMonth(c.id) / (c.budgetLimit ?? 1)) * 100 }))
+    .filter((c) => c.pct >= 80)
+    .sort((a, b) => b.pct - a.pct)
+
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
       <div className="mb-5 flex items-center justify-between">
@@ -82,6 +89,21 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
+
+      {budgetAlerts.length > 0 && (
+        <button
+          onClick={() => navigate('/categories')}
+          className="mb-4 flex w-full flex-col gap-1.5 rounded-2xl border px-4 py-3 text-right"
+          style={{ borderColor: 'rgba(255,92,92,0.3)', background: 'rgba(255,92,92,0.08)' }}
+        >
+          {budgetAlerts.map((c) => (
+            <div key={c.id} className="flex items-center justify-between text-[12px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <span>{c.pct >= 100 ? `تجاوزت ميزانية "${c.name}"` : `قاربت على تجاوز ميزانية "${c.name}"`}</span>
+              <span className="num">{Math.round(c.pct)}%</span>
+            </div>
+          ))}
+        </button>
+      )}
 
       <div className="mb-4 flex gap-2.5">
         <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
@@ -161,6 +183,11 @@ export function HomeScreen() {
 
       <div className="mb-1.5 flex items-center justify-between">
         <div className="text-[14.5px] font-bold">آخر الحركات</div>
+        {activity.length > 0 && (
+          <button onClick={() => navigate('/transactions')} className="text-[11.5px] font-semibold" style={{ color: 'var(--color-accent)' }}>
+            عرض الكل
+          </button>
+        )}
       </div>
 
       {activity.length === 0 ? (
@@ -168,7 +195,7 @@ export function HomeScreen() {
       ) : (
         <div className="border-t border-white/6">
           {activity.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 border-b border-white/6 py-2.75">
+            <button key={item.id} onClick={() => navigate(activityEditPath(item))} className="flex w-full items-center gap-3 border-b border-white/6 py-2.75 text-right">
               <div
                 className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
                 style={{ width: 42, height: 42, background: `${item.color}1f`, color: item.color }}
@@ -184,7 +211,7 @@ export function HomeScreen() {
               <div className="num text-[13.5px] font-bold" style={{ color: item.color }}>
                 {mask(formatSigned(item.amount))}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

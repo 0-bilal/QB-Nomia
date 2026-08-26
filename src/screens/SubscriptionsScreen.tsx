@@ -161,6 +161,13 @@ export function SubscriptionsScreen() {
 
                 {open && (
                   <div className="mt-3.5 flex flex-col gap-2 border-t border-white/6 pt-3.5">
+                    <button
+                      onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
+                      className="rounded-xl py-2.5 text-[12.5px] font-semibold"
+                      style={{ background: 'var(--color-void)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
+                    >
+                      تعديل بيانات الاشتراك
+                    </button>
                     {sub.status === 'active' && (
                       <button
                         onClick={() => logSubscriptionPayment(sub.id)}

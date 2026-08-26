@@ -4,23 +4,27 @@ import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
 import { AmountPad } from '../../components/AmountPad'
 import { DatePicker } from '../../components/DatePicker'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import type { LoanDirection } from '../../types'
 
 export function AddLoanScreen() {
-  const { personId } = useParams<{ personId: string }>()
+  const { personId, loanId } = useParams<{ personId: string; loanId?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { people, accounts, addLoanTransaction } = useData()
+  const { people, accounts, loanTransactions, addLoanTransaction, updateLoanTransaction, deleteLoanTransaction } = useData()
 
   const person = people.find((p) => p.id === personId)
-  const initialDirection = (searchParams.get('direction') as LoanDirection) || 'given'
+  const existing = loanId ? loanTransactions.find((t) => t.id === loanId) : undefined
+  const isEditing = Boolean(existing)
+  const initialDirection = existing?.direction ?? ((searchParams.get('direction') as LoanDirection) || 'given')
 
   const [direction, setDirection] = useState<LoanDirection>(initialDirection)
-  const [amount, setAmount] = useState('')
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [dueDate, setDueDate] = useState('')
-  const [note, setNote] = useState('')
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : '')
+  const [accountId, setAccountId] = useState(existing?.accountId ?? accounts[0]?.id ?? '')
+  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10))
+  const [dueDate, setDueDate] = useState(existing?.dueDate ?? '')
+  const [note, setNote] = useState(existing?.note ?? '')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   if (!person) {
     return (
@@ -36,7 +40,7 @@ export function AddLoanScreen() {
 
   function handleSave() {
     if (!canSave || !person) return
-    addLoanTransaction({
+    const input = {
       personId: person.id,
       direction,
       amount: numericAmount,
@@ -44,7 +48,15 @@ export function AddLoanScreen() {
       date,
       dueDate: direction === 'given' && dueDate ? dueDate : undefined,
       note,
-    })
+    }
+    if (isEditing && loanId) updateLoanTransaction(loanId, input)
+    else addLoanTransaction(input)
+    navigate(`/loans/${person.id}`, { replace: true })
+  }
+
+  function handleDelete() {
+    if (!loanId || !person) return
+    deleteLoanTransaction(loanId)
     navigate(`/loans/${person.id}`, { replace: true })
   }
 
@@ -55,8 +67,14 @@ export function AddLoanScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">حركة مع {person.name}</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل حركة' : `حركة مع ${person.name}`}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -67,11 +85,21 @@ export function AddLoanScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: color }}
           >
-            حفظ الحركة
+            {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
           </button>
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف الحركة"
+        message="بيتم حذف هذي الحركة نهائيًا، ورصيد الحساب المرتبط بيرجع لوضعه قبلها."
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
       <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
         <button
           onClick={() => setDirection('given')}

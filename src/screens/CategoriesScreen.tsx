@@ -36,9 +36,14 @@ export function CategoriesScreen() {
         <div className="flex flex-col gap-2.5">
           {expenseCategories.map((c) => {
             const spent = categorySpentThisMonth(c.id)
-            const pct = c.budgetLimit ? Math.min(100, (spent / c.budgetLimit) * 100) : null
+            const rawPct = c.budgetLimit ? (spent / c.budgetLimit) * 100 : null
+            const pct = rawPct !== null ? Math.min(100, rawPct) : null
             return (
-              <div key={c.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <button
+                key={c.id}
+                onClick={() => navigate(`/categories/${c.id}/edit`)}
+                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-right"
+              >
                 <div className="flex items-center justify-between">
                   <div className="text-[13.5px] font-bold">{c.name}</div>
                   <div className="num text-[13px] font-semibold text-[var(--color-text-2)]">
@@ -50,11 +55,21 @@ export function CategoriesScreen() {
                   <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/6">
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-expense)' : 'var(--color-accent)' }}
+                      style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-expense)' : pct >= 80 ? 'var(--color-subscription)' : 'var(--color-accent)' }}
                     />
                   </div>
                 )}
-              </div>
+                {rawPct !== null && rawPct >= 100 && (
+                  <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                    تجاوزت الميزانية بـ {formatMoney(spent - (c.budgetLimit ?? 0))}
+                  </div>
+                )}
+                {rawPct !== null && rawPct >= 80 && rawPct < 100 && (
+                  <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
+                    قاربت على تجاوز الميزانية ({Math.round(rawPct)}%)
+                  </div>
+                )}
+              </button>
             )
           })}
         </div>

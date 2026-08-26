@@ -131,6 +131,8 @@ export interface ActivityItem {
   amount: number
   color: string
   accountIds: string[]
+  personId?: string
+  note?: string
 }
 
 interface DataContextValue {
@@ -145,18 +147,32 @@ interface DataContextValue {
   availableBalance: number
   totalMonthlySubscriptions: number
   addSubscription: (input: AddSubscriptionInput) => Subscription
+  updateSubscription: (id: string, input: AddSubscriptionInput) => void
+  deleteSubscription: (id: string) => void
   setSubscriptionStatus: (id: string, status: SubscriptionStatus) => void
   logSubscriptionPayment: (id: string) => void
   addAccount: (input: AddAccountInput) => Account
+  updateAccount: (id: string, input: AddAccountInput) => void
+  deleteAccount: (id: string) => void
   addPerson: (input: AddPersonInput) => Person
+  updatePerson: (id: string, input: AddPersonInput) => void
+  deletePerson: (id: string) => void
   addLoanTransaction: (input: AddLoanInput) => void
+  updateLoanTransaction: (id: string, input: AddLoanInput) => void
+  deleteLoanTransaction: (id: string) => void
   personBalance: (personId: string) => number
   personTransactions: (personId: string) => LoanTransaction[]
   totalOwedToMe: number
   totalIOwe: number
   addCategory: (input: AddCategoryInput) => Category
+  updateCategory: (id: string, input: AddCategoryInput) => void
+  deleteCategory: (id: string) => void
   addIncomeSource: (input: AddIncomeSourceInput) => IncomeSource
+  updateIncomeSource: (id: string, input: AddIncomeSourceInput) => void
+  deleteIncomeSource: (id: string) => void
   addTransaction: (input: AddTransactionInput) => void
+  updateTransaction: (id: string, input: AddTransactionInput) => void
+  deleteTransaction: (id: string) => void
   categorySpentThisMonth: (categoryId: string) => number
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
@@ -178,6 +194,30 @@ export interface DataSnapshot {
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
+
+/** يطبّق أثر حركة مالية (مصروف/دخل/تحويل) على أرصدة الحسابات — multiplier=-1 يعكس نفس الأثر (لحذف أو تعديل حركة قائمة). */
+function withTransactionEffect(accs: Account[], txn: Transaction, multiplier: 1 | -1): Account[] {
+  if (txn.type === 'expense') {
+    return accs.map((a) => (a.id === txn.accountId ? { ...a, balance: a.balance - multiplier * txn.amount } : a))
+  }
+  if (txn.type === 'income') {
+    return accs.map((a) => (a.id === txn.accountId ? { ...a, balance: a.balance + multiplier * txn.amount } : a))
+  }
+  if (txn.type === 'transfer' && txn.transferToAccountId) {
+    return accs.map((a) => {
+      if (a.id === txn.accountId) return { ...a, balance: a.balance - multiplier * txn.amount }
+      if (a.id === txn.transferToAccountId) return { ...a, balance: a.balance + multiplier * txn.amount }
+      return a
+    })
+  }
+  return accs
+}
+
+/** يطبّق أثر حركة سلفة على رصيد الحساب المرتبط بها — نفس مبدأ withTransactionEffect. */
+function withLoanEffect(accs: Account[], txn: LoanTransaction, multiplier: 1 | -1): Account[] {
+  const delta = txn.direction === 'given' ? -txn.amount : txn.amount
+  return accs.map((a) => (a.id === txn.accountId ? { ...a, balance: a.balance + multiplier * delta } : a))
+}
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<Account[]>(() => loadJSON(ACCOUNTS_KEY, seedAccounts()))
@@ -344,6 +384,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             amount: -t.amount,
             color: 'var(--color-expense)',
             accountIds: [t.accountId],
+            note: t.note,
           }
         }
         if (t.type === 'income') {
@@ -356,6 +397,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             amount: t.amount,
             color: 'var(--color-income)',
             accountIds: [t.accountId],
+            note: t.note,
           }
         }
         return {
@@ -367,6 +409,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           amount: -t.amount,
           color: 'var(--color-transfer)',
           accountIds: [t.accountId, t.transferToAccountId].filter((x): x is string => Boolean(x)),
+          note: t.note,
         }
       })
 
@@ -379,6 +422,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         amount: t.direction === 'given' ? -t.amount : t.amount,
         color: t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)',
         accountIds: [t.accountId],
+        personId: t.personId,
       }))
 
       return [...fromTxns, ...fromLoans].sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -442,6 +486,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistPeople([person, ...people])
         return person
       },
+      updatePerson(id: string, input: AddPersonInput) {
+        persistPeople(
+          people.map((p) =>
+            p.id === id
+              ? { ...p, name: input.name.trim(), phone: input.phone?.trim() || undefined, note: input.note?.trim() || undefined }
+              : p,
+          ),
+        )
+      },
+      deletePerson(id: string) {
+        // حذف الشخص يحذف سجل سلفه معه بالكامل — ويرجّع أثر كل حركة سلفة على رصيد حسابها المرتبط قبل الحذف.
+        const theirLoans = loanTransactions.filter((t) => t.personId === id)
+        let nextAccounts = accounts
+        for (const t of theirLoans) nextAccounts = withLoanEffect(nextAccounts, t, -1)
+        persistAccounts(nextAccounts)
+        persistLoans(loanTransactions.filter((t) => t.personId !== id))
+        persistPeople(people.filter((p) => p.id !== id))
+      },
       addLoanTransaction(input: AddLoanInput) {
         const txn: LoanTransaction = {
           id: makeId(),
@@ -454,11 +516,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
           note: input.note?.trim() || undefined,
         }
         persistLoans([txn, ...loanTransactions])
-
-        const delta = input.direction === 'given' ? -input.amount : input.amount
-        persistAccounts(
-          accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance + delta } : a)),
-        )
+        persistAccounts(withLoanEffect(accounts, txn, 1))
+      },
+      updateLoanTransaction(id: string, input: AddLoanInput) {
+        const old = loanTransactions.find((t) => t.id === id)
+        if (!old) return
+        const updated: LoanTransaction = {
+          ...old,
+          direction: input.direction,
+          amount: input.amount,
+          accountId: input.accountId,
+          date: input.date,
+          dueDate: input.direction === 'given' ? input.dueDate : undefined,
+          note: input.note?.trim() || undefined,
+        }
+        const reverted = withLoanEffect(accounts, old, -1)
+        persistAccounts(withLoanEffect(reverted, updated, 1))
+        persistLoans(loanTransactions.map((t) => (t.id === id ? updated : t)))
+      },
+      deleteLoanTransaction(id: string) {
+        const txn = loanTransactions.find((t) => t.id === id)
+        if (!txn) return
+        persistAccounts(withLoanEffect(accounts, txn, -1))
+        persistLoans(loanTransactions.filter((t) => t.id !== id))
       },
       addCategory(input: AddCategoryInput) {
         const category: Category = {
@@ -470,10 +550,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistCategories([...categories, category])
         return category
       },
+      updateCategory(id: string, input: AddCategoryInput) {
+        persistCategories(
+          categories.map((c) => (c.id === id ? { ...c, name: input.name.trim(), kind: input.kind, budgetLimit: input.budgetLimit } : c)),
+        )
+      },
+      deleteCategory(id: string) {
+        persistCategories(categories.filter((c) => c.id !== id))
+      },
       addIncomeSource(input: AddIncomeSourceInput) {
         const source: IncomeSource = { id: makeId(), name: input.name.trim() }
         persistIncomeSources([...incomeSources, source])
         return source
+      },
+      updateIncomeSource(id: string, input: AddIncomeSourceInput) {
+        persistIncomeSources(incomeSources.map((s) => (s.id === id ? { ...s, name: input.name.trim() } : s)))
+      },
+      deleteIncomeSource(id: string) {
+        persistIncomeSources(incomeSources.filter((s) => s.id !== id))
       },
       addTransaction(input: AddTransactionInput) {
         const txn: Transaction = {
@@ -488,24 +582,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
           note: input.note?.trim() || undefined,
         }
         persistTransactions([txn, ...transactions])
-
-        let nextAccounts = accounts
-        if (input.type === 'expense') {
-          nextAccounts = accounts.map((a) =>
-            a.id === input.accountId ? { ...a, balance: a.balance - input.amount } : a,
-          )
-        } else if (input.type === 'income') {
-          nextAccounts = accounts.map((a) =>
-            a.id === input.accountId ? { ...a, balance: a.balance + input.amount } : a,
-          )
-        } else if (input.type === 'transfer' && input.transferToAccountId) {
-          nextAccounts = accounts.map((a) => {
-            if (a.id === input.accountId) return { ...a, balance: a.balance - input.amount }
-            if (a.id === input.transferToAccountId) return { ...a, balance: a.balance + input.amount }
-            return a
-          })
+        persistAccounts(withTransactionEffect(accounts, txn, 1))
+      },
+      updateTransaction(id: string, input: AddTransactionInput) {
+        const old = transactions.find((t) => t.id === id)
+        if (!old) return
+        const updated: Transaction = {
+          ...old,
+          type: input.type,
+          amount: input.amount,
+          date: input.date,
+          accountId: input.accountId,
+          categoryId: input.type === 'expense' ? input.categoryId : undefined,
+          incomeSourceId: input.type === 'income' ? input.incomeSourceId : undefined,
+          transferToAccountId: input.type === 'transfer' ? input.transferToAccountId : undefined,
+          note: input.note?.trim() || undefined,
         }
-        persistAccounts(nextAccounts)
+        const reverted = withTransactionEffect(accounts, old, -1)
+        persistAccounts(withTransactionEffect(reverted, updated, 1))
+        persistTransactions(transactions.map((t) => (t.id === id ? updated : t)))
+      },
+      deleteTransaction(id: string) {
+        const txn = transactions.find((t) => t.id === id)
+        if (!txn) return
+        persistAccounts(withTransactionEffect(accounts, txn, -1))
+        persistTransactions(transactions.filter((t) => t.id !== id))
       },
       addSubscription(input: AddSubscriptionInput) {
         const sub: Subscription = {
@@ -520,6 +621,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistSubscriptions([sub, ...subscriptions])
         return sub
+      },
+      updateSubscription(id: string, input: AddSubscriptionInput) {
+        persistSubscriptions(
+          subscriptions.map((s) =>
+            s.id === id
+              ? {
+                  ...s,
+                  name: input.name.trim(),
+                  provider: input.provider?.trim() || undefined,
+                  cost: input.cost,
+                  billingCycle: input.billingCycle,
+                  nextRenewalDate: input.nextRenewalDate,
+                  accountId: input.accountId,
+                }
+              : s,
+          ),
+        )
+      },
+      deleteSubscription(id: string) {
+        persistSubscriptions(subscriptions.filter((s) => s.id !== id))
       },
       setSubscriptionStatus(id: string, status: SubscriptionStatus) {
         persistSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, status } : s)))
@@ -562,6 +683,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistAccounts([...accounts, account])
         return account
+      },
+      updateAccount(id: string, input: AddAccountInput) {
+        persistAccounts(
+          accounts.map((a) =>
+            a.id === id
+              ? { ...a, name: input.name.trim(), type: input.type, balance: input.balance, goalAmount: input.goalAmount, goalLabel: input.goalLabel }
+              : a,
+          ),
+        )
+      },
+      deleteAccount(id: string) {
+        persistAccounts(accounts.filter((a) => a.id !== id))
       },
       exportSnapshot(): DataSnapshot {
         return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions }
