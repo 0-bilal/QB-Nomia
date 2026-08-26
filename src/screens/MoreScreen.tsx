@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 
 const ITEMS = [
-  { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', soon: true },
-  { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', soon: true },
+  { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories' },
+  { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources' },
   { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', soon: true },
   { label: 'التقارير', desc: 'ملخصات ورسوم بيانية شهرية', soon: true },
   { label: 'ربط Google Sheets', desc: 'مزامنة بياناتك مع حسابك', soon: true },
@@ -18,22 +18,26 @@ export function MoreScreen() {
       <div className="mb-5 text-xl font-bold">المزيد</div>
 
       <div className="flex flex-col gap-2.5">
-        {ITEMS.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 opacity-60"
-          >
-            <div>
-              <div className="text-[13.5px] font-bold">{item.label}</div>
-              <div className="text-[11.5px] text-[var(--color-text-3)]">{item.desc}</div>
-            </div>
-            {item.soon && (
-              <div className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}>
-                قريبًا
+        {ITEMS.map((item) => {
+          const Wrapper = item.to ? 'button' : 'div'
+          return (
+            <Wrapper
+              key={item.label}
+              onClick={item.to ? () => navigate(item.to!) : undefined}
+              className={`flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-right ${item.soon ? 'opacity-60' : ''}`}
+            >
+              <div>
+                <div className="text-[13.5px] font-bold">{item.label}</div>
+                <div className="text-[11.5px] text-[var(--color-text-3)]">{item.desc}</div>
               </div>
-            )}
-          </div>
-        ))}
+              {item.soon && (
+                <div className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}>
+                  قريبًا
+                </div>
+              )}
+            </Wrapper>
+          )
+        })}
       </div>
 
       <button

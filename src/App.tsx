@@ -7,6 +7,11 @@ import { HomeScreen } from './screens/HomeScreen'
 import { AccountsScreen } from './screens/AccountsScreen'
 import { MoreScreen } from './screens/MoreScreen'
 import { AddChooserScreen } from './screens/AddChooserScreen'
+import { AddTransactionScreen } from './screens/AddTransactionScreen'
+import { CategoriesScreen } from './screens/CategoriesScreen'
+import { AddCategoryScreen } from './screens/AddCategoryScreen'
+import { IncomeSourcesScreen } from './screens/IncomeSourcesScreen'
+import { AddIncomeSourceScreen } from './screens/AddIncomeSourceScreen'
 import { PeopleListScreen } from './screens/loans/PeopleListScreen'
 import { AddPersonScreen } from './screens/loans/AddPersonScreen'
 import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
@@ -33,6 +38,11 @@ export default function App() {
           <Route path="more" element={<MoreScreen />} />
         </Route>
         <Route path="add" element={<AddChooserScreen />} />
+        <Route path="add/transaction" element={<AddTransactionScreen />} />
+        <Route path="categories" element={<CategoriesScreen />} />
+        <Route path="categories/new" element={<AddCategoryScreen />} />
+        <Route path="income-sources" element={<IncomeSourcesScreen />} />
+        <Route path="income-sources/new" element={<AddIncomeSourceScreen />} />
         <Route path="loans/new" element={<AddPersonScreen />} />
         <Route path="loans/:personId" element={<PersonDetailScreen />} />
         <Route path="loans/:personId/add" element={<AddLoanScreen />} />

@@ -34,7 +34,10 @@ export function AddChooserScreen() {
         </div>
       </button>
 
-      <div className="mb-3 flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5 opacity-50">
+      <button
+        onClick={() => navigate('/add/transaction')}
+        className="mb-3 flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5 text-right"
+      >
         <div
           className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
           style={{ width: 46, height: 46, background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }}
@@ -46,9 +49,9 @@ export function AddChooserScreen() {
         </div>
         <div className="flex-1">
           <div className="text-[14px] font-bold">مصروف / دخل / تحويل</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">قريبًا</div>
+          <div className="text-[11.5px] text-[var(--color-text-3)]">سجّل حركة على أحد حساباتك</div>
         </div>
-      </div>
+      </button>
     </div>
   )
 }

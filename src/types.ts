@@ -29,3 +29,31 @@ export interface LoanTransaction {
   dueDate?: string
   note?: string
 }
+
+export type CategoryKind = 'expense' | 'income'
+
+export interface Category {
+  id: string
+  name: string
+  kind: CategoryKind
+  budgetLimit?: number
+}
+
+export interface IncomeSource {
+  id: string
+  name: string
+}
+
+export type TransactionType = 'expense' | 'income' | 'transfer'
+
+export interface Transaction {
+  id: string
+  type: TransactionType
+  amount: number
+  date: string
+  note?: string
+  accountId: string
+  categoryId?: string
+  incomeSourceId?: string
+  transferToAccountId?: string
+}

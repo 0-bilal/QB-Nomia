@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useData } from '../state/DataContext'
+import { useData, type ActivityItem } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
@@ -20,8 +20,43 @@ function EyeIcon({ hidden }: { hidden: boolean }) {
   )
 }
 
+function ActivityIcon({ kind }: { kind: ActivityItem['kind'] }) {
+  if (kind === 'expense') {
+    return (
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <polyline points="6,13 12,19 18,13" />
+      </svg>
+    )
+  }
+  if (kind === 'income') {
+    return (
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="19" x2="12" y2="5" />
+        <polyline points="6,11 12,5 18,11" />
+      </svg>
+    )
+  }
+  if (kind === 'transfer') {
+    return (
+      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="17,3 21,7 17,11" />
+        <path d="M3 7h18" />
+        <polyline points="7,21 3,17 7,13" />
+        <path d="M21 17H3" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" />
+    </svg>
+  )
+}
+
 export function HomeScreen() {
-  const { accounts, totalBalance, loanTransactions, people } = useData()
+  const { accounts, totalBalance, recentActivity } = useData()
   const [hidden, setHidden] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
 
@@ -29,11 +64,7 @@ export function HomeScreen() {
   const bank = accounts.find((a) => a.type === 'bank')?.balance ?? 0
   const savings = accounts.find((a) => a.type === 'savings')?.balance ?? 0
 
-  const recent = [...loanTransactions]
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
-    .slice(0, 5)
-
-  const personName = (id: string) => people.find((p) => p.id === id)?.name ?? '—'
+  const activity = recentActivity(6)
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
@@ -75,40 +106,29 @@ export function HomeScreen() {
       </div>
 
       <div className="mb-1.5 flex items-center justify-between">
-        <div className="text-[14.5px] font-bold">آخر حركات السلف</div>
+        <div className="text-[14.5px] font-bold">آخر الحركات</div>
       </div>
 
-      {recent.length === 0 ? (
+      {activity.length === 0 ? (
         <div className="py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
       ) : (
         <div className="border-t border-white/6">
-          {recent.map((t) => (
-            <div key={t.id} className="flex items-center gap-3 border-b border-white/6 py-2.75">
+          {activity.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 border-b border-white/6 py-2.75">
               <div
                 className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
-                style={{
-                  width: 42,
-                  height: 42,
-                  background: t.direction === 'given' ? 'rgba(251,146,60,0.12)' : 'rgba(45,212,191,0.12)',
-                  color: t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)',
-                }}
+                style={{ width: 42, height: 42, background: `${item.color}1f`, color: item.color }}
               >
-                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="3.5" />
-                  <path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" />
-                </svg>
+                <ActivityIcon kind={item.kind} />
               </div>
               <div className="flex-1">
-                <div className="text-[13.5px] font-semibold">{personName(t.personId)}</div>
+                <div className="text-[13.5px] font-semibold">{item.title}</div>
                 <div className="text-[11.5px] text-[var(--color-text-3)]">
-                  {t.direction === 'given' ? 'أعطيته' : 'استلمت منه'} · {formatDate(t.date)}
+                  {item.subtitle} · {formatDate(item.date)}
                 </div>
               </div>
-              <div
-                className="num text-[13.5px] font-bold"
-                style={{ color: t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)' }}
-              >
-                {mask(formatSigned(t.direction === 'given' ? -t.amount : t.amount))}
+              <div className="num text-[13.5px] font-bold" style={{ color: item.color }}>
+                {mask(formatSigned(item.amount))}
               </div>
             </div>
           ))}
