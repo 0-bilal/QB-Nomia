@@ -261,6 +261,19 @@ interface DataContextValue {
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
   monthTotals: () => { income: number; expense: number }
+  resetToBlank: () => void
+  exportSnapshot: () => DataSnapshot
+  importSnapshot: (snapshot: DataSnapshot) => void
+}
+
+export interface DataSnapshot {
+  accounts: Account[]
+  people: Person[]
+  loanTransactions: LoanTransaction[]
+  categories: Category[]
+  incomeSources: IncomeSource[]
+  transactions: Transaction[]
+  subscriptions: Subscription[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -581,6 +594,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistAccounts([...accounts, account])
         return account
+      },
+      resetToBlank() {
+        persistAccounts(accounts.map((a) => ({ ...a, balance: 0 })))
+        persistPeople([])
+        persistLoans([])
+        persistTransactions([])
+        persistSubscriptions([])
+      },
+      exportSnapshot(): DataSnapshot {
+        return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions }
+      },
+      importSnapshot(snapshot: DataSnapshot) {
+        persistAccounts(snapshot.accounts ?? [])
+        persistPeople(snapshot.people ?? [])
+        persistLoans(snapshot.loanTransactions ?? [])
+        persistCategories(snapshot.categories ?? [])
+        persistIncomeSources(snapshot.incomeSources ?? [])
+        persistTransactions(snapshot.transactions ?? [])
+        persistSubscriptions(snapshot.subscriptions ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
