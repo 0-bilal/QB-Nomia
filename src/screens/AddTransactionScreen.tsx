@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { AmountPad } from '../components/AmountPad'
+import { DatePicker } from '../components/DatePicker'
 import type { TransactionType } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -240,13 +241,9 @@ export function AddTransactionScreen() {
       )}
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
-      <input
-        type="date"
-        dir="ltr"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
-      />
+      <div className="mb-5">
+        <DatePicker value={date} onChange={setDate} color={color} />
+      </div>
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
