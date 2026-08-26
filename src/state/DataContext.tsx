@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { loadJSON, saveJSON } from '../lib/storage'
 import { makeId } from '../lib/id'
+import { scheduleBackgroundSync } from '../lib/autoSync'
 import type {
   Account,
   BillingCycle,
@@ -222,6 +223,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setSubscriptions(next)
     saveJSON(SUBSCRIPTIONS_KEY, next)
   }
+
+  // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
+  // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
+  // (isFirstRender) وأي استيراد ناتج عن سحب من جوجل شيت نفسه
+  // (importSnapshot يضبط skipNextAutoSync) حتى ما نرفع البيانات فورًا
+  // للمصدر اللي جبناها منه أصلًا.
+  const isFirstRender = useRef(true)
+  const skipNextAutoSync = useRef(false)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    if (skipNextAutoSync.current) {
+      skipNextAutoSync.current = false
+      return
+    }
+    scheduleBackgroundSync(() => ({
+      accounts,
+      people,
+      loanTransactions,
+      categories,
+      incomeSources,
+      transactions,
+      subscriptions,
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -531,6 +560,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions }
       },
       importSnapshot(snapshot: DataSnapshot) {
+        skipNextAutoSync.current = true
         persistAccounts(snapshot.accounts ?? [])
         persistPeople(snapshot.people ?? [])
         persistLoans(snapshot.loanTransactions ?? [])

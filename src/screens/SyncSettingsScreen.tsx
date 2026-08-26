@@ -4,6 +4,7 @@ import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
+import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
@@ -14,7 +15,29 @@ export function SyncSettingsScreen() {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [lastSynced, setLastSynced] = useState(getLastSyncedAt())
   const [confirmPullOpen, setConfirmPullOpen] = useState(false)
-  const configured = isSheetsSyncConfigured()
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
+  const [configured, setConfigured] = useState(isSheetsSyncConfigured())
+  const [url, setUrl] = useState(getSheetsWebAppUrl())
+  const [token, setToken] = useState(getSheetsSecretToken())
+  const [showToken, setShowToken] = useState(false)
+
+  const canSave = url.trim().length > 0 && token.trim().length > 0
+
+  function handleSaveCredentials() {
+    if (!canSave) return
+    setSheetsSyncCredentials(url, token)
+    setConfigured(true)
+    setStatus({ kind: 'ok', label: 'تم حفظ إعدادات الربط على هذا الجهاز' })
+  }
+
+  function handleClearCredentials() {
+    setConfirmClearOpen(false)
+    clearSheetsSyncCredentials()
+    setUrl('')
+    setToken('')
+    setConfigured(false)
+    setStatus({ kind: 'idle' })
+  }
 
   async function handlePush() {
     setStatus({ kind: 'busy', label: 'يتم رفع البيانات...' })
@@ -61,20 +84,55 @@ export function SyncSettingsScreen() {
         onConfirm={handlePull}
         onCancel={() => setConfirmPullOpen(false)}
       />
-      {!configured ? (
-        <div className="rounded-2xl border border-dashed p-4 text-[12.5px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
-          لم يتم إعداد رابط المزامنة بعد. رابط Web App والرمز السري يُضبطان بالكود مباشرة بملف
-          <span dir="ltr" className="mx-1 font-mono text-[11px]">src/config/sheetsSync.ts</span>
-          — راجع
-          <span dir="ltr" className="mx-1 font-mono text-[11px]">google-apps-script/README.md</span>
-          للخطوات كاملة، ثم انشر نسخة جديدة من التطبيق.
-        </div>
-      ) : (
-        <>
-          <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
-            بياناتك تُشفَّر بالكامل بجهازك قبل الإرسال، وتُفكّ بعد الاستقبال — Google Sheets نفسه لا يخزّن أي بيانات مالية مقروءة.
-          </div>
+      <ConfirmDialog
+        open={confirmClearOpen}
+        title="إزالة الربط"
+        message="بيانات الربط (الرابط والرمز السري) بتتمسح من هذا الجهاز بس. بياناتك المالية المحلية ما تتأثر."
+        confirmLabel="إزالة"
+        color="var(--color-expense)"
+        onConfirm={handleClearCredentials}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
 
+      <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
+        الرابط والرمز السري يُحفظان على هذا الجهاز فقط (مو بكود التطبيق) — بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets نفسه لا يخزّن أي بيانات مالية مقروءة.
+      </div>
+
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">رابط Web App</label>
+      <input
+        dir="ltr"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="https://script.google.com/macros/s/.../exec"
+        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
+      />
+
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الرمز السري</label>
+      <div className="mb-4 flex items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1">
+        <input
+          dir="ltr"
+          type={showToken ? 'text' : 'password'}
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder="نفس الرمز الموضوع بالسكربت"
+          className="w-full bg-transparent py-2.5 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
+        />
+        <button type="button" onClick={() => setShowToken((s) => !s)} className="flex-shrink-0 text-[11.5px] font-semibold text-[var(--color-text-2)]">
+          {showToken ? 'إخفاء' : 'إظهار'}
+        </button>
+      </div>
+
+      <button
+        onClick={handleSaveCredentials}
+        disabled={!canSave}
+        className="mb-5 w-full rounded-2xl py-3 text-center text-[13.5px] font-bold text-[#04140D] disabled:opacity-40"
+        style={{ background: 'var(--color-accent)' }}
+      >
+        حفظ إعدادات الربط
+      </button>
+
+      {configured && (
+        <>
           <div className="mb-3 flex gap-3">
             <button
               onClick={handlePush}
@@ -92,11 +150,19 @@ export function SyncSettingsScreen() {
             </button>
           </div>
 
+          <div className="mb-1.5 text-center text-[11px] text-[var(--color-text-3)]">
+            كل تعديل جديد (حركة، حساب، سلفة...) يُرفع تلقائيًا بالخلفية — الزرين أعلاه لمزامنة فورية يدوية عند الحاجة فقط.
+          </div>
+
           {lastSynced && (
             <div className="mb-3 text-center text-[11.5px] text-[var(--color-text-3)]">
               آخر مزامنة: {formatDate(lastSynced)}
             </div>
           )}
+
+          <button onClick={() => setConfirmClearOpen(true)} className="mb-3 w-full text-center text-[12px] font-semibold text-[var(--color-text-3)]">
+            إزالة الربط من هذا الجهاز
+          </button>
         </>
       )}
 

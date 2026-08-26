@@ -1,20 +1,31 @@
 /**
- * إعدادات مزامنة Google Sheets — تُضبط هنا بالكود مباشرة (مو من داخل التطبيق).
- *
- * 1) انشر سكربت google-apps-script/Code.gs على جدول Google Sheets الخاص بك
- *    (الخطوات كاملة في google-apps-script/README.md).
- * 2) انسخ رابط الـ Web App (ينتهي بـ /exec) وألصقه بـ SHEETS_WEB_APP_URL.
- * 3) انسخ نفس SECRET_TOKEN اللي حطيته بالسكربت وألصقه بـ SHEETS_SECRET_TOKEN.
- * 4) احفظ، وارفع (build + deploy) نسخة جديدة من التطبيق حتى تسري القيم.
- *
- * البيانات تُشفَّر بالكامل بهذا الرمز السري (AES-GCM، عبر src/lib/cryptoUtil.ts)
- * قبل إرسالها لجوجل وبعد استلامها منه — جوجل شيت نفسه يخزّن نصًا مشفّرًا غير
- * مقروء، لا بيانات مالية صريحة.
+ * إعدادات مزامنة Google Sheets — تُحفظ في متصفح المستخدم فقط (localStorage)،
+ * وليس بالكود المصدري: المستودع عام، وأي رمز يُكتب مباشرة بالكود يصير
+ * مرئيًا لأي أحد يتصفح المستودع أو تاريخ الـ commits. الرابط والرمز
+ * يُدخَلان مرة واحدة من "المزيد ← مزامنة Google Sheets" على كل جهاز.
  */
 
-export const SHEETS_WEB_APP_URL = ''
-export const SHEETS_SECRET_TOKEN = ''
+const URL_KEY = 'qbnomia.sync.webAppUrl'
+const TOKEN_KEY = 'qbnomia.sync.secretToken'
+
+export function getSheetsWebAppUrl(): string {
+  return localStorage.getItem(URL_KEY) ?? ''
+}
+
+export function getSheetsSecretToken(): string {
+  return localStorage.getItem(TOKEN_KEY) ?? ''
+}
+
+export function setSheetsSyncCredentials(url: string, token: string): void {
+  localStorage.setItem(URL_KEY, url.trim())
+  localStorage.setItem(TOKEN_KEY, token.trim())
+}
+
+export function clearSheetsSyncCredentials(): void {
+  localStorage.removeItem(URL_KEY)
+  localStorage.removeItem(TOKEN_KEY)
+}
 
 export function isSheetsSyncConfigured(): boolean {
-  return SHEETS_WEB_APP_URL.trim().length > 0 && SHEETS_SECRET_TOKEN.trim().length > 0
+  return getSheetsWebAppUrl().length > 0 && getSheetsSecretToken().length > 0
 }
