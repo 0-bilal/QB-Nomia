@@ -99,7 +99,7 @@ export function AddLoanScreen() {
         <AmountPad value={amount} onChange={setAmount} color={color} />
       </div>
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
       <div className="mb-5 flex flex-wrap gap-2">
         {accounts.map((a) => (
           <button
@@ -117,34 +117,34 @@ export function AddLoanScreen() {
         ))}
       </div>
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
       <input
         type="date"
         dir="ltr"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="num mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
+        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
       />
 
       {direction === 'given' && (
         <>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ الاستحقاق (اختياري)</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ الاستحقاق (اختياري)</label>
           <input
             type="date"
             dir="ltr"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="num mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
+            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
           />
         </>
       )}
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: سلفة راتب"
-        className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )

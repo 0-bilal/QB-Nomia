@@ -75,9 +75,9 @@ export function HomeScreen() {
             ['بنكي', bank],
             ['ادخار', savings],
           ].map(([label, val]) => (
-            <div key={label as string} className="flex-1 rounded-2xl bg-white/4 px-3 py-2.5">
+            <div key={label as string} className="min-w-0 flex-1 rounded-2xl bg-white/4 px-3 py-2.5">
               <div className="mb-1 text-[11px] text-[var(--color-text-2)]">{label}</div>
-              <div className="num text-[13.5px] font-semibold">{mask(formatMoney(val as number))}</div>
+              <div className="num whitespace-nowrap text-[12.5px] font-semibold">{mask(formatMoney(val as number))}</div>
             </div>
           ))}
         </div>

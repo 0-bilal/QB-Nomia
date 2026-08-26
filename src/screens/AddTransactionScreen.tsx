@@ -115,7 +115,7 @@ export function AddTransactionScreen() {
 
       {type === 'expense' && (
         <>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الفئة</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الفئة</label>
           <div className="mb-5 flex flex-wrap gap-2">
             {expenseCategories.length === 0 ? (
               <div className="text-[12.5px] text-[var(--color-text-3)]">لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"</div>
@@ -141,7 +141,7 @@ export function AddTransactionScreen() {
 
       {type === 'income' && (
         <>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">مصدر الدخل</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">مصدر الدخل</label>
           <div className="mb-5 flex flex-wrap gap-2">
             {incomeSources.map((s) => (
               <button
@@ -161,9 +161,18 @@ export function AddTransactionScreen() {
         </>
       )}
 
-      {type === 'transfer' && (
+      {type === 'transfer' && accounts.length < 2 && (
+        <div className="mb-5 text-[12.5px] text-[var(--color-text-3)]">
+          التحويل يحتاج حسابين على الأقل — أضف حسابًا من{' '}
+          <button type="button" onClick={() => navigate('/accounts/new')} className="font-semibold underline" style={{ color }}>
+            هنا
+          </button>
+        </div>
+      )}
+
+      {type === 'transfer' && accounts.length >= 2 && (
         <>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">من حساب</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">من حساب</label>
           <div className="mb-5 flex flex-wrap gap-2">
             {accounts.map((a) => (
               <button
@@ -180,7 +189,7 @@ export function AddTransactionScreen() {
               </button>
             ))}
           </div>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">إلى حساب</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">إلى حساب</label>
           <div className="mb-5 flex flex-wrap gap-2">
             {accounts
               .filter((a) => a.id !== accountId)
@@ -204,41 +213,47 @@ export function AddTransactionScreen() {
 
       {type !== 'transfer' && (
         <>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
           <div className="mb-5 flex flex-wrap gap-2">
-            {accounts.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => setAccountId(a.id)}
-                className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-                style={
-                  accountId === a.id
-                    ? { background: `${color}26`, color }
-                    : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-                }
-              >
-                {a.name}
+            {accounts.length === 0 ? (
+              <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
+                لا توجد حسابات — أضف حسابًا أولًا
               </button>
-            ))}
+            ) : (
+              accounts.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => setAccountId(a.id)}
+                  className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
+                  style={
+                    accountId === a.id
+                      ? { background: `${color}26`, color }
+                      : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
+                  }
+                >
+                  {a.name}
+                </button>
+              ))
+            )}
           </div>
         </>
       )}
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
       <input
         type="date"
         dir="ltr"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="num mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
+        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: عشاء مع الأصدقاء"
-        className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )

@@ -76,29 +76,29 @@ export function AddPersonScreen() {
         </button>
       )}
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الاسم</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الاسم</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: أحمد"
-        className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">رقم الجوال (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">رقم الجوال (اختياري)</label>
       <input
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         dir="ltr"
         placeholder="05xxxxxxxx"
-        className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: زميل العمل"
-        className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )

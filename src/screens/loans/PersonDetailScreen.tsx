@@ -20,7 +20,7 @@ export function PersonDetailScreen() {
 
   const balance = personBalance(person.id)
   const txns = personTransactions(person.id)
-  const label = balance === 0 ? 'متعادل' : balance > 0 ? 'له عندك' : 'عليك له'
+  const label = balance === 0 ? 'متعادل' : balance > 0 ? 'لك عنده' : 'عليك له'
   const color = balance === 0 ? 'var(--color-text-3)' : balance > 0 ? 'var(--color-owed-to)' : 'var(--color-owed-by)'
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? ''
 
@@ -32,7 +32,7 @@ export function PersonDetailScreen() {
       header={
         <div className="safe-top px-5 pt-8">
           <button onClick={() => navigate(-1)} className="mb-5 text-[13px] text-[var(--color-text-2)]">
-            ← رجوع
+            → رجوع
           </button>
 
           <div className="mb-6 flex flex-col items-center">
