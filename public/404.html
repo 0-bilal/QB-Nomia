@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script>
+    // GitHub Pages ما يدعم رجوع كل الروابط الفرعية لـ index.html (SPA rewrite)
+    // من طرف السيرفر، فأي تحديث لصفحة فرعية (زي /loans) يطلع منه 404 افتراضيًا.
+    // هذا السكربت يحفظ المسار المطلوب ويحوّل المستخدم لـ index.html، ويكمل
+    // فك التشفير سكربت مشابه هناك قبل ما يشتغل React Router.
+    var base = '/QB-Nomia/'
+    var path = location.pathname.slice(base.length)
+    location.replace(base + '?p=/' + path + location.search.replace(/^\?/, '&') + location.hash)
+  </script>
+</head>
+<body></body>
+</html>
