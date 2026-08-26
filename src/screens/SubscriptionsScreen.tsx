@@ -27,7 +27,8 @@ const STATUS_LABEL: Record<Subscription['status'], string> = {
 }
 
 export function SubscriptionsScreen() {
-  const { subscriptions, totalMonthlySubscriptions, setSubscriptionStatus, accounts } = useData()
+  const { subscriptions, totalMonthlySubscriptions, setSubscriptionStatus, logSubscriptionPayment, accounts } =
+    useData()
   const navigate = useNavigate()
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -114,7 +115,17 @@ export function SubscriptionsScreen() {
                 </button>
 
                 {open && (
-                  <div className="mt-3.5 flex gap-2 border-t border-white/6 pt-3.5">
+                  <div className="mt-3.5 flex flex-col gap-2 border-t border-white/6 pt-3.5">
+                    {sub.status === 'active' && (
+                      <button
+                        onClick={() => logSubscriptionPayment(sub.id)}
+                        className="rounded-xl py-2.5 text-[12.5px] font-semibold"
+                        style={{ background: 'rgba(0,226,138,0.14)', color: 'var(--color-accent)' }}
+                      >
+                        تسجيل الدفع الآن (يخصم {formatMoney(sub.cost)} من {accountName(sub.accountId)})
+                      </button>
+                    )}
+                  <div className="flex gap-2">
                     {sub.status === 'active' ? (
                       <button
                         onClick={() => setSubscriptionStatus(sub.id, 'paused')}
@@ -141,6 +152,7 @@ export function SubscriptionsScreen() {
                         إلغاء الاشتراك
                       </button>
                     )}
+                  </div>
                   </div>
                 )}
               </div>

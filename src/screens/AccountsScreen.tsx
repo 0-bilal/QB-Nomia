@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney } from '../lib/format'
 import type { Account } from '../types'
@@ -6,13 +7,15 @@ const ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.12)',
   bank: 'rgba(124,108,255,0.12)',
   savings: 'rgba(245,185,66,0.12)',
+  wallet: 'rgba(0,226,138,0.12)',
 }
 const ICON_COLOR: Record<Account['type'], string> = {
   cash: 'var(--color-income)',
   bank: 'var(--color-transfer)',
   savings: 'var(--color-subscription)',
+  wallet: 'var(--color-accent)',
 }
-const LABELS: Record<Account['type'], string> = { cash: 'نقدي', bank: 'بنكي', savings: 'ادخار' }
+const LABELS: Record<Account['type'], string> = { cash: 'نقدي', bank: 'بنكي', savings: 'ادخار', wallet: 'محفظة رقمية' }
 
 function AccountIcon({ type }: { type: Account['type'] }) {
   if (type === 'cash') {
@@ -32,6 +35,15 @@ function AccountIcon({ type }: { type: Account['type'] }) {
       </svg>
     )
   }
+  if (type === 'wallet') {
+    return (
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1H4Z" />
+        <path d="M4 8h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+        <circle cx="16.5" cy="13.5" r="1.4" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
   return (
     <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 12a8 8 0 1 1 8 8" />
@@ -43,10 +55,24 @@ function AccountIcon({ type }: { type: Account['type'] }) {
 
 export function AccountsScreen() {
   const { accounts, totalBalance } = useData()
+  const navigate = useNavigate()
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
-      <div className="mb-5 text-xl font-bold">الحسابات</div>
+      <div className="mb-5 flex items-center justify-between">
+        <div className="text-xl font-bold">الحسابات</div>
+        <button
+          onClick={() => navigate('/accounts/new')}
+          className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
+          style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
+          aria-label="إضافة حساب"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      </div>
 
       <div
         className="mb-4.5 flex items-center justify-between rounded-3xl border border-[var(--color-border)] px-4.5 py-4"

@@ -5,6 +5,7 @@ import { PinSetupScreen } from './screens/auth/PinSetupScreen'
 import { PinLoginScreen } from './screens/auth/PinLoginScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { AccountsScreen } from './screens/AccountsScreen'
+import { AddAccountScreen } from './screens/AddAccountScreen'
 import { MoreScreen } from './screens/MoreScreen'
 import { AddChooserScreen } from './screens/AddChooserScreen'
 import { AddTransactionScreen } from './screens/AddTransactionScreen'
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="more" element={<MoreScreen />} />
         </Route>
         <Route path="add" element={<AddChooserScreen />} />
+        <Route path="accounts/new" element={<AddAccountScreen />} />
         <Route path="add/transaction" element={<AddTransactionScreen />} />
         <Route path="categories" element={<CategoriesScreen />} />
         <Route path="categories/new" element={<AddCategoryScreen />} />

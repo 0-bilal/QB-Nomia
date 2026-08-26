@@ -36,6 +36,7 @@ function seedAccounts(): Account[] {
       goalAmount: 10000,
       goalLabel: 'رحلة عمرة',
     },
+    { id: 'acc-googleplay', name: 'محفظة Google Play', type: 'wallet', balance: 67 },
   ]
 }
 
@@ -77,6 +78,7 @@ function seedCategories(): Category[] {
     { id: 'cat-shopping', name: 'تسوق', kind: 'expense' },
     { id: 'cat-health', name: 'صحة', kind: 'expense' },
     { id: 'cat-fun', name: 'ترفيه', kind: 'expense' },
+    { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
   ]
 }
 
@@ -110,6 +112,33 @@ function seedTransactions(): Transaction[] {
       accountId: 'acc-cash',
       categoryId: 'cat-food',
     },
+    {
+      id: 'txn-3',
+      type: 'transfer',
+      amount: 100,
+      date: daysAgo(10),
+      accountId: 'acc-bank',
+      transferToAccountId: 'acc-googleplay',
+      note: 'تعبئة رصيد Google Play',
+    },
+    {
+      id: 'txn-4',
+      type: 'expense',
+      amount: 21,
+      date: daysAgo(10),
+      accountId: 'acc-googleplay',
+      categoryId: 'cat-subscriptions',
+      note: 'يوتيوب بريميوم',
+    },
+    {
+      id: 'txn-5',
+      type: 'expense',
+      amount: 12,
+      date: daysAgo(10),
+      accountId: 'acc-googleplay',
+      categoryId: 'cat-subscriptions',
+      note: 'تخزين آيكلاود',
+    },
   ]
 }
 
@@ -124,7 +153,7 @@ function seedSubscriptions(): Subscription[] {
       cost: 21,
       billingCycle: 'monthly',
       nextRenewalDate: inDays(20),
-      accountId: 'acc-bank',
+      accountId: 'acc-googleplay',
       status: 'active',
     },
     {
@@ -134,7 +163,7 @@ function seedSubscriptions(): Subscription[] {
       cost: 12,
       billingCycle: 'monthly',
       nextRenewalDate: inDays(4),
-      accountId: 'acc-bank',
+      accountId: 'acc-googleplay',
       status: 'active',
     },
   ]
@@ -186,6 +215,14 @@ interface AddSubscriptionInput {
   accountId: string
 }
 
+interface AddAccountInput {
+  name: string
+  type: Account['type']
+  balance: number
+  goalAmount?: number
+  goalLabel?: string
+}
+
 export interface ActivityItem {
   id: string
   date: string
@@ -208,6 +245,8 @@ interface DataContextValue {
   totalMonthlySubscriptions: number
   addSubscription: (input: AddSubscriptionInput) => Subscription
   setSubscriptionStatus: (id: string, status: SubscriptionStatus) => void
+  logSubscriptionPayment: (id: string) => void
+  addAccount: (input: AddAccountInput) => Account
   addPerson: (input: AddPersonInput) => Person
   addLoanTransaction: (input: AddLoanInput) => void
   personBalance: (personId: string) => number
@@ -467,6 +506,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       setSubscriptionStatus(id: string, status: SubscriptionStatus) {
         persistSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, status } : s)))
+      },
+      logSubscriptionPayment(id: string) {
+        const sub = subscriptions.find((s) => s.id === id)
+        if (!sub) return
+
+        const txn: Transaction = {
+          id: makeId(),
+          type: 'expense',
+          amount: sub.cost,
+          date: new Date().toISOString().slice(0, 10),
+          accountId: sub.accountId,
+          categoryId: 'cat-subscriptions',
+          note: sub.name,
+        }
+        persistTransactions([txn, ...transactions])
+        persistAccounts(
+          accounts.map((a) => (a.id === sub.accountId ? { ...a, balance: a.balance - sub.cost } : a)),
+        )
+
+        const next = new Date(sub.nextRenewalDate)
+        if (sub.billingCycle === 'monthly') next.setMonth(next.getMonth() + 1)
+        else next.setFullYear(next.getFullYear() + 1)
+        persistSubscriptions(
+          subscriptions.map((s) =>
+            s.id === id ? { ...s, nextRenewalDate: next.toISOString().slice(0, 10) } : s,
+          ),
+        )
+      },
+      addAccount(input: AddAccountInput) {
+        const account: Account = {
+          id: makeId(),
+          name: input.name.trim(),
+          type: input.type,
+          balance: input.balance,
+          goalAmount: input.goalAmount,
+          goalLabel: input.goalLabel,
+        }
+        persistAccounts([...accounts, account])
+        return account
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
