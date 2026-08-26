@@ -2,26 +2,42 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PinPad } from '../../components/PinPad'
 import { useAuth } from '../../state/AuthContext'
+import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
 import { configuredDigits } from '../../lib/auth'
+import { isSheetsSyncConfigured, pullFromSheets } from '../../lib/sheetsSync'
+
+type Stage = 'input' | 'success' | 'loading-data'
 
 export function PinLoginScreen() {
   const auth = useAuth()
+  const { importSnapshot } = useData()
   const navigate = useNavigate()
   const digits = configuredDigits()
   const [value, setValue] = useState('')
   const [error, setError] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [stage, setStage] = useState<Stage>('input')
 
   async function handleDigit(d: string) {
-    if (success || error || value.length >= digits) return
+    if (stage !== 'input' || error || value.length >= digits) return
     const next = value + d
     setValue(next)
     if (next.length === digits) {
       const ok = await auth.login(next)
       if (ok) {
-        setSuccess(true)
-        setTimeout(() => navigate('/', { replace: true }), 500)
+        setStage('success')
+        setTimeout(async () => {
+          if (isSheetsSyncConfigured()) {
+            setStage('loading-data')
+            try {
+              const snapshot = await pullFromSheets()
+              importSnapshot(snapshot)
+            } catch {
+              // تعذّر السحب — نكمل بالبيانات المحلية الموجودة بدل ما نعلّق المستخدم
+            }
+          }
+          navigate('/', { replace: true })
+        }, 500)
       } else {
         setError(true)
         setTimeout(() => {
@@ -33,7 +49,7 @@ export function PinLoginScreen() {
   }
 
   function handleBackspace() {
-    if (success || error) return
+    if (stage !== 'input' || error) return
     setValue((v) => v.slice(0, -1))
   }
 
@@ -52,7 +68,7 @@ export function PinLoginScreen() {
         </div>
 
         <div className="mt-auto">
-          <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={success || error} />
+          <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={stage !== 'input' || error} />
         </div>
 
         <button
@@ -64,7 +80,7 @@ export function PinLoginScreen() {
         </button>
       </div>
 
-      {success && (
+      {stage === 'success' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
           <div
             className="flex h-19 w-19 items-center justify-center rounded-full shadow-[0_0_0_10px_rgba(0,226,138,0.1)]"
@@ -75,6 +91,16 @@ export function PinLoginScreen() {
             </svg>
           </div>
           <div className="text-base font-bold">تم التحقق بنجاح</div>
+        </div>
+      )}
+
+      {stage === 'loading-data' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
+          <div
+            className="h-10 w-10 animate-spin rounded-full border-[3px]"
+            style={{ borderColor: 'rgba(255,255,255,0.12)', borderTopColor: 'var(--color-accent)' }}
+          />
+          <div className="text-[13.5px] font-semibold text-[var(--color-text-2)]">جاري تحميل بياناتك...</div>
         </div>
       )}
     </div>

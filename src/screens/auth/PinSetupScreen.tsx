@@ -2,22 +2,27 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PinPad } from '../../components/PinPad'
 import { useAuth } from '../../state/AuthContext'
+import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
+import { isSheetsSyncConfigured, pullFromSheets } from '../../lib/sheetsSync'
+
+const DIGITS = 4
 
 export function PinSetupScreen() {
   const auth = useAuth()
+  const { importSnapshot } = useData()
   const navigate = useNavigate()
-  const [digits, setDigits] = useState<4 | 6>(6)
-  const [stage, setStage] = useState<'enter' | 'confirm'>('enter')
+  const [stage, setStage] = useState<'enter' | 'confirm' | 'loading-data'>('enter')
   const [firstPin, setFirstPin] = useState('')
   const [value, setValue] = useState('')
   const [error, setError] = useState(false)
 
   function handleDigit(d: string) {
-    if (error || value.length >= digits) return
+    if (error || stage === 'loading-data') return
+    if (value.length >= DIGITS) return
     const next = value + d
     setValue(next)
-    if (next.length === digits) {
+    if (next.length === DIGITS) {
       if (stage === 'enter') {
         setFirstPin(next)
         setTimeout(() => {
@@ -26,7 +31,18 @@ export function PinSetupScreen() {
         }, 200)
       } else {
         if (next === firstPin) {
-          auth.setup(next).then(() => navigate('/', { replace: true }))
+          auth.setup(next).then(async () => {
+            if (isSheetsSyncConfigured()) {
+              setStage('loading-data')
+              try {
+                const snapshot = await pullFromSheets()
+                importSnapshot(snapshot)
+              } catch {
+                // تعذّر السحب — نكمل بحساب جديد فارغ بدل ما نعلّق المستخدم
+              }
+            }
+            navigate('/', { replace: true })
+          })
         } else {
           setError(true)
           setTimeout(() => {
@@ -41,11 +57,21 @@ export function PinSetupScreen() {
   }
 
   function handleBackspace() {
-    if (error) return
+    if (error || stage === 'loading-data') return
     setValue((v) => v.slice(0, -1))
   }
 
-  const canChangeLength = stage === 'enter' && value.length === 0
+  if (stage === 'loading-data') {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-[3px]"
+          style={{ borderColor: 'rgba(255,255,255,0.12)', borderTopColor: 'var(--color-accent)' }}
+        />
+        <div className="text-[13.5px] font-semibold text-[var(--color-text-2)]">جاري تحميل بياناتك...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full w-full flex-col items-center bg-[var(--color-bg)] px-7 pt-20 pb-10">
@@ -53,27 +79,12 @@ export function PinSetupScreen() {
       <div className="mb-1 mt-10 text-base font-semibold">
         {stage === 'enter' ? 'أنشئ رقمًا سريًا' : 'أكّد الرقم السري'}
       </div>
-      <div className="mb-5 text-[12.5px] text-[var(--color-text-2)]">
-        {error ? 'الرقمان غير متطابقين، حاول مرة أخرى' : `اختر ${digits} أرقام لحماية QB-Nomia`}
+      <div className="mb-9 text-[12.5px] text-[var(--color-text-2)]">
+        {error ? 'الرقمان غير متطابقين، حاول مرة أخرى' : `اختر ${DIGITS} أرقام لحماية QB-Nomia`}
       </div>
 
-      {canChangeLength && (
-        <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
-          {([4, 6] as const).map((n) => (
-            <button
-              key={n}
-              onClick={() => setDigits(n)}
-              className="rounded-[14px] px-6 py-2 text-[13px] font-bold"
-              style={digits === n ? { background: 'rgba(0,226,138,0.2)', color: 'var(--color-accent)' } : { color: 'var(--color-text-2)' }}
-            >
-              {n} أرقام
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="mt-auto">
-        <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} />
+        <PinPad digits={DIGITS} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} />
       </div>
     </div>
   )

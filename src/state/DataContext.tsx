@@ -24,52 +24,20 @@ const INCOME_SOURCES_KEY = 'qbnomia.incomeSources'
 const TRANSACTIONS_KEY = 'qbnomia.transactions'
 const SUBSCRIPTIONS_KEY = 'qbnomia.subscriptions'
 
+// لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
-  return [
-    { id: 'acc-cash', name: 'الكاش', type: 'cash', balance: 1200 },
-    { id: 'acc-bank', name: 'الحساب البنكي', type: 'bank', balance: 18650 },
-    {
-      id: 'acc-savings',
-      name: 'الادخار',
-      type: 'savings',
-      balance: 5000,
-      goalAmount: 10000,
-      goalLabel: 'رحلة عمرة',
-    },
-    { id: 'acc-googleplay', name: 'محفظة Google Play', type: 'wallet', balance: 67 },
-  ]
+  return []
 }
 
 function seedPeople(): Person[] {
-  return [{ id: 'p-ahmad', name: 'أحمد', phone: '', note: '', createdAt: new Date().toISOString() }]
+  return []
 }
 
 function seedLoans(): LoanTransaction[] {
-  const today = new Date()
-  const daysAgo = (n: number) => new Date(today.getTime() - n * 86400000).toISOString().slice(0, 10)
-  return [
-    {
-      id: 'loan-1',
-      personId: 'p-ahmad',
-      direction: 'given',
-      amount: 500,
-      accountId: 'acc-cash',
-      date: daysAgo(6),
-      dueDate: undefined,
-      note: 'سلفة',
-    },
-    {
-      id: 'loan-2',
-      personId: 'p-ahmad',
-      direction: 'received',
-      amount: 200,
-      accountId: 'acc-cash',
-      date: daysAgo(2),
-      note: 'سداد جزئي',
-    },
-  ]
+  return []
 }
 
+// الفئات ومصادر الدخل مجرد تسميات تنظيمية جاهزة (مو بيانات مالية وهمية) فتبقى كنقطة انطلاق مفيدة.
 function seedCategories(): Category[] {
   return [
     { id: 'cat-food', name: 'مطاعم', kind: 'expense' },
@@ -92,81 +60,11 @@ function seedIncomeSources(): IncomeSource[] {
 }
 
 function seedTransactions(): Transaction[] {
-  const today = new Date()
-  const daysAgo = (n: number) => new Date(today.getTime() - n * 86400000).toISOString().slice(0, 10)
-  return [
-    {
-      id: 'txn-1',
-      type: 'income',
-      amount: 8500,
-      date: daysAgo(1),
-      accountId: 'acc-bank',
-      incomeSourceId: 'src-salary',
-      note: 'راتب شهري',
-    },
-    {
-      id: 'txn-2',
-      type: 'expense',
-      amount: 45,
-      date: daysAgo(0),
-      accountId: 'acc-cash',
-      categoryId: 'cat-food',
-    },
-    {
-      id: 'txn-3',
-      type: 'transfer',
-      amount: 100,
-      date: daysAgo(10),
-      accountId: 'acc-bank',
-      transferToAccountId: 'acc-googleplay',
-      note: 'تعبئة رصيد Google Play',
-    },
-    {
-      id: 'txn-4',
-      type: 'expense',
-      amount: 21,
-      date: daysAgo(10),
-      accountId: 'acc-googleplay',
-      categoryId: 'cat-subscriptions',
-      note: 'يوتيوب بريميوم',
-    },
-    {
-      id: 'txn-5',
-      type: 'expense',
-      amount: 12,
-      date: daysAgo(10),
-      accountId: 'acc-googleplay',
-      categoryId: 'cat-subscriptions',
-      note: 'تخزين آيكلاود',
-    },
-  ]
+  return []
 }
 
 function seedSubscriptions(): Subscription[] {
-  const today = new Date()
-  const inDays = (n: number) => new Date(today.getTime() + n * 86400000).toISOString().slice(0, 10)
-  return [
-    {
-      id: 'sub-youtube',
-      name: 'يوتيوب بريميوم',
-      provider: 'Google Play',
-      cost: 21,
-      billingCycle: 'monthly',
-      nextRenewalDate: inDays(20),
-      accountId: 'acc-googleplay',
-      status: 'active',
-    },
-    {
-      id: 'sub-icloud',
-      name: 'تخزين آيكلاود',
-      provider: 'Apple',
-      cost: 12,
-      billingCycle: 'monthly',
-      nextRenewalDate: inDays(4),
-      accountId: 'acc-googleplay',
-      status: 'active',
-    },
-  ]
+  return []
 }
 
 interface AddPersonInput {
@@ -261,7 +159,6 @@ interface DataContextValue {
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
   monthTotals: () => { income: number; expense: number }
-  resetToBlank: () => void
   exportSnapshot: () => DataSnapshot
   importSnapshot: (snapshot: DataSnapshot) => void
 }
@@ -594,13 +491,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistAccounts([...accounts, account])
         return account
-      },
-      resetToBlank() {
-        persistAccounts(accounts.map((a) => ({ ...a, balance: 0 })))
-        persistPeople([])
-        persistLoans([])
-        persistTransactions([])
-        persistSubscriptions([])
       },
       exportSnapshot(): DataSnapshot {
         return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions }

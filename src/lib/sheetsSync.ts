@@ -1,20 +1,8 @@
 import type { DataSnapshot } from '../state/DataContext'
+import { SHEETS_SECRET_TOKEN, SHEETS_WEB_APP_URL, isSheetsSyncConfigured } from '../config/sheetsSync'
+import { decryptJSON, encryptJSON } from './cryptoUtil'
 
-const URL_KEY = 'qbnomia.sync.url'
-const TOKEN_KEY = 'qbnomia.sync.token'
 const LAST_SYNC_KEY = 'qbnomia.sync.lastSyncedAt'
-
-export function getSyncConfig(): { url: string; token: string } {
-  return {
-    url: localStorage.getItem(URL_KEY) ?? '',
-    token: localStorage.getItem(TOKEN_KEY) ?? '',
-  }
-}
-
-export function saveSyncConfig(url: string, token: string): void {
-  localStorage.setItem(URL_KEY, url.trim())
-  localStorage.setItem(TOKEN_KEY, token.trim())
-}
 
 export function getLastSyncedAt(): string | null {
   return localStorage.getItem(LAST_SYNC_KEY)
@@ -38,29 +26,35 @@ async function fetchSafe(input: string, init?: RequestInit): Promise<Response> {
   }
 }
 
-export async function pullFromSheets(): Promise<DataSnapshot> {
-  const { url, token } = getSyncConfig()
-  if (!url || !token) throw new Error('لم يتم إعداد رابط المزامنة بعد')
+export { isSheetsSyncConfigured }
 
-  const endpoint = `${url}?action=pull&token=${encodeURIComponent(token)}`
+/** يسحب البيانات من الجدول ويفكّ تشفيرها — الجدول نفسه لا يخزّن سوى نص مشفّر. */
+export async function pullFromSheets(): Promise<DataSnapshot> {
+  if (!isSheetsSyncConfigured()) throw new Error('لم يتم إعداد رابط المزامنة بالكود بعد')
+
+  const endpoint = `${SHEETS_WEB_APP_URL}?action=pull&token=${encodeURIComponent(SHEETS_SECRET_TOKEN)}`
   const res = await fetchSafe(endpoint, { method: 'GET' })
   if (!res.ok) throw new Error(`فشل الاتصال (HTTP ${res.status})`)
 
-  const json = (await res.json()) as ApiResult<DataSnapshot>
+  const json = (await res.json()) as ApiResult<string>
   if (!json.ok || !json.data) throw new Error(json.error ?? 'استجابة غير متوقعة من الخادم')
+
+  const snapshot = await decryptJSON<DataSnapshot>(SHEETS_SECRET_TOKEN, json.data)
   markSynced()
-  return json.data
+  return snapshot
 }
 
+/** يشفّر البيانات محليًا قبل إرسالها — جوجل شيت يخزّن النص المشفّر فقط. */
 export async function pushToSheets(snapshot: DataSnapshot): Promise<void> {
-  const { url, token } = getSyncConfig()
-  if (!url || !token) throw new Error('لم يتم إعداد رابط المزامنة بعد')
+  if (!isSheetsSyncConfigured()) throw new Error('لم يتم إعداد رابط المزامنة بالكود بعد')
+
+  const ciphertext = await encryptJSON(SHEETS_SECRET_TOKEN, snapshot)
 
   // Content-Type: text/plain يتجنّب preflight CORS اللي Apps Script ما يدعمه
-  const res = await fetchSafe(url, {
+  const res = await fetchSafe(SHEETS_WEB_APP_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'push', token, data: snapshot }),
+    body: JSON.stringify({ action: 'push', token: SHEETS_SECRET_TOKEN, data: ciphertext }),
   })
   if (!res.ok) throw new Error(`فشل الاتصال (HTTP ${res.status})`)
 

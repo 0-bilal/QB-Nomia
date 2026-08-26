@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
+import { AmountPad } from '../../components/AmountPad'
 import type { LoanDirection } from '../../types'
 
 export function AddLoanScreen() {
@@ -89,15 +90,13 @@ export function AddLoanScreen() {
 
       <div className="mb-6 text-center">
         <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ</div>
-        <input
-          dir="ltr"
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-          placeholder="0"
-          className="num w-full bg-transparent text-center text-[40px] font-bold outline-none"
-          style={{ color }}
-        />
+        <div className="num text-[40px] font-bold" style={{ color }}>
+          {amount || '0'}
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <AmountPad value={amount} onChange={setAmount} color={color} />
       </div>
 
       <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>

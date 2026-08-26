@@ -1,73 +1,59 @@
 /**
- * QB-Nomia — Google Apps Script (خادم المزامنة مع Google Sheets)
- * ============================================================
+ * QB-Nomia — Google Apps Script (خادم المزامنة المشفّرة مع Google Sheets)
+ * ========================================================================
  *
- * هذا الملف يُلصق بالكامل داخل محرر Apps Script المرتبط بجدول بيانات
- * Google Sheets (وليس بمشروع مستقل). خطوات التركيب بالتفصيل موجودة
- * بملف google-apps-script/README.md بنفس المجلد — هذا ملخصها:
+ * هذا السكربت لا يخزّن أي بيانات مالية مقروءة إطلاقًا — التطبيق يشفّر كل
+ * بياناته محليًا (AES-GCM) قبل ما يرسلها، والسكربت يخزّن فقط النص المشفّر
+ * الناتج كما هو، ويرجّعه كما هو عند الطلب. فك التشفير يصير فقط داخل
+ * التطبيق نفسه بنفس الرمز السري — جوجل شيت (وأي شخص يشوفه) يرى نصًا
+ * عشوائيًا غير مفهوم فقط.
  *
+ * التركيب:
  *   1. أنشئ جدول بيانات Google Sheets جديد فارغ (sheets.new).
  *   2. من القائمة: Extensions ← Apps Script.
  *   3. احذف كل محتوى Code.gs الافتراضي، والصق محتوى هذا الملف كاملًا.
- *   4. غيّر قيمة SECRET_TOKEN بالأسفل لأي نص عشوائي طويل تختاره أنت
- *      (يشبه كلمة سر) — هذا هو اللي يمنع أي شخص غيرك من الوصول لجدولك
- *      حتى لو خمّن رابط الويب أب.
- *   5. من القائمة العلوية بمحرر Apps Script اختر الدالة setup ثم اضغط
- *      ▶ Run (زر التشغيل) — هذا ينشئ كل الأوراق (Sheets) والأعمدة
- *      اللازمة تلقائيًا داخل جدول البيانات. أول مرة بيطلب منك صلاحيات
- *      (Authorize access) — وافق عليها (هذا السكربت يشتغل بحسابك أنت
- *      فقط على جدولك أنت، ولا يصل لأي شيء غير هذا الجدول).
- *   6. Deploy ← New deployment ← اختر النوع "Web app":
+ *   4. غيّر قيمة SECRET_TOKEN بالأسفل لأي نص عشوائي طويل تختاره أنت —
+ *      هذا نفس الرمز اللي بتحطه بملف src/config/sheetsSync.ts بكود
+ *      التطبيق (نفس القيمة بالضبط بالمكانين، لأنه يُستخدم مفتاح تشفير
+ *      من طرف التطبيق ورمز دخول يتحقق منه هذا السكربت).
+ *   5. من محرر Apps Script اختر الدالة setup ثم اضغط ▶ Run — ينشئ ورقة
+ *      واحدة (sync_data) لتخزين النص المشفّر. أول مرة بيطلب صلاحيات
+ *      (Authorize access) — وافق (يشتغل بحسابك أنت على جدولك أنت فقط).
+ *   6. Deploy ← New deployment ← Web app:
  *        - Execute as: Me
  *        - Who has access: Anyone
- *      ثم Deploy. انسخ الرابط اللي ينتهي بـ /exec — هذا هو "رابط
- *      Google Apps Script" اللي تحطه بإعدادات التطبيق (المزيد ← ربط
- *      Google Sheets)، مع نفس SECRET_TOKEN اللي اخترته بالخطوة 4.
+ *      انسخ الرابط المنتهي بـ /exec وحطه بـ SHEETS_WEB_APP_URL بالكود.
  *   7. أي تعديل لاحق على هذا الكود يحتاج Deploy ← Manage deployments
- *      ← ✎ تعديل ← Version: New version ← Deploy، حتى يتحدث الرابط
- *      الحي بالتعديلات.
+ *      ← ✎ تعديل ← Version: New version ← Deploy.
  */
 
-// غيّر هذا لأي نص سري عشوائي طويل من اختيارك قبل النشر
+// غيّر هذا لنفس القيمة الموجودة بـ src/config/sheetsSync.ts (SHEETS_SECRET_TOKEN)
 var SECRET_TOKEN = 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET'
 
-// أسماء الأوراق وأعمدتها — يجب أن تطابق بالضبط بنية البيانات بالتطبيق
-var SCHEMAS = {
-  accounts: ['id', 'name', 'type', 'balance', 'goalAmount', 'goalLabel'],
-  people: ['id', 'name', 'phone', 'note', 'createdAt'],
-  loanTransactions: ['id', 'personId', 'direction', 'amount', 'accountId', 'date', 'dueDate', 'note'],
-  categories: ['id', 'name', 'kind', 'budgetLimit'],
-  incomeSources: ['id', 'name'],
-  transactions: ['id', 'type', 'amount', 'date', 'note', 'accountId', 'categoryId', 'incomeSourceId', 'transferToAccountId'],
-  subscriptions: ['id', 'name', 'provider', 'cost', 'billingCycle', 'nextRenewalDate', 'accountId', 'status'],
-}
+var SHEET_NAME = 'sync_data'
+var ROW_KEY = 'snapshot'
 
-/** شغّلها يدويًا مرة واحدة فقط من محرر Apps Script لإنشاء كل الأوراق. */
+/** شغّلها يدويًا مرة واحدة فقط من محرر Apps Script لإنشاء ورقة التخزين. */
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet()
-  Object.keys(SCHEMAS).forEach(function (name) {
-    var sheet = ss.getSheetByName(name)
-    if (!sheet) sheet = ss.insertSheet(name)
-    var headers = SCHEMAS[name]
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers])
-    sheet.setFrozenRows(1)
-  })
-  // احذف ورقة "Sheet1" الافتراضية الفارغة لو موجودة
+  var sheet = ss.getSheetByName(SHEET_NAME)
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME)
+  sheet.getRange(1, 1, 1, 3).setValues([['key', 'encrypted_value', 'updated_at']])
+  sheet.setFrozenRows(1)
+
   var def = ss.getSheetByName('Sheet1')
   if (def && ss.getSheets().length > 1) ss.deleteSheet(def)
 
-  Logger.log('تم إنشاء كل الأوراق بنجاح: ' + Object.keys(SCHEMAS).join(', '))
+  Logger.log('تم إنشاء ورقة التخزين المشفّر بنجاح: ' + SHEET_NAME)
 }
 
 function doGet(e) {
   try {
-    var action = e.parameter.action
     checkToken(e.parameter.token)
-
-    if (action === 'pull') {
-      return jsonResponse({ ok: true, data: pullAll() })
+    if (e.parameter.action === 'pull') {
+      return jsonResponse({ ok: true, data: readValue() })
     }
-    return jsonResponse({ ok: false, error: 'إجراء غير معروف: ' + action })
+    return jsonResponse({ ok: false, error: 'إجراء غير معروف: ' + e.parameter.action })
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err) })
   }
@@ -79,7 +65,7 @@ function doPost(e) {
     checkToken(body.token)
 
     if (body.action === 'push') {
-      pushAll(body.data || {})
+      writeValue(body.data)
       return jsonResponse({ ok: true })
     }
     return jsonResponse({ ok: false, error: 'إجراء غير معروف: ' + body.action })
@@ -97,63 +83,36 @@ function checkToken(token) {
   }
 }
 
-function pullAll() {
+function getSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet()
-  var result = {}
-  Object.keys(SCHEMAS).forEach(function (name) {
-    result[name] = readSheet(ss, name)
-  })
-  return result
-}
-
-function readSheet(ss, name) {
-  var sheet = ss.getSheetByName(name)
-  if (!sheet) return []
-  var values = sheet.getDataRange().getValues()
-  if (values.length < 2) return []
-  var headers = values[0]
-  var rows = values.slice(1)
-  return rows
-    .filter(function (row) {
-      return row[0] !== '' && row[0] !== null // تجاهل الصفوف الفارغة
-    })
-    .map(function (row) {
-      var obj = {}
-      headers.forEach(function (h, i) {
-        var v = row[i]
-        if (v === '' || v === null || v === undefined) return // اترك الحقل الاختياري غير معرّف
-        obj[h] = v
-      })
-      return obj
-    })
-}
-
-function pushAll(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet()
-  Object.keys(SCHEMAS).forEach(function (name) {
-    writeSheet(ss, name, data[name] || [])
-  })
-}
-
-function writeSheet(ss, name, rows) {
-  var sheet = ss.getSheetByName(name)
+  var sheet = ss.getSheetByName(SHEET_NAME)
   if (!sheet) {
-    sheet = ss.insertSheet(name)
+    sheet = ss.insertSheet(SHEET_NAME)
+    sheet.getRange(1, 1, 1, 3).setValues([['key', 'encrypted_value', 'updated_at']])
+    sheet.setFrozenRows(1)
   }
-  var headers = SCHEMAS[name]
-  sheet.clear()
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers])
-  sheet.setFrozenRows(1)
+  return sheet
+}
 
-  if (!rows.length) return
+function readValue() {
+  var sheet = getSheet()
+  var values = sheet.getDataRange().getValues()
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === ROW_KEY) return values[i][1]
+  }
+  return '' // ما فيه بيانات محفوظة بعد (أول مرة قبل أي رفع)
+}
 
-  var values = rows.map(function (row) {
-    return headers.map(function (h) {
-      var v = row[h]
-      return v === undefined || v === null ? '' : v
-    })
-  })
-  sheet.getRange(2, 1, values.length, headers.length).setValues(values)
+function writeValue(encryptedValue) {
+  var sheet = getSheet()
+  var values = sheet.getDataRange().getValues()
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0] === ROW_KEY) {
+      sheet.getRange(i + 1, 2, 1, 2).setValues([[encryptedValue, new Date()]])
+      return
+    }
+  }
+  sheet.appendRow([ROW_KEY, encryptedValue, new Date()])
 }
 
 function jsonResponse(obj) {
