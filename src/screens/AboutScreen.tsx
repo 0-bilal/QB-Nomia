@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { AppLogo } from '../components/AppLogo'
-import { APP_VERSION, BRAND_NAME, DEVELOPER_NAME } from '../lib/version'
+import { APP_VERSION, BRAND_NAME, BUILD_ID, DEVELOPER_NAME } from '../lib/version'
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -105,6 +105,7 @@ export function AboutScreen() {
         <InfoRow label="المطوّر" value={DEVELOPER_NAME} />
         <InfoRow label="بواسطة" value={BRAND_NAME} />
         <InfoRow label="الإصدار" value={APP_VERSION} />
+        <InfoRow label="بصمة البناء" value={BUILD_ID} />
       </div>
 
       <div className="pb-2 text-center text-[11px] text-[var(--color-text-3)]">
