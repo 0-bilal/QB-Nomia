@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
 import { AmountPad } from '../../components/AmountPad'
+import { DatePicker } from '../../components/DatePicker'
 import type { LoanDirection } from '../../types'
 
 export function AddLoanScreen() {
@@ -101,41 +102,39 @@ export function AddLoanScreen() {
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
       <div className="mb-5 flex flex-wrap gap-2">
-        {accounts.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => setAccountId(a.id)}
-            className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-            style={
-              accountId === a.id
-                ? { background: `${color}26`, color }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
-          >
-            {a.name}
+        {accounts.length === 0 ? (
+          <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
+            لا توجد حسابات — أضف حسابًا أولًا
           </button>
-        ))}
+        ) : (
+          accounts.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => setAccountId(a.id)}
+              className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
+              style={
+                accountId === a.id
+                  ? { background: `${color}26`, color }
+                  : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
+              }
+            >
+              {a.name}
+            </button>
+          ))
+        )}
       </div>
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
-      <input
-        type="date"
-        dir="ltr"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
-      />
+      <div className="mb-5">
+        <DatePicker value={date} onChange={setDate} color={color} />
+      </div>
 
       {direction === 'given' && (
         <>
           <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ الاستحقاق (اختياري)</label>
-          <input
-            type="date"
-            dir="ltr"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
-          />
+          <div className="mb-5">
+            <DatePicker value={dueDate} onChange={setDueDate} color={color} placeholder="بدون تاريخ استحقاق" />
+          </div>
         </>
       )}
 

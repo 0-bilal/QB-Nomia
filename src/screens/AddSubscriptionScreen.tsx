@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { DatePicker } from '../components/DatePicker'
 import type { BillingCycle } from '../types'
 
 function defaultRenewalDate(): string {
@@ -132,13 +133,9 @@ export function AddSubscriptionScreen() {
       </div>
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ التجديد القادم</label>
-      <input
-        type="date"
-        dir="ltr"
-        value={nextRenewalDate}
-        onChange={(e) => setNextRenewalDate(e.target.value)}
-        className="num mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
-      />
+      <div className="mb-4">
+        <DatePicker value={nextRenewalDate} onChange={setNextRenewalDate} color="var(--color-subscription)" />
+      </div>
     </ScreenScroll>
   )
 }
