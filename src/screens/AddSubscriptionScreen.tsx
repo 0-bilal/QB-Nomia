@@ -53,33 +53,33 @@ export function AddSubscriptionScreen() {
         </div>
       }
     >
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الاشتراك</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الاشتراك</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: يوتيوب بريميوم"
-        className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">المزود (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">المزود (اختياري)</label>
       <input
         value={provider}
         onChange={(e) => setProvider(e.target.value)}
         placeholder="مثال: Google Play"
-        className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">التكلفة</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التكلفة</label>
       <input
         dir="ltr"
         inputMode="decimal"
         value={cost}
         onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))}
         placeholder="0"
-        className="num mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">دورة الفوترة</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">دورة الفوترة</label>
       <div className="mb-5 flex gap-2">
         {(
           [
@@ -102,31 +102,42 @@ export function AddSubscriptionScreen() {
         ))}
       </div>
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب المرتبط</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب المرتبط</label>
       <div className="mb-5 flex flex-wrap gap-2">
-        {accounts.map((a) => (
+        {accounts.length === 0 ? (
           <button
-            key={a.id}
-            onClick={() => setAccountId(a.id)}
-            className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-            style={
-              accountId === a.id
-                ? { background: 'rgba(245,185,66,0.18)', color: 'var(--color-subscription)' }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
+            type="button"
+            onClick={() => navigate('/accounts/new')}
+            className="text-[12.5px] font-semibold underline"
+            style={{ color: 'var(--color-subscription)' }}
           >
-            {a.name}
+            لا توجد حسابات — أضف حسابًا أولًا
           </button>
-        ))}
+        ) : (
+          accounts.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => setAccountId(a.id)}
+              className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
+              style={
+                accountId === a.id
+                  ? { background: 'rgba(245,185,66,0.18)', color: 'var(--color-subscription)' }
+                  : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
+              }
+            >
+              {a.name}
+            </button>
+          ))
+        )}
       </div>
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ التجديد القادم</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ التجديد القادم</label>
       <input
         type="date"
         dir="ltr"
         value={nextRenewalDate}
         onChange={(e) => setNextRenewalDate(e.target.value)}
-        className="num mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
+        className="num mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13.5px] outline-none"
       />
     </ScreenScroll>
   )

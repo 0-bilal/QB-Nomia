@@ -38,12 +38,12 @@ export function AddIncomeSourceScreen() {
         </div>
       }
     >
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم المصدر</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم المصدر</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: تأجير شقة"
-        className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )

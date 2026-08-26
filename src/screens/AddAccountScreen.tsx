@@ -61,15 +61,15 @@ export function AddAccountScreen() {
         </div>
       }
     >
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الحساب</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الحساب</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: محفظة Google Play"
-        className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">نوع الحساب</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">نوع الحساب</label>
       <div className="mb-5 flex flex-wrap gap-2">
         {TYPE_OPTIONS.map(([t, label]) => (
           <button
@@ -87,33 +87,33 @@ export function AddAccountScreen() {
         ))}
       </div>
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">الرصيد الحالي (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الرصيد الحالي (اختياري)</label>
       <input
         dir="ltr"
         inputMode="decimal"
         value={balance}
         onChange={(e) => setBalance(e.target.value.replace(/[^0-9.]/g, ''))}
         placeholder="0"
-        className="num mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
       {type === 'savings' && (
         <>
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الهدف (اختياري)</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الهدف (اختياري)</label>
           <input
             value={goalLabel}
             onChange={(e) => setGoalLabel(e.target.value)}
             placeholder="مثال: رحلة عمرة"
-            className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+            className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
           />
-          <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">مبلغ الهدف (اختياري)</label>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">مبلغ الهدف (اختياري)</label>
           <input
             dir="ltr"
             inputMode="decimal"
             value={goalAmount}
             onChange={(e) => setGoalAmount(e.target.value.replace(/[^0-9.]/g, ''))}
             placeholder="0"
-            className="num mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
           />
         </>
       )}

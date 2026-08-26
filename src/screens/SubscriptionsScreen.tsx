@@ -41,7 +41,7 @@ export function SubscriptionsScreen() {
       header={
         <div className="safe-top flex items-center justify-between px-5 pt-8 pb-5">
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            ← رجوع
+            → رجوع
           </button>
           <div className="text-base font-bold">الاشتراكات</div>
           <button

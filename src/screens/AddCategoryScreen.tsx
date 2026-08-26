@@ -43,22 +43,22 @@ export function AddCategoryScreen() {
         </div>
       }
     >
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الفئة</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الفئة</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: صيانة السيارة"
-        className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 text-[12.5px] font-semibold text-[var(--color-text-2)]">ميزانية شهرية (اختياري)</label>
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ميزانية شهرية (اختياري)</label>
       <input
         dir="ltr"
         inputMode="decimal"
         value={budgetLimit}
         onChange={(e) => setBudgetLimit(e.target.value.replace(/[^0-9.]/g, ''))}
         placeholder="0"
-        className="num mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="num mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )
