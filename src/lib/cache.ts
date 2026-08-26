@@ -1,4 +1,5 @@
-export async function clearAppCache(): Promise<void> {
+/** يلغي تسجيل كل Service Worker ويمسح كل الكاش (Cache Storage) — يجبر المتصفح يجيب أحدث نسخة من الأكواد عند إعادة التحميل التالية. */
+export async function forceAppUpdate(): Promise<void> {
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations()
     await Promise.all(registrations.map((r) => r.unregister()))

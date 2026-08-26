@@ -21,6 +21,7 @@ import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
 import { AddLoanScreen } from './screens/loans/AddLoanScreen'
 import { SyncSettingsScreen } from './screens/SyncSettingsScreen'
 import { ReportsScreen } from './screens/ReportsScreen'
+import { AboutScreen } from './screens/AboutScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="loans/:personId/add" element={<AddLoanScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
+        <Route path="about" element={<AboutScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
