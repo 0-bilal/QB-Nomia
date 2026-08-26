@@ -8,13 +8,19 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 /**
  * لوحة أرقام مخصصة لإدخال المبالغ — بنفس هوية QB-Nomia (زي PinPad)،
- * بدل الاعتماد على لوحة مفاتيح الهاتف الافتراضية. أرقام صحيحة فقط
- * (بدون كسور عشرية) لإبقائها بسيطة ومطابقة تمامًا لتصميم PinPad.
+ * بدل الاعتماد على لوحة مفاتيح الهاتف الافتراضية. تدعم كسور عشرية
+ * حتى خانتين (هللات) عبر مفتاح النقطة.
  */
 export function AmountPad({ value, onChange, color }: AmountPadProps) {
   function pressDigit(d: string) {
-    if (value.length >= 9) return
+    const [whole, decimals] = value.split('.')
+    if (decimals !== undefined && decimals.length >= 2) return
+    if ((whole ?? '').replace('-', '').length >= 9) return
     onChange(value === '0' ? d : value + d)
+  }
+  function pressDot() {
+    if (value.includes('.')) return
+    onChange(value === '' ? '0.' : value + '.')
   }
   function clearAll() {
     onChange('')
@@ -24,7 +30,12 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
   }
 
   return (
-    <div dir="ltr" className="flex justify-center">
+    <div dir="ltr" className="flex flex-col items-center gap-2.5">
+      <div className="flex w-full max-w-[228px] justify-end">
+        <button type="button" onClick={clearAll} className="px-1 text-[12px] font-semibold text-[var(--color-text-3)]" aria-label="مسح الكل">
+          مسح الكل
+        </button>
+      </div>
       <div className="grid grid-cols-3 gap-3.5">
         {KEYS.map((k) => (
           <button
@@ -40,15 +51,12 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
 
         <button
           type="button"
-          onClick={clearAll}
-          className="flex items-center justify-center rounded-full text-[var(--color-text-2)] transition-transform active:scale-90"
-          style={{ width: 64, height: 64 }}
-          aria-label="مسح الكل"
+          onClick={pressDot}
+          className="num flex items-center justify-center rounded-full border text-[22px] font-semibold text-[var(--color-text)] transition-transform active:scale-90"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', width: 64, height: 64 }}
+          aria-label="فاصلة عشرية"
         >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="6" y1="6" x2="18" y2="18" />
-            <line x1="18" y1="6" x2="6" y2="18" />
-          </svg>
+          .
         </button>
 
         <button

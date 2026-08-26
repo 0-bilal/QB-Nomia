@@ -40,12 +40,16 @@ export function IncomeSourcesScreen() {
       ) : (
         <div className="flex flex-col gap-2.5">
           {incomeSources.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <button
+              key={s.id}
+              onClick={() => navigate(`/income-sources/${s.id}/edit`)}
+              className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-right"
+            >
               <div className="text-[13.5px] font-bold">{s.name}</div>
               <div className="num text-[13px] font-semibold" style={{ color: 'var(--color-income)' }}>
                 {formatMoney(totalFor(s.id))}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

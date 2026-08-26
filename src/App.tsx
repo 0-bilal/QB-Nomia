@@ -22,6 +22,7 @@ import { AddLoanScreen } from './screens/loans/AddLoanScreen'
 import { SyncSettingsScreen } from './screens/SyncSettingsScreen'
 import { ReportsScreen } from './screens/ReportsScreen'
 import { AboutScreen } from './screens/AboutScreen'
+import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -45,16 +46,24 @@ export default function App() {
         </Route>
         <Route path="add" element={<AddChooserScreen />} />
         <Route path="accounts/new" element={<AddAccountScreen />} />
+        <Route path="accounts/:id/edit" element={<AddAccountScreen />} />
         <Route path="add/transaction" element={<AddTransactionScreen />} />
+        <Route path="add/transaction/:id" element={<AddTransactionScreen />} />
+        <Route path="transactions" element={<AllTransactionsScreen />} />
         <Route path="categories" element={<CategoriesScreen />} />
         <Route path="categories/new" element={<AddCategoryScreen />} />
+        <Route path="categories/:id/edit" element={<AddCategoryScreen />} />
         <Route path="income-sources" element={<IncomeSourcesScreen />} />
         <Route path="income-sources/new" element={<AddIncomeSourceScreen />} />
+        <Route path="income-sources/:id/edit" element={<AddIncomeSourceScreen />} />
         <Route path="subscriptions" element={<SubscriptionsScreen />} />
         <Route path="subscriptions/new" element={<AddSubscriptionScreen />} />
+        <Route path="subscriptions/:id/edit" element={<AddSubscriptionScreen />} />
         <Route path="loans/new" element={<AddPersonScreen />} />
         <Route path="loans/:personId" element={<PersonDetailScreen />} />
+        <Route path="loans/:personId/edit" element={<AddPersonScreen />} />
         <Route path="loans/:personId/add" element={<AddLoanScreen />} />
+        <Route path="loans/:personId/edit/:loanId" element={<AddLoanScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
         <Route path="about" element={<AboutScreen />} />

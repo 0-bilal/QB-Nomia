@@ -1,21 +1,36 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function AddCategoryScreen() {
-  const { addCategory } = useData()
+  const { id } = useParams<{ id?: string }>()
+  const { categories, addCategory, updateCategory, deleteCategory } = useData()
   const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [budgetLimit, setBudgetLimit] = useState('')
+
+  const existing = id ? categories.find((c) => c.id === id) : undefined
+  const isEditing = Boolean(existing)
+
+  const [name, setName] = useState(existing?.name ?? '')
+  const [budgetLimit, setBudgetLimit] = useState(existing?.budgetLimit ? String(existing.budgetLimit) : '')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   function handleSave() {
     if (!name.trim()) return
-    addCategory({
+    const input = {
       name,
-      kind: 'expense',
+      kind: 'expense' as const,
       budgetLimit: budgetLimit ? Number(budgetLimit) : undefined,
-    })
+    }
+    if (isEditing && id) updateCategory(id, input)
+    else addCategory(input)
+    navigate('/categories', { replace: true })
+  }
+
+  function handleDelete() {
+    if (!id) return
+    deleteCategory(id)
     navigate('/categories', { replace: true })
   }
 
@@ -26,8 +41,14 @@ export function AddCategoryScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">إضافة فئة</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل فئة' : 'إضافة فئة'}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -38,11 +59,21 @@ export function AddCategoryScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: 'var(--color-accent)' }}
           >
-            حفظ
+            {isEditing ? 'حفظ التعديلات' : 'حفظ'}
           </button>
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف الفئة"
+        message="بيتم حذف هذي الفئة — الحركات المسجّلة عليها سابقًا بتبقى بسجلك بس بدون فئة."
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الفئة</label>
       <input
         value={name}

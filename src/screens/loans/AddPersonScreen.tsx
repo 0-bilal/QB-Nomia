@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 
 interface ContactsManager {
   select: (props: string[], opts?: { multiple?: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>>
@@ -13,12 +14,20 @@ function getContactsAPI(): ContactsManager | null {
 }
 
 export function AddPersonScreen() {
-  const { addPerson } = useData()
+  const { personId } = useParams<{ personId?: string }>()
+  const { people, loanTransactions, addPerson, updatePerson, deletePerson } = useData()
   const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [note, setNote] = useState('')
+
+  const existing = personId ? people.find((p) => p.id === personId) : undefined
+  const isEditing = Boolean(existing)
+
+  const [name, setName] = useState(existing?.name ?? '')
+  const [phone, setPhone] = useState(existing?.phone ?? '')
+  const [note, setNote] = useState(existing?.note ?? '')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const contactsSupported = getContactsAPI() !== null
+
+  const theirLoanCount = personId ? loanTransactions.filter((t) => t.personId === personId).length : 0
 
   async function pickContact() {
     const api = getContactsAPI()
@@ -34,8 +43,19 @@ export function AddPersonScreen() {
 
   function handleSave() {
     if (!name.trim()) return
-    const person = addPerson({ name, phone, note })
-    navigate(`/loans/${person.id}`, { replace: true })
+    if (isEditing && personId) {
+      updatePerson(personId, { name, phone, note })
+      navigate(`/loans/${personId}`, { replace: true })
+    } else {
+      const person = addPerson({ name, phone, note })
+      navigate(`/loans/${person.id}`, { replace: true })
+    }
+  }
+
+  function handleDelete() {
+    if (!personId) return
+    deletePerson(personId)
+    navigate('/loans', { replace: true })
   }
 
   return (
@@ -45,8 +65,14 @@ export function AddPersonScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">إضافة شخص</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل شخص' : 'إضافة شخص'}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -57,12 +83,26 @@ export function AddPersonScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: 'var(--color-accent)' }}
           >
-            حفظ
+            {isEditing ? 'حفظ التعديلات' : 'حفظ'}
           </button>
         </div>
       }
     >
-      {contactsSupported && (
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف الشخص"
+        message={
+          theirLoanCount > 0
+            ? `فيه ${theirLoanCount} حركة سلفة معه — بتتحذف كلها كمان، ورصيد حساباتها المرتبطة بيرجع لوضعه قبلها.`
+            : 'بيتم حذف هذا الشخص نهائيًا.'
+        }
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
+      {!isEditing && contactsSupported && (
         <button
           onClick={pickContact}
           className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed py-3.5 text-[13px] font-semibold"

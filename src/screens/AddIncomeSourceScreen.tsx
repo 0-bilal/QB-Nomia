@@ -1,16 +1,30 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function AddIncomeSourceScreen() {
-  const { addIncomeSource } = useData()
+  const { id } = useParams<{ id?: string }>()
+  const { incomeSources, addIncomeSource, updateIncomeSource, deleteIncomeSource } = useData()
   const navigate = useNavigate()
-  const [name, setName] = useState('')
+
+  const existing = id ? incomeSources.find((s) => s.id === id) : undefined
+  const isEditing = Boolean(existing)
+
+  const [name, setName] = useState(existing?.name ?? '')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   function handleSave() {
     if (!name.trim()) return
-    addIncomeSource({ name })
+    if (isEditing && id) updateIncomeSource(id, { name })
+    else addIncomeSource({ name })
+    navigate('/income-sources', { replace: true })
+  }
+
+  function handleDelete() {
+    if (!id) return
+    deleteIncomeSource(id)
     navigate('/income-sources', { replace: true })
   }
 
@@ -21,8 +35,14 @@ export function AddIncomeSourceScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">إضافة مصدر دخل</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل مصدر دخل' : 'إضافة مصدر دخل'}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -33,11 +53,21 @@ export function AddIncomeSourceScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: 'var(--color-accent)' }}
           >
-            حفظ
+            {isEditing ? 'حفظ التعديلات' : 'حفظ'}
           </button>
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف مصدر الدخل"
+        message="بيتم حذف هذا المصدر — الحركات المسجّلة عليه سابقًا بتبقى بسجلك."
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم المصدر</label>
       <input
         value={name}

@@ -37,7 +37,20 @@ export function PersonDetailScreen() {
 
           <div className="mb-6 flex flex-col items-center">
             <Avatar name={person.name} size={64} />
-            <div className="mt-3 text-lg font-bold">{person.name}</div>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="text-lg font-bold">{person.name}</div>
+              <button
+                onClick={() => navigate(`/loans/${person.id}/edit`)}
+                aria-label="تعديل الشخص"
+                className="flex h-6 w-6 items-center justify-center rounded-full"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }}
+              >
+                <svg viewBox="0 0 24 24" width="12.5" height="12.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </button>
+            </div>
             {person.phone && <div dir="ltr" className="mt-0.5 text-[12.5px] text-[var(--color-text-3)]">{person.phone}</div>}
             <div className="num mt-4 text-[32px] font-bold" style={{ color }}>
               {formatMoney(Math.abs(balance))}
@@ -76,7 +89,11 @@ export function PersonDetailScreen() {
             const overdue = t.dueDate && t.dueDate < today
             const c = t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)'
             return (
-              <div key={t.id} className="border-b border-white/6 py-3">
+              <button
+                key={t.id}
+                onClick={() => navigate(`/loans/${person.id}/edit/${t.id}`)}
+                className="block w-full border-b border-white/6 py-3 text-right"
+              >
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="text-[13.5px] font-semibold">{t.direction === 'given' ? 'أعطيته' : 'استلمت منه'}</div>
@@ -101,7 +118,7 @@ export function PersonDetailScreen() {
                     {overdue ? 'متأخر السداد' : `الاستحقاق: ${formatDate(t.dueDate)}`}
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>

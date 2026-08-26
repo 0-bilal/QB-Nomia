@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import type { AccountType } from '../types'
 
 const TYPE_OPTIONS: [AccountType, string][] = [
@@ -12,28 +13,47 @@ const TYPE_OPTIONS: [AccountType, string][] = [
 ]
 
 export function AddAccountScreen() {
-  const { addAccount } = useData()
+  const { id } = useParams<{ id?: string }>()
+  const { accounts, transactions, loanTransactions, subscriptions, addAccount, updateAccount, deleteAccount } = useData()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const initialType = (searchParams.get('type') as AccountType) || 'wallet'
 
-  const [name, setName] = useState('')
+  const existing = id ? accounts.find((a) => a.id === id) : undefined
+  const isEditing = Boolean(existing)
+  const initialType = existing?.type ?? ((searchParams.get('type') as AccountType) || 'wallet')
+
+  const [name, setName] = useState(existing?.name ?? '')
   const [type, setType] = useState<AccountType>(initialType)
-  const [balance, setBalance] = useState('')
-  const [goalAmount, setGoalAmount] = useState('')
-  const [goalLabel, setGoalLabel] = useState('')
+  const [balance, setBalance] = useState(existing ? String(existing.balance) : '')
+  const [goalAmount, setGoalAmount] = useState(existing?.goalAmount ? String(existing.goalAmount) : '')
+  const [goalLabel, setGoalLabel] = useState(existing?.goalLabel ?? '')
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const canSave = name.trim().length > 0
 
+  const linkedActivityCount = id
+    ? transactions.filter((t) => t.accountId === id || t.transferToAccountId === id).length +
+      loanTransactions.filter((t) => t.accountId === id).length +
+      subscriptions.filter((s) => s.accountId === id).length
+    : 0
+
   function handleSave() {
     if (!canSave) return
-    addAccount({
+    const input = {
       name,
       type,
       balance: balance ? Number(balance) : 0,
       goalAmount: type === 'savings' && goalAmount ? Number(goalAmount) : undefined,
       goalLabel: type === 'savings' && goalLabel ? goalLabel : undefined,
-    })
+    }
+    if (isEditing && id) updateAccount(id, input)
+    else addAccount(input)
+    navigate('/accounts', { replace: true })
+  }
+
+  function handleDelete() {
+    if (!id) return
+    deleteAccount(id)
     navigate('/accounts', { replace: true })
   }
 
@@ -44,8 +64,14 @@ export function AddAccountScreen() {
           <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
             إلغاء
           </button>
-          <div className="text-base font-bold">إضافة حساب</div>
-          <div className="w-10" />
+          <div className="text-base font-bold">{isEditing ? 'تعديل حساب' : 'إضافة حساب'}</div>
+          {isEditing ? (
+            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              حذف
+            </button>
+          ) : (
+            <div className="w-10" />
+          )}
         </div>
       }
       footer={
@@ -56,11 +82,25 @@ export function AddAccountScreen() {
             className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
             style={{ background: 'var(--color-accent)' }}
           >
-            حفظ الحساب
+            {isEditing ? 'حفظ التعديلات' : 'حفظ الحساب'}
           </button>
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="حذف الحساب"
+        message={
+          linkedActivityCount > 0
+            ? `فيه ${linkedActivityCount} حركة/سلفة/اشتراك مرتبطة بهذا الحساب — بتبقى بسجلك بس بدون حساب مرتبط. الحذف نهائي.`
+            : 'بيتم حذف هذا الحساب نهائيًا.'
+        }
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الحساب</label>
       <input
         value={name}

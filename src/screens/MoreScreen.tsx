@@ -5,6 +5,14 @@ import { forceAppUpdate } from '../lib/cache'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppLogo } from '../components/AppLogo'
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.5" y2="16.5" />
+    </svg>
+  )
+}
 function TagIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -99,6 +107,7 @@ function UpdatingOverlay() {
 }
 
 const ITEMS = [
+  { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(0,226,138,0.12)' },
   { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
   { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
   { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
