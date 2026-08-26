@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useData, type ActivityItem } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 
@@ -56,7 +57,8 @@ function ActivityIcon({ kind }: { kind: ActivityItem['kind'] }) {
 }
 
 export function HomeScreen() {
-  const { accounts, totalBalance, recentActivity } = useData()
+  const { accounts, totalBalance, totalMonthlySubscriptions, recentActivity } = useData()
+  const navigate = useNavigate()
   const [hidden, setHidden] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
 
@@ -104,6 +106,28 @@ export function HomeScreen() {
           ))}
         </div>
       </div>
+
+      {totalMonthlySubscriptions > 0 && (
+        <button
+          onClick={() => navigate('/subscriptions')}
+          className="mb-4 flex w-full items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-right"
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-[10px]"
+              style={{ width: 32, height: 32, background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="8,6 18,12 8,18" />
+              </svg>
+            </div>
+            <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">الاشتراكات الشهرية</div>
+          </div>
+          <div className="num text-[14px] font-bold" style={{ color: 'var(--color-subscription)' }}>
+            {mask(formatMoney(totalMonthlySubscriptions))}
+          </div>
+        </button>
+      )}
 
       <div className="mb-1.5 flex items-center justify-between">
         <div className="text-[14.5px] font-bold">آخر الحركات</div>

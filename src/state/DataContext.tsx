@@ -3,12 +3,15 @@ import { loadJSON, saveJSON } from '../lib/storage'
 import { makeId } from '../lib/id'
 import type {
   Account,
+  BillingCycle,
   Category,
   CategoryKind,
   IncomeSource,
   LoanDirection,
   LoanTransaction,
   Person,
+  Subscription,
+  SubscriptionStatus,
   Transaction,
   TransactionType,
 } from '../types'
@@ -19,6 +22,7 @@ const LOANS_KEY = 'qbnomia.loanTransactions'
 const CATEGORIES_KEY = 'qbnomia.categories'
 const INCOME_SOURCES_KEY = 'qbnomia.incomeSources'
 const TRANSACTIONS_KEY = 'qbnomia.transactions'
+const SUBSCRIPTIONS_KEY = 'qbnomia.subscriptions'
 
 function seedAccounts(): Account[] {
   return [
@@ -109,6 +113,33 @@ function seedTransactions(): Transaction[] {
   ]
 }
 
+function seedSubscriptions(): Subscription[] {
+  const today = new Date()
+  const inDays = (n: number) => new Date(today.getTime() + n * 86400000).toISOString().slice(0, 10)
+  return [
+    {
+      id: 'sub-youtube',
+      name: 'يوتيوب بريميوم',
+      provider: 'Google Play',
+      cost: 21,
+      billingCycle: 'monthly',
+      nextRenewalDate: inDays(20),
+      accountId: 'acc-bank',
+      status: 'active',
+    },
+    {
+      id: 'sub-icloud',
+      name: 'تخزين آيكلاود',
+      provider: 'Apple',
+      cost: 12,
+      billingCycle: 'monthly',
+      nextRenewalDate: inDays(4),
+      accountId: 'acc-bank',
+      status: 'active',
+    },
+  ]
+}
+
 interface AddPersonInput {
   name: string
   phone?: string
@@ -146,6 +177,15 @@ interface AddTransactionInput {
   note?: string
 }
 
+interface AddSubscriptionInput {
+  name: string
+  provider?: string
+  cost: number
+  billingCycle: BillingCycle
+  nextRenewalDate: string
+  accountId: string
+}
+
 export interface ActivityItem {
   id: string
   date: string
@@ -163,7 +203,11 @@ interface DataContextValue {
   categories: Category[]
   incomeSources: IncomeSource[]
   transactions: Transaction[]
+  subscriptions: Subscription[]
   totalBalance: number
+  totalMonthlySubscriptions: number
+  addSubscription: (input: AddSubscriptionInput) => Subscription
+  setSubscriptionStatus: (id: string, status: SubscriptionStatus) => void
   addPerson: (input: AddPersonInput) => Person
   addLoanTransaction: (input: AddLoanInput) => void
   personBalance: (personId: string) => number
@@ -192,6 +236,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>(() =>
     loadJSON(TRANSACTIONS_KEY, seedTransactions()),
   )
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(() =>
+    loadJSON(SUBSCRIPTIONS_KEY, seedSubscriptions()),
+  )
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -216,6 +263,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   function persistTransactions(next: Transaction[]) {
     setTransactions(next)
     saveJSON(TRANSACTIONS_KEY, next)
+  }
+  function persistSubscriptions(next: Subscription[]) {
+    setSubscriptions(next)
+    saveJSON(SUBSCRIPTIONS_KEY, next)
   }
 
   const value = useMemo<DataContextValue>(() => {
@@ -304,6 +355,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return [...fromTxns, ...fromLoans].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, limit)
     }
 
+    const totalMonthlySubscriptions = subscriptions
+      .filter((s) => s.status === 'active')
+      .reduce((sum, s) => sum + (s.billingCycle === 'monthly' ? s.cost : s.cost / 12), 0)
+
     return {
       accounts,
       people,
@@ -311,7 +366,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       categories,
       incomeSources,
       transactions,
+      subscriptions,
       totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
+      totalMonthlySubscriptions,
       totalOwedToMe,
       totalIOwe,
       personBalance,
@@ -394,9 +451,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistAccounts(nextAccounts)
       },
+      addSubscription(input: AddSubscriptionInput) {
+        const sub: Subscription = {
+          id: makeId(),
+          name: input.name.trim(),
+          provider: input.provider?.trim() || undefined,
+          cost: input.cost,
+          billingCycle: input.billingCycle,
+          nextRenewalDate: input.nextRenewalDate,
+          accountId: input.accountId,
+          status: 'active',
+        }
+        persistSubscriptions([sub, ...subscriptions])
+        return sub
+      },
+      setSubscriptionStatus(id: string, status: SubscriptionStatus) {
+        persistSubscriptions(subscriptions.map((s) => (s.id === id ? { ...s, status } : s)))
+      },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

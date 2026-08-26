@@ -57,3 +57,17 @@ export interface Transaction {
   incomeSourceId?: string
   transferToAccountId?: string
 }
+
+export type BillingCycle = 'monthly' | 'yearly'
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled'
+
+export interface Subscription {
+  id: string
+  name: string
+  provider?: string
+  cost: number
+  billingCycle: BillingCycle
+  nextRenewalDate: string
+  accountId: string
+  status: SubscriptionStatus
+}

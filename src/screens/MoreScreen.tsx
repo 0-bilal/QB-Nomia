@@ -4,7 +4,7 @@ import { useAuth } from '../state/AuthContext'
 const ITEMS = [
   { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories' },
   { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources' },
-  { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', soon: true },
+  { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions' },
   { label: 'التقارير', desc: 'ملخصات ورسوم بيانية شهرية', soon: true },
   { label: 'ربط Google Sheets', desc: 'مزامنة بياناتك مع حسابك', soon: true },
 ]

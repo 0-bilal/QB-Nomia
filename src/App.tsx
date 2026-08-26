@@ -12,6 +12,8 @@ import { CategoriesScreen } from './screens/CategoriesScreen'
 import { AddCategoryScreen } from './screens/AddCategoryScreen'
 import { IncomeSourcesScreen } from './screens/IncomeSourcesScreen'
 import { AddIncomeSourceScreen } from './screens/AddIncomeSourceScreen'
+import { SubscriptionsScreen } from './screens/SubscriptionsScreen'
+import { AddSubscriptionScreen } from './screens/AddSubscriptionScreen'
 import { PeopleListScreen } from './screens/loans/PeopleListScreen'
 import { AddPersonScreen } from './screens/loans/AddPersonScreen'
 import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
@@ -43,6 +45,8 @@ export default function App() {
         <Route path="categories/new" element={<AddCategoryScreen />} />
         <Route path="income-sources" element={<IncomeSourcesScreen />} />
         <Route path="income-sources/new" element={<AddIncomeSourceScreen />} />
+        <Route path="subscriptions" element={<SubscriptionsScreen />} />
+        <Route path="subscriptions/new" element={<AddSubscriptionScreen />} />
         <Route path="loans/new" element={<AddPersonScreen />} />
         <Route path="loans/:personId" element={<PersonDetailScreen />} />
         <Route path="loans/:personId/add" element={<AddLoanScreen />} />
