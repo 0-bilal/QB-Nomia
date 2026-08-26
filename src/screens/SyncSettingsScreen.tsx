@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
 import { formatDate } from '../lib/format'
 
@@ -12,6 +13,7 @@ export function SyncSettingsScreen() {
   const { exportSnapshot, importSnapshot } = useData()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [lastSynced, setLastSynced] = useState(getLastSyncedAt())
+  const [confirmPullOpen, setConfirmPullOpen] = useState(false)
   const configured = isSheetsSyncConfigured()
 
   async function handlePush() {
@@ -26,7 +28,7 @@ export function SyncSettingsScreen() {
   }
 
   async function handlePull() {
-    if (!window.confirm('سحب البيانات من Google Sheets سيستبدل كل بياناتك المحلية الحالية بالكامل. متابعة؟')) return
+    setConfirmPullOpen(false)
     setStatus({ kind: 'busy', label: 'يتم سحب البيانات...' })
     try {
       const snapshot = await pullFromSheets()
@@ -50,6 +52,15 @@ export function SyncSettingsScreen() {
         </div>
       }
     >
+      <ConfirmDialog
+        open={confirmPullOpen}
+        title="سحب البيانات"
+        message="سحب البيانات من Google Sheets سيستبدل كل بياناتك المحلية الحالية بالكامل."
+        confirmLabel="سحب واستبدال"
+        color="var(--color-owed-to)"
+        onConfirm={handlePull}
+        onCancel={() => setConfirmPullOpen(false)}
+      />
       {!configured ? (
         <div className="rounded-2xl border border-dashed p-4 text-[12.5px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
           لم يتم إعداد رابط المزامنة بعد. رابط Web App والرمز السري يُضبطان بالكود مباشرة بملف
@@ -73,7 +84,7 @@ export function SyncSettingsScreen() {
               رفع البيانات ↑
             </button>
             <button
-              onClick={handlePull}
+              onClick={() => setConfirmPullOpen(true)}
               className="flex-1 rounded-2xl py-3 text-[13px] font-bold"
               style={{ background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)', border: '1px solid rgba(45,212,191,0.3)' }}
             >

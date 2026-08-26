@@ -20,6 +20,24 @@
         }
       })()
     </script>
+    <script>
+      // ارتفاع حقيقي للشاشة كمتغيّر CSS بدل الاعتماد على 100dvh وحده: بعض
+      // متصفحات الجوال ما تعيد حساب dvh فورًا بعد إعادة تحميل مُطلَقة من
+      // JS (زي زر "تحديث التطبيق")، فيبقى شريط المتصفح محسوب بارتفاع أكبر
+      // من الحقيقي لحظيًا ويطلع شريط التنقل السفلي جزئيًا برا الشاشة.
+      // قياس window.innerHeight مباشرة عند كل تغيير يصلّح هذا فورًا.
+      ;(function () {
+        function setAppHeight() {
+          document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px')
+        }
+        setAppHeight()
+        window.addEventListener('resize', setAppHeight)
+        window.addEventListener('orientationchange', setAppHeight)
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', setAppHeight)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

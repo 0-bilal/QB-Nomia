@@ -43,6 +43,8 @@ body {
   inset: 0;
   height: 100vh;
   height: 100dvh;
+  /* --app-height مقاس فعليًا بجافاسكربت (index.html) — أدق من dvh وحده بعد إعادة تحميل بواسطة JS. */
+  height: var(--app-height, 100dvh);
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;

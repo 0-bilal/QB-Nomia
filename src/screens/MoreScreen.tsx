@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { forceAppUpdate } from '../lib/cache'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { AppLogo } from '../components/AppLogo'
 
 function TagIcon() {
   return (
@@ -79,6 +81,23 @@ function LockIcon() {
   )
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function UpdatingOverlay() {
+  return (
+    <div dir="rtl" className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-5 bg-[var(--color-bg)]">
+      <AppLogo tagline="" />
+      <div
+        className="h-8 w-8 rounded-full border-2"
+        style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)', animation: 'spin 700ms linear infinite' }}
+      />
+      <div className="text-[13px] font-semibold text-[var(--color-text-2)]">جارٍ تحديث التطبيق...</div>
+    </div>
+  )
+}
+
 const ITEMS = [
   { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
   { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
@@ -92,12 +111,13 @@ export function MoreScreen() {
   const navigate = useNavigate()
   const auth = useAuth()
   const [busy, setBusy] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
-  async function handleUpdateApp() {
-    if (!window.confirm('سيتم تحديث التطبيق لأحدث نسخة وإعادة تحميله. بياناتك المالية لن تتأثر. متابعة؟')) return
+  async function confirmUpdateApp() {
+    setConfirmOpen(false)
     setBusy(true)
     try {
-      await forceAppUpdate()
+      await Promise.all([forceAppUpdate(), delay(500)])
       window.location.reload()
     } catch {
       setBusy(false)
@@ -106,6 +126,17 @@ export function MoreScreen() {
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
+      {busy && <UpdatingOverlay />}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="تحديث التطبيق"
+        message="سيتم تحديث التطبيق لأحدث نسخة وإعادة تحميله. بياناتك المالية لن تتأثر."
+        confirmLabel="تحديث الآن"
+        onConfirm={confirmUpdateApp}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
       <div className="mb-5 text-xl font-bold">المزيد</div>
 
       <div className="mb-6 flex flex-col gap-2.5">
@@ -130,7 +161,7 @@ export function MoreScreen() {
       </div>
 
       <button
-        onClick={handleUpdateApp}
+        onClick={() => setConfirmOpen(true)}
         disabled={busy}
         className="mb-6 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right disabled:opacity-60"
         style={{ borderColor: 'rgba(0,226,138,0.3)', background: 'rgba(0,226,138,0.08)' }}
