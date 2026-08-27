@@ -1,3 +1,15 @@
+import type { CSSProperties } from 'react'
+
+/** مسار سهم الشعار الصاعد — مصدر واحد يُعاد استخدامه بالشارة الملوّنة (AppLogoMark) وبعلامة الخلفية الشفافة (AppLogoWatermark). */
+function ArrowGlyphPaths() {
+  return (
+    <>
+      <path d="M4 17 L10 9 L14 13 L20 5" />
+      <path d="M15 5 H20 V10" />
+    </>
+  )
+}
+
 /** شعار التطبيق (الأيقونة فقط، بدون الاسم) — مصدر واحد يُعاد استخدامه بأي حجم بأي مكان يحتاج علامة QB-Nomia. */
 export function AppLogoMark({ size = 34 }: { size?: number }) {
   return (
@@ -11,10 +23,28 @@ export function AppLogoMark({ size = 34 }: { size?: number }) {
       }}
     >
       <svg viewBox="0 0 24 24" width={size * 0.53} height={size * 0.53} fill="none" stroke="#0A0A0C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 17 L10 9 L14 13 L20 5" />
-        <path d="M15 5 H20 V10" />
+        <ArrowGlyphPaths />
       </svg>
     </div>
+  )
+}
+
+/** نسخة شفافة كبيرة من شعار السهم — تُستخدم كعلامة مائية بخلفية البطاقات البنكية. */
+export function AppLogoWatermark({ size = 148, style }: { size?: number; style?: CSSProperties }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={style}
+    >
+      <ArrowGlyphPaths />
+    </svg>
   )
 }
 
