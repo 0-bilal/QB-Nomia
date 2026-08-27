@@ -24,12 +24,12 @@ export function PeopleListScreen() {
   }, [people, personBalance, filter, query])
 
   return (
-    <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
+    <div dir="rtl" className="safe-top px-5 pb-4 pt-14">
       <div className="mb-5 flex items-center justify-between">
         <div className="text-xl font-bold">الأشخاص</div>
         <button
           onClick={() => navigate('/loans/new')}
-          className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
+          className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
           style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
           aria-label="إضافة شخص"
         >
@@ -41,13 +41,13 @@ export function PeopleListScreen() {
       </div>
 
       <div className="mb-4 flex gap-2.5">
-        <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+        <div className="qb-card flex-1 p-3.5">
           <div className="mb-1 text-[11px] text-[var(--color-text-2)]">إجمالي مستحق لك</div>
           <div className="num text-base font-bold" style={{ color: 'var(--color-owed-to)' }}>
             {formatMoney(totalOwedToMe)}
           </div>
         </div>
-        <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+        <div className="qb-card flex-1 p-3.5">
           <div className="mb-1 text-[11px] text-[var(--color-text-2)]">إجمالي عليك للغير</div>
           <div className="num text-base font-bold" style={{ color: 'var(--color-owed-by)' }}>
             {formatMoney(totalIOwe)}
@@ -93,7 +93,7 @@ export function PeopleListScreen() {
             <button
               key={person.id}
               onClick={() => navigate(`/loans/${person.id}`)}
-              className="flex items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 text-right"
+              className="qb-card qb-press flex items-center gap-3 p-3.5 text-right"
             >
               <Avatar name={person.name} />
               <div className="flex-1">

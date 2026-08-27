@@ -99,6 +99,61 @@ textarea {
   padding-bottom: max(env(safe-area-inset-bottom), 0px);
 }
 
+/*
+  نظام تصميم مصغّر لهوية "تطبيق بنكي متقدم": بطاقات بعمق حقيقي (تدرّج +
+  خطوط نسيج خفيفة تحاكي الميتال المصقول) بدل الخلفية المسطحة الموحّدة،
+  زر رجوع دائري بدل نص، وتسميات أقسام موحّدة. الأدوات هنا تُستخدم عبر كل
+  الشاشات بدل تكرار نفس الـ inline styles في كل ملف.
+*/
+.qb-card {
+  border-radius: 22px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.qb-card-elevated {
+  position: relative;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(130% 100% at 100% 0%, rgba(255, 255, 255, 0.09) 0%, transparent 55%),
+    linear-gradient(160deg, var(--color-surface-elevated) 0%, var(--color-void) 65%, #000000 100%);
+  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+
+.qb-card-elevated::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.028) 0px,
+    rgba(255, 255, 255, 0.028) 1px,
+    transparent 1px,
+    transparent 9px
+  );
+  mix-blend-mode: overlay;
+}
+
+.qb-section-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-3);
+}
+
+.qb-divider {
+  border-color: rgba(255, 255, 255, 0.055);
+}
+
+.qb-press {
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+.qb-press:active {
+  transform: scale(0.965);
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

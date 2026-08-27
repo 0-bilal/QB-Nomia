@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
 import { formatDate, formatSigned } from '../lib/format'
@@ -33,17 +34,9 @@ export function AllTransactionsScreen() {
 
   return (
     <ScreenScroll
-      header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            → رجوع
-          </button>
-          <div className="text-base font-bold">كل الحركات</div>
-          <div className="w-10" />
-        </div>
-      }
+      header={<ScreenHeader title="كل الحركات" onBack={() => navigate(-1)} className="pt-8 pb-6" />}
     >
-      <div className="mb-4 flex items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+      <div className="qb-card mb-4 flex items-center gap-2 px-4 py-3">
         <span className="text-[var(--color-text-3)]">
           <SearchIcon />
         </span>
@@ -56,16 +49,16 @@ export function AllTransactionsScreen() {
       </div>
 
       {all.length === 0 ? (
-        <div className="py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
+        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
       ) : filtered.length === 0 ? (
-        <div className="py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد نتائج مطابقة</div>
+        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد نتائج مطابقة</div>
       ) : (
-        <div className="border-t border-white/6">
-          {filtered.map((item) => (
+        <div className="qb-card overflow-hidden">
+          {filtered.map((item, i) => (
             <button
               key={item.id}
               onClick={() => navigate(activityEditPath(item))}
-              className="flex w-full items-center gap-3 border-b border-white/6 py-2.75 text-right"
+              className={`qb-press flex w-full items-center gap-3 px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
             >
               <div
                 className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
@@ -73,14 +66,14 @@ export function AllTransactionsScreen() {
               >
                 <ActivityIcon kind={item.kind} />
               </div>
-              <div className="flex-1">
-                <div className="text-[13.5px] font-semibold">{item.title}</div>
-                <div className="text-[11.5px] text-[var(--color-text-3)]">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-semibold">{item.title}</div>
+                <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
                   {item.subtitle} · {formatDate(item.date)}
                   {item.note ? ` · ${item.note}` : ''}
                 </div>
               </div>
-              <div className="num text-[13.5px] font-bold" style={{ color: item.color }}>
+              <div className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color: item.color }}>
                 {formatSigned(item.amount)}
               </div>
             </button>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
 import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
@@ -65,15 +66,7 @@ export function SyncSettingsScreen() {
 
   return (
     <ScreenScroll
-      header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            → رجوع
-          </button>
-          <div className="text-base font-bold">مزامنة Google Sheets</div>
-          <div className="w-10" />
-        </div>
-      }
+      header={<ScreenHeader title="مزامنة Google Sheets" onBack={() => navigate(-1)} className="pt-8 pb-6" />}
     >
       <ConfirmDialog
         open={confirmPullOpen}

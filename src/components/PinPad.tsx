@@ -36,7 +36,13 @@ export function PinPad({ digits, value, onDigit, onBackspace, disabled }: PinPad
             disabled={disabled}
             onClick={() => onDigit(k)}
             className="num flex h-17 w-17 items-center justify-center rounded-full border text-2xl font-semibold text-[var(--color-text)] transition-transform active:scale-90"
-            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', width: 68, height: 68 }}
+            style={{
+              background: 'linear-gradient(165deg, var(--color-surface-elevated) 0%, var(--color-surface) 100%)',
+              borderColor: 'var(--color-border)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+              width: 68,
+              height: 68,
+            }}
           >
             {k}
           </button>
@@ -47,7 +53,13 @@ export function PinPad({ digits, value, onDigit, onBackspace, disabled }: PinPad
           disabled={disabled}
           onClick={() => onDigit('0')}
           className="num flex items-center justify-center rounded-full border text-2xl font-semibold text-[var(--color-text)] transition-transform active:scale-90"
-          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', width: 68, height: 68 }}
+          style={{
+            background: 'linear-gradient(165deg, var(--color-surface-elevated) 0%, var(--color-surface) 100%)',
+            borderColor: 'var(--color-border)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+            width: 68,
+            height: 68,
+          }}
         >
           0
         </button>

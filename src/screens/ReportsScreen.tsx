@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { formatMoney } from '../lib/format'
 
 function healthLabel(score: number): { text: string; color: string } {
@@ -30,20 +31,9 @@ export function ReportsScreen() {
 
   return (
     <ScreenScroll
-      header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            → رجوع
-          </button>
-          <div className="text-base font-bold">التقارير</div>
-          <div className="w-10" />
-        </div>
-      }
+      header={<ScreenHeader title="التقارير" onBack={() => navigate(-1)} className="pt-8 pb-6" />}
     >
-      <div
-        className="mb-4 rounded-3xl border border-[var(--color-border)] p-5"
-        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)' }}
-      >
+      <div className="qb-card-elevated mb-4 p-5">
         <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">مؤشر الصحة المالية هذا الشهر</div>
         {score === null ? (
           <div className="text-[13px] text-[var(--color-text-3)]">سجّل دخلك هذا الشهر لعرض المؤشر</div>
@@ -66,25 +56,25 @@ export function ReportsScreen() {
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2.5">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+        <div className="qb-card p-3.5">
           <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">دخل الشهر</div>
           <div className="num text-[16px] font-bold" style={{ color: 'var(--color-income)' }}>
             {formatMoney(income)}
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+        <div className="qb-card p-3.5">
           <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">مصروف الشهر</div>
           <div className="num text-[16px] font-bold" style={{ color: 'var(--color-expense)' }}>
             {formatMoney(expense)}
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+        <div className="qb-card p-3.5">
           <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">صافي التوفير</div>
           <div className="num text-[16px] font-bold" style={{ color: net >= 0 ? 'var(--color-accent)' : 'var(--color-expense)' }}>
             {formatMoney(net)}
           </div>
         </div>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+        <div className="qb-card p-3.5">
           <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">نسبة الادخار</div>
           <div className="num text-[16px] font-bold" style={{ color: 'var(--color-accent)' }}>
             {savingsRate === null ? '—' : `${savingsRate}%`}
@@ -92,8 +82,8 @@ export function ReportsScreen() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-        <div className="mb-3 text-[13px] font-bold text-[var(--color-text-2)]">الدخل والمصروف — آخر 6 أشهر</div>
+      <div className="qb-card mb-4 p-4">
+        <div className="qb-section-label mb-3">الدخل والمصروف — آخر 6 أشهر</div>
         <div dir="ltr" className="flex items-end justify-between gap-2" style={{ height: 90 }}>
           {trend.map((m, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1">
@@ -123,11 +113,11 @@ export function ReportsScreen() {
         </div>
       </div>
 
-      <div className="mb-2 text-[13px] font-bold text-[var(--color-text-2)]">توزيع المصاريف حسب الفئة — هذا الشهر</div>
+      <div className="qb-section-label mb-2">توزيع المصاريف حسب الفئة — هذا الشهر</div>
       {categoryBreakdown.length === 0 ? (
-        <div className="py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد مصاريف مسجّلة هذا الشهر بعد</div>
+        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد مصاريف مسجّلة هذا الشهر بعد</div>
       ) : (
-        <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="qb-card flex flex-col gap-3 p-4">
           {categoryBreakdown.map((c) => {
             const pct = totalCategorySpend ? Math.round((c.spent / totalCategorySpend) * 100) : 0
             return (

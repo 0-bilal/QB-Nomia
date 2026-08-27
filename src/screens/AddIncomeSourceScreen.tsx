@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function AddIncomeSourceScreen() {
@@ -31,19 +32,21 @@ export function AddIncomeSourceScreen() {
   return (
     <ScreenScroll
       header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            إلغاء
-          </button>
-          <div className="text-base font-bold">{isEditing ? 'تعديل مصدر دخل' : 'إضافة مصدر دخل'}</div>
-          {isEditing ? (
-            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-              حذف
-            </button>
-          ) : (
-            <div className="w-10" />
-          )}
-        </div>
+        <ScreenHeader
+          title={isEditing ? 'تعديل مصدر دخل' : 'إضافة مصدر دخل'}
+          onBack={() => navigate(-1)}
+          cancelLabel="إلغاء"
+          className="pt-8 pb-6"
+          right={
+            isEditing ? (
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                حذف
+              </button>
+            ) : (
+              <div className="w-10" />
+            )
+          }
+        />
       }
       footer={
         <div className="px-5 pb-6 pt-3">

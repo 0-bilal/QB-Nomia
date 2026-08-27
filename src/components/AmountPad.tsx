@@ -43,7 +43,13 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
             type="button"
             onClick={() => pressDigit(k)}
             className="num flex items-center justify-center rounded-full border text-[22px] font-semibold text-[var(--color-text)] transition-transform active:scale-90"
-            style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)', width: 64, height: 64 }}
+            style={{
+              background: 'linear-gradient(165deg, var(--color-surface-elevated) 0%, var(--color-surface) 100%)',
+              borderColor: 'var(--color-border)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+              width: 64,
+              height: 64,
+            }}
           >
             {k}
           </button>

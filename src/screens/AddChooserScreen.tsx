@@ -1,24 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 
 export function AddChooserScreen() {
   const navigate = useNavigate()
 
   return (
     <ScreenScroll
-      header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-8">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            إلغاء
-          </button>
-          <div className="text-base font-bold">إضافة حركة</div>
-          <div className="w-10" />
-        </div>
-      }
+      header={<ScreenHeader title="إضافة حركة" onBack={() => navigate(-1)} cancelLabel="إلغاء" className="pt-8 pb-8" />}
     >
       <button
         onClick={() => navigate('/loans')}
-        className="mb-3 flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5 text-right"
+        className="qb-card qb-press mb-3 flex items-center gap-3.5 p-4.5 text-right"
       >
         <div
           className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
@@ -39,7 +32,7 @@ export function AddChooserScreen() {
 
       <button
         onClick={() => navigate('/add/transaction')}
-        className="mb-3 flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4.5 text-right"
+        className="qb-card qb-press mb-3 flex items-center gap-3.5 p-4.5 text-right"
       >
         <div
           className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 const navClass = (active: boolean) => (active ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-3)]')
+const navIconWrapClass = (active: boolean) =>
+  active ? 'rounded-2xl bg-white/[0.09] px-3.5 py-1' : 'rounded-2xl px-3.5 py-1'
 
 function HomeIcon() {
   return (
@@ -67,8 +69,10 @@ function NavItem({ to, label, icon }: { to: string; label: string; icon: (active
     <NavLink to={to} className="flex flex-1 flex-col items-center justify-center gap-1" end={to === '/'}>
       {({ isActive }) => (
         <>
-          <div className={navClass(isActive)}>{icon(isActive)}</div>
-          <div className={`text-[11px] font-semibold ${navClass(isActive)}`}>{label}</div>
+          <div className={`qb-press flex items-center justify-center transition-colors duration-150 ${navClass(isActive)} ${navIconWrapClass(isActive)}`}>
+            {icon(isActive)}
+          </div>
+          <div className={`text-[10.5px] transition-colors duration-150 ${isActive ? 'font-bold' : 'font-semibold'} ${navClass(isActive)}`}>{label}</div>
         </>
       )}
     </NavLink>
@@ -130,54 +134,58 @@ export function BottomNav() {
         />
       )}
 
-      <div className="safe-bottom relative z-50 flex h-24 items-center border-t border-[var(--color-border)] bg-[rgba(20,20,23,0.88)] px-2 backdrop-blur-xl">
-        <NavItem to="/" label="الرئيسية" icon={() => <HomeIcon />} />
-        <NavItem to="/accounts" label="الحسابات" icon={() => <WalletIcon />} />
+      <div className="safe-bottom relative z-50 px-3 pb-2.5 pt-1">
+        <div
+          className="relative mx-auto flex h-[64px] max-w-[420px] items-center rounded-[26px] border border-[var(--color-border)] bg-[rgba(16,16,19,0.92)] px-1.5 shadow-[0_20px_45px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl"
+        >
+          <NavItem to="/" label="الرئيسية" icon={() => <HomeIcon />} />
+          <NavItem to="/accounts" label="الحسابات" icon={() => <WalletIcon />} />
 
-        <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center">
-          {open && (
-            <div
-              className="absolute bottom-full flex flex-col items-stretch gap-3 pb-4"
-              style={{ left: '50%', transform: 'translateX(-50%)', width: 248 }}
-            >
-              {ACTIONS.map((action, i) => (
-                <button
-                  key={action.to}
-                  onClick={() => goTo(action.to)}
-                  className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-2.5 px-3 text-right shadow-[0_10px_30px_-8px_rgba(0,0,0,0.65)]"
-                  style={{ animation: `speed-dial-in 220ms ease-out ${i * 40}ms both` }}
-                >
-                  <div
-                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
-                    style={{ background: action.bg, color: action.color }}
+          <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center">
+            {open && (
+              <div
+                className="absolute bottom-full flex flex-col items-stretch gap-3 pb-5"
+                style={{ left: '50%', transform: 'translateX(-50%)', width: 248 }}
+              >
+                {ACTIONS.map((action, i) => (
+                  <button
+                    key={action.to}
+                    onClick={() => goTo(action.to)}
+                    className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] py-2.5 px-3 text-right shadow-[0_10px_30px_-8px_rgba(0,0,0,0.65)]"
+                    style={{ animation: `speed-dial-in 220ms ease-out ${i * 40}ms both` }}
                   >
-                    {action.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[13px] font-bold">{action.label}</div>
-                    <div className="text-[10.5px] leading-tight text-[var(--color-text-3)]">{action.sub}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+                    <div
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+                      style={{ background: action.bg, color: action.color }}
+                    >
+                      {action.icon}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-bold">{action.label}</div>
+                      <div className="text-[10.5px] leading-tight text-[var(--color-text-3)]">{action.sub}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
-          <button
-            onClick={() => setOpen((o) => !o)}
-            className="-mt-9 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full shadow-[0_8px_20px_-4px_rgba(255,255,255,0.45)] transition-transform duration-200 ease-out"
-            style={{
-              background: 'linear-gradient(145deg, var(--color-accent-a), var(--color-accent-b))',
-              transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
-            }}
-            aria-expanded={open}
-            aria-label={open ? 'إغلاق' : 'إضافة حركة'}
-          >
-            <PlusIcon />
-          </button>
+            <button
+              onClick={() => setOpen((o) => !o)}
+              className="-mt-8 flex h-[58px] w-[58px] flex-shrink-0 items-center justify-center rounded-full border-[3px] border-[var(--color-bg)] shadow-[0_10px_24px_-6px_rgba(255,255,255,0.4)] transition-transform duration-200 ease-out"
+              style={{
+                background: 'linear-gradient(145deg, var(--color-accent-a), var(--color-accent-b))',
+                transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+              }}
+              aria-expanded={open}
+              aria-label={open ? 'إغلاق' : 'إضافة حركة'}
+            >
+              <PlusIcon />
+            </button>
+          </div>
+
+          <NavItem to="/loans" label="السلف" icon={() => <PeopleIcon />} />
+          <NavItem to="/more" label="المزيد" icon={() => <MoreIcon />} />
         </div>
-
-        <NavItem to="/loans" label="السلف" icon={() => <PeopleIcon />} />
-        <NavItem to="/more" label="المزيد" icon={() => <MoreIcon />} />
       </div>
     </>
   )

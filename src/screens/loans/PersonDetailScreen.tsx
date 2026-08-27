@@ -4,6 +4,14 @@ import { Avatar } from '../../components/Avatar'
 import { ScreenScroll } from '../../components/ScreenScroll'
 import { formatDate, formatMoney, formatSigned } from '../../lib/format'
 
+function ChevronBackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15,5 8,12 15,19" />
+    </svg>
+  )
+}
+
 export function PersonDetailScreen() {
   const { personId } = useParams<{ personId: string }>()
   const { people, personBalance, personTransactions, accounts } = useData()
@@ -31,8 +39,13 @@ export function PersonDetailScreen() {
       contentClassName="px-5 pb-4"
       header={
         <div className="safe-top px-5 pt-8">
-          <button onClick={() => navigate(-1)} className="mb-5 text-[13px] text-[var(--color-text-2)]">
-            → رجوع
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="رجوع"
+            className="qb-press mb-5 flex h-9.5 w-9.5 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+            style={{ width: 38, height: 38 }}
+          >
+            <ChevronBackIcon />
           </button>
 
           <div className="mb-6 flex flex-col items-center">
@@ -63,14 +76,14 @@ export function PersonDetailScreen() {
           <div className="mb-4 flex gap-3">
             <button
               onClick={() => navigate(`/loans/${person.id}/add?direction=given`)}
-              className="flex-1 rounded-2xl py-3 text-[13.5px] font-bold"
+              className="qb-press flex-1 rounded-2xl py-3 text-[13.5px] font-bold"
               style={{ background: 'rgba(251,146,60,0.14)', color: 'var(--color-owed-by)', border: '1px solid rgba(251,146,60,0.3)' }}
             >
               أعطه مبلغ
             </button>
             <button
               onClick={() => navigate(`/loans/${person.id}/add?direction=received`)}
-              className="flex-1 rounded-2xl py-3 text-[13.5px] font-bold"
+              className="qb-press flex-1 rounded-2xl py-3 text-[13.5px] font-bold"
               style={{ background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)', border: '1px solid rgba(45,212,191,0.3)' }}
             >
               استلم منه مبلغ
@@ -82,17 +95,17 @@ export function PersonDetailScreen() {
       }
     >
       {txns.length === 0 ? (
-        <div className="py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد مع {person.name}</div>
+        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد مع {person.name}</div>
       ) : (
-        <div className="border-t border-white/6">
-          {txns.map((t) => {
+        <div className="qb-card overflow-hidden">
+          {txns.map((t, i) => {
             const overdue = t.dueDate && t.dueDate < today
             const c = t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)'
             return (
               <button
                 key={t.id}
                 onClick={() => navigate(`/loans/${person.id}/edit/${t.id}`)}
-                className="block w-full border-b border-white/6 py-3 text-right"
+                className={`qb-press block w-full px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
               >
                 <div className="flex items-start justify-between">
                   <div>

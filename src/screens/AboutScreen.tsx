@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { AppLogo } from '../components/AppLogo'
 import { APP_VERSION, BRAND_NAME, BUILD_ID, DEVELOPER_NAME } from '../lib/version'
 
@@ -31,20 +32,9 @@ export function AboutScreen() {
 
   return (
     <ScreenScroll
-      header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            → رجوع
-          </button>
-          <div className="text-base font-bold">حول التطبيق</div>
-          <div className="w-10" />
-        </div>
-      }
+      header={<ScreenHeader title="حول التطبيق" onBack={() => navigate(-1)} className="pt-8 pb-6" />}
     >
-      <div
-        className="mb-4 flex flex-col items-center rounded-3xl border border-[var(--color-border)] py-7"
-        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)', boxShadow: '0 0 40px -14px rgba(255,255,255,0.18)' }}
-      >
+      <div className="qb-card-elevated mb-4 flex flex-col items-center py-7">
         <AppLogo tagline="" />
         <div
           className="num mt-3 rounded-full px-3 py-1 text-[11.5px] font-bold"
@@ -54,7 +44,7 @@ export function AboutScreen() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="qb-card mb-4 p-4">
         <div className="mb-1.5 text-[13px] font-bold">محفظتك المالية، بين يديك بالكامل</div>
         <div className="text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           QB-Nomia تطبيق ويب تقدمي (PWA) لإدارة أموالك الشخصية — يعمل بدون إنترنت، وكل بياناتك تُخزَّن محليًا على جهازك فقط،
@@ -62,7 +52,7 @@ export function AboutScreen() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="qb-card mb-4 p-4">
         <div className="mb-1 text-[13px] font-bold text-[var(--color-text-2)]">أبرز المزايا</div>
         <FeatureRow
           text="حسابات وحركات وتقارير مالية"
@@ -101,7 +91,7 @@ export function AboutScreen() {
         />
       </div>
 
-      <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="qb-card mb-4 p-4">
         <InfoRow label="المطوّر" value={DEVELOPER_NAME} />
         <InfoRow label="بواسطة" value={BRAND_NAME} />
         <InfoRow label="الإصدار" value={APP_VERSION} />

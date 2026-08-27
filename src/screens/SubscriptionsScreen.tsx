@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
 import type { Subscription } from '../types'
 
 function daysUntil(dateStr: string): number {
@@ -39,29 +40,26 @@ export function SubscriptionsScreen() {
   return (
     <ScreenScroll
       header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-5">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            → رجوع
-          </button>
-          <div className="text-base font-bold">الاشتراكات</div>
-          <button
-            onClick={() => navigate('/subscriptions/new')}
-            className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
-            style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
-            aria-label="إضافة اشتراك"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        </div>
+        <ScreenHeader
+          title="الاشتراكات"
+          onBack={() => navigate(-1)}
+          right={
+            <button
+              onClick={() => navigate('/subscriptions/new')}
+              className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
+              style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
+              aria-label="إضافة اشتراك"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          }
+        />
       }
     >
-      <div
-        className="mb-4 rounded-3xl border border-[var(--color-border)] p-4.5"
-        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)' }}
-      >
+      <div className="qb-card-elevated mb-4 p-4.5">
         <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">إجمالي الاشتراكات الشهرية</div>
         <div className="num text-[26px] font-bold" style={{ color: 'var(--color-subscription)' }}>
           {formatMoney(totalMonthlySubscriptions)}
@@ -70,10 +68,10 @@ export function SubscriptionsScreen() {
 
       <div className="mb-5">
         <div className="mb-2 flex items-center justify-between">
-          <div className="text-[13px] font-bold text-[var(--color-text-2)]">المحافظ الرقمية</div>
+          <div className="qb-section-label">المحافظ الرقمية</div>
           <button
             onClick={() => navigate('/accounts/new?type=wallet')}
-            className="text-[11.5px] font-semibold"
+            className="qb-press text-[11.5px] font-semibold"
             style={{ color: 'var(--color-accent)' }}
           >
             + محفظة جديدة
@@ -87,7 +85,7 @@ export function SubscriptionsScreen() {
         ) : (
           <div className="flex flex-col gap-2.5">
             {wallets.map((w) => (
-              <div key={w.id} className="flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <div key={w.id} className="qb-card flex items-center justify-between p-4">
                 <div>
                   <div className="text-[13.5px] font-bold">{w.name}</div>
                   <div className="num mt-0.5 text-[16px] font-bold" style={{ color: 'var(--color-accent)' }}>
@@ -107,17 +105,17 @@ export function SubscriptionsScreen() {
         )}
       </div>
 
-      <div className="mb-2 text-[13px] font-bold text-[var(--color-text-2)]">كل الاشتراكات</div>
+      <div className="qb-section-label mb-2">كل الاشتراكات</div>
 
       {subscriptions.length === 0 ? (
-        <div className="py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد اشتراكات بعد</div>
+        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد اشتراكات بعد</div>
       ) : (
         <div className="flex flex-col gap-2.5">
           {subscriptions.map((sub) => {
             const badge = renewalBadge(sub)
             const open = openId === sub.id
             return (
-              <div key={sub.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+              <div key={sub.id} className="qb-card p-4">
                 <button
                   onClick={() => setOpenId(open ? null : sub.id)}
                   className="flex w-full items-center gap-3 text-right"

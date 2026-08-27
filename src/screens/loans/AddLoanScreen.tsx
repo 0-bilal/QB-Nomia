@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
+import { ScreenHeader } from '../../components/ScreenHeader'
 import { AmountPad } from '../../components/AmountPad'
 import { DatePicker } from '../../components/DatePicker'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -65,19 +66,21 @@ export function AddLoanScreen() {
   return (
     <ScreenScroll
       header={
-        <div className="safe-top flex items-center justify-between px-5 pt-8 pb-6">
-          <button onClick={() => navigate(-1)} className="text-[13px] text-[var(--color-text-2)]">
-            إلغاء
-          </button>
-          <div className="text-base font-bold">{isEditing ? 'تعديل حركة' : `حركة مع ${person.name}`}</div>
-          {isEditing ? (
-            <button onClick={() => setConfirmDeleteOpen(true)} className="text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-              حذف
-            </button>
-          ) : (
-            <div className="w-10" />
-          )}
-        </div>
+        <ScreenHeader
+          title={isEditing ? 'تعديل حركة' : `حركة مع ${person.name}`}
+          onBack={() => navigate(-1)}
+          cancelLabel="إلغاء"
+          className="pt-8 pb-6"
+          right={
+            isEditing ? (
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                حذف
+              </button>
+            ) : (
+              <div className="w-10" />
+            )
+          }
+        />
       }
       footer={
         <div className="px-5 pb-6 pt-3">
@@ -120,8 +123,8 @@ export function AddLoanScreen() {
       </div>
 
       <div
-        className="mb-6 rounded-3xl border p-4"
-        style={{ borderColor: `${color}40`, background: `linear-gradient(160deg, ${color}17 0%, transparent 100%)` }}
+        className="mb-6 rounded-[26px] border p-4.5"
+        style={{ borderColor: `${color}40`, background: `linear-gradient(160deg, ${color}1c 0%, transparent 100%)` }}
       >
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-bold" style={{ color }}>

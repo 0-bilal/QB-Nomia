@@ -153,7 +153,7 @@ export function MoreScreen() {
           <button
             key={item.label}
             onClick={() => navigate(item.to)}
-            className="flex items-center gap-3.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-right"
+            className="qb-card qb-press flex items-center gap-3.5 px-4 py-3.5 text-right"
           >
             <div
               className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
@@ -172,7 +172,7 @@ export function MoreScreen() {
       <button
         onClick={() => setConfirmOpen(true)}
         disabled={busy}
-        className="mb-6 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right disabled:opacity-60"
+        className="qb-press mb-6 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right disabled:opacity-60"
         style={{ borderColor: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)' }}
       >
         <div
@@ -194,7 +194,7 @@ export function MoreScreen() {
           auth.lock()
           navigate('/login', { replace: true })
         }}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] py-3.5 text-center text-[13.5px] font-semibold text-[var(--color-text-2)]"
+        className="qb-press flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] py-3.5 text-center text-[13.5px] font-semibold text-[var(--color-text-2)]"
       >
         <LockIcon />
         قفل التطبيق
