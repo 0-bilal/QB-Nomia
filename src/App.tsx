@@ -27,6 +27,7 @@ import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
 import { AddLoanScreen } from './screens/loans/AddLoanScreen'
 import { SyncSettingsScreen } from './screens/SyncSettingsScreen'
 import { ReportsScreen } from './screens/ReportsScreen'
+import { ComparisonsScreen } from './screens/ComparisonsScreen'
 import { AboutScreen } from './screens/AboutScreen'
 import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
 
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="loans/:personId/edit/:loanId" element={<AddLoanScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
+        <Route path="comparisons" element={<ComparisonsScreen />} />
         <Route path="about" element={<AboutScreen />} />
       </Route>
 

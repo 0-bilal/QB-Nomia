@@ -70,6 +70,14 @@ function ChartIcon() {
     </svg>
   )
 }
+function CompareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3v14M8 17l-3.5-3.5M8 17l3.5-3.5" />
+      <path d="M16 21V7M16 7l-3.5 3.5M16 7l3.5 3.5" />
+    </svg>
+  )
+}
 function CloudSyncIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -169,6 +177,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
     title: 'التقارير والتحليلات',
     items: [
       { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
+      { label: 'المقارنة الشخصية', desc: 'قارن دخلك ومصاريفك شهريًا، ربع سنويًا، أو سنويًا', to: '/comparisons', icon: <CompareIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
     ],
   },
   {
