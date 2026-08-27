@@ -14,6 +14,8 @@ import type {
   LoanDirection,
   LoanTransaction,
   Person,
+  RecurringStatus,
+  RecurringTransaction,
   Subscription,
   SubscriptionStatus,
   Transaction,
@@ -28,6 +30,7 @@ const INCOME_SOURCES_KEY = 'qbnomia.incomeSources'
 const TRANSACTIONS_KEY = 'qbnomia.transactions'
 const SUBSCRIPTIONS_KEY = 'qbnomia.subscriptions'
 const COMMITMENTS_KEY = 'qbnomia.commitments'
+const RECURRING_KEY = 'qbnomia.recurringTransactions'
 const MONTHLY_BUDGET_KEY = 'qbnomia.monthlyBudgetLimit'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
@@ -75,6 +78,10 @@ function seedSubscriptions(): Subscription[] {
 }
 
 function seedCommitments(): Commitment[] {
+  return []
+}
+
+function seedRecurringTransactions(): RecurringTransaction[] {
   return []
 }
 
@@ -144,6 +151,26 @@ interface AddCommitmentInput {
   nextDueDate: string
 }
 
+interface AddRecurringInput {
+  name: string
+  type: TransactionType
+  amount: number
+  accountId: string
+  categoryId?: string
+  incomeSourceId?: string
+  transferToAccountId?: string
+  intervalUnit: CommitmentIntervalUnit
+  intervalCount: number
+  nextDueDate: string
+  note?: string
+}
+
+interface ConfirmRecurringInput {
+  amount: number
+  date: string
+  note?: string
+}
+
 interface AddAccountInput {
   name: string
   type: Account['type']
@@ -168,12 +195,14 @@ export interface ActivityItem {
 
 export interface AppNotification {
   id: string
-  kind: 'subscription' | 'commitment' | 'budget' | 'loan'
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring'
   severity: 'critical' | 'warning'
   title: string
   message: string
   color: string
   to: string
+  /** لو محددة، تُستخدم بدل id عند إرسال إشعار الجهاز — تتيح تكرار الإشعار يوميًا (حتى حد معين) بدل مرة واحدة فقط. */
+  deviceNotifyId?: string
 }
 
 interface DataContextValue {
@@ -185,6 +214,7 @@ interface DataContextValue {
   transactions: Transaction[]
   subscriptions: Subscription[]
   commitments: Commitment[]
+  recurringTransactions: RecurringTransaction[]
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -201,6 +231,11 @@ interface DataContextValue {
   deleteCommitment: (id: string) => void
   setCommitmentStatus: (id: string, status: CommitmentStatus) => void
   logCommitmentRenewal: (id: string) => void
+  addRecurringTransaction: (input: AddRecurringInput) => RecurringTransaction
+  updateRecurringTransaction: (id: string, input: AddRecurringInput) => void
+  deleteRecurringTransaction: (id: string) => void
+  setRecurringStatus: (id: string, status: RecurringStatus) => void
+  confirmRecurringTransaction: (id: string, input: ConfirmRecurringInput) => void
   addAccount: (input: AddAccountInput) => Account
   updateAccount: (id: string, input: AddAccountInput) => void
   deleteAccount: (id: string) => void
@@ -242,6 +277,7 @@ export interface DataSnapshot {
   transactions: Transaction[]
   subscriptions: Subscription[]
   commitments?: Commitment[]
+  recurringTransactions?: RecurringTransaction[]
   monthlyBudgetLimit?: number | null
 }
 
@@ -290,6 +326,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [commitments, setCommitments] = useState<Commitment[]>(() =>
     loadJSON(COMMITMENTS_KEY, seedCommitments()),
   )
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(() =>
+    loadJSON(RECURRING_KEY, seedRecurringTransactions()),
+  )
   const [monthlyBudgetLimit, setMonthlyBudgetLimitState] = useState<number | null>(() =>
     loadJSON<number | null>(MONTHLY_BUDGET_KEY, null),
   )
@@ -326,6 +365,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setCommitments(next)
     saveJSON(COMMITMENTS_KEY, next)
   }
+  function persistRecurringTransactions(next: RecurringTransaction[]) {
+    setRecurringTransactions(next)
+    saveJSON(RECURRING_KEY, next)
+  }
   function persistMonthlyBudgetLimit(next: number | null) {
     setMonthlyBudgetLimitState(next)
     saveJSON(MONTHLY_BUDGET_KEY, next)
@@ -356,10 +399,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       commitments,
+      recurringTransactions,
       monthlyBudgetLimit,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, monthlyBudgetLimit])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -566,6 +610,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      for (const r of recurringTransactions) {
+        if (r.status !== 'active') continue
+        const days = daysUntil(r.nextDueDate)
+        if (days <= 0) {
+          const daysSince = Math.min(-days, 2)
+          list.push({
+            id: `rec-${r.id}-${r.nextDueDate}`,
+            kind: 'recurring',
+            severity: 'critical',
+            title: r.name,
+            message: days === 0 ? 'حان موعدها — تحتاج تأكيد' : 'متأخرة — تحتاج تأكيد',
+            color: 'var(--color-transfer)',
+            to: `/recurring/${r.id}/confirm`,
+            deviceNotifyId: `rec-${r.id}-${r.nextDueDate}-day${daysSince}`,
+          })
+        } else if (days <= 2) {
+          list.push({
+            id: `rec-${r.id}-${r.nextDueDate}`,
+            kind: 'recurring',
+            severity: 'warning',
+            title: r.name,
+            message: `موعدها خلال ${days === 1 ? 'يوم' : 'يومين'}`,
+            color: 'var(--color-transfer)',
+            to: '/recurring',
+          })
+        }
+      }
+
       for (const p of people) {
         const overdue = loanTransactions.some((t) => t.personId === p.id && t.direction === 'given' && t.dueDate && t.dueDate < today)
         if (overdue) {
@@ -594,6 +666,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       commitments,
+      recurringTransactions,
       notifications: buildNotifications(),
       monthlyBudgetLimit,
       setMonthlyBudgetLimit: persistMonthlyBudgetLimit,
@@ -877,6 +950,77 @@ export function DataProvider({ children }: { children: ReactNode }) {
           ),
         )
       },
+      addRecurringTransaction(input: AddRecurringInput) {
+        const recurring: RecurringTransaction = {
+          id: makeId(),
+          name: input.name.trim(),
+          type: input.type,
+          amount: input.amount,
+          accountId: input.accountId,
+          categoryId: input.type === 'expense' ? input.categoryId : undefined,
+          incomeSourceId: input.type === 'income' ? input.incomeSourceId : undefined,
+          transferToAccountId: input.type === 'transfer' ? input.transferToAccountId : undefined,
+          intervalUnit: input.intervalUnit,
+          intervalCount: input.intervalCount,
+          nextDueDate: input.nextDueDate,
+          status: 'active',
+          note: input.note?.trim() || undefined,
+        }
+        persistRecurringTransactions([recurring, ...recurringTransactions])
+        return recurring
+      },
+      updateRecurringTransaction(id: string, input: AddRecurringInput) {
+        persistRecurringTransactions(
+          recurringTransactions.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  name: input.name.trim(),
+                  type: input.type,
+                  amount: input.amount,
+                  accountId: input.accountId,
+                  categoryId: input.type === 'expense' ? input.categoryId : undefined,
+                  incomeSourceId: input.type === 'income' ? input.incomeSourceId : undefined,
+                  transferToAccountId: input.type === 'transfer' ? input.transferToAccountId : undefined,
+                  intervalUnit: input.intervalUnit,
+                  intervalCount: input.intervalCount,
+                  nextDueDate: input.nextDueDate,
+                  note: input.note?.trim() || undefined,
+                }
+              : r,
+          ),
+        )
+      },
+      deleteRecurringTransaction(id: string) {
+        persistRecurringTransactions(recurringTransactions.filter((r) => r.id !== id))
+      },
+      setRecurringStatus(id: string, status: RecurringStatus) {
+        persistRecurringTransactions(recurringTransactions.map((r) => (r.id === id ? { ...r, status } : r)))
+      },
+      confirmRecurringTransaction(id: string, input: ConfirmRecurringInput) {
+        const recurring = recurringTransactions.find((r) => r.id === id)
+        if (!recurring) return
+
+        const txn: Transaction = {
+          id: makeId(),
+          type: recurring.type,
+          amount: input.amount,
+          date: input.date,
+          accountId: recurring.accountId,
+          categoryId: recurring.type === 'expense' ? recurring.categoryId : undefined,
+          incomeSourceId: recurring.type === 'income' ? recurring.incomeSourceId : undefined,
+          transferToAccountId: recurring.type === 'transfer' ? recurring.transferToAccountId : undefined,
+          note: input.note?.trim() || recurring.name,
+        }
+        persistTransactions([txn, ...transactions])
+        persistAccounts(withTransactionEffect(accounts, txn, 1))
+
+        persistRecurringTransactions(
+          recurringTransactions.map((r) =>
+            r.id === id ? { ...r, nextDueDate: advanceByInterval(r.nextDueDate, r.intervalUnit, r.intervalCount) } : r,
+          ),
+        )
+      },
       addAccount(input: AddAccountInput) {
         const account: Account = {
           id: makeId(),
@@ -911,7 +1055,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistAccounts(accounts.filter((a) => a.id !== id))
       },
       exportSnapshot(): DataSnapshot {
-        return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, monthlyBudgetLimit }
+        return {
+          accounts,
+          people,
+          loanTransactions,
+          categories,
+          incomeSources,
+          transactions,
+          subscriptions,
+          commitments,
+          recurringTransactions,
+          monthlyBudgetLimit,
+        }
       },
       importSnapshot(snapshot: DataSnapshot) {
         skipNextAutoSync.current = true
@@ -923,11 +1078,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistTransactions(snapshot.transactions ?? [])
         persistSubscriptions(snapshot.subscriptions ?? [])
         persistCommitments(snapshot.commitments ?? [])
+        persistRecurringTransactions(snapshot.recurringTransactions ?? [])
         persistMonthlyBudgetLimit(snapshot.monthlyBudgetLimit ?? null)
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, monthlyBudgetLimit])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

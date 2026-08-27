@@ -10,7 +10,9 @@ export function AppShell() {
   // يطلق إشعار جهاز حقيقي للتنبيهات الحرجة الجديدة عند فتح التطبيق —
   // فقط لو المستخدم فعّل إذن التنبيهات أصلًا (من داخل مركز التنبيهات).
   useEffect(() => {
-    const critical = notifications.filter((n) => n.severity === 'critical')
+    const critical = notifications
+      .filter((n) => n.severity === 'critical')
+      .map((n) => ({ id: n.deviceNotifyId ?? n.id, title: n.title, message: n.message }))
     notifyNewCriticalItems(critical)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

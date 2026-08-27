@@ -44,6 +44,16 @@ function CommitmentIcon() {
     </svg>
   )
 }
+function RecurringIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 11A8 8 0 0 0 6.3 6.3L4 8.6" />
+      <path d="M4 4v4.6h4.6" />
+      <path d="M4 13a8 8 0 0 0 13.7 4.7L20 15.4" />
+      <path d="M20 20v-4.6h-4.6" />
+    </svg>
+  )
+}
 function GoalIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -146,6 +156,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
     items: [
       { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
       { label: 'الالتزامات', desc: 'تجديد الهوية، عقود، رخص، والتزامات دورية أخرى', to: '/commitments', icon: <CommitmentIcon />, color: 'var(--color-commitment)', bg: 'rgba(96,165,250,0.12)' },
+      { label: 'الحركات المتكررة', desc: 'راتب أو أي حركة بمبلغ متغيّر تحتاج تأكيد قبل تسجيلها', to: '/recurring', icon: <RecurringIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
     ],
   },
   {

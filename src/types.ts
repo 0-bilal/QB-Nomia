@@ -90,3 +90,23 @@ export interface Commitment {
   nextDueDate: string
   status: CommitmentStatus
 }
+
+// حركات متكررة بمبلغ تقديري (راتب، اشتراك يدوي...) — لا تُنفَّذ تلقائيًا،
+// بل تظهر كإشعار يحتاج موافقة/تعديل قبل تسجيلها كحركة فعلية.
+export type RecurringStatus = 'active' | 'paused' | 'cancelled'
+
+export interface RecurringTransaction {
+  id: string
+  name: string
+  type: TransactionType
+  amount: number
+  accountId: string
+  categoryId?: string
+  incomeSourceId?: string
+  transferToAccountId?: string
+  intervalUnit: CommitmentIntervalUnit
+  intervalCount: number
+  nextDueDate: string
+  status: RecurringStatus
+  note?: string
+}

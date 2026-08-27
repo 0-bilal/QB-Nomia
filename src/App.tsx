@@ -18,6 +18,9 @@ import { AddSubscriptionScreen } from './screens/AddSubscriptionScreen'
 import { CommitmentsScreen } from './screens/CommitmentsScreen'
 import { AddCommitmentScreen } from './screens/AddCommitmentScreen'
 import { GoalsScreen } from './screens/GoalsScreen'
+import { RecurringScreen } from './screens/RecurringScreen'
+import { AddRecurringScreen } from './screens/AddRecurringScreen'
+import { ConfirmRecurringScreen } from './screens/ConfirmRecurringScreen'
 import { PeopleListScreen } from './screens/loans/PeopleListScreen'
 import { AddPersonScreen } from './screens/loans/AddPersonScreen'
 import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
@@ -66,6 +69,10 @@ export default function App() {
         <Route path="commitments/new" element={<AddCommitmentScreen />} />
         <Route path="commitments/:id/edit" element={<AddCommitmentScreen />} />
         <Route path="goals" element={<GoalsScreen />} />
+        <Route path="recurring" element={<RecurringScreen />} />
+        <Route path="recurring/new" element={<AddRecurringScreen />} />
+        <Route path="recurring/:id/edit" element={<AddRecurringScreen />} />
+        <Route path="recurring/:id/confirm" element={<ConfirmRecurringScreen />} />
         <Route path="loans/new" element={<AddPersonScreen />} />
         <Route path="loans/:personId" element={<PersonDetailScreen />} />
         <Route path="loans/:personId/edit" element={<AddPersonScreen />} />

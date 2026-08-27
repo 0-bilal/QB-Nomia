@@ -53,6 +53,16 @@ function LoanIcon() {
     </svg>
   )
 }
+function RecurringIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 11A8 8 0 0 0 6.3 6.3L4 8.6" />
+      <path d="M4 4v4.6h4.6" />
+      <path d="M4 13a8 8 0 0 0 13.7 4.7L20 15.4" />
+      <path d="M20 20v-4.6h-4.6" />
+    </svg>
+  )
+}
 function DeviceIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -74,6 +84,7 @@ const KIND_ICON: Record<AppNotification['kind'], () => React.ReactElement> = {
   commitment: CommitmentIcon,
   budget: BudgetIcon,
   loan: LoanIcon,
+  recurring: RecurringIcon,
 }
 
 export function NotificationBellButton({ notifications, onClick }: { notifications: AppNotification[]; onClick: () => void }) {
