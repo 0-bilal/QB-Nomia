@@ -28,6 +28,7 @@ const INCOME_SOURCES_KEY = 'qbnomia.incomeSources'
 const TRANSACTIONS_KEY = 'qbnomia.transactions'
 const SUBSCRIPTIONS_KEY = 'qbnomia.subscriptions'
 const COMMITMENTS_KEY = 'qbnomia.commitments'
+const MONTHLY_BUDGET_KEY = 'qbnomia.monthlyBudgetLimit'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -149,6 +150,7 @@ interface AddAccountInput {
   balance: number
   goalAmount?: number
   goalLabel?: string
+  goalTargetDate?: string
 }
 
 export interface ActivityItem {
@@ -184,6 +186,8 @@ interface DataContextValue {
   subscriptions: Subscription[]
   commitments: Commitment[]
   notifications: AppNotification[]
+  monthlyBudgetLimit: number | null
+  setMonthlyBudgetLimit: (limit: number | null) => void
   totalBalance: number
   availableBalance: number
   totalMonthlySubscriptions: number
@@ -238,6 +242,7 @@ export interface DataSnapshot {
   transactions: Transaction[]
   subscriptions: Subscription[]
   commitments?: Commitment[]
+  monthlyBudgetLimit?: number | null
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -285,6 +290,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [commitments, setCommitments] = useState<Commitment[]>(() =>
     loadJSON(COMMITMENTS_KEY, seedCommitments()),
   )
+  const [monthlyBudgetLimit, setMonthlyBudgetLimitState] = useState<number | null>(() =>
+    loadJSON<number | null>(MONTHLY_BUDGET_KEY, null),
+  )
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -318,6 +326,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setCommitments(next)
     saveJSON(COMMITMENTS_KEY, next)
   }
+  function persistMonthlyBudgetLimit(next: number | null) {
+    setMonthlyBudgetLimitState(next)
+    saveJSON(MONTHLY_BUDGET_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -344,9 +356,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       commitments,
+      monthlyBudgetLimit,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, monthlyBudgetLimit])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -560,6 +573,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (monthlyBudgetLimit) {
+        const pct = (monthTotals().expense / monthlyBudgetLimit) * 100
+        if (pct >= 100) {
+          list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: 'الميزانية الإجمالية', message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
+        } else if (pct >= 80) {
+          list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'warning', title: 'الميزانية الإجمالية', message: `قاربت على تجاوز الميزانية (${Math.round(pct)}%)`, color: 'var(--color-subscription)', to: '/categories' })
+        }
+      }
+
       return list.sort((a, b) => (a.severity === 'critical' ? 0 : 1) - (b.severity === 'critical' ? 0 : 1))
     }
 
@@ -573,6 +595,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       subscriptions,
       commitments,
       notifications: buildNotifications(),
+      monthlyBudgetLimit,
+      setMonthlyBudgetLimit: persistMonthlyBudgetLimit,
       totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
       // ادخار ومحفظة رقمية مو رصيد جاهز للصرف فورًا — تُستثنى من "الرصيد
       // المتاح" بالرئيسية (بخلاف totalBalance اللي يبقى مجموع كل الحسابات
@@ -861,6 +885,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           balance: input.balance,
           goalAmount: input.goalAmount,
           goalLabel: input.goalLabel,
+          goalTargetDate: input.goalTargetDate,
         }
         persistAccounts([...accounts, account])
         return account
@@ -869,7 +894,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistAccounts(
           accounts.map((a) =>
             a.id === id
-              ? { ...a, name: input.name.trim(), type: input.type, balance: input.balance, goalAmount: input.goalAmount, goalLabel: input.goalLabel }
+              ? {
+                  ...a,
+                  name: input.name.trim(),
+                  type: input.type,
+                  balance: input.balance,
+                  goalAmount: input.goalAmount,
+                  goalLabel: input.goalLabel,
+                  goalTargetDate: input.goalTargetDate,
+                }
               : a,
           ),
         )
@@ -878,7 +911,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistAccounts(accounts.filter((a) => a.id !== id))
       },
       exportSnapshot(): DataSnapshot {
-        return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments }
+        return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, monthlyBudgetLimit }
       },
       importSnapshot(snapshot: DataSnapshot) {
         skipNextAutoSync.current = true
@@ -890,10 +923,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistTransactions(snapshot.transactions ?? [])
         persistSubscriptions(snapshot.subscriptions ?? [])
         persistCommitments(snapshot.commitments ?? [])
+        persistMonthlyBudgetLimit(snapshot.monthlyBudgetLimit ?? null)
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, monthlyBudgetLimit])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

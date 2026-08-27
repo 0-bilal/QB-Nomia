@@ -4,6 +4,7 @@ import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { DatePicker } from '../components/DatePicker'
 import type { AccountType } from '../types'
 
 const TYPE_OPTIONS: [AccountType, string][] = [
@@ -28,6 +29,7 @@ export function AddAccountScreen() {
   const [balance, setBalance] = useState(existing ? String(existing.balance) : '')
   const [goalAmount, setGoalAmount] = useState(existing?.goalAmount ? String(existing.goalAmount) : '')
   const [goalLabel, setGoalLabel] = useState(existing?.goalLabel ?? '')
+  const [goalTargetDate, setGoalTargetDate] = useState(existing?.goalTargetDate ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const canSave = name.trim().length > 0
@@ -46,6 +48,7 @@ export function AddAccountScreen() {
       balance: balance ? Number(balance) : 0,
       goalAmount: type === 'savings' && goalAmount ? Number(goalAmount) : undefined,
       goalLabel: type === 'savings' && goalLabel ? goalLabel : undefined,
+      goalTargetDate: type === 'savings' && goalTargetDate ? goalTargetDate : undefined,
     }
     if (isEditing && id) updateAccount(id, input)
     else addAccount(input)
@@ -158,6 +161,9 @@ export function AddAccountScreen() {
             placeholder="0"
             className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
           />
+          <div className="mb-5">
+            <DatePicker value={goalTargetDate} onChange={setGoalTargetDate} color="var(--color-subscription)" placeholder="بدون تاريخ مستهدف" fieldLabel="تاريخ تحقيق الهدف (اختياري)" />
+          </div>
         </>
       )}
 

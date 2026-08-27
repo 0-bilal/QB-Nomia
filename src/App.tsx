@@ -17,6 +17,7 @@ import { SubscriptionsScreen } from './screens/SubscriptionsScreen'
 import { AddSubscriptionScreen } from './screens/AddSubscriptionScreen'
 import { CommitmentsScreen } from './screens/CommitmentsScreen'
 import { AddCommitmentScreen } from './screens/AddCommitmentScreen'
+import { GoalsScreen } from './screens/GoalsScreen'
 import { PeopleListScreen } from './screens/loans/PeopleListScreen'
 import { AddPersonScreen } from './screens/loans/AddPersonScreen'
 import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="commitments" element={<CommitmentsScreen />} />
         <Route path="commitments/new" element={<AddCommitmentScreen />} />
         <Route path="commitments/:id/edit" element={<AddCommitmentScreen />} />
+        <Route path="goals" element={<GoalsScreen />} />
         <Route path="loans/new" element={<AddPersonScreen />} />
         <Route path="loans/:personId" element={<PersonDetailScreen />} />
         <Route path="loans/:personId/edit" element={<AddPersonScreen />} />

@@ -44,6 +44,15 @@ function CommitmentIcon() {
     </svg>
   )
 }
+function GoalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 function ChartIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -114,15 +123,50 @@ function UpdatingOverlay() {
   )
 }
 
-const ITEMS = [
-  { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
-  { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
-  { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
-  { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
-  { label: 'الالتزامات', desc: 'تجديد الهوية، عقود، رخص، والتزامات دورية أخرى', to: '/commitments', icon: <CommitmentIcon />, color: 'var(--color-commitment)', bg: 'rgba(96,165,250,0.12)' },
-  { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
-  { label: 'مزامنة Google Sheets', desc: 'نسخة احتياطية تلقائية لجدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)', bg: 'rgba(45,212,191,0.12)' },
-  { label: 'حول التطبيق', desc: 'الإصدار، المطوّر، ومعلومات عن QB-Nomia', to: '/about', icon: <InfoIcon />, color: 'var(--color-text-2)', bg: 'rgba(255,255,255,0.06)' },
+interface MoreItem {
+  label: string
+  desc: string
+  to: string
+  icon: React.ReactElement
+  color: string
+  bg: string
+}
+
+const SECTIONS: { title: string; items: MoreItem[] }[] = [
+  {
+    title: 'البيانات المالية',
+    items: [
+      { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
+      { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
+      { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
+    ],
+  },
+  {
+    title: 'الدوري والمتكرر',
+    items: [
+      { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
+      { label: 'الالتزامات', desc: 'تجديد الهوية، عقود، رخص، والتزامات دورية أخرى', to: '/commitments', icon: <CommitmentIcon />, color: 'var(--color-commitment)', bg: 'rgba(96,165,250,0.12)' },
+    ],
+  },
+  {
+    title: 'الادخار',
+    items: [
+      { label: 'الأهداف', desc: 'تتبّع أهداف الادخار وموعد تحقيقها', to: '/goals', icon: <GoalIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
+    ],
+  },
+  {
+    title: 'التقارير والتحليلات',
+    items: [
+      { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
+    ],
+  },
+  {
+    title: 'الحساب والنظام',
+    items: [
+      { label: 'مزامنة Google Sheets', desc: 'نسخة احتياطية تلقائية لجدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)', bg: 'rgba(45,212,191,0.12)' },
+      { label: 'حول التطبيق', desc: 'الإصدار، المطوّر، ومعلومات عن QB-Nomia', to: '/about', icon: <InfoIcon />, color: 'var(--color-text-2)', bg: 'rgba(255,255,255,0.06)' },
+    ],
+  },
 ]
 
 export function MoreScreen() {
@@ -157,26 +201,36 @@ export function MoreScreen() {
 
       <div className="mb-5 text-xl font-bold">المزيد</div>
 
-      <div className="mb-6 flex flex-col gap-2.5">
-        {ITEMS.map((item) => (
-          <button
-            key={item.label}
-            onClick={() => navigate(item.to)}
-            className="qb-card qb-press flex items-center gap-3.5 px-4 py-3.5 text-right"
-          >
-            <div
-              className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
-              style={{ width: 42, height: 42, background: item.bg, color: item.color }}
-            >
-              {item.icon}
-            </div>
-            <div className="flex-1">
-              <div className="text-[13.5px] font-bold">{item.label}</div>
-              <div className="text-[11.5px] text-[var(--color-text-3)]">{item.desc}</div>
-            </div>
-          </button>
-        ))}
-      </div>
+      {SECTIONS.map((section) => (
+        <div key={section.title} className="mb-5">
+          <div className="qb-section-label mb-2 px-1">{section.title}</div>
+          <div className="qb-card overflow-hidden">
+            {section.items.map((item, i) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.to)}
+                className={`qb-press flex w-full items-center gap-3 px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
+              >
+                <div
+                  className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]"
+                  style={{ width: 38, height: 38, background: item.bg, color: item.color }}
+                >
+                  {item.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-bold">{item.label}</div>
+                  <div className="truncate text-[11px] text-[var(--color-text-3)]">{item.desc}</div>
+                </div>
+                <div className="flex-shrink-0 text-[var(--color-text-3)]">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15,6 9,12 15,18" />
+                  </svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
 
       <button
         onClick={() => setConfirmOpen(true)}

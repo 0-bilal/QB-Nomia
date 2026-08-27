@@ -7,6 +7,7 @@ export interface Account {
   balance: number
   goalAmount?: number
   goalLabel?: string
+  goalTargetDate?: string
 }
 
 export interface Person {
