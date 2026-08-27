@@ -5,6 +5,7 @@ import { ScreenScroll } from '../../components/ScreenScroll'
 import { AmountPad } from '../../components/AmountPad'
 import { DatePicker } from '../../components/DatePicker'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { formatMoney } from '../../lib/format'
 import type { LoanDirection } from '../../types'
 
 export function AddLoanScreen() {
@@ -37,6 +38,7 @@ export function AddLoanScreen() {
   const color = direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)'
   const numericAmount = Number(amount)
   const canSave = numericAmount > 0 && accountId
+  const selectedAccount = accounts.find((a) => a.id === accountId)
 
   function handleSave() {
     if (!canSave || !person) return
@@ -129,7 +131,7 @@ export function AddLoanScreen() {
       </div>
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-2 flex flex-wrap gap-2">
         {accounts.length === 0 ? (
           <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
             لا توجد حسابات — أضف حسابًا أولًا
@@ -151,6 +153,14 @@ export function AddLoanScreen() {
           ))
         )}
       </div>
+      {selectedAccount && (
+        <div className="mb-5 text-[12px] text-[var(--color-text-3)]">
+          الرصيد الحالي في {selectedAccount.name}:{' '}
+          <span className="num font-semibold" style={{ color }}>
+            {formatMoney(selectedAccount.balance)}
+          </span>
+        </div>
+      )}
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
       <div className="mb-5">
