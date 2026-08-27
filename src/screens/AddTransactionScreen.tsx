@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -12,6 +12,12 @@ const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
   income: 'var(--color-income)',
   transfer: 'var(--color-transfer)',
+}
+
+const TYPE_LABEL: Record<TransactionType, string> = {
+  expense: 'مصروف',
+  income: 'دخل',
+  transfer: 'تحويل',
 }
 
 export function AddTransactionScreen() {
@@ -52,6 +58,14 @@ export function AddTransactionScreen() {
   const numericAmount = Number(amount)
   const selectedAccount = accounts.find((a) => a.id === accountId)
   const selectedTransferToAccount = accounts.find((a) => a.id === transferToId)
+
+  useEffect(() => {
+    if (type === 'transfer' && transferToId === accountId) {
+      const alt = accounts.find((a) => a.id !== accountId)
+      if (alt) setTransferToId(alt.id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, accountId])
 
   const canSave =
     numericAmount > 0 &&
@@ -145,6 +159,53 @@ export function AddTransactionScreen() {
         ))}
       </div>
 
+      <div
+        className="mb-6 rounded-3xl border p-4"
+        style={{ borderColor: `${color}40`, background: `linear-gradient(160deg, ${color}17 0%, transparent 100%)` }}
+      >
+        {type === 'transfer' ? (
+          <>
+            <div className="mb-3 text-[11px] font-bold" style={{ color }}>
+              {TYPE_LABEL[type]}
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-[var(--color-text-3)]">من</div>
+                <div className="text-[13.5px] font-bold">{selectedAccount?.name ?? '—'}</div>
+              </div>
+              <div className="num text-[15px] font-bold" style={{ color }}>
+                {selectedAccount ? formatMoney(selectedAccount.balance) : '—'}
+              </div>
+            </div>
+            <div className="my-3 border-t border-white/8" />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-[var(--color-text-3)]">إلى</div>
+                <div className="text-[13.5px] font-bold">{selectedTransferToAccount?.name ?? '—'}</div>
+              </div>
+              <div className="num text-[15px] font-bold" style={{ color }}>
+                {selectedTransferToAccount ? formatMoney(selectedTransferToAccount.balance) : '—'}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-bold" style={{ color }}>
+                {TYPE_LABEL[type]}
+              </span>
+              <span className="text-[12.5px] font-semibold text-[var(--color-text-2)]">{selectedAccount?.name ?? 'اختر حسابًا'}</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-[12px] text-[var(--color-text-3)]">الرصيد الحالي</span>
+              <span className="num text-[22px] font-bold" style={{ color }}>
+                {selectedAccount ? formatMoney(selectedAccount.balance) : '—'}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="mb-6 text-center">
         <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ</div>
         <div className="num text-[40px] font-bold" style={{ color }}>
@@ -216,7 +277,7 @@ export function AddTransactionScreen() {
       {type === 'transfer' && accounts.length >= 2 && (
         <>
           <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">من حساب</label>
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-5 flex flex-wrap gap-2">
             {accounts.map((a) => (
               <button
                 key={a.id}
@@ -232,16 +293,8 @@ export function AddTransactionScreen() {
               </button>
             ))}
           </div>
-          {selectedAccount && (
-            <div className="mb-5 text-[12px] text-[var(--color-text-3)]">
-              الرصيد الحالي في {selectedAccount.name}:{' '}
-              <span className="num font-semibold" style={{ color }}>
-                {formatMoney(selectedAccount.balance)}
-              </span>
-            </div>
-          )}
           <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">إلى حساب</label>
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-5 flex flex-wrap gap-2">
             {accounts
               .filter((a) => a.id !== accountId)
               .map((a) => (
@@ -259,21 +312,13 @@ export function AddTransactionScreen() {
                 </button>
               ))}
           </div>
-          {selectedTransferToAccount && (
-            <div className="mb-5 text-[12px] text-[var(--color-text-3)]">
-              الرصيد الحالي في {selectedTransferToAccount.name}:{' '}
-              <span className="num font-semibold" style={{ color }}>
-                {formatMoney(selectedTransferToAccount.balance)}
-              </span>
-            </div>
-          )}
         </>
       )}
 
       {type !== 'transfer' && (
         <>
           <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-5 flex flex-wrap gap-2">
             {accounts.length === 0 ? (
               <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
                 لا توجد حسابات — أضف حسابًا أولًا
@@ -295,14 +340,6 @@ export function AddTransactionScreen() {
               ))
             )}
           </div>
-          {selectedAccount && (
-            <div className="mb-5 text-[12px] text-[var(--color-text-3)]">
-              الرصيد الحالي في {selectedAccount.name}:{' '}
-              <span className="num font-semibold" style={{ color }}>
-                {formatMoney(selectedAccount.balance)}
-              </span>
-            </div>
-          )}
         </>
       )}
 
