@@ -4,7 +4,7 @@ import { PinPad } from '../../components/PinPad'
 import { useAuth } from '../../state/AuthContext'
 import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
-import { isSheetsSyncConfigured, pullFromSheets } from '../../lib/sheetsSync'
+import { runBackgroundPull } from '../../lib/autoSync'
 
 const DIGITS = 4
 
@@ -12,13 +12,13 @@ export function PinSetupScreen() {
   const auth = useAuth()
   const { importSnapshot } = useData()
   const navigate = useNavigate()
-  const [stage, setStage] = useState<'enter' | 'confirm' | 'loading-data'>('enter')
+  const [stage, setStage] = useState<'enter' | 'confirm'>('enter')
   const [firstPin, setFirstPin] = useState('')
   const [value, setValue] = useState('')
   const [error, setError] = useState(false)
 
   function handleDigit(d: string) {
-    if (error || stage === 'loading-data') return
+    if (error) return
     if (value.length >= DIGITS) return
     const next = value + d
     setValue(next)
@@ -31,17 +31,11 @@ export function PinSetupScreen() {
         }, 200)
       } else {
         if (next === firstPin) {
-          auth.setup(next).then(async () => {
-            if (isSheetsSyncConfigured()) {
-              setStage('loading-data')
-              try {
-                const snapshot = await pullFromSheets()
-                importSnapshot(snapshot)
-              } catch {
-                // تعذّر السحب — نكمل بحساب جديد فارغ بدل ما نعلّق المستخدم
-              }
-            }
+          auth.setup(next).then(() => {
             navigate('/', { replace: true })
+            // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
+            // حالة السحب تظهر كشريط عائم أعلى الشاشة (SyncStatusBar).
+            runBackgroundPull(importSnapshot)
           })
         } else {
           setError(true)
@@ -57,20 +51,8 @@ export function PinSetupScreen() {
   }
 
   function handleBackspace() {
-    if (error || stage === 'loading-data') return
+    if (error) return
     setValue((v) => v.slice(0, -1))
-  }
-
-  if (stage === 'loading-data') {
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
-        <div
-          className="h-10 w-10 animate-spin rounded-full border-[3px]"
-          style={{ borderColor: 'rgba(255,255,255,0.12)', borderTopColor: 'var(--color-accent)' }}
-        />
-        <div className="text-[13.5px] font-semibold text-[var(--color-text-2)]">جاري تحميل بياناتك...</div>
-      </div>
-    )
   }
 
   return (

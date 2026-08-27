@@ -1,17 +1,19 @@
 import type { DataSnapshot } from '../state/DataContext'
 import { isSheetsSyncConfigured } from '../config/sheetsSync'
-import { pushToSheets } from './sheetsSync'
+import { pullFromSheets, pushToSheets } from './sheetsSync'
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline'
+export type SyncDirection = 'push' | 'pull'
 
-type Listener = (status: SyncStatus) => void
+type Listener = (status: SyncStatus, direction: SyncDirection) => void
 
 const listeners = new Set<Listener>()
 let debounceTimer: number | undefined
 let idleTimer: number | undefined
+let pullIdleTimer: number | undefined
 
-function emit(status: SyncStatus): void {
-  listeners.forEach((fn) => fn(status))
+function emit(status: SyncStatus, direction: SyncDirection): void {
+  listeners.forEach((fn) => fn(status, direction))
 }
 
 export function subscribeSyncStatus(fn: Listener): () => void {
@@ -34,17 +36,44 @@ export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
 
   debounceTimer = window.setTimeout(async () => {
     if (!navigator.onLine) {
-      emit('offline')
+      emit('offline', 'push')
       return
     }
-    emit('syncing')
+    emit('syncing', 'push')
     try {
       await pushToSheets(getSnapshot())
-      emit('success')
-      idleTimer = window.setTimeout(() => emit('idle'), 1800)
+      emit('success', 'push')
+      idleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
     } catch {
-      emit('error')
-      idleTimer = window.setTimeout(() => emit('idle'), 3000)
+      emit('error', 'push')
+      idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
     }
   }, 1200)
+}
+
+/**
+ * يسحب أحدث نسخة من جوجل شيت بالخلفية بعد فتح القفل (تسجيل الدخول أو
+ * إعداد أول رقم سري) بدل ما يحجب الدخول للتطبيق بشاشة تحميل منفصلة —
+ * الدخول يصير فورًا، وحالة السحب تظهر كشريط عائم أعلى الشاشة (نفس شريط
+ * حالة الرفع) بدون ما تعطّل أي شيء. onSnapshot يُستدعى فقط لو نجح السحب.
+ */
+export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void): void {
+  if (!isSheetsSyncConfigured()) return
+  if (pullIdleTimer) window.clearTimeout(pullIdleTimer)
+
+  if (!navigator.onLine) {
+    emit('offline', 'pull')
+    return
+  }
+  emit('syncing', 'pull')
+  pullFromSheets()
+    .then((snapshot) => {
+      onSnapshot(snapshot)
+      emit('success', 'pull')
+      pullIdleTimer = window.setTimeout(() => emit('idle', 'pull'), 1800)
+    })
+    .catch(() => {
+      emit('error', 'pull')
+      pullIdleTimer = window.setTimeout(() => emit('idle', 'pull'), 3000)
+    })
 }

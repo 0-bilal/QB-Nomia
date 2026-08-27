@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { subscribeSyncStatus, type SyncStatus } from '../lib/autoSync'
+import { subscribeSyncStatus, type SyncDirection, type SyncStatus } from '../lib/autoSync'
 
 function WifiOffIcon() {
   return (
@@ -37,11 +37,32 @@ function CloudWarnIcon() {
  * (رفع/نجاح/فشل) وحالة الاتصال بالإنترنت، بدون ما يعطّل أي شاشة أو
  * يحجب أي زر. يظهر فوق كل الشاشات لأنه مُركَّب مرة واحدة بأعلى الشجرة.
  */
+const MESSAGES: Record<SyncDirection, { syncing: string; success: string; error: string }> = {
+  push: {
+    syncing: 'جارٍ حفظ نسخة احتياطية...',
+    success: 'تم الحفظ الاحتياطي',
+    error: 'تعذّر الحفظ الاحتياطي — هيُعاد لاحقًا',
+  },
+  pull: {
+    syncing: 'جارٍ تحميل بياناتك...',
+    success: 'تم تحميل بياناتك',
+    error: 'تعذّر تحميل بياناتك — التطبيق يعمل ببياناتك المحلية',
+  },
+}
+
 export function SyncStatusBar() {
   const [status, setStatus] = useState<SyncStatus>('idle')
+  const [direction, setDirection] = useState<SyncDirection>('push')
   const [online, setOnline] = useState(() => navigator.onLine)
 
-  useEffect(() => subscribeSyncStatus(setStatus), [])
+  useEffect(
+    () =>
+      subscribeSyncStatus((s, d) => {
+        setStatus(s)
+        setDirection(d)
+      }),
+    [],
+  )
 
   useEffect(() => {
     function goOnline() {
@@ -95,7 +116,7 @@ export function SyncStatusBar() {
               className="h-3 w-3 flex-shrink-0 rounded-full border-2"
               style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)', animation: 'spin 700ms linear infinite' }}
             />
-            جارٍ حفظ نسخة احتياطية...
+            {MESSAGES[direction].syncing}
           </div>
         )}
 
@@ -105,7 +126,7 @@ export function SyncStatusBar() {
             style={{ animation: 'fade-in 150ms ease-out both', background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)', border: '1px solid rgba(255,255,255,0.3)' }}
           >
             <CloudCheckIcon />
-            تم الحفظ الاحتياطي
+            {MESSAGES[direction].success}
           </div>
         )}
 
@@ -115,7 +136,7 @@ export function SyncStatusBar() {
             style={{ animation: 'fade-in 150ms ease-out both', background: 'rgba(245,185,66,0.14)', color: 'var(--color-subscription)', border: '1px solid rgba(245,185,66,0.3)' }}
           >
             <CloudWarnIcon />
-            تعذّر الحفظ الاحتياطي — هيُعاد لاحقًا
+            {MESSAGES[direction].error}
           </div>
         )}
       </div>

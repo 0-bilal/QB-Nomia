@@ -5,9 +5,9 @@ import { useAuth } from '../../state/AuthContext'
 import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
 import { configuredDigits } from '../../lib/auth'
-import { isSheetsSyncConfigured, pullFromSheets } from '../../lib/sheetsSync'
+import { runBackgroundPull } from '../../lib/autoSync'
 
-type Stage = 'input' | 'success' | 'loading-data'
+type Stage = 'input' | 'success'
 
 export function PinLoginScreen() {
   const auth = useAuth()
@@ -26,17 +26,11 @@ export function PinLoginScreen() {
       const ok = await auth.login(next)
       if (ok) {
         setStage('success')
-        setTimeout(async () => {
-          if (isSheetsSyncConfigured()) {
-            setStage('loading-data')
-            try {
-              const snapshot = await pullFromSheets()
-              importSnapshot(snapshot)
-            } catch {
-              // تعذّر السحب — نكمل بالبيانات المحلية الموجودة بدل ما نعلّق المستخدم
-            }
-          }
+        setTimeout(() => {
           navigate('/', { replace: true })
+          // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
+          // حالة السحب تظهر كشريط عائم أعلى الشاشة (SyncStatusBar).
+          runBackgroundPull(importSnapshot)
         }, 500)
       } else {
         setError(true)
@@ -91,16 +85,6 @@ export function PinLoginScreen() {
             </svg>
           </div>
           <div className="text-base font-bold">تم التحقق بنجاح</div>
-        </div>
-      )}
-
-      {stage === 'loading-data' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
-          <div
-            className="h-10 w-10 animate-spin rounded-full border-[3px]"
-            style={{ borderColor: 'rgba(255,255,255,0.12)', borderTopColor: 'var(--color-accent)' }}
-          />
-          <div className="text-[13.5px] font-semibold text-[var(--color-text-2)]">جاري تحميل بياناتك...</div>
         </div>
       )}
     </div>
