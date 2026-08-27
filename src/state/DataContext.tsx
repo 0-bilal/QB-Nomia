@@ -7,6 +7,9 @@ import type {
   BillingCycle,
   Category,
   CategoryKind,
+  Commitment,
+  CommitmentIntervalUnit,
+  CommitmentStatus,
   IncomeSource,
   LoanDirection,
   LoanTransaction,
@@ -24,6 +27,7 @@ const CATEGORIES_KEY = 'qbnomia.categories'
 const INCOME_SOURCES_KEY = 'qbnomia.incomeSources'
 const TRANSACTIONS_KEY = 'qbnomia.transactions'
 const SUBSCRIPTIONS_KEY = 'qbnomia.subscriptions'
+const COMMITMENTS_KEY = 'qbnomia.commitments'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -48,6 +52,7 @@ function seedCategories(): Category[] {
     { id: 'cat-health', name: 'صحة', kind: 'expense' },
     { id: 'cat-fun', name: 'ترفيه', kind: 'expense' },
     { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
+    { id: 'cat-commitments', name: 'التزامات', kind: 'expense' },
   ]
 }
 
@@ -66,6 +71,20 @@ function seedTransactions(): Transaction[] {
 
 function seedSubscriptions(): Subscription[] {
   return []
+}
+
+function seedCommitments(): Commitment[] {
+  return []
+}
+
+/** يحسب موعد الاستحقاق التالي بإضافة (intervalCount × intervalUnit) على التاريخ المُعطى. */
+function advanceByInterval(iso: string, unit: CommitmentIntervalUnit, count: number): string {
+  const d = new Date(iso)
+  if (unit === 'day') d.setDate(d.getDate() + count)
+  else if (unit === 'week') d.setDate(d.getDate() + count * 7)
+  else if (unit === 'month') d.setMonth(d.getMonth() + count)
+  else d.setFullYear(d.getFullYear() + count)
+  return d.toISOString().slice(0, 10)
 }
 
 interface AddPersonInput {
@@ -114,6 +133,16 @@ interface AddSubscriptionInput {
   accountId: string
 }
 
+interface AddCommitmentInput {
+  name: string
+  note?: string
+  cost?: number
+  accountId?: string
+  intervalUnit: CommitmentIntervalUnit
+  intervalCount: number
+  nextDueDate: string
+}
+
 interface AddAccountInput {
   name: string
   type: Account['type']
@@ -143,6 +172,7 @@ interface DataContextValue {
   incomeSources: IncomeSource[]
   transactions: Transaction[]
   subscriptions: Subscription[]
+  commitments: Commitment[]
   totalBalance: number
   availableBalance: number
   totalMonthlySubscriptions: number
@@ -151,6 +181,11 @@ interface DataContextValue {
   deleteSubscription: (id: string) => void
   setSubscriptionStatus: (id: string, status: SubscriptionStatus) => void
   logSubscriptionPayment: (id: string) => void
+  addCommitment: (input: AddCommitmentInput) => Commitment
+  updateCommitment: (id: string, input: AddCommitmentInput) => void
+  deleteCommitment: (id: string) => void
+  setCommitmentStatus: (id: string, status: CommitmentStatus) => void
+  logCommitmentRenewal: (id: string) => void
   addAccount: (input: AddAccountInput) => Account
   updateAccount: (id: string, input: AddAccountInput) => void
   deleteAccount: (id: string) => void
@@ -191,6 +226,7 @@ export interface DataSnapshot {
   incomeSources: IncomeSource[]
   transactions: Transaction[]
   subscriptions: Subscription[]
+  commitments?: Commitment[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -235,6 +271,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(() =>
     loadJSON(SUBSCRIPTIONS_KEY, seedSubscriptions()),
   )
+  const [commitments, setCommitments] = useState<Commitment[]>(() =>
+    loadJSON(COMMITMENTS_KEY, seedCommitments()),
+  )
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -264,6 +303,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setSubscriptions(next)
     saveJSON(SUBSCRIPTIONS_KEY, next)
   }
+  function persistCommitments(next: Commitment[]) {
+    setCommitments(next)
+    saveJSON(COMMITMENTS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -289,9 +332,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       incomeSources,
       transactions,
       subscriptions,
+      commitments,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -457,6 +501,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       incomeSources,
       transactions,
       subscriptions,
+      commitments,
       totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
       // ادخار ومحفظة رقمية مو رصيد جاهز للصرف فورًا — تُستثنى من "الرصيد
       // المتاح" بالرئيسية (بخلاف totalBalance اللي يبقى مجموع كل الحسابات
@@ -672,6 +717,71 @@ export function DataProvider({ children }: { children: ReactNode }) {
           ),
         )
       },
+      addCommitment(input: AddCommitmentInput) {
+        const commitment: Commitment = {
+          id: makeId(),
+          name: input.name.trim(),
+          note: input.note?.trim() || undefined,
+          cost: input.cost && input.cost > 0 ? input.cost : undefined,
+          accountId: input.cost && input.cost > 0 ? input.accountId : undefined,
+          intervalUnit: input.intervalUnit,
+          intervalCount: input.intervalCount,
+          nextDueDate: input.nextDueDate,
+          status: 'active',
+        }
+        persistCommitments([commitment, ...commitments])
+        return commitment
+      },
+      updateCommitment(id: string, input: AddCommitmentInput) {
+        persistCommitments(
+          commitments.map((c) =>
+            c.id === id
+              ? {
+                  ...c,
+                  name: input.name.trim(),
+                  note: input.note?.trim() || undefined,
+                  cost: input.cost && input.cost > 0 ? input.cost : undefined,
+                  accountId: input.cost && input.cost > 0 ? input.accountId : undefined,
+                  intervalUnit: input.intervalUnit,
+                  intervalCount: input.intervalCount,
+                  nextDueDate: input.nextDueDate,
+                }
+              : c,
+          ),
+        )
+      },
+      deleteCommitment(id: string) {
+        persistCommitments(commitments.filter((c) => c.id !== id))
+      },
+      setCommitmentStatus(id: string, status: CommitmentStatus) {
+        persistCommitments(commitments.map((c) => (c.id === id ? { ...c, status } : c)))
+      },
+      logCommitmentRenewal(id: string) {
+        const commitment = commitments.find((c) => c.id === id)
+        if (!commitment) return
+
+        if (commitment.cost && commitment.accountId) {
+          const txn: Transaction = {
+            id: makeId(),
+            type: 'expense',
+            amount: commitment.cost,
+            date: new Date().toISOString().slice(0, 10),
+            accountId: commitment.accountId,
+            categoryId: 'cat-commitments',
+            note: commitment.name,
+          }
+          persistTransactions([txn, ...transactions])
+          persistAccounts(
+            accounts.map((a) => (a.id === commitment.accountId ? { ...a, balance: a.balance - commitment.cost! } : a)),
+          )
+        }
+
+        persistCommitments(
+          commitments.map((c) =>
+            c.id === id ? { ...c, nextDueDate: advanceByInterval(c.nextDueDate, c.intervalUnit, c.intervalCount) } : c,
+          ),
+        )
+      },
       addAccount(input: AddAccountInput) {
         const account: Account = {
           id: makeId(),
@@ -697,7 +807,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistAccounts(accounts.filter((a) => a.id !== id))
       },
       exportSnapshot(): DataSnapshot {
-        return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions }
+        return { accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments }
       },
       importSnapshot(snapshot: DataSnapshot) {
         skipNextAutoSync.current = true
@@ -708,10 +818,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistIncomeSources(snapshot.incomeSources ?? [])
         persistTransactions(snapshot.transactions ?? [])
         persistSubscriptions(snapshot.subscriptions ?? [])
+        persistCommitments(snapshot.commitments ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

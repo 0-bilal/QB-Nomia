@@ -71,3 +71,21 @@ export interface Subscription {
   accountId: string
   status: SubscriptionStatus
 }
+
+// التزامات دورية غير مالية بالضرورة (تجديد هوية، عقد إيجار، رخصة...) —
+// نفس فكرة الاشتراكات لكن بدورة متكررة حرة (كل N يوم/أسبوع/شهر/سنة)
+// وتكلفة/حساب اختياريين بدل إجباريين.
+export type CommitmentIntervalUnit = 'day' | 'week' | 'month' | 'year'
+export type CommitmentStatus = 'active' | 'paused' | 'cancelled'
+
+export interface Commitment {
+  id: string
+  name: string
+  note?: string
+  cost?: number
+  accountId?: string
+  intervalUnit: CommitmentIntervalUnit
+  intervalCount: number
+  nextDueDate: string
+  status: CommitmentStatus
+}
