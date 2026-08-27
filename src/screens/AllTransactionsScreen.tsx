@@ -162,8 +162,8 @@ function FiltersSheet({
           </div>
 
           <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">المبلغ</label>
-          <div className="mb-2 flex items-center gap-2">
-            <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
+          <div className="mb-2 flex flex-col gap-2">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
               <span className="flex-shrink-0 text-[11px] font-semibold text-[var(--color-text-3)]">أدنى</span>
               <input
                 dir="ltr"
@@ -174,12 +174,7 @@ function FiltersSheet({
                 className="num min-w-0 flex-1 bg-transparent text-left text-[13.5px] font-semibold outline-none placeholder:text-[var(--color-text-3)]"
               />
             </div>
-            <div className="flex-shrink-0 text-[var(--color-text-3)]">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="14,6 8,12 14,18" />
-              </svg>
-            </div>
-            <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
               <span className="flex-shrink-0 text-[11px] font-semibold text-[var(--color-text-3)]">أقصى</span>
               <input
                 dir="ltr"
