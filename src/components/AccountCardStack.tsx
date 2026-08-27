@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatMoney } from '../lib/format'
+import { AppLogoMark } from './AppLogo'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from './AccountVisuals'
 import type { Account } from '../types'
 
@@ -8,6 +9,9 @@ const CARD_HEIGHT = 176
 const PEEK = 13
 const SWIPE_THRESHOLD = 56
 const DRAG_TAP_SLOP = 6
+const EXIT_DISTANCE = 260
+const SETTLE_MS = 260
+const EASING = 'cubic-bezier(0.22,1,0.36,1)'
 
 function pseudoCardNumber(id: string): string {
   let hash = 0
@@ -16,13 +20,8 @@ function pseudoCardNumber(id: string): string {
   return `•••• •••• •••• ${digits}`
 }
 
-function CardNetworkMark() {
-  return (
-    <div className="flex items-center" aria-hidden="true">
-      <div className="h-4.5 w-4.5 rounded-full" style={{ width: 18, height: 18, background: 'rgba(255,255,255,0.55)' }} />
-      <div className="h-4.5 w-4.5 rounded-full" style={{ width: 18, height: 18, background: 'rgba(255,255,255,0.28)', marginRight: -7 }} />
-    </div>
-  )
+function lerp(from: number, to: number, t: number): number {
+  return from + (to - from) * t
 }
 
 /** ترتيب كاش أولاً ثم باقي الحسابات بنفس ترتيبها الأصلي — يحدد أي كرت يظهر افتراضيًا في المقدمة. */
@@ -53,8 +52,9 @@ function AccountCard({ account, hidden, style, transition, interactive, onPointe
       style={{
         position: 'absolute',
         height: CARD_HEIGHT,
-        transition: transition ? 'transform 260ms cubic-bezier(0.16,1,0.3,1), opacity 260ms ease' : 'none',
+        transition: transition ? `transform ${SETTLE_MS}ms ${EASING}, opacity ${SETTLE_MS}ms ease` : 'none',
         touchAction: interactive ? 'none' : undefined,
+        willChange: 'transform, opacity',
         ...style,
       }}
       onPointerDown={onPointerDown}
@@ -91,7 +91,7 @@ function AccountCard({ account, hidden, style, transition, interactive, onPointe
           <div dir="ltr" className="num text-[12px] text-[var(--color-text-3)]" style={{ letterSpacing: 1.5 }}>
             {mask(pseudoCardNumber(account.id))}
           </div>
-          <CardNetworkMark />
+          <AppLogoMark size={22} />
         </div>
       </div>
     </div>
@@ -104,7 +104,8 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
   const [activeIndex, setActiveIndex] = useState(0)
   const [dragY, setDragY] = useState(0)
   const [dragging, setDragging] = useState(false)
-  const [flyingOut, setFlyingOut] = useState(false)
+  const [committing, setCommitting] = useState(false)
+  const [snapId, setSnapId] = useState<string | null>(null)
   const startYRef = useRef(0)
   const maxDragRef = useRef(0)
 
@@ -127,17 +128,22 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
     )
   }
 
+  const progress = dragging ? Math.min(1, Math.max(0, -dragY) / SWIPE_THRESHOLD) : committing ? 1 : 0
+
   function commitSwipe() {
-    setFlyingOut(true)
+    setCommitting(true)
     setTimeout(() => {
+      const exitingId = ordered[safeIndex].id
+      setSnapId(exitingId)
       setActiveIndex((i) => (i + 1) % count)
       setDragY(0)
-      setFlyingOut(false)
-    }, 220)
+      setCommitting(false)
+      requestAnimationFrame(() => requestAnimationFrame(() => setSnapId(null)))
+    }, SETTLE_MS)
   }
 
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    if (flyingOut) return
+    if (committing) return
     e.currentTarget.setPointerCapture?.(e.pointerId)
     startYRef.current = e.clientY
     maxDragRef.current = 0
@@ -170,20 +176,30 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
         const idx = (safeIndex + slot) % count
         const account = ordered[idx]
         const isFront = slot === 0
-        const baseOffset = slot * PEEK
-        const translateY = isFront ? baseOffset + dragY : baseOffset
-        const scale = 1 - slot * 0.04
-        const opacity = isFront && flyingOut ? 0 : 1 - slot * 0.18
+
+        const restOffset = slot * PEEK
+        const nextOffset = isFront ? -EXIT_DISTANCE : (slot - 1) * PEEK
+        const restScale = 1 - slot * 0.04
+        const nextScale = isFront ? 0.9 : 1 - (slot - 1) * 0.04
+        const restOpacity = isFront ? 1 : 1 - slot * 0.18
+        const nextOpacity = isFront ? 0 : 1 - (slot - 1) * 0.18
+
+        const translateY = isFront && dragging ? dragY : lerp(restOffset, nextOffset, progress)
+        const scale = lerp(restScale, nextScale, progress)
+        const opacity = lerp(restOpacity, nextOpacity, progress)
+
+        const isSnapping = account.id === snapId
+        const transitionEnabled = isSnapping ? false : !dragging
 
         return (
           <AccountCard
             key={account.id}
             account={account}
             hidden={hidden}
-            transition={!isFront || !dragging}
+            transition={transitionEnabled}
             interactive={isFront}
             style={{
-              transform: `translateY(${isFront && flyingOut ? -220 : translateY}px) scale(${scale})`,
+              transform: `translateY(${translateY}px) scale(${scale})`,
               opacity,
               zIndex: visibleCount - slot,
               cursor: isFront ? 'grab' : 'default',
