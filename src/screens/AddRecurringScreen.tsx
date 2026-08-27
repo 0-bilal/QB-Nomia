@@ -12,6 +12,7 @@ import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIc
 import { colorFor } from '../components/Avatar'
 import { intervalLabel } from './CommitmentsScreen'
 import { formatMoney } from '../lib/format'
+import { showUndoToast } from '../lib/undoToast'
 import type { CommitmentIntervalUnit, TransactionType } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -164,9 +165,13 @@ export function AddRecurringScreen() {
   }
 
   function handleDelete() {
-    if (!id) return
+    if (!id || !existing) return
+    const { name, type, amount, accountId, categoryId, incomeSourceId, transferToAccountId, intervalUnit, intervalCount, nextDueDate, note } = existing
     deleteRecurringTransaction(id)
     navigate('/recurring', { replace: true })
+    showUndoToast('تم حذف الحركة المتكررة', () =>
+      addRecurringTransaction({ name, type, amount, accountId, categoryId, incomeSourceId, transferToAccountId, intervalUnit, intervalCount, nextDueDate, note }),
+    )
   }
 
   function swapAccounts() {

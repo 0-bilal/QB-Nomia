@@ -5,6 +5,7 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DatePicker } from '../components/DatePicker'
+import { showUndoToast } from '../lib/undoToast'
 import type { AccountType } from '../types'
 
 const TYPE_OPTIONS: [AccountType, string][] = [
@@ -56,9 +57,11 @@ export function AddAccountScreen() {
   }
 
   function handleDelete() {
-    if (!id) return
+    if (!id || !existing) return
+    const { name, type, balance, goalAmount, goalLabel, goalTargetDate } = existing
     deleteAccount(id)
     navigate('/accounts', { replace: true })
+    showUndoToast('تم حذف الحساب', () => addAccount({ name, type, balance, goalAmount, goalLabel, goalTargetDate }))
   }
 
   return (

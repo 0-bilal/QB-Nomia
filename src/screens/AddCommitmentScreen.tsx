@@ -10,6 +10,7 @@ import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { intervalLabel } from './CommitmentsScreen'
 import { formatMoney } from '../lib/format'
+import { showUndoToast } from '../lib/undoToast'
 import type { CommitmentIntervalUnit } from '../types'
 
 function defaultDueDate(): string {
@@ -65,9 +66,13 @@ export function AddCommitmentScreen() {
   }
 
   function handleDelete() {
-    if (!id) return
+    if (!id || !existing) return
+    const { name, note, cost, accountId, intervalUnit, intervalCount, nextDueDate } = existing
     deleteCommitment(id)
     navigate('/commitments', { replace: true })
+    showUndoToast('تم حذف الالتزام', () =>
+      addCommitment({ name, note, cost, accountId, intervalUnit, intervalCount, nextDueDate }),
+    )
   }
 
   return (

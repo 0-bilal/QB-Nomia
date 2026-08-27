@@ -11,6 +11,7 @@ import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { colorFor } from '../components/Avatar'
 import { formatMoney } from '../lib/format'
+import { showUndoToast } from '../lib/undoToast'
 import type { TransactionType } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -150,9 +151,13 @@ export function AddTransactionScreen() {
   }
 
   function handleDelete() {
-    if (!id) return
+    if (!id || !existing) return
+    const { type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note } = existing
     deleteTransaction(id)
     navigate('/', { replace: true })
+    showUndoToast('تم حذف الحركة', () =>
+      addTransaction({ type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note }),
+    )
   }
 
   function swapAccounts() {

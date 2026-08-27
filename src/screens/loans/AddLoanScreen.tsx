@@ -10,6 +10,7 @@ import { PickerField } from '../../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 import { formatMoney } from '../../lib/format'
+import { showUndoToast } from '../../lib/undoToast'
 import type { LoanDirection } from '../../types'
 
 export function AddLoanScreen() {
@@ -62,9 +63,11 @@ export function AddLoanScreen() {
   }
 
   function handleDelete() {
-    if (!loanId || !person) return
+    if (!loanId || !person || !existing) return
+    const { personId, direction, amount, accountId, date, dueDate, note } = existing
     deleteLoanTransaction(loanId)
     navigate(`/loans/${person.id}`, { replace: true })
+    showUndoToast('تم حذف الحركة', () => addLoanTransaction({ personId, direction, amount, accountId, date, dueDate, note }))
   }
 
   return (

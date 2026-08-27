@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { AuthProvider } from './state/AuthContext'
 import { DataProvider } from './state/DataContext'
 import { SyncStatusBar } from './components/SyncStatusBar'
+import { UndoToastHost } from './components/UndoToastHost'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')!).render(
         <DataProvider>
           <SyncStatusBar />
           <App />
+          <UndoToastHost />
         </DataProvider>
       </AuthProvider>
     </BrowserRouter>

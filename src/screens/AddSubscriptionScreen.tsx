@@ -9,6 +9,7 @@ import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { formatMoney } from '../lib/format'
+import { showUndoToast } from '../lib/undoToast'
 import type { BillingCycle } from '../types'
 
 function defaultRenewalDate(): string {
@@ -47,9 +48,11 @@ export function AddSubscriptionScreen() {
   }
 
   function handleDelete() {
-    if (!id) return
+    if (!id || !existing) return
+    const { name, provider, cost, billingCycle, nextRenewalDate, accountId } = existing
     deleteSubscription(id)
     navigate('/subscriptions', { replace: true })
+    showUndoToast('تم حذف الاشتراك', () => addSubscription({ name, provider, cost, billingCycle, nextRenewalDate, accountId }))
   }
 
   return (

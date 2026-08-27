@@ -4,6 +4,7 @@ import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { showUndoToast } from '../lib/undoToast'
 
 export function AddCategoryScreen() {
   const { id } = useParams<{ id?: string }>()
@@ -30,9 +31,11 @@ export function AddCategoryScreen() {
   }
 
   function handleDelete() {
-    if (!id) return
+    if (!id || !existing) return
+    const { name, kind, budgetLimit } = existing
     deleteCategory(id)
     navigate('/categories', { replace: true })
+    showUndoToast('تم حذف الفئة', () => addCategory({ name, kind, budgetLimit }))
   }
 
   return (
