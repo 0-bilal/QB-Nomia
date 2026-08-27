@@ -4,6 +4,7 @@ import { useAuth } from '../state/AuthContext'
 import { forceAppUpdate } from '../lib/cache'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppLogo } from '../components/AppLogo'
+import { BiometricToggleRow } from '../components/BiometricToggleRow'
 
 function SearchIcon() {
   return (
@@ -251,6 +252,8 @@ export function MoreScreen() {
           </div>
         </div>
       ))}
+
+      <BiometricToggleRow />
 
       <button
         onClick={() => setConfirmOpen(true)}

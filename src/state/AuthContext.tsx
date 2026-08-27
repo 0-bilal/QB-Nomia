@@ -6,6 +6,7 @@ interface AuthContextValue {
   unlocked: boolean
   setup: (pin: string) => Promise<void>
   login: (pin: string) => Promise<boolean>
+  unlockWithBiometric: () => void
   lock: () => void
   forgetPin: () => void
 }
@@ -50,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const ok = await verifyPin(pin)
         if (ok) setUnlocked(true)
         return ok
+      },
+      unlockWithBiometric() {
+        setUnlocked(true)
       },
       lock() {
         setUnlocked(false)
