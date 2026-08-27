@@ -4,6 +4,7 @@ import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ActivityIcon } from '../components/ActivityIcon'
+import { DatePicker } from '../components/DatePicker'
 import { activityEditPath } from '../lib/activityNav'
 import { formatDate, formatSigned } from '../lib/format'
 import type { ActivityItem } from '../state/DataContext'
@@ -146,41 +147,49 @@ function FiltersSheet({
           </div>
 
           <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">الفترة</label>
-          <div className="mb-4 flex gap-2">
-            <input
-              type="date"
-              value={draft.from}
-              onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))}
-              className="num flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[13px] outline-none"
-              style={{ colorScheme: 'dark' }}
-            />
-            <input
-              type="date"
-              value={draft.to}
-              onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))}
-              className="num flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[13px] outline-none"
-              style={{ colorScheme: 'dark' }}
-            />
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex-1">
+              <DatePicker value={draft.from} onChange={(v) => setDraft((d) => ({ ...d, from: v }))} placeholder="من تاريخ" />
+            </div>
+            <div className="flex-shrink-0 text-[var(--color-text-3)]">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="14,6 8,12 14,18" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <DatePicker value={draft.to} onChange={(v) => setDraft((d) => ({ ...d, to: v }))} placeholder="إلى تاريخ" />
+            </div>
           </div>
 
           <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">المبلغ</label>
-          <div className="mb-2 flex gap-2">
-            <input
-              dir="ltr"
-              inputMode="decimal"
-              value={draft.minAmount}
-              onChange={(e) => setDraft((d) => ({ ...d, minAmount: e.target.value.replace(/[^0-9.]/g, '') }))}
-              placeholder="أدنى"
-              className="num flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
-            />
-            <input
-              dir="ltr"
-              inputMode="decimal"
-              value={draft.maxAmount}
-              onChange={(e) => setDraft((d) => ({ ...d, maxAmount: e.target.value.replace(/[^0-9.]/g, '') }))}
-              placeholder="أقصى"
-              className="num flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
-            />
+          <div className="mb-2 flex items-center gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
+              <span className="flex-shrink-0 text-[11px] font-semibold text-[var(--color-text-3)]">أدنى</span>
+              <input
+                dir="ltr"
+                inputMode="decimal"
+                value={draft.minAmount}
+                onChange={(e) => setDraft((d) => ({ ...d, minAmount: e.target.value.replace(/[^0-9.]/g, '') }))}
+                placeholder="0"
+                className="num min-w-0 flex-1 bg-transparent text-left text-[13.5px] font-semibold outline-none placeholder:text-[var(--color-text-3)]"
+              />
+            </div>
+            <div className="flex-shrink-0 text-[var(--color-text-3)]">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="14,6 8,12 14,18" />
+              </svg>
+            </div>
+            <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
+              <span className="flex-shrink-0 text-[11px] font-semibold text-[var(--color-text-3)]">أقصى</span>
+              <input
+                dir="ltr"
+                inputMode="decimal"
+                value={draft.maxAmount}
+                onChange={(e) => setDraft((d) => ({ ...d, maxAmount: e.target.value.replace(/[^0-9.]/g, '') }))}
+                placeholder="0"
+                className="num min-w-0 flex-1 bg-transparent text-left text-[13.5px] font-semibold outline-none placeholder:text-[var(--color-text-3)]"
+              />
+            </div>
           </div>
         </div>
 
