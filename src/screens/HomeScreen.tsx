@@ -91,9 +91,7 @@ export function HomeScreen() {
       <div className="mb-5 flex items-center justify-between">
         <div>
           <div className="mb-0.5 text-[13px] font-semibold text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
-          <div className="text-xs text-[var(--color-text-3)]">
-            {new Date().toLocaleDateString('ar-SA-u-ca-gregory', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
+          <div className="num text-xs text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))}</div>
         </div>
         <button
           onClick={() => setHidden((h) => !h)}

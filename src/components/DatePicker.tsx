@@ -60,7 +60,9 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
   const selected = parseISO(value)
   const [viewDate, setViewDate] = useState(() => selected ?? new Date())
 
-  const label = selected ? `${selected.getDate()} ${MONTHS[selected.getMonth()]} ${selected.getFullYear()}` : placeholder
+  const label = selected
+    ? `${selected.getFullYear()}/${String(selected.getMonth() + 1).padStart(2, '0')}/${String(selected.getDate()).padStart(2, '0')}`
+    : placeholder
 
   function openPicker() {
     setViewDate(selected ?? new Date())

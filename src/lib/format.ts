@@ -8,9 +8,11 @@ export function formatSigned(amount: number): string {
   return `${sign}${formatMoney(Math.abs(amount))}`
 }
 
-// ar-SA-u-ca-gregory: التقويم الميلادي صراحة — ar-SA لوحدها تستخدم التقويم
-// الهجري افتراضيًا بمتصفحات كثيرة، بينما كل تواريخ التطبيق ميلادية (ISO).
+// تنسيق موحّد لعرض التواريخ بكل التطبيق: YYYY/MM/DD ميلادي (مثال: 2026/08/19).
 export function formatDate(iso: string): string {
   const d = new Date(iso)
-  return d.toLocaleDateString('ar-SA-u-ca-gregory', { day: 'numeric', month: 'short' })
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}/${m}/${day}`
 }
