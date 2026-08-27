@@ -186,18 +186,25 @@ textarea {
   mix-blend-mode: overlay;
 }
 
-/* لمعان أسود فاخر متحرك — خاص ببطاقة الكاش، يحاكي انعكاس الضوء على سطح مصقول لامع. */
+/*
+  لمعان أسود فاخر متحرك — خاص ببطاقة الكاش، يحاكي انعكاس الضوء على سطح مصقول لامع.
+  تمريرة واحدة بلمسة خفيفة (تلاشي دخول/خروج) ثم توقف حقيقي طويل قبل التكرار،
+  بدل الذهاب والإياب اللانهائي بلا توقف.
+*/
 .qb-gloss-sweep {
   position: absolute;
   inset: -60% -20%;
   pointer-events: none;
-  background: linear-gradient(112deg, transparent 40%, rgba(255, 255, 255, 0.28) 50%, transparent 60%);
-  animation: qb-gloss-sweep 4.2s ease-in-out infinite;
+  background: linear-gradient(112deg, transparent 42%, rgba(255, 255, 255, 0.18) 50%, transparent 58%);
+  opacity: 0;
+  animation: qb-gloss-sweep 6.5s ease-in-out infinite;
 }
 
 @keyframes qb-gloss-sweep {
-  0%, 18% { transform: translateX(-38%); }
-  68%, 100% { transform: translateX(38%); }
+  0% { transform: translateX(-65%); opacity: 0; }
+  8% { opacity: 1; }
+  38% { transform: translateX(65%); opacity: 1; }
+  48%, 100% { transform: translateX(65%); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

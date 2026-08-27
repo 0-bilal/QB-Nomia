@@ -1,7 +1,15 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
 import { AppLogoMark, AppLogoWatermark } from './AppLogo'
-import { ACCOUNT_CARD_ACCENT, ACCOUNT_CARD_ACCENT_BG, ACCOUNT_CARD_BG, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from './AccountVisuals'
+import {
+  ACCOUNT_CARD_ACCENT,
+  ACCOUNT_CARD_ACCENT_BG,
+  ACCOUNT_CARD_BG,
+  ACCOUNT_CARD_TEXT_FAINT,
+  ACCOUNT_CARD_TEXT_MUTED,
+  ACCOUNT_TYPE_LABELS,
+  AccountTypeIcon,
+} from './AccountVisuals'
 import type { Account } from '../types'
 
 function pseudoCardNumber(id: string): string {
@@ -38,6 +46,8 @@ interface BankCardFaceProps {
 export function BankCardFace({ account, hidden = false, topRight, children, className = '', style, onClick }: BankCardFaceProps) {
   const mask = (s: string) => (hidden ? '•••••' : s)
   const accent = ACCOUNT_CARD_ACCENT[account.type]
+  const textMuted = ACCOUNT_CARD_TEXT_MUTED[account.type]
+  const textFaint = ACCOUNT_CARD_TEXT_FAINT[account.type]
   return (
     <div
       className={`qb-bank-card select-none p-5 ${className}`}
@@ -62,7 +72,9 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
               </div>
               <div>
                 <div className="text-[11.5px] font-bold">{account.name}</div>
-                <div className="text-[10px] text-[var(--color-text-3)]">{account.goalLabel ? `هدف: ${account.goalLabel}` : ACCOUNT_TYPE_LABELS[account.type]}</div>
+                <div className="text-[10px] font-semibold" style={{ color: textFaint }}>
+                  {account.goalLabel ? `هدف: ${account.goalLabel}` : ACCOUNT_TYPE_LABELS[account.type]}
+                </div>
               </div>
             </div>
             {topRight ?? (
@@ -73,12 +85,16 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
           </div>
 
           <div>
-            <div className="mb-1 text-[11.5px] text-[var(--color-text-2)]">الرصيد</div>
-            <div className="num text-[30px] font-bold tracking-tight">{mask(formatMoney(account.balance))}</div>
+            <div className="mb-1 text-[11.5px] font-semibold" style={{ color: textMuted }}>
+              الرصيد
+            </div>
+            <div className="num text-[30px] font-bold tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}>
+              {mask(formatMoney(account.balance))}
+            </div>
           </div>
 
           <div className="flex items-end justify-between">
-            <div dir="ltr" className="num text-[12px] text-[var(--color-text-3)]" style={{ letterSpacing: 1.5 }}>
+            <div dir="ltr" className="num text-[12px] font-semibold" style={{ letterSpacing: 1.5, color: textFaint }}>
               {mask(pseudoCardNumber(account.id))}
             </div>
             <AppLogoMark size={22} />

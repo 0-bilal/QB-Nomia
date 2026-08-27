@@ -47,6 +47,26 @@ export const ACCOUNT_CARD_ACCENT_BG: Record<Account['type'], string> = {
   wallet: 'rgba(140,140,152,0.14)',
 }
 
+/**
+ * ألوان النصوص الثانوية فوق سطح البطاقة (تسمية "الرصيد"، نوع الحساب/الهدف، تاريخ
+ * الحركات...) — الرمادي الموحّد بالتطبيق (var(--color-text-2/3)) مصمّم لخلفية سوداء
+ * غامقة، فيبقى واضح فوق الكاش والمحفظة (خلفيتهم غامقة أصلًا)، لكنه يختفي فوق
+ * الذهبي والروز-غولد لأن أغلب مساحتهم فاتحة — فلهم لون غامق خاص مشتق من أغمق
+ * درجة بمعدن كل بطاقة هي نفسها، بدل رمادي عام ما يتناسب مع خلفية فاتحة.
+ */
+export const ACCOUNT_CARD_TEXT_MUTED: Record<Account['type'], string> = {
+  cash: 'var(--color-text-2)',
+  bank: '#3d2a10',
+  savings: '#3a2118',
+  wallet: 'var(--color-text-2)',
+}
+export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
+  cash: 'var(--color-text-3)',
+  bank: '#4d3714',
+  savings: '#4d2e22',
+  wallet: 'var(--color-text-3)',
+}
+
 export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; size?: number }) {
   if (type === 'cash') {
     return (
