@@ -1,8 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatMoney } from '../lib/format'
-import { AppLogoMark } from './AppLogo'
-import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from './AccountVisuals'
+import { BankCardFace } from './BankCardFace'
 import type { Account } from '../types'
 
 const CARD_HEIGHT = 176
@@ -12,13 +10,6 @@ const DRAG_TAP_SLOP = 6
 const EXIT_DISTANCE = 260
 const SETTLE_MS = 260
 const EASING = 'cubic-bezier(0.22,1,0.36,1)'
-
-function pseudoCardNumber(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-  const digits = String(hash % 10000).padStart(4, '0')
-  return `•••• •••• •••• ${digits}`
-}
 
 function lerp(from: number, to: number, t: number): number {
   return from + (to - from) * t
@@ -31,7 +22,7 @@ function orderAccounts(accounts: Account[]): Account[] {
   return [...cash, ...rest]
 }
 
-interface AccountCardProps {
+interface PositionedCardProps {
   account: Account
   hidden: boolean
   style: CSSProperties
@@ -44,17 +35,17 @@ interface AccountCardProps {
   onClick?: () => void
 }
 
-function AccountCard({ account, hidden, style, transition, interactive, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClick }: AccountCardProps) {
-  const mask = (s: string) => (hidden ? '•••••' : s)
+function PositionedCard({ account, hidden, style, transition, interactive, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClick }: PositionedCardProps) {
   return (
     <div
-      className="qb-card-elevated inset-x-0 top-0 select-none p-5"
+      className="inset-x-0 top-0"
       style={{
         position: 'absolute',
         height: CARD_HEIGHT,
         transition: transition ? `transform ${SETTLE_MS}ms ${EASING}, opacity ${SETTLE_MS}ms ease` : 'none',
         touchAction: interactive ? 'none' : undefined,
         willChange: 'transform, opacity',
+        cursor: interactive ? 'grab' : 'default',
         ...style,
       }}
       onPointerDown={onPointerDown}
@@ -63,37 +54,7 @@ function AccountCard({ account, hidden, style, transition, interactive, onPointe
       onPointerCancel={onPointerCancel}
       onClick={onClick}
     >
-      <div className="relative flex h-full flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="flex h-7.5 w-7.5 items-center justify-center rounded-[10px]"
-              style={{ width: 30, height: 30, background: ACCOUNT_ICON_BG[account.type], color: ACCOUNT_ICON_COLOR[account.type] }}
-            >
-              <AccountTypeIcon type={account.type} size={15} />
-            </div>
-            <div>
-              <div className="text-[11.5px] font-bold">{account.name}</div>
-              <div className="text-[10px] text-[var(--color-text-3)]">{ACCOUNT_TYPE_LABELS[account.type]}</div>
-            </div>
-          </div>
-          <div className="text-[11px] font-bold text-[var(--color-text-2)]" style={{ letterSpacing: 1 }}>
-            QB-Nomia
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-1 text-[11.5px] text-[var(--color-text-2)]">الرصيد</div>
-          <div className="num text-[30px] font-bold tracking-tight">{mask(formatMoney(account.balance))}</div>
-        </div>
-
-        <div className="flex items-end justify-between">
-          <div dir="ltr" className="num text-[12px] text-[var(--color-text-3)]" style={{ letterSpacing: 1.5 }}>
-            {mask(pseudoCardNumber(account.id))}
-          </div>
-          <AppLogoMark size={22} />
-        </div>
-      </div>
+      <BankCardFace account={account} hidden={hidden} className="h-full" />
     </div>
   )
 }
@@ -192,7 +153,7 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
         const transitionEnabled = isSnapping ? false : !dragging
 
         return (
-          <AccountCard
+          <PositionedCard
             key={account.id}
             account={account}
             hidden={hidden}
@@ -202,7 +163,6 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
               transform: `translateY(${translateY}px) scale(${scale})`,
               opacity,
               zIndex: visibleCount - slot,
-              cursor: isFront ? 'grab' : 'default',
             }}
             onPointerDown={isFront ? handlePointerDown : undefined}
             onPointerMove={isFront ? handlePointerMove : undefined}

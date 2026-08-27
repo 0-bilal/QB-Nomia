@@ -4,8 +4,7 @@ import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
-import { ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
-import type { Account } from '../types'
+import { BankCardFace } from '../components/BankCardFace'
 
 function EditIcon() {
   return (
@@ -22,20 +21,6 @@ function ChevronIcon() {
     </svg>
   )
 }
-
-const CARD_BG: Record<Account['type'], string> = {
-  cash: 'radial-gradient(130% 100% at 100% 0%, rgba(34,197,94,0.16) 0%, transparent 55%), linear-gradient(160deg, #16211a 0%, #0a0e0c 65%, #000 100%)',
-  bank: 'radial-gradient(130% 100% at 100% 0%, rgba(124,108,255,0.18) 0%, transparent 55%), linear-gradient(160deg, #1a1830 0%, #0c0b14 65%, #000 100%)',
-  savings: 'radial-gradient(130% 100% at 100% 0%, rgba(245,185,66,0.16) 0%, transparent 55%), linear-gradient(160deg, #26200f 0%, #100d07 65%, #000 100%)',
-  wallet: 'radial-gradient(130% 100% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 55%), linear-gradient(160deg, #1c1c20 0%, #0a0a0c 65%, #000 100%)',
-}
-const ICON_COLOR: Record<Account['type'], string> = {
-  cash: 'var(--color-income)',
-  bank: 'var(--color-transfer)',
-  savings: 'var(--color-subscription)',
-  wallet: 'var(--color-accent)',
-}
-const LABELS = ACCOUNT_TYPE_LABELS
 
 export function AccountsScreen() {
   const { accounts, totalBalance, accountActivity } = useData()
@@ -87,96 +72,92 @@ export function AccountsScreen() {
         const open = openId === a.id
         const activity = open ? accountActivity(a.id, 3) : []
         return (
-          <div
+          <BankCardFace
             key={a.id}
-            className="qb-card-elevated mb-3.5 p-4.5"
-            style={{ background: CARD_BG[a.type] }}
-          >
-            <div className="relative">
-              <div className="mb-4 flex items-start justify-between">
-                <div
-                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px] border border-white/10"
-                  style={{ width: 44, height: 44, background: 'rgba(255,255,255,0.06)', color: ICON_COLOR[a.type] }}
-                >
-                  <AccountTypeIcon type={a.type} />
-                </div>
-                <button
-                  onClick={() => navigate(`/accounts/${a.id}/edit`)}
-                  aria-label="تعديل الحساب"
-                  className="qb-press flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-3)]"
-                  style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.06)' }}
-                >
-                  <EditIcon />
-                </button>
-              </div>
-
-              <button onClick={() => setOpenId(open ? null : a.id)} className="flex w-full items-end justify-between text-right">
-                <div className="min-w-0">
-                  <div className="mb-1 truncate text-[14.5px] font-bold">{a.name}</div>
-                  <div className="text-[11px] text-[var(--color-text-3)]">
-                    {a.goalLabel ? `هدف: ${a.goalLabel}` : LABELS[a.type]}
-                  </div>
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-1.5">
-                  <div className="num text-[19px] font-bold">{formatMoney(a.balance)}</div>
-                  <div className={`text-[var(--color-text-3)] ${open ? '-rotate-180' : ''}`} style={{ transition: 'transform 200ms ease' }}>
-                    <ChevronIcon />
-                  </div>
-                </div>
+            account={a}
+            className="mb-3.5"
+            onClick={() => setOpenId(open ? null : a.id)}
+            topRight={
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/accounts/${a.id}/edit`)
+                }}
+                aria-label="تعديل الحساب"
+                className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-2)]"
+                style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.1)' }}
+              >
+                <EditIcon />
               </button>
-
-              {a.goalAmount ? (
-                <>
-                  <div className="mt-3.5 h-1.5 overflow-hidden rounded-full bg-white/8">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, (a.balance / a.goalAmount) * 100)}%`,
-                        background: 'linear-gradient(90deg, #F5B942, #F59E0B)',
-                      }}
-                    />
-                  </div>
-                  <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
-                    وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({formatMoney(a.goalAmount)})
-                  </div>
-                </>
-              ) : null}
-
-              {a.type === 'wallet' && (
-                <button
-                  onClick={() => navigate(`/add/transaction?type=transfer&to=${a.id}`)}
-                  className="qb-press mt-3.5 w-full rounded-xl py-2.25 text-[12px] font-semibold"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
-                >
-                  شحن المحفظة
-                </button>
-              )}
-
-              {open && (
-                <div className="mt-3.5 border-t border-white/8 pt-3">
-                  {activity.length === 0 ? (
-                    <div className="py-2 text-center text-[12px] text-[var(--color-text-3)]">لا توجد حركات على هذا الحساب بعد</div>
-                  ) : (
-                    activity.map((item) => (
-                      <button key={item.id} onClick={() => navigate(activityEditPath(item))} className="flex w-full items-center gap-2.5 py-1.5 text-right">
-                        <div
-                          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
-                          style={{ width: 32, height: 32, background: `${item.color}1f`, color: item.color }}
-                        >
-                          <ActivityIcon kind={item.kind} />
-                        </div>
-                        <div className="min-w-0 flex-1 truncate text-[12px] font-semibold">{item.title}</div>
-                        <div className="flex-shrink-0 text-[10.5px] text-[var(--color-text-3)]">{formatDate(item.date)}</div>
-                        <div className="num flex-shrink-0 text-[12px] font-bold" style={{ color: item.color }}>
-                          {formatSigned(item.amount)}
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+            }
+          >
+            <div className="mt-3.5 flex justify-center">
+              <div className={`text-[var(--color-text-3)] ${open ? '-rotate-180' : ''}`} style={{ transition: 'transform 200ms ease' }}>
+                <ChevronIcon />
+              </div>
             </div>
-          </div>
+
+            {a.goalAmount ? (
+              <>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, (a.balance / a.goalAmount) * 100)}%`,
+                      background: 'linear-gradient(90deg, #F5B942, #F59E0B)',
+                    }}
+                  />
+                </div>
+                <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
+                  وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({formatMoney(a.goalAmount)})
+                </div>
+              </>
+            ) : null}
+
+            {a.type === 'wallet' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/add/transaction?type=transfer&to=${a.id}`)
+                }}
+                className="qb-press mt-3.5 w-full rounded-xl py-2.25 text-[12px] font-semibold"
+                style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
+              >
+                شحن المحفظة
+              </button>
+            )}
+
+            {open && (
+              <div className="mt-3.5 border-t border-white/8 pt-3">
+                {activity.length === 0 ? (
+                  <div className="py-2 text-center text-[12px] text-[var(--color-text-3)]">لا توجد حركات على هذا الحساب بعد</div>
+                ) : (
+                  activity.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(activityEditPath(item))
+                      }}
+                      className="flex w-full items-center gap-2.5 py-1.5 text-right"
+                    >
+                      <div
+                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
+                        style={{ width: 32, height: 32, background: `${item.color}1f`, color: item.color }}
+                      >
+                        <ActivityIcon kind={item.kind} />
+                      </div>
+                      <div className="min-w-0 flex-1 truncate text-[12px] font-semibold">{item.title}</div>
+                      <div className="flex-shrink-0 text-[10.5px] text-[var(--color-text-3)]">{formatDate(item.date)}</div>
+                      <div className="num flex-shrink-0 text-[12px] font-bold" style={{ color: item.color }}>
+                        {formatSigned(item.amount)}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </BankCardFace>
         )
       })}
     </div>

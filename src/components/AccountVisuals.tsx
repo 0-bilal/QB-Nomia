@@ -19,6 +19,14 @@ export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   wallet: 'محفظة رقمية',
 }
 
+/** خلفية كل بطاقة حساب — لمسة لون خفيفة حسب النوع فوق نفس تدرّج qb-card-elevated الأساسي، عشان كل حساب يتميّز بصريًا وهو لسا بنفس هوية التطبيق. */
+export const ACCOUNT_CARD_BG: Record<Account['type'], string> = {
+  cash: 'radial-gradient(130% 100% at 100% 0%, rgba(34,197,94,0.16) 0%, transparent 55%), linear-gradient(160deg, #16211a 0%, #0a0e0c 65%, #000 100%)',
+  bank: 'radial-gradient(130% 100% at 100% 0%, rgba(124,108,255,0.18) 0%, transparent 55%), linear-gradient(160deg, #1a1830 0%, #0c0b14 65%, #000 100%)',
+  savings: 'radial-gradient(130% 100% at 100% 0%, rgba(245,185,66,0.16) 0%, transparent 55%), linear-gradient(160deg, #26200f 0%, #100d07 65%, #000 100%)',
+  wallet: 'radial-gradient(130% 100% at 100% 0%, rgba(255,255,255,0.12) 0%, transparent 55%), linear-gradient(160deg, #1c1c20 0%, #0a0a0c 65%, #000 100%)',
+}
+
 export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; size?: number }) {
   if (type === 'cash') {
     return (
