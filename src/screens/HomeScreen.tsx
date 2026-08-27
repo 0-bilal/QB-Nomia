@@ -72,7 +72,7 @@ export function HomeScreen() {
 
       <div
         className="mb-4 rounded-3xl border border-[var(--color-border)] p-5.5"
-        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)', boxShadow: '0 0 40px -14px rgba(0,226,138,0.18)' }}
+        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)', boxShadow: '0 0 40px -14px rgba(255,255,255,0.18)' }}
       >
         <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">الرصيد المتاح</div>
         <div className="num mb-4 text-[34px] font-bold tracking-tight">{mask(formatMoney(availableBalance))}</div>

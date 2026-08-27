@@ -79,7 +79,7 @@ export function AddAccountScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
+            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
             style={{ background: 'var(--color-accent)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحساب'}
@@ -118,7 +118,7 @@ export function AddAccountScreen() {
             className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
             style={
               type === t
-                ? { background: 'rgba(0,226,138,0.18)', color: 'var(--color-accent)' }
+                ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)' }
                 : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
             }
           >
@@ -159,7 +159,7 @@ export function AddAccountScreen() {
       )}
 
       {type === 'wallet' && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
           محفظة رقمية زي "Google Play" — عبّيها بتحويل من الكاش أو البنكي، واربط اشتراكاتك فيها عشان تعرف الرصيد المتبقي بها في أي وقت.
         </div>
       )}

@@ -47,7 +47,7 @@ export function SubscriptionsScreen() {
           <button
             onClick={() => navigate('/subscriptions/new')}
             className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
-            style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
+            style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
             aria-label="إضافة اشتراك"
           >
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
@@ -81,7 +81,7 @@ export function SubscriptionsScreen() {
         </div>
 
         {wallets.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
+          <div className="rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
             ما عندك محفظة رقمية بعد. أنشئ محفظة (مثل Google Play)، عبّيها بتحويل من الكاش أو البنكي، وسدد اشتراكاتك منها.
           </div>
         ) : (
@@ -97,7 +97,7 @@ export function SubscriptionsScreen() {
                 <button
                   onClick={() => navigate(`/add/transaction?type=transfer&to=${w.id}`)}
                   className="rounded-full px-3.5 py-2 text-[12px] font-semibold"
-                  style={{ background: 'rgba(0,226,138,0.14)', color: 'var(--color-accent)' }}
+                  style={{ background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)' }}
                 >
                   شحن المحفظة
                 </button>
@@ -172,7 +172,7 @@ export function SubscriptionsScreen() {
                       <button
                         onClick={() => logSubscriptionPayment(sub.id)}
                         className="rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: 'rgba(0,226,138,0.14)', color: 'var(--color-accent)' }}
+                        style={{ background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)' }}
                       >
                         تسجيل الدفع الآن (يخصم {formatMoney(sub.cost)} من {accountName(sub.accountId)})
                       </button>
@@ -190,7 +190,7 @@ export function SubscriptionsScreen() {
                         <button
                           onClick={() => setSubscriptionStatus(sub.id, 'active')}
                           className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
+                          style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
                         >
                           استئناف
                         </button>

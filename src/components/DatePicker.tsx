@@ -152,7 +152,7 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
                     className="num flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-semibold"
                     style={
                       isSelected(day)
-                        ? { background: color, color: '#04140D' }
+                        ? { background: color, color: '#0A0A0C' }
                         : isToday(day)
                           ? { border: `1px solid ${color}`, color }
                           : { color: 'var(--color-text)' }

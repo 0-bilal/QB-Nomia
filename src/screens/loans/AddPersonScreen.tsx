@@ -80,7 +80,7 @@ export function AddPersonScreen() {
           <button
             onClick={handleSave}
             disabled={!name.trim()}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
+            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
             style={{ background: 'var(--color-accent)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ'}
@@ -106,7 +106,7 @@ export function AddPersonScreen() {
         <button
           onClick={pickContact}
           className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed py-3.5 text-[13px] font-semibold"
-          style={{ borderColor: 'rgba(0,226,138,0.4)', color: 'var(--color-accent)' }}
+          style={{ borderColor: 'rgba(255,255,255,0.4)', color: 'var(--color-accent)' }}
         >
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="8" r="3.5" />

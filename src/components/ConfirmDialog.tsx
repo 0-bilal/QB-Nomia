@@ -44,7 +44,7 @@ export function ConfirmDialog({
           >
             {cancelLabel}
           </button>
-          <button onClick={onConfirm} className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#04140D]" style={{ background: color }}>
+          <button onClick={onConfirm} className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C]" style={{ background: color }}>
             {confirmLabel}
           </button>
         </div>

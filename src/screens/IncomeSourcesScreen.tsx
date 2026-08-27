@@ -24,7 +24,7 @@ export function IncomeSourcesScreen() {
           <button
             onClick={() => navigate('/income-sources/new')}
             className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
-            style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
+            style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
             aria-label="إضافة مصدر دخل"
           >
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">

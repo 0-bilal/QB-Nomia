@@ -107,7 +107,7 @@ function UpdatingOverlay() {
 }
 
 const ITEMS = [
-  { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(0,226,138,0.12)' },
+  { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
   { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
   { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
   { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
@@ -173,11 +173,11 @@ export function MoreScreen() {
         onClick={() => setConfirmOpen(true)}
         disabled={busy}
         className="mb-6 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right disabled:opacity-60"
-        style={{ borderColor: 'rgba(0,226,138,0.3)', background: 'rgba(0,226,138,0.08)' }}
+        style={{ borderColor: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)' }}
       >
         <div
           className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
-          style={{ width: 42, height: 42, background: 'rgba(0,226,138,0.16)', color: 'var(--color-accent)' }}
+          style={{ width: 42, height: 42, background: 'rgba(255,255,255,0.16)', color: 'var(--color-accent)' }}
         >
           <RefreshIcon spinning={busy} />
         </div>

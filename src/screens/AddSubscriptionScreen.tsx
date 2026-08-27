@@ -67,7 +67,7 @@ export function AddSubscriptionScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#04140D] disabled:opacity-40"
+            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
             style={{ background: 'var(--color-subscription)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الاشتراك'}
