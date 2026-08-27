@@ -5,6 +5,7 @@ import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
 import { BankCardFace } from '../components/BankCardFace'
+import { ACCOUNT_CARD_TEXT_FAINT } from '../components/AccountVisuals'
 
 function EditIcon() {
   return (
@@ -71,6 +72,7 @@ export function AccountsScreen() {
       {accounts.map((a) => {
         const open = openId === a.id
         const activity = open ? accountActivity(a.id, 3) : []
+        const textFaint = ACCOUNT_CARD_TEXT_FAINT[a.type]
         return (
           <BankCardFace
             key={a.id}
@@ -92,14 +94,14 @@ export function AccountsScreen() {
             }
           >
             <div className="mt-3.5 flex justify-center">
-              <div className={`text-[var(--color-text-3)] ${open ? '-rotate-180' : ''}`} style={{ transition: 'transform 200ms ease' }}>
+              <div className={open ? '-rotate-180' : ''} style={{ color: textFaint, transition: 'transform 200ms ease' }}>
                 <ChevronIcon />
               </div>
             </div>
 
             {a.goalAmount ? (
               <>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8">
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/20">
                   <div
                     className="h-full rounded-full"
                     style={{
@@ -108,7 +110,7 @@ export function AccountsScreen() {
                     }}
                   />
                 </div>
-                <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
+                <div className="mt-1.5 text-[11px] font-semibold" style={{ color: textFaint }}>
                   وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({formatMoney(a.goalAmount)})
                 </div>
               </>
@@ -130,7 +132,9 @@ export function AccountsScreen() {
             {open && (
               <div className="mt-3.5 border-t border-white/8 pt-3">
                 {activity.length === 0 ? (
-                  <div className="py-2 text-center text-[12px] text-[var(--color-text-3)]">لا توجد حركات على هذا الحساب بعد</div>
+                  <div className="py-2 text-center text-[12px] font-semibold" style={{ color: textFaint }}>
+                    لا توجد حركات على هذا الحساب بعد
+                  </div>
                 ) : (
                   activity.map((item) => (
                     <button
@@ -148,7 +152,9 @@ export function AccountsScreen() {
                         <ActivityIcon kind={item.kind} />
                       </div>
                       <div className="min-w-0 flex-1 truncate text-[12px] font-semibold">{item.title}</div>
-                      <div className="flex-shrink-0 text-[10.5px] text-[var(--color-text-3)]">{formatDate(item.date)}</div>
+                      <div className="flex-shrink-0 text-[10.5px] font-semibold" style={{ color: textFaint }}>
+                        {formatDate(item.date)}
+                      </div>
                       <div className="num flex-shrink-0 text-[12px] font-bold" style={{ color: item.color }}>
                         {formatSigned(item.amount)}
                       </div>
