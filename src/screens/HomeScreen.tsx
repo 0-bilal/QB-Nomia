@@ -58,9 +58,33 @@ function SavingsIcon() {
   )
 }
 
+function SubscriptionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="8,6 18,12 8,18" />
+    </svg>
+  )
+}
+function CommitmentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="16" height="18" rx="2.5" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  )
+}
+
 export function HomeScreen() {
-  const { accounts, availableBalance, totalMonthlySubscriptions, recentActivity, categories, categorySpentThisMonth, monthTotals } =
-    useData()
+  const {
+    accounts,
+    availableBalance,
+    totalMonthlySubscriptions,
+    commitments,
+    recentActivity,
+    categories,
+    categorySpentThisMonth,
+    monthTotals,
+  } = useData()
   const navigate = useNavigate()
   const [hidden, setHidden] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
@@ -79,6 +103,8 @@ export function HomeScreen() {
     .sort((a, b) => b.spent - a.spent)
     .slice(0, 5)
   const maxCategorySpent = topCategories[0]?.spent ?? 0
+
+  const activeCommitments = commitments.filter((c) => c.status === 'active')
 
   const budgetAlerts = categories
     .filter((c) => c.kind === 'expense' && c.budgetLimit)
@@ -225,26 +251,43 @@ export function HomeScreen() {
         </div>
       )}
 
-      {totalMonthlySubscriptions > 0 && (
-        <button
-          onClick={() => navigate('/subscriptions')}
-          className="qb-card qb-press mb-4 flex w-full items-center justify-between px-4 py-3 text-right"
-        >
-          <div className="flex items-center gap-2.5">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-[10px]"
-              style={{ width: 32, height: 32, background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="8,6 18,12 8,18" />
-              </svg>
-            </div>
-            <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">الاشتراكات الشهرية</div>
-          </div>
-          <div className="num text-[14px] font-bold" style={{ color: 'var(--color-subscription)' }}>
-            {mask(formatMoney(totalMonthlySubscriptions))}
-          </div>
-        </button>
+      {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (
+        <div className="mb-4 flex gap-2.5">
+          {totalMonthlySubscriptions > 0 && (
+            <button onClick={() => navigate('/subscriptions')} className="qb-card qb-press flex-1 p-3.5 text-right">
+              <div className="mb-2.5 flex items-center gap-1.5">
+                <div
+                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+                  style={{ background: 'rgba(245,185,66,0.14)', color: 'var(--color-subscription)' }}
+                >
+                  <SubscriptionIcon />
+                </div>
+                <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">الاشتراكات</div>
+              </div>
+              <div className="num text-[15px] font-bold" style={{ color: 'var(--color-subscription)' }}>
+                {mask(formatMoney(totalMonthlySubscriptions))}
+              </div>
+              <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">شهريًا</div>
+            </button>
+          )}
+          {activeCommitments.length > 0 && (
+            <button onClick={() => navigate('/commitments')} className="qb-card qb-press flex-1 p-3.5 text-right">
+              <div className="mb-2.5 flex items-center gap-1.5">
+                <div
+                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+                  style={{ background: 'rgba(96,165,250,0.14)', color: 'var(--color-commitment)' }}
+                >
+                  <CommitmentIcon />
+                </div>
+                <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">الالتزامات</div>
+              </div>
+              <div className="num text-[15px] font-bold" style={{ color: 'var(--color-commitment)' }}>
+                {activeCommitments.length}
+              </div>
+              <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">نشطة</div>
+            </button>
+          )}
+        </div>
       )}
 
       <div className="mb-2 flex items-center justify-between">
