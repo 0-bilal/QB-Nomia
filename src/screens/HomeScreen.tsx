@@ -5,6 +5,7 @@ import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
+import { AccountCardStack } from '../components/AccountCardStack'
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   if (hidden) {
@@ -32,33 +33,6 @@ function ChevronIcon() {
   )
 }
 
-function CashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2.5" y="6" width="19" height="12" rx="2.5" />
-      <circle cx="12" cy="12" r="2.6" />
-    </svg>
-  )
-}
-function BankIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 10 L12 4 L21 10" />
-      <path d="M5 10v9M19 10v9M12 10v9" />
-      <path d="M3 19h18" />
-    </svg>
-  )
-}
-function SavingsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 12a8 8 0 1 1 8 8" />
-      <path d="M4 12v5h5" />
-      <path d="M12 8v4l3 2" />
-    </svg>
-  )
-}
-
 function SubscriptionIcon() {
   return (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -78,7 +52,6 @@ function CommitmentIcon() {
 export function HomeScreen() {
   const {
     accounts,
-    availableBalance,
     totalMonthlySubscriptions,
     commitments,
     notifications,
@@ -91,10 +64,6 @@ export function HomeScreen() {
   const [hidden, setHidden] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
-
-  const cash = accounts.find((a) => a.type === 'cash')?.balance ?? 0
-  const bank = accounts.find((a) => a.type === 'bank')?.balance ?? 0
-  const savings = accounts.find((a) => a.type === 'savings')?.balance ?? 0
 
   const activity = recentActivity(6)
   const { income: monthIncome, expense: monthExpense } = monthTotals()
@@ -137,43 +106,7 @@ export function HomeScreen() {
 
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
 
-      <div className="qb-card-elevated mb-4 p-5.5">
-        <div className="relative">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div
-                className="flex h-7 w-7 items-center justify-center rounded-[9px]"
-                style={{ background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent-b))' }}
-              >
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#0A0A0C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="6" width="18" height="13" rx="2.5" />
-                  <path d="M3 10h18" />
-                </svg>
-              </div>
-              <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">الرصيد المتاح</div>
-            </div>
-          </div>
-          <div className="num mb-4 text-[36px] font-bold tracking-tight">{mask(formatMoney(availableBalance))}</div>
-          <div className="flex gap-2">
-            {[
-              ['كاش', cash, <CashIcon key="i" />],
-              ['بنكي', bank, <BankIcon key="i" />],
-              ['ادخار', savings, <SavingsIcon key="i" />],
-            ].map(([label, val, icon]) => (
-              <div
-                key={label as string}
-                className="min-w-0 flex-1 rounded-[16px] border border-white/[0.06] bg-white/[0.045] px-3 py-2.5"
-              >
-                <div className="mb-1.5 flex items-center gap-1.25 text-[var(--color-text-3)]">
-                  {icon}
-                  <div className="text-[10.5px] font-semibold text-[var(--color-text-2)]">{label}</div>
-                </div>
-                <div className="num whitespace-nowrap text-[12.5px] font-bold">{mask(formatMoney(val as number))}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <AccountCardStack accounts={accounts} hidden={hidden} />
 
       {budgetAlerts.length > 0 && (
         <button
