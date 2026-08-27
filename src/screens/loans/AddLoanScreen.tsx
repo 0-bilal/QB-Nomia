@@ -119,6 +119,24 @@ export function AddLoanScreen() {
         </button>
       </div>
 
+      <div
+        className="mb-6 rounded-3xl border p-4"
+        style={{ borderColor: `${color}40`, background: `linear-gradient(160deg, ${color}17 0%, transparent 100%)` }}
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-bold" style={{ color }}>
+            {direction === 'given' ? 'أعطيته مبلغ' : 'استلمت منه مبلغ'}
+          </span>
+          <span className="text-[12.5px] font-semibold text-[var(--color-text-2)]">{selectedAccount?.name ?? 'اختر حسابًا'}</span>
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span className="text-[12px] text-[var(--color-text-3)]">الرصيد الحالي</span>
+          <span className="num text-[22px] font-bold" style={{ color }}>
+            {selectedAccount ? formatMoney(selectedAccount.balance) : '—'}
+          </span>
+        </div>
+      </div>
+
       <div className="mb-6 text-center">
         <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ</div>
         <div className="num text-[40px] font-bold" style={{ color }}>
@@ -131,7 +149,7 @@ export function AddLoanScreen() {
       </div>
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
-      <div className="mb-2 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap gap-2">
         {accounts.length === 0 ? (
           <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
             لا توجد حسابات — أضف حسابًا أولًا
@@ -153,14 +171,6 @@ export function AddLoanScreen() {
           ))
         )}
       </div>
-      {selectedAccount && (
-        <div className="mb-5 text-[12px] text-[var(--color-text-3)]">
-          الرصيد الحالي في {selectedAccount.name}:{' '}
-          <span className="num font-semibold" style={{ color }}>
-            {formatMoney(selectedAccount.balance)}
-          </span>
-        </div>
-      )}
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
       <div className="mb-5">
