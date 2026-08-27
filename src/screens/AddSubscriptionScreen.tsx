@@ -5,6 +5,10 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { DatePicker } from '../components/DatePicker'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { PickerField } from '../components/PickerField'
+import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
+import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
+import { formatMoney } from '../lib/format'
 import type { BillingCycle } from '../types'
 
 function defaultRenewalDate(): string {
@@ -28,9 +32,11 @@ export function AddSubscriptionScreen() {
   const [accountId, setAccountId] = useState(existing?.accountId ?? accounts.find((a) => a.type === 'wallet')?.id ?? accounts[0]?.id ?? '')
   const [nextRenewalDate, setNextRenewalDate] = useState(existing?.nextRenewalDate ?? defaultRenewalDate())
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false)
 
   const numericCost = Number(cost)
   const canSave = name.trim() && numericCost > 0 && accountId && nextRenewalDate
+  const selectedAccount = accounts.find((a) => a.id === accountId)
 
   function handleSave() {
     if (!canSave) return
@@ -70,7 +76,7 @@ export function AddSubscriptionScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
             style={{ background: 'var(--color-subscription)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الاشتراك'}
@@ -124,7 +130,7 @@ export function AddSubscriptionScreen() {
           <button
             key={cycle}
             onClick={() => setBillingCycle(cycle)}
-            className="flex-1 rounded-2xl py-2.5 text-[13px] font-semibold"
+            className="qb-press flex-1 rounded-2xl py-2.5 text-[13px] font-semibold"
             style={
               billingCycle === cycle
                 ? { background: 'rgba(245,185,66,0.18)', color: 'var(--color-subscription)' }
@@ -136,38 +142,67 @@ export function AddSubscriptionScreen() {
         ))}
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب المرتبط</label>
-      <div className="mb-5 flex flex-wrap gap-2">
-        {accounts.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => navigate('/accounts/new')}
-            className="text-[12.5px] font-semibold underline"
-            style={{ color: 'var(--color-subscription)' }}
-          >
-            لا توجد حسابات — أضف حسابًا أولًا
-          </button>
-        ) : (
-          accounts.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setAccountId(a.id)}
-              className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-              style={
-                accountId === a.id
-                  ? { background: 'rgba(245,185,66,0.18)', color: 'var(--color-subscription)' }
-                  : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-              }
-            >
-              {a.name}
-            </button>
-          ))
+      <SelectSheet
+        open={accountSheetOpen}
+        title="اختر الحساب المرتبط"
+        items={accounts.map(
+          (a): SelectSheetItem => ({
+            id: a.id,
+            icon: <AccountTypeIcon type={a.type} size={17} />,
+            iconColor: ACCOUNT_ICON_COLOR[a.type],
+            iconBg: ACCOUNT_ICON_BG[a.type],
+            title: a.name,
+            subtitle: ACCOUNT_TYPE_LABELS[a.type],
+            trailing: (
+              <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
+                {formatMoney(a.balance)}
+              </span>
+            ),
+          }),
         )}
+        selectedId={accountId}
+        onSelect={(v) => {
+          setAccountId(v)
+          setAccountSheetOpen(false)
+        }}
+        onClose={() => setAccountSheetOpen(false)}
+        emptyLabel="لا توجد حسابات بعد"
+        footer={
+          <button
+            onClick={() => {
+              setAccountSheetOpen(false)
+              navigate('/accounts/new')
+            }}
+            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
+            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+          >
+            + إضافة حساب جديد
+          </button>
+        }
+      />
+
+      <div className="mb-5">
+        <PickerField
+          label="الحساب المرتبط"
+          icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="wallet" />}
+          iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
+          iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
+          title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
+          placeholder={!selectedAccount}
+          subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
+          trailing={
+            selectedAccount ? (
+              <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
+                {formatMoney(selectedAccount.balance)}
+              </span>
+            ) : undefined
+          }
+          onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
+        />
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ التجديد القادم</label>
       <div className="mb-4">
-        <DatePicker value={nextRenewalDate} onChange={setNextRenewalDate} color="var(--color-subscription)" />
+        <DatePicker value={nextRenewalDate} onChange={setNextRenewalDate} color="var(--color-subscription)" fieldLabel="تاريخ التجديد القادم" />
       </div>
     </ScreenScroll>
   )

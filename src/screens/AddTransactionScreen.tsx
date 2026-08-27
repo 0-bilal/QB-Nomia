@@ -6,6 +6,10 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
 import { DatePicker } from '../components/DatePicker'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { PickerField } from '../components/PickerField'
+import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
+import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
+import { colorFor } from '../components/Avatar'
 import { formatMoney } from '../lib/format'
 import type { TransactionType } from '../types'
 
@@ -15,11 +19,54 @@ const TYPE_COLOR: Record<TransactionType, string> = {
   transfer: 'var(--color-transfer)',
 }
 
-const TYPE_LABEL: Record<TransactionType, string> = {
-  expense: 'مصروف',
-  income: 'دخل',
-  transfer: 'تحويل',
+function ExpenseTypeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <polyline points="6,13 12,19 18,13" />
+    </svg>
+  )
 }
+function IncomeTypeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="6,11 12,5 18,11" />
+    </svg>
+  )
+}
+function TransferTypeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="17,3 21,7 17,11" />
+      <path d="M3 7h18" />
+      <polyline points="7,21 3,17 7,13" />
+      <path d="M21 17H3" />
+    </svg>
+  )
+}
+function SwapIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="7,10 12,15 17,10" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  )
+}
+function TagIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3h6a2 2 0 0 1 2 2v6L11 20l-8-8Z" />
+      <circle cx="15.5" cy="8.5" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+const TYPE_OPTIONS: [TransactionType, string, () => React.ReactElement][] = [
+  ['expense', 'مصروف', ExpenseTypeIcon],
+  ['income', 'دخل', IncomeTypeIcon],
+  ['transfer', 'تحويل', TransferTypeIcon],
+]
 
 export function AddTransactionScreen() {
   const { id } = useParams<{ id?: string }>()
@@ -54,11 +101,17 @@ export function AddTransactionScreen() {
   const [note, setNote] = useState(existing?.note ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
+  const [fromSheetOpen, setFromSheetOpen] = useState(false)
+  const [toSheetOpen, setToSheetOpen] = useState(false)
+  const [metaSheetOpen, setMetaSheetOpen] = useState(false)
+
   const color = TYPE_COLOR[type]
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
   const numericAmount = Number(amount)
   const selectedAccount = accounts.find((a) => a.id === accountId)
   const selectedTransferToAccount = accounts.find((a) => a.id === transferToId)
+  const selectedCategory = expenseCategories.find((c) => c.id === categoryId)
+  const selectedIncomeSource = incomeSources.find((s) => s.id === incomeSourceId)
 
   useEffect(() => {
     if (type === 'transfer' && transferToId === accountId) {
@@ -102,6 +155,52 @@ export function AddTransactionScreen() {
     navigate('/', { replace: true })
   }
 
+  function swapAccounts() {
+    const a = accountId
+    setAccountId(transferToId)
+    setTransferToId(a)
+  }
+
+  const accountSheetItems = (excludeId?: string): SelectSheetItem[] =>
+    accounts
+      .filter((a) => a.id !== excludeId)
+      .map((a) => ({
+        id: a.id,
+        icon: <AccountTypeIcon type={a.type} size={17} />,
+        iconColor: ACCOUNT_ICON_COLOR[a.type],
+        iconBg: ACCOUNT_ICON_BG[a.type],
+        title: a.name,
+        subtitle: ACCOUNT_TYPE_LABELS[a.type],
+        trailing: (
+          <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
+            {formatMoney(a.balance)}
+          </span>
+        ),
+      }))
+
+  const categorySheetItems: SelectSheetItem[] = expenseCategories.map((c) => {
+    const cColor = colorFor(c.name)
+    return {
+      id: c.id,
+      icon: <span style={{ fontWeight: 700, fontSize: 14 }}>{c.name.trim().charAt(0) || '؟'}</span>,
+      iconColor: cColor,
+      iconBg: `${cColor}22`,
+      title: c.name,
+      subtitle: c.budgetLimit ? `الميزانية الشهرية: ${formatMoney(c.budgetLimit)}` : undefined,
+    }
+  })
+
+  const incomeSourceSheetItems: SelectSheetItem[] = incomeSources.map((s) => {
+    const sColor = colorFor(s.name)
+    return {
+      id: s.id,
+      icon: <span style={{ fontWeight: 700, fontSize: 14 }}>{s.name.trim().charAt(0) || '؟'}</span>,
+      iconColor: sColor,
+      iconBg: `${sColor}22`,
+      title: s.name,
+    }
+  })
+
   return (
     <ScreenScroll
       header={
@@ -126,7 +225,7 @@ export function AddTransactionScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
             style={{ background: color }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
@@ -143,71 +242,152 @@ export function AddTransactionScreen() {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
       />
+
+      <SelectSheet
+        open={fromSheetOpen}
+        title={type === 'transfer' ? 'من حساب' : 'اختر الحساب'}
+        items={accountSheetItems()}
+        selectedId={accountId}
+        onSelect={(v) => {
+          setAccountId(v)
+          setFromSheetOpen(false)
+        }}
+        onClose={() => setFromSheetOpen(false)}
+        emptyLabel="لا توجد حسابات بعد"
+        footer={
+          <button
+            onClick={() => {
+              setFromSheetOpen(false)
+              navigate('/accounts/new')
+            }}
+            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
+            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+          >
+            + إضافة حساب جديد
+          </button>
+        }
+      />
+
+      <SelectSheet
+        open={toSheetOpen}
+        title="إلى حساب"
+        items={accountSheetItems(accountId)}
+        selectedId={transferToId}
+        onSelect={(v) => {
+          setTransferToId(v)
+          setToSheetOpen(false)
+        }}
+        onClose={() => setToSheetOpen(false)}
+        emptyLabel="أضف حسابًا ثانيًا أولًا"
+      />
+
+      <SelectSheet
+        open={metaSheetOpen}
+        title={type === 'expense' ? 'اختر الفئة' : 'اختر مصدر الدخل'}
+        items={type === 'expense' ? categorySheetItems : incomeSourceSheetItems}
+        selectedId={type === 'expense' ? categoryId : incomeSourceId}
+        onSelect={(v) => {
+          if (type === 'expense') setCategoryId(v)
+          else setIncomeSourceId(v)
+          setMetaSheetOpen(false)
+        }}
+        onClose={() => setMetaSheetOpen(false)}
+        emptyLabel={type === 'expense' ? 'لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"' : 'لا توجد مصادر دخل بعد'}
+      />
+
       <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
-        {(
-          [
-            ['expense', 'مصروف'],
-            ['income', 'دخل'],
-            ['transfer', 'تحويل'],
-          ] as [TransactionType, string][]
-        ).map(([t, label]) => (
+        {TYPE_OPTIONS.map(([t, label, Icon]) => (
           <button
             key={t}
             onClick={() => setType(t)}
-            className="flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
+            className="qb-press flex flex-1 items-center justify-center gap-1.5 rounded-[14px] py-2.75 text-[13.5px] font-bold"
             style={type === t ? { background: `${TYPE_COLOR[t]}26`, color: TYPE_COLOR[t] } : { color: 'var(--color-text-2)' }}
           >
+            <Icon />
             {label}
           </button>
         ))}
       </div>
 
-      <div
-        className="mb-6 rounded-[26px] border p-4.5"
-        style={{ borderColor: `${color}40`, background: `linear-gradient(160deg, ${color}1c 0%, transparent 100%)` }}
-      >
-        {type === 'transfer' ? (
-          <>
-            <div className="mb-3 text-[11px] font-bold" style={{ color }}>
-              {TYPE_LABEL[type]}
+      {type === 'transfer' ? (
+        <div className="mb-6 flex flex-col gap-2">
+          <PickerField
+            label="من حساب"
+            icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
+            iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
+            iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
+            title={selectedAccount?.name ?? 'اختر حسابًا'}
+            placeholder={!selectedAccount}
+            subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
+            trailing={
+              selectedAccount ? (
+                <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
+                  {formatMoney(selectedAccount.balance)}
+                </span>
+              ) : undefined
+            }
+            onClick={() => setFromSheetOpen(true)}
+          />
+
+          <div className="flex items-center justify-center">
+            <button
+              onClick={swapAccounts}
+              aria-label="تبديل الحسابين"
+              disabled={accounts.length < 2}
+              className="qb-press flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)] disabled:opacity-30"
+            >
+              <SwapIcon />
+            </button>
+          </div>
+
+          <PickerField
+            label="إلى حساب"
+            icon={selectedTransferToAccount ? <AccountTypeIcon type={selectedTransferToAccount.type} /> : <AccountTypeIcon type="cash" />}
+            iconColor={selectedTransferToAccount ? ACCOUNT_ICON_COLOR[selectedTransferToAccount.type] : 'var(--color-text-3)'}
+            iconBg={selectedTransferToAccount ? ACCOUNT_ICON_BG[selectedTransferToAccount.type] : 'rgba(255,255,255,0.08)'}
+            title={selectedTransferToAccount?.name ?? 'اختر حسابًا'}
+            placeholder={!selectedTransferToAccount}
+            subtitle={selectedTransferToAccount ? ACCOUNT_TYPE_LABELS[selectedTransferToAccount.type] : undefined}
+            trailing={
+              selectedTransferToAccount ? (
+                <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedTransferToAccount.type] }}>
+                  {formatMoney(selectedTransferToAccount.balance)}
+                </span>
+              ) : undefined
+            }
+            onClick={() => setToSheetOpen(true)}
+          />
+
+          {accounts.length < 2 && (
+            <div className="text-[12px] text-[var(--color-text-3)]">
+              التحويل يحتاج حسابين على الأقل — أضف حسابًا من{' '}
+              <button type="button" onClick={() => navigate('/accounts/new')} className="font-semibold underline" style={{ color }}>
+                هنا
+              </button>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[11px] text-[var(--color-text-3)]">من</div>
-                <div className="text-[13.5px] font-bold">{selectedAccount?.name ?? '—'}</div>
-              </div>
-              <div className="num text-[15px] font-bold" style={{ color }}>
-                {selectedAccount ? formatMoney(selectedAccount.balance) : '—'}
-              </div>
-            </div>
-            <div className="my-3 border-t border-white/8" />
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[11px] text-[var(--color-text-3)]">إلى</div>
-                <div className="text-[13.5px] font-bold">{selectedTransferToAccount?.name ?? '—'}</div>
-              </div>
-              <div className="num text-[15px] font-bold" style={{ color }}>
-                {selectedTransferToAccount ? formatMoney(selectedTransferToAccount.balance) : '—'}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-bold" style={{ color }}>
-                {TYPE_LABEL[type]}
-              </span>
-              <span className="text-[12.5px] font-semibold text-[var(--color-text-2)]">{selectedAccount?.name ?? 'اختر حسابًا'}</span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-[12px] text-[var(--color-text-3)]">الرصيد الحالي</span>
-              <span className="num text-[22px] font-bold" style={{ color }}>
-                {selectedAccount ? formatMoney(selectedAccount.balance) : '—'}
-              </span>
-            </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      ) : (
+        <div className="mb-6">
+          <PickerField
+            label="الحساب"
+            icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
+            iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
+            iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
+            title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
+            placeholder={!selectedAccount}
+            subtitle={selectedAccount ? `${ACCOUNT_TYPE_LABELS[selectedAccount.type]} · الرصيد الحالي` : undefined}
+            trailing={
+              selectedAccount ? (
+                <span className="num text-[16px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
+                  {formatMoney(selectedAccount.balance)}
+                </span>
+              ) : undefined
+            }
+            onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setFromSheetOpen(true))}
+          />
+        </div>
+      )}
 
       <div className="mb-6 text-center">
         <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ</div>
@@ -220,135 +400,64 @@ export function AddTransactionScreen() {
         <AmountPad value={amount} onChange={setAmount} color={color} />
       </div>
 
-      {type === 'expense' && (
-        <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الفئة</label>
-          <div className="mb-5 flex flex-wrap gap-2">
-            {expenseCategories.length === 0 ? (
-              <div className="text-[12.5px] text-[var(--color-text-3)]">لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"</div>
-            ) : (
-              expenseCategories.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setCategoryId(c.id)}
-                  className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-                  style={
-                    categoryId === c.id
-                      ? { background: `${color}26`, color }
-                      : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-                  }
-                >
-                  {c.name}
-                </button>
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {type === 'income' && (
-        <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">مصدر الدخل</label>
-          <div className="mb-5 flex flex-wrap gap-2">
-            {incomeSources.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setIncomeSourceId(s.id)}
-                className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-                style={
-                  incomeSourceId === s.id
-                    ? { background: `${color}26`, color }
-                    : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-                }
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {type === 'transfer' && accounts.length < 2 && (
-        <div className="mb-5 text-[12.5px] text-[var(--color-text-3)]">
-          التحويل يحتاج حسابين على الأقل — أضف حسابًا من{' '}
-          <button type="button" onClick={() => navigate('/accounts/new')} className="font-semibold underline" style={{ color }}>
-            هنا
-          </button>
+      {type !== 'transfer' && (
+        <div className="mb-5">
+          <PickerField
+            label={type === 'expense' ? 'الفئة' : 'مصدر الدخل'}
+            icon={
+              type === 'expense' ? (
+                selectedCategory ? (
+                  <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedCategory.name.trim().charAt(0)}</span>
+                ) : (
+                  <TagIcon />
+                )
+              ) : selectedIncomeSource ? (
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedIncomeSource.name.trim().charAt(0)}</span>
+              ) : (
+                <IncomeTypeIcon />
+              )
+            }
+            iconColor={
+              type === 'expense'
+                ? selectedCategory
+                  ? colorFor(selectedCategory.name)
+                  : 'var(--color-text-3)'
+                : selectedIncomeSource
+                  ? colorFor(selectedIncomeSource.name)
+                  : 'var(--color-text-3)'
+            }
+            iconBg={
+              type === 'expense'
+                ? selectedCategory
+                  ? `${colorFor(selectedCategory.name)}22`
+                  : 'rgba(255,255,255,0.08)'
+                : selectedIncomeSource
+                  ? `${colorFor(selectedIncomeSource.name)}22`
+                  : 'rgba(255,255,255,0.08)'
+            }
+            title={
+              type === 'expense'
+                ? (selectedCategory?.name ?? (expenseCategories.length === 0 ? 'لا توجد فئات' : 'اختر فئة'))
+                : (selectedIncomeSource?.name ?? (incomeSources.length === 0 ? 'لا توجد مصادر دخل' : 'اختر مصدر الدخل'))
+            }
+            placeholder={type === 'expense' ? !selectedCategory : !selectedIncomeSource}
+            onClick={() => {
+              if (type === 'expense' && expenseCategories.length === 0) {
+                navigate('/categories/new')
+                return
+              }
+              if (type === 'income' && incomeSources.length === 0) {
+                navigate('/income-sources/new')
+                return
+              }
+              setMetaSheetOpen(true)
+            }}
+          />
         </div>
       )}
 
-      {type === 'transfer' && accounts.length >= 2 && (
-        <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">من حساب</label>
-          <div className="mb-5 flex flex-wrap gap-2">
-            {accounts.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => setAccountId(a.id)}
-                className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-                style={
-                  accountId === a.id
-                    ? { background: `${color}26`, color }
-                    : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-                }
-              >
-                {a.name}
-              </button>
-            ))}
-          </div>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">إلى حساب</label>
-          <div className="mb-5 flex flex-wrap gap-2">
-            {accounts
-              .filter((a) => a.id !== accountId)
-              .map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => setTransferToId(a.id)}
-                  className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-                  style={
-                    transferToId === a.id
-                      ? { background: `${color}26`, color }
-                      : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-                  }
-                >
-                  {a.name}
-                </button>
-              ))}
-          </div>
-        </>
-      )}
-
-      {type !== 'transfer' && (
-        <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
-          <div className="mb-5 flex flex-wrap gap-2">
-            {accounts.length === 0 ? (
-              <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
-                لا توجد حسابات — أضف حسابًا أولًا
-              </button>
-            ) : (
-              accounts.map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => setAccountId(a.id)}
-                  className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-                  style={
-                    accountId === a.id
-                      ? { background: `${color}26`, color }
-                      : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-                  }
-                >
-                  {a.name}
-                </button>
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
       <div className="mb-5">
-        <DatePicker value={date} onChange={setDate} color={color} />
+        <DatePicker value={date} onChange={setDate} color={color} fieldLabel="التاريخ" />
       </div>
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>

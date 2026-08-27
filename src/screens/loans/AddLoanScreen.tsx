@@ -6,6 +6,9 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { AmountPad } from '../../components/AmountPad'
 import { DatePicker } from '../../components/DatePicker'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { PickerField } from '../../components/PickerField'
+import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
+import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 import { formatMoney } from '../../lib/format'
 import type { LoanDirection } from '../../types'
 
@@ -27,6 +30,7 @@ export function AddLoanScreen() {
   const [dueDate, setDueDate] = useState(existing?.dueDate ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false)
 
   if (!person) {
     return (
@@ -87,7 +91,7 @@ export function AddLoanScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
             style={{ background: color }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
@@ -108,36 +112,77 @@ export function AddLoanScreen() {
       <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
         <button
           onClick={() => setDirection('given')}
-          className="flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
+          className="qb-press flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
           style={direction === 'given' ? { background: 'rgba(251,146,60,0.2)', color: 'var(--color-owed-by)' } : { color: 'var(--color-text-2)' }}
         >
           أعطيته مبلغ
         </button>
         <button
           onClick={() => setDirection('received')}
-          className="flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
+          className="qb-press flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
           style={direction === 'received' ? { background: 'rgba(45,212,191,0.2)', color: 'var(--color-owed-to)' } : { color: 'var(--color-text-2)' }}
         >
           استلمت منه مبلغ
         </button>
       </div>
 
-      <div
-        className="mb-6 rounded-[26px] border p-4.5"
-        style={{ borderColor: `${color}40`, background: `linear-gradient(160deg, ${color}1c 0%, transparent 100%)` }}
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-[11px] font-bold" style={{ color }}>
-            {direction === 'given' ? 'أعطيته مبلغ' : 'استلمت منه مبلغ'}
-          </span>
-          <span className="text-[12.5px] font-semibold text-[var(--color-text-2)]">{selectedAccount?.name ?? 'اختر حسابًا'}</span>
-        </div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-[12px] text-[var(--color-text-3)]">الرصيد الحالي</span>
-          <span className="num text-[22px] font-bold" style={{ color }}>
-            {selectedAccount ? formatMoney(selectedAccount.balance) : '—'}
-          </span>
-        </div>
+      <SelectSheet
+        open={accountSheetOpen}
+        title="اختر الحساب"
+        items={accounts.map(
+          (a): SelectSheetItem => ({
+            id: a.id,
+            icon: <AccountTypeIcon type={a.type} size={17} />,
+            iconColor: ACCOUNT_ICON_COLOR[a.type],
+            iconBg: ACCOUNT_ICON_BG[a.type],
+            title: a.name,
+            subtitle: ACCOUNT_TYPE_LABELS[a.type],
+            trailing: (
+              <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
+                {formatMoney(a.balance)}
+              </span>
+            ),
+          }),
+        )}
+        selectedId={accountId}
+        onSelect={(v) => {
+          setAccountId(v)
+          setAccountSheetOpen(false)
+        }}
+        onClose={() => setAccountSheetOpen(false)}
+        emptyLabel="لا توجد حسابات بعد"
+        footer={
+          <button
+            onClick={() => {
+              setAccountSheetOpen(false)
+              navigate('/accounts/new')
+            }}
+            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
+            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+          >
+            + إضافة حساب جديد
+          </button>
+        }
+      />
+
+      <div className="mb-6">
+        <PickerField
+          label={direction === 'given' ? 'من حساب' : 'إلى حساب'}
+          icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
+          iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
+          iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
+          title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
+          placeholder={!selectedAccount}
+          subtitle={selectedAccount ? `${ACCOUNT_TYPE_LABELS[selectedAccount.type]} · الرصيد الحالي` : undefined}
+          trailing={
+            selectedAccount ? (
+              <span className="num text-[16px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
+                {formatMoney(selectedAccount.balance)}
+              </span>
+            ) : undefined
+          }
+          onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
+        />
       </div>
 
       <div className="mb-6 text-center">
@@ -151,42 +196,23 @@ export function AddLoanScreen() {
         <AmountPad value={amount} onChange={setAmount} color={color} />
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الحساب</label>
-      <div className="mb-5 flex flex-wrap gap-2">
-        {accounts.length === 0 ? (
-          <button type="button" onClick={() => navigate('/accounts/new')} className="text-[12.5px] font-semibold underline" style={{ color }}>
-            لا توجد حسابات — أضف حسابًا أولًا
+      {accounts.length === 0 && (
+        <div className="mb-5 text-[12.5px] text-[var(--color-text-3)]">
+          التحويل يحتاج حسابًا — أضف حسابًا من{' '}
+          <button type="button" onClick={() => navigate('/accounts/new')} className="font-semibold underline" style={{ color }}>
+            هنا
           </button>
-        ) : (
-          accounts.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setAccountId(a.id)}
-              className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-              style={
-                accountId === a.id
-                  ? { background: `${color}26`, color }
-                  : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-              }
-            >
-              {a.name}
-            </button>
-          ))
-        )}
-      </div>
+        </div>
+      )}
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التاريخ</label>
       <div className="mb-5">
-        <DatePicker value={date} onChange={setDate} color={color} />
+        <DatePicker value={date} onChange={setDate} color={color} fieldLabel="التاريخ" />
       </div>
 
       {direction === 'given' && (
-        <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">تاريخ الاستحقاق (اختياري)</label>
-          <div className="mb-5">
-            <DatePicker value={dueDate} onChange={setDueDate} color={color} placeholder="بدون تاريخ استحقاق" />
-          </div>
-        </>
+        <div className="mb-5">
+          <DatePicker value={dueDate} onChange={setDueDate} color={color} placeholder="بدون تاريخ استحقاق" fieldLabel="تاريخ الاستحقاق (اختياري)" />
+        </div>
       )}
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>

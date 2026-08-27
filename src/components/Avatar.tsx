@@ -1,6 +1,6 @@
-const PALETTE = ['#00E28A', '#7C6CFF', '#F5B942', '#2DD4BF', '#FB923C', '#FF5C5C']
+const PALETTE = ['#38BDF8', '#7C6CFF', '#F5B942', '#2DD4BF', '#FB923C', '#FF5C5C']
 
-function colorFor(seed: string): string {
+export function colorFor(seed: string): string {
   let hash = 0
   for (let i = 0; i < seed.length; i++) hash = (hash << 5) - hash + seed.charCodeAt(i)
   return PALETTE[Math.abs(hash) % PALETTE.length]
