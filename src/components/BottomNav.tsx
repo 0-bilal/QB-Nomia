@@ -55,7 +55,7 @@ function TransactionIcon() {
 
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#04140D" strokeWidth="2.4" strokeLinecap="round">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#0A0A0C" strokeWidth="2.4" strokeLinecap="round">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
@@ -164,7 +164,7 @@ export function BottomNav() {
 
           <button
             onClick={() => setOpen((o) => !o)}
-            className="-mt-9 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full shadow-[0_8px_20px_-4px_rgba(0,226,138,0.45)] transition-transform duration-200 ease-out"
+            className="-mt-9 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full shadow-[0_8px_20px_-4px_rgba(255,255,255,0.45)] transition-transform duration-200 ease-out"
             style={{
               background: 'linear-gradient(145deg, var(--color-accent-a), var(--color-accent-b))',
               transform: open ? 'rotate(45deg)' : 'rotate(0deg)',

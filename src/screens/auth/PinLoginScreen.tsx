@@ -57,7 +57,7 @@ export function PinLoginScreen() {
     <div className="relative flex h-full w-full flex-col items-center overflow-hidden bg-[var(--color-bg)]">
       <div
         className="pointer-events-none absolute -top-32 left-1/2 h-85 w-85 -translate-x-1/2 rounded-full blur-[10px]"
-        style={{ background: 'radial-gradient(circle, rgba(0,226,138,0.2) 0%, transparent 70%)', width: 340, height: 340 }}
+        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)', width: 340, height: 340 }}
       />
 
       <div className="relative flex h-full flex-col items-center px-7 pt-19 pb-10">
@@ -83,10 +83,10 @@ export function PinLoginScreen() {
       {stage === 'success' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
           <div
-            className="flex h-19 w-19 items-center justify-center rounded-full shadow-[0_0_0_10px_rgba(0,226,138,0.1)]"
+            className="flex h-19 w-19 items-center justify-center rounded-full shadow-[0_0_0_10px_rgba(255,255,255,0.1)]"
             style={{ background: 'linear-gradient(150deg, var(--color-accent), var(--color-accent-b))', width: 76, height: 76 }}
           >
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#04140D" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#0A0A0C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="5,13 10,18 19,6" />
             </svg>
           </div>

@@ -17,7 +17,7 @@ function FeatureRow({ icon, text }: { icon: React.ReactNode; text: string }) {
     <div className="flex items-center gap-3 py-2">
       <div
         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
-        style={{ width: 32, height: 32, background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
+        style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
       >
         {icon}
       </div>
@@ -43,12 +43,12 @@ export function AboutScreen() {
     >
       <div
         className="mb-4 flex flex-col items-center rounded-3xl border border-[var(--color-border)] py-7"
-        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)', boxShadow: '0 0 40px -14px rgba(0,226,138,0.18)' }}
+        style={{ background: 'linear-gradient(160deg, #141417 0%, #0E0E10 100%)', boxShadow: '0 0 40px -14px rgba(255,255,255,0.18)' }}
       >
         <AppLogo tagline="" />
         <div
           className="num mt-3 rounded-full px-3 py-1 text-[11.5px] font-bold"
-          style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
+          style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
         >
           الإصدار {APP_VERSION}
         </div>

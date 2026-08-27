@@ -94,7 +94,7 @@ export function SyncSettingsScreen() {
         onCancel={() => setConfirmClearOpen(false)}
       />
 
-      <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(0,226,138,0.35)', color: 'var(--color-text-2)' }}>
+      <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
         الرابط والرمز السري يُحفظان على هذا الجهاز فقط (مو بكود التطبيق) — بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets نفسه لا يخزّن أي بيانات مالية مقروءة.
       </div>
 
@@ -125,7 +125,7 @@ export function SyncSettingsScreen() {
       <button
         onClick={handleSaveCredentials}
         disabled={!canSave}
-        className="mb-5 w-full rounded-2xl py-3 text-center text-[13.5px] font-bold text-[#04140D] disabled:opacity-40"
+        className="mb-5 w-full rounded-2xl py-3 text-center text-[13.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
         style={{ background: 'var(--color-accent)' }}
       >
         حفظ إعدادات الربط
@@ -174,7 +174,7 @@ export function SyncSettingsScreen() {
               ? { background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }
               : status.kind === 'busy'
                 ? { background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }
-                : { background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }
+                : { background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }
           }
         >
           {status.label}

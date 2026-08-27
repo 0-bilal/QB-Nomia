@@ -19,7 +19,7 @@ const ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.12)',
   bank: 'rgba(124,108,255,0.12)',
   savings: 'rgba(245,185,66,0.12)',
-  wallet: 'rgba(0,226,138,0.12)',
+  wallet: 'rgba(255,255,255,0.12)',
 }
 const ICON_COLOR: Record<Account['type'], string> = {
   cash: 'var(--color-income)',
@@ -77,7 +77,7 @@ export function AccountsScreen() {
         <button
           onClick={() => navigate('/accounts/new')}
           className="flex h-9.5 w-9.5 items-center justify-center rounded-xl border"
-          style={{ width: 38, height: 38, background: 'rgba(0,226,138,0.12)', borderColor: 'rgba(0,226,138,0.27)', color: 'var(--color-accent)' }}
+          style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
           aria-label="إضافة حساب"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
@@ -165,7 +165,7 @@ export function AccountsScreen() {
               <button
                 onClick={() => navigate(`/add/transaction?type=transfer&to=${a.id}`)}
                 className="mt-3 w-full rounded-xl py-2 text-[12px] font-semibold"
-                style={{ background: 'rgba(0,226,138,0.12)', color: 'var(--color-accent)' }}
+                style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
               >
                 شحن المحفظة
               </button>
