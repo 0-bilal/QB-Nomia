@@ -164,6 +164,16 @@ export interface ActivityItem {
   note?: string
 }
 
+export interface AppNotification {
+  id: string
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan'
+  severity: 'critical' | 'warning'
+  title: string
+  message: string
+  color: string
+  to: string
+}
+
 interface DataContextValue {
   accounts: Account[]
   people: Person[]
@@ -173,6 +183,7 @@ interface DataContextValue {
   transactions: Transaction[]
   subscriptions: Subscription[]
   commitments: Commitment[]
+  notifications: AppNotification[]
   totalBalance: number
   availableBalance: number
   totalMonthlySubscriptions: number
@@ -493,6 +504,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .filter((s) => s.status === 'active')
       .reduce((sum, s) => sum + (s.billingCycle === 'monthly' ? s.cost : s.cost / 12), 0)
 
+    /**
+     * التنبيهات "المهمة" فقط (متأخر/يستحق قريبًا) — نفس عتبات شارات
+     * التأخير المعروضة أصلًا بشاشتي الاشتراكات والالتزامات، مو كل عنصر
+     * نشط، حتى تبقى القائمة مفيدة وغير مزعجة.
+     */
+    function buildNotifications(): AppNotification[] {
+      const list: AppNotification[] = []
+      const today = new Date().toISOString().slice(0, 10)
+
+      function daysUntil(dateStr: string): number {
+        const t = new Date()
+        t.setHours(0, 0, 0, 0)
+        return Math.round((new Date(dateStr).getTime() - t.getTime()) / 86400000)
+      }
+
+      for (const s of subscriptions) {
+        if (s.status !== 'active') continue
+        const days = daysUntil(s.nextRenewalDate)
+        if (days < 0) {
+          list.push({ id: `sub-${s.id}-${s.nextRenewalDate}`, kind: 'subscription', severity: 'critical', title: s.name, message: 'تجديد الاشتراك متأخر', color: 'var(--color-subscription)', to: '/subscriptions' })
+        } else if (days === 0) {
+          list.push({ id: `sub-${s.id}-${s.nextRenewalDate}`, kind: 'subscription', severity: 'critical', title: s.name, message: 'يتجدد اليوم', color: 'var(--color-subscription)', to: '/subscriptions' })
+        } else if (days <= 3) {
+          list.push({ id: `sub-${s.id}-${s.nextRenewalDate}`, kind: 'subscription', severity: 'warning', title: s.name, message: `يتجدد خلال ${days} ${days === 1 ? 'يوم' : 'أيام'}`, color: 'var(--color-subscription)', to: '/subscriptions' })
+        }
+      }
+
+      for (const c of commitments) {
+        if (c.status !== 'active') continue
+        const days = daysUntil(c.nextDueDate)
+        if (days < 0) {
+          list.push({ id: `com-${c.id}-${c.nextDueDate}`, kind: 'commitment', severity: 'critical', title: c.name, message: 'تجاوز موعد الاستحقاق', color: 'var(--color-commitment)', to: '/commitments' })
+        } else if (days === 0) {
+          list.push({ id: `com-${c.id}-${c.nextDueDate}`, kind: 'commitment', severity: 'critical', title: c.name, message: 'يستحق اليوم', color: 'var(--color-commitment)', to: '/commitments' })
+        } else if (days <= 7) {
+          list.push({ id: `com-${c.id}-${c.nextDueDate}`, kind: 'commitment', severity: 'warning', title: c.name, message: `يستحق خلال ${days} يوم`, color: 'var(--color-commitment)', to: '/commitments' })
+        }
+      }
+
+      for (const cat of categories) {
+        if (cat.kind !== 'expense' || !cat.budgetLimit) continue
+        const pct = (categorySpentThisMonth(cat.id) / cat.budgetLimit) * 100
+        if (pct >= 100) {
+          list.push({ id: `budget-${cat.id}-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: cat.name, message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
+        } else if (pct >= 80) {
+          list.push({ id: `budget-${cat.id}-${today.slice(0, 7)}`, kind: 'budget', severity: 'warning', title: cat.name, message: `قاربت على تجاوز الميزانية (${Math.round(pct)}%)`, color: 'var(--color-subscription)', to: '/categories' })
+        }
+      }
+
+      for (const p of people) {
+        const overdue = loanTransactions.some((t) => t.personId === p.id && t.direction === 'given' && t.dueDate && t.dueDate < today)
+        if (overdue) {
+          list.push({ id: `loan-${p.id}`, kind: 'loan', severity: 'critical', title: p.name, message: 'متأخر بسداد سلفة', color: 'var(--color-expense)', to: `/loans/${p.id}` })
+        }
+      }
+
+      return list.sort((a, b) => (a.severity === 'critical' ? 0 : 1) - (b.severity === 'critical' ? 0 : 1))
+    }
+
     return {
       accounts,
       people,
@@ -502,6 +572,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       transactions,
       subscriptions,
       commitments,
+      notifications: buildNotifications(),
       totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
       // ادخار ومحفظة رقمية مو رصيد جاهز للصرف فورًا — تُستثنى من "الرصيد
       // المتاح" بالرئيسية (بخلاف totalBalance اللي يبقى مجموع كل الحسابات

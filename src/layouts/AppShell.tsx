@@ -1,7 +1,20 @@
+import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { BottomNav } from '../components/BottomNav'
+import { useData } from '../state/DataContext'
+import { notifyNewCriticalItems } from '../lib/deviceNotify'
 
 export function AppShell() {
+  const { notifications } = useData()
+
+  // يطلق إشعار جهاز حقيقي للتنبيهات الحرجة الجديدة عند فتح التطبيق —
+  // فقط لو المستخدم فعّل إذن التنبيهات أصلًا (من داخل مركز التنبيهات).
+  useEffect(() => {
+    const critical = notifications.filter((n) => n.severity === 'critical')
+    notifyNewCriticalItems(critical)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg)]">
       <div

@@ -4,6 +4,7 @@ import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
+import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
 
 function EyeIcon({ hidden }: { hidden: boolean }) {
   if (hidden) {
@@ -80,6 +81,7 @@ export function HomeScreen() {
     availableBalance,
     totalMonthlySubscriptions,
     commitments,
+    notifications,
     recentActivity,
     categories,
     categorySpentThisMonth,
@@ -87,6 +89,7 @@ export function HomeScreen() {
   } = useData()
   const navigate = useNavigate()
   const [hidden, setHidden] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
 
   const cash = accounts.find((a) => a.type === 'cash')?.balance ?? 0
@@ -119,15 +122,20 @@ export function HomeScreen() {
           <div className="mb-0.5 text-[13px] font-semibold text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
           <div className="num text-xs text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))}</div>
         </div>
-        <button
-          onClick={() => setHidden((h) => !h)}
-          className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)]"
-          style={{ width: 38, height: 38 }}
-          aria-label="إخفاء الأرقام"
-        >
-          <EyeIcon hidden={hidden} />
-        </button>
+        <div className="flex items-center gap-2.5">
+          <NotificationBellButton notifications={notifications} onClick={() => setNotificationsOpen(true)} />
+          <button
+            onClick={() => setHidden((h) => !h)}
+            className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)]"
+            style={{ width: 38, height: 38 }}
+            aria-label="إخفاء الأرقام"
+          >
+            <EyeIcon hidden={hidden} />
+          </button>
+        </div>
       </div>
+
+      <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
 
       <div className="qb-card-elevated mb-4 p-5.5">
         <div className="relative">
