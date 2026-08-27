@@ -28,6 +28,7 @@ import { AddLoanScreen } from './screens/loans/AddLoanScreen'
 import { SyncSettingsScreen } from './screens/SyncSettingsScreen'
 import { ReportsScreen } from './screens/ReportsScreen'
 import { ComparisonsScreen } from './screens/ComparisonsScreen'
+import { ExportReportScreen } from './screens/ExportReportScreen'
 import { AboutScreen } from './screens/AboutScreen'
 import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
 
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
         <Route path="comparisons" element={<ComparisonsScreen />} />
+        <Route path="export-report" element={<ExportReportScreen />} />
         <Route path="about" element={<AboutScreen />} />
       </Route>
 
