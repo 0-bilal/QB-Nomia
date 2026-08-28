@@ -33,15 +33,15 @@ export function AccountsScreen() {
   const mask = (s: string) => (hidden ? '•••••' : s)
 
   return (
-    <div dir="rtl" className="safe-top px-5 pb-4 pt-14">
-      <div className="mb-5 flex items-center justify-between">
+    <div dir="rtl" className="px-5 pb-4">
+      <div className="safe-top qb-glass-bar-top -mx-5 mb-5 flex items-center justify-between px-5 pt-14 pb-3">
         <div className="text-xl font-bold">الحسابات</div>
         <div className="flex items-center gap-2.5">
           <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
           <button
             onClick={() => navigate('/accounts/new')}
-            className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-            style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
+            className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
+            style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
             aria-label="إضافة حساب"
           >
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">

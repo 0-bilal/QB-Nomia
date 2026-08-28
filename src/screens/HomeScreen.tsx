@@ -81,8 +81,8 @@ export function HomeScreen() {
     .sort((a, b) => Math.max(b.pct, b.projectedPct) - Math.max(a.pct, a.projectedPct))
 
   return (
-    <div dir="rtl" className="safe-top px-5 pb-4 pt-14">
-      <div className="mb-5 flex items-center justify-between">
+    <div dir="rtl" className="px-5 pb-4">
+      <div className="safe-top qb-glass-bar-top -mx-5 mb-5 flex items-center justify-between px-5 pt-14 pb-3">
         <div>
           <div className="mb-0.5 text-[13px] font-semibold text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
           <div className="num text-xs text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))}</div>

@@ -111,7 +111,7 @@ export function NotificationBellButton({ notifications, onClick }: { notificatio
   return (
     <button
       onClick={onClick}
-      className="qb-press relative flex h-9.5 w-9.5 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)]"
+      className="qb-glass-circle qb-press relative flex h-9.5 w-9.5 items-center justify-center rounded-full border text-[var(--color-text-2)]"
       style={{ width: 38, height: 38 }}
       aria-label="التنبيهات"
     >

@@ -46,8 +46,8 @@ export function SubscriptionsScreen() {
           right={
             <button
               onClick={() => navigate('/subscriptions/new')}
-              className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-              style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
+              className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
+              style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
               aria-label="إضافة اشتراك"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">

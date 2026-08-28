@@ -42,7 +42,7 @@ export function PersonDetailScreen() {
           <button
             onClick={() => navigate(-1)}
             aria-label="رجوع"
-            className="qb-press mb-5 flex h-9.5 w-9.5 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+            className="qb-glass-circle qb-press mb-5 flex h-9.5 w-9.5 items-center justify-center rounded-full border text-[var(--color-text)]"
             style={{ width: 38, height: 38 }}
           >
             <ChevronBackIcon />
