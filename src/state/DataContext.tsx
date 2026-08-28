@@ -3,6 +3,7 @@ import { loadJSON, saveJSON } from '../lib/storage'
 import { makeId } from '../lib/id'
 import { scheduleBackgroundSync } from '../lib/autoSync'
 import { computeZakatStatus, getGoldPricePerGram } from '../lib/zakat'
+import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 import { getLastBackupExportedAt, getOrInitFirstSeenAt } from '../lib/backup'
 import { formatMoney } from '../lib/format'
 import type {
@@ -622,11 +623,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // على الأقل ضمن الشهر حتى ما نطلق تحذير مبكر مبالغ فيه من حركة وحدة كبيرة يوم 1-2.
       const now = new Date()
       const daysElapsedInMonth = now.getDate()
-      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-      function projectedPct(spent: number, limit: number): number {
-        if (daysElapsedInMonth <= 0) return (spent / limit) * 100
-        return ((spent / daysElapsedInMonth) * daysInMonth / limit) * 100
-      }
+      const totalDaysInMonth = daysInMonth(now)
 
       for (const cat of categories) {
         if (cat.kind !== 'expense' || !cat.budgetLimit) continue
@@ -636,8 +633,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           list.push({ id: `budget-${cat.id}-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: cat.name, message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
         } else if (pct >= 80) {
           list.push({ id: `budget-${cat.id}-${today.slice(0, 7)}`, kind: 'budget', severity: 'warning', title: cat.name, message: `قاربت على تجاوز الميزانية (${Math.round(pct)}%)`, color: 'var(--color-subscription)', to: '/categories' })
-        } else if (daysElapsedInMonth >= 5) {
-          const proj = projectedPct(spent, cat.budgetLimit)
+        } else if (daysElapsedInMonth >= MIN_DAYS_ELAPSED_FOR_PROJECTION) {
+          const proj = projectedMonthEndPct(spent, cat.budgetLimit, daysElapsedInMonth, totalDaysInMonth)
           if (proj >= 100) {
             list.push({
               id: `budget-projected-${cat.id}-${today.slice(0, 7)}`,
@@ -694,8 +691,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: 'الميزانية الإجمالية', message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
         } else if (pct >= 80) {
           list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'warning', title: 'الميزانية الإجمالية', message: `قاربت على تجاوز الميزانية (${Math.round(pct)}%)`, color: 'var(--color-subscription)', to: '/categories' })
-        } else if (daysElapsedInMonth >= 5) {
-          const proj = projectedPct(spent, monthlyBudgetLimit)
+        } else if (daysElapsedInMonth >= MIN_DAYS_ELAPSED_FOR_PROJECTION) {
+          const proj = projectedMonthEndPct(spent, monthlyBudgetLimit, daysElapsedInMonth, totalDaysInMonth)
           if (proj >= 100) {
             list.push({
               id: `overall-budget-projected-${today.slice(0, 7)}`,

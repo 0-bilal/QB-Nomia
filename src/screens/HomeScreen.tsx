@@ -8,6 +8,7 @@ import { NotificationBellButton, NotificationsSheet } from '../components/Notifi
 import { AccountCardStack } from '../components/AccountCardStack'
 import { EyeToggleButton } from '../components/EyeToggleButton'
 import { getHideBalancesDefault } from '../lib/privacy'
+import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 
 function ChevronIcon() {
   return (
@@ -64,7 +65,7 @@ export function HomeScreen() {
 
   const now = new Date()
   const daysElapsedInMonth = now.getDate()
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const totalDaysInMonth = daysInMonth(now)
 
   const budgetAlerts = categories
     .filter((c) => c.kind === 'expense' && c.budgetLimit)
@@ -72,7 +73,8 @@ export function HomeScreen() {
       const spent = categorySpentThisMonth(c.id)
       const limit = c.budgetLimit ?? 1
       const pct = (spent / limit) * 100
-      const projectedPct = daysElapsedInMonth >= 5 ? ((spent / daysElapsedInMonth) * daysInMonth / limit) * 100 : pct
+      const projectedPct =
+        daysElapsedInMonth >= MIN_DAYS_ELAPSED_FOR_PROJECTION ? projectedMonthEndPct(spent, limit, daysElapsedInMonth, totalDaysInMonth) : pct
       return { ...c, spent, pct, projectedPct }
     })
     .filter((c) => c.pct >= 80 || c.projectedPct >= 100)
