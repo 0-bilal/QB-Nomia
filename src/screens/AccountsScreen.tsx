@@ -34,8 +34,8 @@ export function AccountsScreen() {
 
   return (
     <div dir="rtl" className="px-5 pb-4">
-      <div className="safe-top qb-glass-bar-top -mx-5 mb-5 flex items-center justify-between px-5 pt-14 pb-3">
-        <div className="text-xl font-bold">الحسابات</div>
+      <div className="safe-top qb-sticky-header-row mb-5 flex items-center justify-between pt-14">
+        <div className="qb-glass-circle rounded-full border px-4 py-2 text-xl font-bold">الحسابات</div>
         <div className="flex items-center gap-2.5">
           <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
           <button
