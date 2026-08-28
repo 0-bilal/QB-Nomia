@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { AmountPad } from '../components/AmountPad'
 import { formatMoney } from '../lib/format'
 
 type Tab = 'calc' | 'split'
@@ -191,7 +192,7 @@ function StandardCalculator() {
   return (
     // dir="ltr": لوحة أرقام الآلة الحاسبة تحافظ على نفس ترتيبها المكاني المعتاد (كأي رقّاعة أرقام)
     // بغض النظر عن لغة الواجهة، بدل ما ينعكس ترتيب الأعمدة تلقائيًا مع RTL.
-    <div dir="ltr" className="flex flex-col gap-4">
+    <div dir="ltr" className="flex h-full flex-col gap-4">
       <div className="qb-card-elevated flex flex-col justify-end p-5" style={{ height: 128 }}>
         {op && prev !== null && (
           <div dir="ltr" className="num mb-1 text-left text-[13px] text-[var(--color-text-3)]">
@@ -203,7 +204,8 @@ function StandardCalculator() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2.5">
+      {/* لوحة الأرقام دائمًا بأسفل الشاشة (mt-auto) — بدل ما تلتصق مباشرة تحت الشاشة الرئيسية. */}
+      <div className="mt-auto grid grid-cols-4 gap-2.5">
         <CalcButton label="C" variant="func" onClick={clearAll} />
         <CalcButton label="±" variant="func" onClick={toggleSign} />
         <CalcButton label="%" variant="func" onClick={percent} />
@@ -251,22 +253,12 @@ function SplitBill() {
   const perPerson = people > 0 ? total / people : 0
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full flex-col gap-4">
       <div>
         <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">المبلغ الإجمالي</label>
-        <div className="relative">
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => {
-              const v = e.target.value
-              if (v === '' || /^\d*\.?\d*$/.test(v)) setAmount(v)
-            }}
-            placeholder="0"
-            className="num w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] py-3.5 pr-4 pl-14 text-left text-[18px] font-bold outline-none placeholder:text-[var(--color-text-3)]"
-          />
-          <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</div>
+        <div dir="ltr" className="qb-card-elevated flex items-center justify-between p-5" style={{ height: 78 }}>
+          <div className="num overflow-hidden text-[30px] font-bold text-ellipsis whitespace-nowrap">{amount || '0'}</div>
+          <div className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</div>
         </div>
       </div>
 
@@ -296,9 +288,9 @@ function SplitBill() {
         </div>
       </div>
 
-      <div className="qb-card-elevated flex flex-col items-center py-7">
+      <div className="qb-card-elevated flex flex-col items-center py-5">
         <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">نصيب كل شخص</div>
-        <div className="num text-[32px] font-bold" style={{ color: 'var(--color-accent)' }}>
+        <div className="num text-[30px] font-bold" style={{ color: 'var(--color-accent)' }}>
           {formatMoney(perPerson)}
         </div>
         {total > 0 && (
@@ -306,6 +298,11 @@ function SplitBill() {
             {formatMoney(total)} ÷ {people} {people === 1 ? 'شخص' : 'أشخاص'}
           </div>
         )}
+      </div>
+
+      {/* لوحة أرقام التطبيق الخاصة بدل الاعتماد على كيبورد الهاتف — نفس المستخدمة بإدخال مبلغ أي حركة مالية. */}
+      <div className="mt-auto flex justify-center pt-2">
+        <AmountPad value={amount} onChange={setAmount} color="var(--color-accent)" />
       </div>
     </div>
   )
@@ -316,13 +313,16 @@ export function CalculatorScreen() {
   const [tab, setTab] = useState<Tab>('calc')
 
   return (
-    <ScreenScroll header={<ScreenHeader title="الآلة الحاسبة" onBack={() => navigate(-1)} className="pt-8 pb-4" />}>
+    <ScreenScroll
+      header={<ScreenHeader title="الآلة الحاسبة" onBack={() => navigate(-1)} className="pt-8 pb-4" />}
+      contentClassName="flex flex-1 flex-col px-5 pb-4"
+    >
       <div className="mb-4 flex gap-2.5">
         <TabButton active={tab === 'calc'} onClick={() => setTab('calc')} icon={<CalcIcon />} label="عادية" />
         <TabButton active={tab === 'split'} onClick={() => setTab('split')} icon={<PeopleIcon />} label="تقسيم الحساب" />
       </div>
 
-      {tab === 'calc' ? <StandardCalculator /> : <SplitBill />}
+      <div className="flex flex-1 flex-col">{tab === 'calc' ? <StandardCalculator /> : <SplitBill />}</div>
     </ScreenScroll>
   )
 }

@@ -132,7 +132,7 @@ export function HomeScreen() {
             <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">مصروف الشهر</div>
           </div>
           <div className="num text-[16.5px] font-bold" style={{ color: 'var(--color-expense)' }}>
-            {mask(formatMoney(monthExpense))}
+            {formatMoney(monthExpense)}
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ export function HomeScreen() {
               <div key={c.id}>
                 <div className="mb-1 flex items-center justify-between text-[12.5px]">
                   <div className="font-semibold">{c.name}</div>
-                  <div className="num font-semibold text-[var(--color-text-2)]">{mask(formatMoney(c.spent))}</div>
+                  <div className="num font-semibold text-[var(--color-text-2)]">{formatMoney(c.spent)}</div>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/6">
                   <div
@@ -183,7 +183,7 @@ export function HomeScreen() {
                 <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">الاشتراكات</div>
               </div>
               <div className="num text-[15px] font-bold" style={{ color: 'var(--color-subscription)' }}>
-                {mask(formatMoney(totalMonthlySubscriptions))}
+                {formatMoney(totalMonthlySubscriptions)}
               </div>
               <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">شهريًا</div>
             </button>
@@ -245,7 +245,7 @@ export function HomeScreen() {
                 </div>
               </div>
               <div className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color: item.color }}>
-                {mask(formatSigned(item.amount))}
+                {formatSigned(item.amount)}
               </div>
             </button>
           ))}

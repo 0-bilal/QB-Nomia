@@ -537,7 +537,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         personId: t.personId,
       }))
 
-      return [...fromTxns, ...fromLoans].sort((a, b) => (a.date < b.date ? 1 : -1))
+      // مقارن صحيح (يرجّع 0 عند تساوي التاريخ) — الفرز مضمون الاستقرار بجافاسكربت، فيحافظ على
+      // ترتيب الإدخال الأصلي (الأحدث أولًا، لأن كل حركة جديدة تُضاف بأول المصفوفة) بين حركات نفس
+      // اليوم، بدل مقارن قديم كان يرجّع -1 دائمًا عند التساوي فيكسر شرط الفرز ويعطي ترتيب عشوائي.
+      return [...fromTxns, ...fromLoans].sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1))
     }
 
     function recentActivity(limit = 5): ActivityItem[] {
