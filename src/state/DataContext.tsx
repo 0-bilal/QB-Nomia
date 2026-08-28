@@ -178,6 +178,7 @@ interface AddAccountInput {
   goalAmount?: number
   goalLabel?: string
   goalTargetDate?: string
+  zakatHawlStartDate?: string
 }
 
 export interface ActivityItem {
@@ -1033,6 +1034,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           goalAmount: input.goalAmount,
           goalLabel: input.goalLabel,
           goalTargetDate: input.goalTargetDate,
+          zakatHawlStartDate: input.zakatHawlStartDate,
         }
         persistAccounts([...accounts, account])
         return account
@@ -1049,6 +1051,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   goalAmount: input.goalAmount,
                   goalLabel: input.goalLabel,
                   goalTargetDate: input.goalTargetDate,
+                  zakatHawlStartDate: input.zakatHawlStartDate,
                 }
               : a,
           ),

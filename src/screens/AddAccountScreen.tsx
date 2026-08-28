@@ -31,6 +31,11 @@ export function AddAccountScreen() {
   const [goalAmount, setGoalAmount] = useState(existing?.goalAmount ? String(existing.goalAmount) : '')
   const [goalLabel, setGoalLabel] = useState(existing?.goalLabel ?? '')
   const [goalTargetDate, setGoalTargetDate] = useState(existing?.goalTargetDate ?? '')
+  // تاريخ بداية حول الزكاة: يُفترض تلقائيًا تاريخ إنشاء الهدف (حساب جديد)، وإلا يبقى فارغًا
+  // لحين ما يحدده المستخدم بنفسه (حساب قديم قبل إضافة هذه الميزة).
+  const [zakatHawlStartDate, setZakatHawlStartDate] = useState(
+    existing?.zakatHawlStartDate ?? (isEditing ? '' : new Date().toISOString().slice(0, 10)),
+  )
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const canSave = name.trim().length > 0
@@ -50,6 +55,7 @@ export function AddAccountScreen() {
       goalAmount: type === 'savings' && goalAmount ? Number(goalAmount) : undefined,
       goalLabel: type === 'savings' && goalLabel ? goalLabel : undefined,
       goalTargetDate: type === 'savings' && goalTargetDate ? goalTargetDate : undefined,
+      zakatHawlStartDate: type === 'savings' && zakatHawlStartDate ? zakatHawlStartDate : undefined,
     }
     if (isEditing && id) updateAccount(id, input)
     else addAccount(input)
@@ -58,10 +64,10 @@ export function AddAccountScreen() {
 
   function handleDelete() {
     if (!id || !existing) return
-    const { name, type, balance, goalAmount, goalLabel, goalTargetDate } = existing
+    const { name, type, balance, goalAmount, goalLabel, goalTargetDate, zakatHawlStartDate } = existing
     deleteAccount(id)
     navigate('/accounts', { replace: true })
-    showUndoToast('تم حذف الحساب', () => addAccount({ name, type, balance, goalAmount, goalLabel, goalTargetDate }))
+    showUndoToast('تم حذف الحساب', () => addAccount({ name, type, balance, goalAmount, goalLabel, goalTargetDate, zakatHawlStartDate }))
   }
 
   return (
@@ -166,6 +172,18 @@ export function AddAccountScreen() {
           />
           <div className="mb-5">
             <DatePicker value={goalTargetDate} onChange={setGoalTargetDate} color="var(--color-subscription)" placeholder="بدون تاريخ مستهدف" fieldLabel="تاريخ تحقيق الهدف (اختياري)" />
+          </div>
+          <div className="mb-5">
+            <DatePicker
+              value={zakatHawlStartDate}
+              onChange={setZakatHawlStartDate}
+              color="var(--color-commitment)"
+              placeholder="بدون تاريخ"
+              fieldLabel="تاريخ بداية حول الزكاة"
+            />
+            <div className="mt-1.5 px-1 text-[11px] leading-relaxed text-[var(--color-text-3)]">
+              يُفترض تلقائيًا تاريخ إنشاء الهدف — عدّله لو الرصيد فعليًا موجود عندك من قبل
+            </div>
           </div>
         </>
       )}
