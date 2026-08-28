@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData } from '../state/DataContext'
+import { useData, type DataSnapshot } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -9,6 +9,44 @@ import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, s
 import { formatDate } from '../lib/format'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} بايت`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} كيلوبايت`
+  return `${(bytes / 1024 / 1024).toFixed(2)} ميجابايت`
+}
+
+function isDataSnapshot(value: unknown): value is DataSnapshot {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return Array.isArray(v.accounts) && Array.isArray(v.transactions) && Array.isArray(v.people)
+}
+
+function DatabaseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="6" rx="8" ry="3" />
+      <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+      <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+    </svg>
+  )
+}
+function ExportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15V4M12 4 8 8M12 4l4 4" />
+      <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
+    </svg>
+  )
+}
+function ImportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 4v11M12 15l-4-4M12 15l4-4" />
+      <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
+    </svg>
+  )
+}
 
 export function SyncSettingsScreen() {
   const navigate = useNavigate()
@@ -21,8 +59,67 @@ export function SyncSettingsScreen() {
   const [url, setUrl] = useState(getSheetsWebAppUrl())
   const [token, setToken] = useState(getSheetsSecretToken())
   const [showToken, setShowToken] = useState(false)
+  const [confirmImportOpen, setConfirmImportOpen] = useState(false)
+  const [pendingImport, setPendingImport] = useState<DataSnapshot | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const canSave = url.trim().length > 0 && token.trim().length > 0
+
+  const backupSnapshot = exportSnapshot()
+  const backupSizeBytes = new Blob([JSON.stringify(backupSnapshot)]).size
+  const recordsCount =
+    backupSnapshot.accounts.length +
+    backupSnapshot.transactions.length +
+    backupSnapshot.people.length +
+    backupSnapshot.loanTransactions.length +
+    backupSnapshot.subscriptions.length +
+    (backupSnapshot.commitments?.length ?? 0) +
+    (backupSnapshot.recurringTransactions?.length ?? 0) +
+    backupSnapshot.categories.length +
+    backupSnapshot.incomeSources.length
+
+  function handleExportBackup() {
+    const json = JSON.stringify(backupSnapshot, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qb-nomia-backup-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+    setStatus({ kind: 'ok', label: 'تم تصدير النسخة الاحتياطية على جهازك' })
+  }
+
+  function handleFileChosen(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result))
+        if (!isDataSnapshot(parsed)) {
+          setStatus({ kind: 'error', label: 'الملف غير صالح — تأكد إنه نسخة احتياطية صادرة من هذا التطبيق' })
+          return
+        }
+        setPendingImport(parsed)
+        setConfirmImportOpen(true)
+      } catch {
+        setStatus({ kind: 'error', label: 'تعذّر قراءة الملف — تأكد إنه ملف نسخة احتياطية صالح' })
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  function handleConfirmImport() {
+    setConfirmImportOpen(false)
+    if (!pendingImport) return
+    importSnapshot(pendingImport)
+    setPendingImport(null)
+    setStatus({ kind: 'ok', label: 'تم استعادة البيانات من النسخة الاحتياطية بنجاح' })
+  }
 
   function handleSaveCredentials() {
     if (!canSave) return
@@ -85,6 +182,18 @@ export function SyncSettingsScreen() {
         color="var(--color-expense)"
         onConfirm={handleClearCredentials}
         onCancel={() => setConfirmClearOpen(false)}
+      />
+      <ConfirmDialog
+        open={confirmImportOpen}
+        title="استعادة نسخة احتياطية"
+        message="استيراد هذا الملف سيستبدل كل بياناتك المحلية الحالية بالكامل."
+        confirmLabel="استعادة واستبدال"
+        color="var(--color-owed-to)"
+        onConfirm={handleConfirmImport}
+        onCancel={() => {
+          setConfirmImportOpen(false)
+          setPendingImport(null)
+        }}
       />
 
       <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
@@ -158,6 +267,57 @@ export function SyncSettingsScreen() {
           </button>
         </>
       )}
+
+      <div className="qb-section-label mb-2 mt-6 px-1">نسخة احتياطية محلية</div>
+
+      <div className="qb-card mb-3.5 flex items-center gap-3 p-4">
+        <div
+          className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]"
+          style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
+        >
+          <DatabaseIcon />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[13.5px] font-bold">{formatBytes(backupSizeBytes)}</div>
+          <div className="text-[11px] text-[var(--color-text-3)]">{recordsCount} سجل مخزَّن على هذا الجهاز</div>
+        </div>
+      </div>
+
+      <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={handleFileChosen} className="hidden" />
+
+      <button
+        onClick={handleExportBackup}
+        className="qb-press mb-3 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right"
+        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'var(--color-surface)' }}
+      >
+        <div
+          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
+          style={{ width: 42, height: 42, background: 'rgba(124,108,255,0.14)', color: 'var(--color-transfer)' }}
+        >
+          <ExportIcon />
+        </div>
+        <div className="flex-1">
+          <div className="text-[13.5px] font-bold">تصدير نسخة احتياطية</div>
+          <div className="text-[11.5px] text-[var(--color-text-3)]">يحفظ كل بياناتك بملف JSON على جهازك</div>
+        </div>
+      </button>
+
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="qb-press mb-5 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right"
+        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'var(--color-surface)' }}
+      >
+        <div
+          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
+          style={{ width: 42, height: 42, background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)' }}
+        >
+          <ImportIcon />
+        </div>
+        <div className="flex-1">
+          <div className="text-[13.5px] font-bold">استعادة من نسخة احتياطية</div>
+          <div className="text-[11.5px] text-[var(--color-text-3)]">يختار ملف JSON صادر من هذا التطبيق ويستبدل بياناتك الحالية</div>
+        </div>
+      </button>
 
       {status.kind !== 'idle' && (
         <div
