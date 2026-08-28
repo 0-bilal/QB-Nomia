@@ -33,6 +33,7 @@ import { AboutScreen } from './screens/AboutScreen'
 import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
 import { SecurityScreen } from './screens/SecurityScreen'
 import { ChangePinScreen } from './screens/ChangePinScreen'
+import { CalculatorScreen } from './screens/CalculatorScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="about" element={<AboutScreen />} />
         <Route path="security" element={<SecurityScreen />} />
         <Route path="security/change-pin" element={<ChangePinScreen />} />
+        <Route path="calculator" element={<CalculatorScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
