@@ -18,35 +18,38 @@ interface ScreenHeaderProps {
 }
 
 /**
- * رأس صفحة موحّد لكل الشاشات الفرعية: زر رجوع دائري بدل نص مجرّد،
- * عنوان في المنتصف، وخانة يمين اختيارية (زر إجراء أو نفس عرض زر الرجوع
- * للحفاظ على توسيط العنوان).
+ * رأس صفحة موحّد لكل الشاشات الفرعية: زر رجوع/إلغاء دائري زجاجي ملاصق
+ * لاسم الشاشة — نفس كبسولة العنوان الزجاجية المستخدمة بالشاشات الرئيسية
+ * الأربع (الرئيسية/الحسابات/السلف/المزيد) وبنفس ارتفاع الأزرار — كمجموعة
+ * واحدة على يمين الشاشة، وخانة يمين اختيارية (زر إجراء) على اليسار وحدها.
  */
 export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'pt-8 pb-5' }: ScreenHeaderProps) {
   return (
     <div className={`safe-top flex items-center justify-between px-5 ${className}`}>
-      {onBack ? (
-        cancelLabel ? (
-          <button onClick={onBack} className="qb-press text-[13.5px] font-semibold text-[var(--color-text-2)]">
-            {cancelLabel}
-          </button>
-        ) : (
-          <button
-            onClick={onBack}
-            aria-label="رجوع"
-            className="qb-glass-circle qb-press flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full border text-[var(--color-text)]"
-            style={{ width: 38, height: 38 }}
-          >
-            <ChevronBackIcon />
-          </button>
-        )
-      ) : (
-        <div className="w-9.5" style={{ width: 38 }} />
-      )}
+      <div className="flex min-w-0 items-center gap-2">
+        {onBack &&
+          (cancelLabel ? (
+            <button
+              onClick={onBack}
+              className="qb-glass-circle qb-press flex h-9.5 flex-shrink-0 items-center justify-center rounded-full border px-4 text-[13.5px] font-semibold text-[var(--color-text-2)]"
+            >
+              {cancelLabel}
+            </button>
+          ) : (
+            <button
+              onClick={onBack}
+              aria-label="رجوع"
+              className="qb-glass-circle qb-press flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full border text-[var(--color-text)]"
+              style={{ width: 38, height: 38 }}
+            >
+              <ChevronBackIcon />
+            </button>
+          ))}
 
-      <div className="truncate text-[15px] font-bold">{title}</div>
+        <div className="qb-glass-circle flex h-9.5 min-w-0 items-center truncate rounded-full border px-4 text-[15px] font-bold">{title}</div>
+      </div>
 
-      {right ?? <div className="w-9.5" style={{ width: 38 }} />}
+      {right}
     </div>
   )
 }
