@@ -6,6 +6,8 @@ import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
 import { BankCardFace } from '../components/BankCardFace'
 import { ACCOUNT_CARD_TEXT_FAINT } from '../components/AccountVisuals'
+import { EyeToggleButton } from '../components/EyeToggleButton'
+import { getHideBalancesDefault } from '../lib/privacy'
 
 function EditIcon() {
   return (
@@ -27,28 +29,33 @@ export function AccountsScreen() {
   const { accounts, totalBalance, accountActivity } = useData()
   const navigate = useNavigate()
   const [openId, setOpenId] = useState<string | null>(null)
+  const [hidden, setHidden] = useState(getHideBalancesDefault)
+  const mask = (s: string) => (hidden ? '•••••' : s)
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-14">
       <div className="mb-5 flex items-center justify-between">
         <div className="text-xl font-bold">الحسابات</div>
-        <button
-          onClick={() => navigate('/accounts/new')}
-          className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-          style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
-          aria-label="إضافة حساب"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
+          <button
+            onClick={() => navigate('/accounts/new')}
+            className="qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
+            style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.27)', color: 'var(--color-accent)' }}
+            aria-label="إضافة حساب"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="qb-card mb-3.5 flex items-center justify-between px-4.5 py-4">
         <div>
           <div className="qb-section-label mb-1">إجمالي الأرصدة</div>
-          <div className="num text-[22px] font-bold">{formatMoney(totalBalance)}</div>
+          <div className="num text-[22px] font-bold">{mask(formatMoney(totalBalance))}</div>
         </div>
         <div className="rounded-full border border-[var(--color-border)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-2)]">
           {accounts.length} حسابات نشطة
@@ -77,6 +84,7 @@ export function AccountsScreen() {
           <BankCardFace
             key={a.id}
             account={a}
+            hidden={hidden}
             className="mb-3.5"
             onClick={() => setOpenId(open ? null : a.id)}
             topRight={
@@ -111,7 +119,7 @@ export function AccountsScreen() {
                   />
                 </div>
                 <div className="mt-1.5 text-[11px] font-semibold" style={{ color: textFaint }}>
-                  وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({formatMoney(a.goalAmount)})
+                  وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({mask(formatMoney(a.goalAmount))})
                 </div>
               </>
             ) : null}
@@ -156,7 +164,7 @@ export function AccountsScreen() {
                         {formatDate(item.date)}
                       </div>
                       <div className="num flex-shrink-0 text-[12px] font-bold" style={{ color: item.color }}>
-                        {formatSigned(item.amount)}
+                        {mask(formatSigned(item.amount))}
                       </div>
                     </button>
                   ))

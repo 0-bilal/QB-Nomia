@@ -5,6 +5,8 @@ interface AuthContextValue {
   hasPin: boolean
   unlocked: boolean
   setup: (pin: string) => Promise<void>
+  /** يستبدل الرقم السري الحالي بواحد جديد بدون مسح أي بيانات — الشاشة المستدعية مسؤولة عن التحقق من الرقم القديم أولًا (verifyPin). */
+  changePin: (newPin: string) => Promise<void>
   login: (pin: string) => Promise<boolean>
   unlockWithBiometric: () => void
   lock: () => void
@@ -46,6 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await setupPin(pin)
         setHasPin(true)
         setUnlocked(true)
+      },
+      async changePin(newPin: string) {
+        await setupPin(newPin)
       },
       async login(pin: string) {
         const ok = await verifyPin(pin)
