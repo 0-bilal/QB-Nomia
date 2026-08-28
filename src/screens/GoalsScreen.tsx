@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney, formatDate } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { computeZakatStatus, getGoldPricePerGram, getGoldPriceUpdatedAt, setGoldPricePerGram } from '../lib/zakat'
+import type { Account } from '../types'
 
 function GoalIcon() {
   return (
@@ -11,6 +14,48 @@ function GoalIcon() {
       <circle cx="12" cy="12" r="5" />
       <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
     </svg>
+  )
+}
+
+function ZakatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v18M8 7.5c0-1.4 1.8-2.5 4-2.5s4 1.1 4 2.5-1.8 2.5-4 2.5-4 1.1-4 2.5 1.8 2.5 4 2.5 4-1.1 4-2.5" />
+    </svg>
+  )
+}
+
+/** بطاقة حالة الزكاة لهدف واحد — تحتاج سعر ذهب وتاريخ بداية حول محدّدين لهذا الهدف. */
+function ZakatBlock({ account, goldPricePerGram }: { account: Account; goldPricePerGram: number }) {
+  if (!account.zakatHawlStartDate) {
+    return (
+      <div className="mt-3 rounded-2xl border border-dashed px-3.5 py-2.5 text-[11px] leading-relaxed text-[var(--color-text-3)]" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+        حدّد تاريخ بداية حول الزكاة من شاشة تعديل الحساب لحساب زكاة هذا الهدف
+      </div>
+    )
+  }
+
+  const z = computeZakatStatus(account.balance, goldPricePerGram, account.zakatHawlStartDate)
+
+  return (
+    <div className="mt-3 rounded-2xl border px-3.5 py-2.5" style={{ borderColor: 'rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.08)' }}>
+      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: 'var(--color-commitment)' }}>
+        <ZakatIcon />
+        الزكاة
+      </div>
+      {!z.meetsNisab ? (
+        <div className="text-[11.5px] text-[var(--color-text-3)]">لم يبلغ الرصيد النصاب بعد (النصاب الحالي: {formatMoney(z.nisab)})</div>
+      ) : !z.hawlComplete ? (
+        <div className="text-[11.5px] text-[var(--color-text-3)]">بلغ النصاب — يتبقى {z.daysRemaining} يومًا على تمام الحول</div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <span className="text-[11.5px] text-[var(--color-text-3)]">الزكاة المستحقة (2.5%)</span>
+          <span className="num text-[15px] font-bold" style={{ color: 'var(--color-commitment)' }}>
+            {formatMoney(z.due)}
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -25,6 +70,21 @@ export function GoalsScreen() {
   const { accounts } = useData()
   const navigate = useNavigate()
   const goals = accounts.filter((a) => a.type === 'savings' && a.goalAmount)
+
+  const [goldPriceInput, setGoldPriceInput] = useState(() => {
+    const stored = getGoldPricePerGram()
+    return stored ? String(stored) : ''
+  })
+  const goldPriceUpdatedAt = getGoldPriceUpdatedAt()
+  const goldPrice = Number(goldPriceInput)
+  const hasGoldPrice = goldPriceInput !== '' && Number.isFinite(goldPrice) && goldPrice > 0
+
+  function handleGoldPriceChange(v: string) {
+    const cleaned = v.replace(/[^0-9.]/g, '')
+    setGoldPriceInput(cleaned)
+    const n = Number(cleaned)
+    if (cleaned && Number.isFinite(n) && n > 0) setGoldPricePerGram(n)
+  }
 
   return (
     <ScreenScroll
@@ -48,6 +108,25 @@ export function GoalsScreen() {
         />
       }
     >
+      <div className="qb-card mb-4 p-4">
+        <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">سعر جرام الذهب (عيار 24) — لحساب الزكاة</label>
+        <div className="flex items-center gap-2.5">
+          <input
+            dir="ltr"
+            inputMode="decimal"
+            value={goldPriceInput}
+            onChange={(e) => handleGoldPriceChange(e.target.value)}
+            placeholder="مثال: 320"
+            className="num flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+          />
+          <div className="text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</div>
+        </div>
+        <div className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-[var(--color-text-3)]">
+          {goldPriceUpdatedAt ? `آخر تحديث: ${formatDate(goldPriceUpdatedAt.slice(0, 10))} — ` : ''}
+          يُدخَل يدويًا من مصدر تثق فيه، ويُستخدم لحساب نصاب الزكاة (85 جرام) لكل أهدافك
+        </div>
+      </div>
+
       {goals.length === 0 ? (
         <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">
           لا توجد أهداف ادخار بعد — أضف حساب ادخار وحدد له مبلغ هدف
@@ -112,6 +191,8 @@ export function GoalsScreen() {
                     )}
                   </div>
                 )}
+
+                {hasGoldPrice && <ZakatBlock account={a} goldPricePerGram={goldPrice} />}
               </button>
             )
           })}

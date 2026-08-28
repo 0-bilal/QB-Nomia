@@ -8,6 +8,8 @@ export interface Account {
   goalAmount?: number
   goalLabel?: string
   goalTargetDate?: string
+  /** تاريخ بداية حول الزكاة لهذا الهدف — يُفترض تلقائيًا تاريخ إنشاء الهدف، وقابل للتعديل. */
+  zakatHawlStartDate?: string
 }
 
 export interface Person {
