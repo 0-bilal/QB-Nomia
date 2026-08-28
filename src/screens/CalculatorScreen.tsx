@@ -68,6 +68,29 @@ function MinusIcon() {
     </svg>
   )
 }
+function UseNumberIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="11,6 5,12 11,18" />
+    </svg>
+  )
+}
+
+function UseNumberButton({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      dir="rtl"
+      onClick={onClick}
+      disabled={disabled}
+      className="qb-press flex w-full items-center justify-center gap-1.5 rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
+      style={{ background: 'rgba(52,199,89,0.14)', color: 'var(--color-income)' }}
+    >
+      <UseNumberIcon />
+      استخدم هذا الرقم
+    </button>
+  )
+}
 
 function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
@@ -115,7 +138,7 @@ function CalcButton({
   )
 }
 
-function StandardCalculator() {
+function StandardCalculator({ onUse }: { onUse: (n: number) => void }) {
   const [display, setDisplay] = useState('0')
   const [prev, setPrev] = useState<number | null>(null)
   const [op, setOp] = useState<Op | null>(null)
@@ -189,6 +212,9 @@ function StandardCalculator() {
     setOverwrite(true)
   }
 
+  const currentValue = parseFloat(display)
+  const canUse = Number.isFinite(currentValue) && currentValue > 0
+
   return (
     // dir="ltr": لوحة أرقام الآلة الحاسبة تحافظ على نفس ترتيبها المكاني المعتاد (كأي رقّاعة أرقام)
     // بغض النظر عن لغة الواجهة، بدل ما ينعكس ترتيب الأعمدة تلقائيًا مع RTL.
@@ -203,6 +229,8 @@ function StandardCalculator() {
           {display}
         </div>
       </div>
+
+      <UseNumberButton onClick={() => onUse(currentValue)} disabled={!canUse} />
 
       {/* لوحة الأرقام دائمًا بأسفل الشاشة (mt-auto) — بدل ما تلتصق مباشرة تحت الشاشة الرئيسية. */}
       <div className="mt-auto grid grid-cols-4 gap-2.5">
@@ -245,7 +273,7 @@ function StandardCalculator() {
   )
 }
 
-function SplitBill() {
+function SplitBill({ onUse }: { onUse: (n: number) => void }) {
   const [amount, setAmount] = useState('')
   const [people, setPeople] = useState(2)
 
@@ -300,6 +328,8 @@ function SplitBill() {
         )}
       </div>
 
+      <UseNumberButton onClick={() => onUse(perPerson)} disabled={!(perPerson > 0)} />
+
       {/* لوحة أرقام التطبيق الخاصة بدل الاعتماد على كيبورد الهاتف — نفس المستخدمة بإدخال مبلغ أي حركة مالية. */}
       <div className="mt-auto flex justify-center pt-2">
         <AmountPad value={amount} onChange={setAmount} color="var(--color-accent)" />
@@ -312,6 +342,11 @@ export function CalculatorScreen() {
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('calc')
 
+  function handleUseNumber(n: number) {
+    const rounded = Math.round(n * 100) / 100
+    navigate(`/add/transaction?amount=${rounded}`)
+  }
+
   return (
     <ScreenScroll
       header={<ScreenHeader title="الآلة الحاسبة" onBack={() => navigate(-1)} className="pt-8 pb-4" />}
@@ -322,7 +357,9 @@ export function CalculatorScreen() {
         <TabButton active={tab === 'split'} onClick={() => setTab('split')} icon={<PeopleIcon />} label="تقسيم الحساب" />
       </div>
 
-      <div className="flex flex-1 flex-col">{tab === 'calc' ? <StandardCalculator /> : <SplitBill />}</div>
+      <div className="flex flex-1 flex-col">
+        {tab === 'calc' ? <StandardCalculator onUse={handleUseNumber} /> : <SplitBill onUse={handleUseNumber} />}
+      </div>
     </ScreenScroll>
   )
 }

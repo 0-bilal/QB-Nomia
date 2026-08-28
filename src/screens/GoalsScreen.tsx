@@ -4,8 +4,9 @@ import { useData } from '../state/DataContext'
 import { formatMoney, formatDate } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { computeZakatStatus, getGoldPricePerGram, getGoldPriceUpdatedAt, setGoldPricePerGram } from '../lib/zakat'
-import type { Account } from '../types'
+import type { Account, ZakatPayment } from '../types'
 
 function GoalIcon() {
   return (
@@ -26,7 +27,17 @@ function ZakatIcon() {
 }
 
 /** بطاقة حالة الزكاة لهدف واحد — تحتاج سعر ذهب وتاريخ بداية حول محدّدين لهذا الهدف. */
-function ZakatBlock({ account, goldPricePerGram }: { account: Account; goldPricePerGram: number }) {
+function ZakatBlock({
+  account,
+  goldPricePerGram,
+  payments,
+  onMarkPaid,
+}: {
+  account: Account
+  goldPricePerGram: number
+  payments: ZakatPayment[]
+  onMarkPaid: (due: number) => void
+}) {
   if (!account.zakatHawlStartDate) {
     return (
       <div className="mt-3 rounded-2xl border border-dashed px-3.5 py-2.5 text-[11px] leading-relaxed text-[var(--color-text-3)]" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
@@ -36,6 +47,7 @@ function ZakatBlock({ account, goldPricePerGram }: { account: Account; goldPrice
   }
 
   const z = computeZakatStatus(account.balance, goldPricePerGram, account.zakatHawlStartDate)
+  const lastPayment = payments[0]
 
   return (
     <div className="mt-3 rounded-2xl border px-3.5 py-2.5" style={{ borderColor: 'rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.08)' }}>
@@ -48,11 +60,28 @@ function ZakatBlock({ account, goldPricePerGram }: { account: Account; goldPrice
       ) : !z.hawlComplete ? (
         <div className="text-[11.5px] text-[var(--color-text-3)]">بلغ النصاب — يتبقى {z.daysRemaining} يومًا على تمام الحول</div>
       ) : (
-        <div className="flex items-center justify-between">
-          <span className="text-[11.5px] text-[var(--color-text-3)]">الزكاة المستحقة (2.5%)</span>
-          <span className="num text-[15px] font-bold" style={{ color: 'var(--color-commitment)' }}>
-            {formatMoney(z.due)}
-          </span>
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-[11.5px] text-[var(--color-text-3)]">الزكاة المستحقة (2.5%)</span>
+            <span className="num text-[15px] font-bold" style={{ color: 'var(--color-commitment)' }}>
+              {formatMoney(z.due)}
+            </span>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onMarkPaid(z.due)
+            }}
+            className="qb-press mt-2.5 w-full rounded-xl py-2 text-[11.5px] font-bold"
+            style={{ background: 'rgba(96,165,250,0.18)', color: 'var(--color-commitment)' }}
+          >
+            تم إخراج الزكاة
+          </button>
+        </>
+      )}
+      {lastPayment && (
+        <div className="mt-2 text-center text-[10.5px] text-[var(--color-text-3)]">
+          آخر دفعة زكاة: {formatDate(lastPayment.date)} — {formatMoney(lastPayment.amount)}
         </div>
       )}
     </div>
@@ -67,7 +96,7 @@ function monthsUntil(dateStr: string): number {
 }
 
 export function GoalsScreen() {
-  const { accounts } = useData()
+  const { accounts, zakatPayments, logZakatPayment } = useData()
   const navigate = useNavigate()
   const goals = accounts.filter((a) => a.type === 'savings' && a.goalAmount)
 
@@ -78,12 +107,19 @@ export function GoalsScreen() {
   const goldPriceUpdatedAt = getGoldPriceUpdatedAt()
   const goldPrice = Number(goldPriceInput)
   const hasGoldPrice = goldPriceInput !== '' && Number.isFinite(goldPrice) && goldPrice > 0
+  const [pendingZakat, setPendingZakat] = useState<{ account: Account; due: number } | null>(null)
 
   function handleGoldPriceChange(v: string) {
     const cleaned = v.replace(/[^0-9.]/g, '')
     setGoldPriceInput(cleaned)
     const n = Number(cleaned)
     if (cleaned && Number.isFinite(n) && n > 0) setGoldPricePerGram(n)
+  }
+
+  function handleConfirmZakatPaid() {
+    if (!pendingZakat) return
+    logZakatPayment(pendingZakat.account.id, pendingZakat.due)
+    setPendingZakat(null)
   }
 
   return (
@@ -108,6 +144,16 @@ export function GoalsScreen() {
         />
       }
     >
+      <ConfirmDialog
+        open={pendingZakat !== null}
+        title="تسجيل إخراج الزكاة"
+        message={pendingZakat ? `راح نسجّل إخراج ${formatMoney(pendingZakat.due)} زكاة عن "${pendingZakat.account.goalLabel || pendingZakat.account.name}"، ويبدأ حول جديد من اليوم لهذا الهدف.` : ''}
+        confirmLabel="تم الإخراج"
+        color="var(--color-commitment)"
+        onConfirm={handleConfirmZakatPaid}
+        onCancel={() => setPendingZakat(null)}
+      />
+
       <div className="qb-card mb-4 p-4">
         <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">سعر جرام الذهب (عيار 24) — لحساب الزكاة</label>
         <div className="flex items-center gap-2.5">
@@ -142,7 +188,7 @@ export function GoalsScreen() {
             const reached = a.balance >= goalAmount
 
             return (
-              <button key={a.id} onClick={() => navigate(`/accounts/${a.id}/edit`)} className="qb-card-elevated qb-press block w-full p-4.5 text-right">
+              <div key={a.id} onClick={() => navigate(`/accounts/${a.id}/edit`)} className="qb-card-elevated qb-press block w-full p-4.5 text-right">
                 <div className="mb-3 flex items-center gap-3">
                   <div
                     className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]"
@@ -192,8 +238,15 @@ export function GoalsScreen() {
                   </div>
                 )}
 
-                {hasGoldPrice && <ZakatBlock account={a} goldPricePerGram={goldPrice} />}
-              </button>
+                {hasGoldPrice && (
+                  <ZakatBlock
+                    account={a}
+                    goldPricePerGram={goldPrice}
+                    payments={zakatPayments.filter((p) => p.accountId === a.id).sort((x, y) => y.date.localeCompare(x.date))}
+                    onMarkPaid={(due) => setPendingZakat({ account: a, due })}
+                  />
+                )}
+              </div>
             )
           })}
         </div>

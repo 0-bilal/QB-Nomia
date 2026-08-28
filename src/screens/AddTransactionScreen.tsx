@@ -81,9 +81,10 @@ export function AddTransactionScreen() {
   const initialType = existing?.type ?? ((searchParams.get('type') as TransactionType) || 'expense')
   const toParam = searchParams.get('to') ?? undefined
   const fromParam = searchParams.get('from') ?? undefined
+  const amountParam = searchParams.get('amount') ?? undefined
 
   const [type, setType] = useState<TransactionType>(initialType)
-  const [amount, setAmount] = useState(existing ? String(existing.amount) : '')
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : (amountParam ?? ''))
   const [accountId, setAccountId] = useState(
     () => existing?.accountId ?? fromParam ?? accounts.find((a) => a.id !== toParam)?.id ?? accounts[0]?.id ?? '',
   )
