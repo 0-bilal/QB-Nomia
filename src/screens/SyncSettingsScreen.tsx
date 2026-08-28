@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
 import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
+import { markBackupExported } from '../lib/backup'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -89,6 +90,7 @@ export function SyncSettingsScreen() {
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 2000)
+    markBackupExported()
     setStatus({ kind: 'ok', label: 'تم تصدير النسخة الاحتياطية على جهازك' })
   }
 

@@ -62,11 +62,21 @@ export function HomeScreen() {
 
   const activeCommitments = commitments.filter((c) => c.status === 'active')
 
+  const now = new Date()
+  const daysElapsedInMonth = now.getDate()
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+
   const budgetAlerts = categories
     .filter((c) => c.kind === 'expense' && c.budgetLimit)
-    .map((c) => ({ ...c, spent: categorySpentThisMonth(c.id), pct: (categorySpentThisMonth(c.id) / (c.budgetLimit ?? 1)) * 100 }))
-    .filter((c) => c.pct >= 80)
-    .sort((a, b) => b.pct - a.pct)
+    .map((c) => {
+      const spent = categorySpentThisMonth(c.id)
+      const limit = c.budgetLimit ?? 1
+      const pct = (spent / limit) * 100
+      const projectedPct = daysElapsedInMonth >= 5 ? ((spent / daysElapsedInMonth) * daysInMonth / limit) * 100 : pct
+      return { ...c, spent, pct, projectedPct }
+    })
+    .filter((c) => c.pct >= 80 || c.projectedPct >= 100)
+    .sort((a, b) => Math.max(b.pct, b.projectedPct) - Math.max(a.pct, a.projectedPct))
 
   return (
     <div dir="rtl" className="safe-top px-5 pb-4 pt-14">
@@ -91,12 +101,22 @@ export function HomeScreen() {
           className="qb-press mb-4 flex w-full flex-col gap-1.5 rounded-2xl border px-4 py-3 text-right"
           style={{ borderColor: 'rgba(255,92,92,0.3)', background: 'rgba(255,92,92,0.08)' }}
         >
-          {budgetAlerts.map((c) => (
-            <div key={c.id} className="flex items-center justify-between text-[12px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-              <span>{c.pct >= 100 ? `تجاوزت ميزانية "${c.name}"` : `قاربت على تجاوز ميزانية "${c.name}"`}</span>
-              <span className="num">{Math.round(c.pct)}%</span>
-            </div>
-          ))}
+          {budgetAlerts.map((c) => {
+            const isProjectedOnly = c.pct < 80 && c.projectedPct >= 100
+            const label = c.pct >= 100
+              ? `تجاوزت ميزانية "${c.name}"`
+              : c.pct >= 80
+                ? `قاربت على تجاوز ميزانية "${c.name}"`
+                : `بمعدلك الحالي راح تتجاوز ميزانية "${c.name}"`
+            return (
+              <div key={c.id} className="flex items-center justify-between text-[12px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                <span>{label}</span>
+                <span className="num">
+                  {Math.round(isProjectedOnly ? c.projectedPct : c.pct)}%{isProjectedOnly ? ' متوقع' : ''}
+                </span>
+              </div>
+            )
+          })}
         </button>
       )}
 

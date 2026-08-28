@@ -12,6 +12,15 @@ export interface Account {
   zakatHawlStartDate?: string
 }
 
+/** سجل دفعة زكاة مسجَّلة لهدف ادخار — كل دفعة تنهي حول وتبدأ حول جديد (account.zakatHawlStartDate يُصفَّر لتاريخ الدفعة). */
+export interface ZakatPayment {
+  id: string
+  accountId: string
+  date: string
+  amount: number
+  hawlStartDate: string
+}
+
 export interface Person {
   id: string
   name: string

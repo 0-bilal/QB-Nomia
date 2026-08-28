@@ -63,6 +63,22 @@ function RecurringIcon() {
     </svg>
   )
 }
+function ZakatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v18M8 7.5c0-1.4 1.8-2.5 4-2.5s4 1.1 4 2.5-1.8 2.5-4 2.5-4 1.1-4 2.5 1.8 2.5 4 2.5 4-1.1 4-2.5" />
+    </svg>
+  )
+}
+function BackupIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="6" rx="8" ry="3" />
+      <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+      <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+    </svg>
+  )
+}
 function DeviceIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -85,6 +101,8 @@ const KIND_ICON: Record<AppNotification['kind'], () => React.ReactElement> = {
   budget: BudgetIcon,
   loan: LoanIcon,
   recurring: RecurringIcon,
+  zakat: ZakatIcon,
+  backup: BackupIcon,
 }
 
 export function NotificationBellButton({ notifications, onClick }: { notifications: AppNotification[]; onClick: () => void }) {

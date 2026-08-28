@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { loadJSON, saveJSON } from '../lib/storage'
 import { makeId } from '../lib/id'
 import { scheduleBackgroundSync } from '../lib/autoSync'
+import { computeZakatStatus, getGoldPricePerGram } from '../lib/zakat'
+import { getLastBackupExportedAt, getOrInitFirstSeenAt } from '../lib/backup'
+import { formatMoney } from '../lib/format'
 import type {
   Account,
   BillingCycle,
@@ -20,6 +23,7 @@ import type {
   SubscriptionStatus,
   Transaction,
   TransactionType,
+  ZakatPayment,
 } from '../types'
 
 const ACCOUNTS_KEY = 'qbnomia.accounts'
@@ -32,6 +36,7 @@ const SUBSCRIPTIONS_KEY = 'qbnomia.subscriptions'
 const COMMITMENTS_KEY = 'qbnomia.commitments'
 const RECURRING_KEY = 'qbnomia.recurringTransactions'
 const MONTHLY_BUDGET_KEY = 'qbnomia.monthlyBudgetLimit'
+const ZAKAT_PAYMENTS_KEY = 'qbnomia.zakatPayments'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -196,7 +201,7 @@ export interface ActivityItem {
 
 export interface AppNotification {
   id: string
-  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring'
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup'
   severity: 'critical' | 'warning'
   title: string
   message: string
@@ -216,6 +221,8 @@ interface DataContextValue {
   subscriptions: Subscription[]
   commitments: Commitment[]
   recurringTransactions: RecurringTransaction[]
+  zakatPayments: ZakatPayment[]
+  logZakatPayment: (accountId: string, amount: number) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -280,6 +287,7 @@ export interface DataSnapshot {
   commitments?: Commitment[]
   recurringTransactions?: RecurringTransaction[]
   monthlyBudgetLimit?: number | null
+  zakatPayments?: ZakatPayment[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -333,6 +341,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [monthlyBudgetLimit, setMonthlyBudgetLimitState] = useState<number | null>(() =>
     loadJSON<number | null>(MONTHLY_BUDGET_KEY, null),
   )
+  const [zakatPayments, setZakatPayments] = useState<ZakatPayment[]>(() => loadJSON(ZAKAT_PAYMENTS_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -374,6 +383,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setMonthlyBudgetLimitState(next)
     saveJSON(MONTHLY_BUDGET_KEY, next)
   }
+  function persistZakatPayments(next: ZakatPayment[]) {
+    setZakatPayments(next)
+    saveJSON(ZAKAT_PAYMENTS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -402,9 +415,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       commitments,
       recurringTransactions,
       monthlyBudgetLimit,
+      zakatPayments,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -604,13 +618,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // إسقاط بسيط لتوقّع نهاية الشهر بناءً على معدّل الإنفاق حتى الآن — يحتاج 5 أيام
+      // على الأقل ضمن الشهر حتى ما نطلق تحذير مبكر مبالغ فيه من حركة وحدة كبيرة يوم 1-2.
+      const now = new Date()
+      const daysElapsedInMonth = now.getDate()
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+      function projectedPct(spent: number, limit: number): number {
+        if (daysElapsedInMonth <= 0) return (spent / limit) * 100
+        return ((spent / daysElapsedInMonth) * daysInMonth / limit) * 100
+      }
+
       for (const cat of categories) {
         if (cat.kind !== 'expense' || !cat.budgetLimit) continue
-        const pct = (categorySpentThisMonth(cat.id) / cat.budgetLimit) * 100
+        const spent = categorySpentThisMonth(cat.id)
+        const pct = (spent / cat.budgetLimit) * 100
         if (pct >= 100) {
           list.push({ id: `budget-${cat.id}-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: cat.name, message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
         } else if (pct >= 80) {
           list.push({ id: `budget-${cat.id}-${today.slice(0, 7)}`, kind: 'budget', severity: 'warning', title: cat.name, message: `قاربت على تجاوز الميزانية (${Math.round(pct)}%)`, color: 'var(--color-subscription)', to: '/categories' })
+        } else if (daysElapsedInMonth >= 5) {
+          const proj = projectedPct(spent, cat.budgetLimit)
+          if (proj >= 100) {
+            list.push({
+              id: `budget-projected-${cat.id}-${today.slice(0, 7)}`,
+              kind: 'budget',
+              severity: 'warning',
+              title: cat.name,
+              message: `بمعدلك الحالي راح تتجاوز الميزانية بنهاية الشهر (متوقع ${Math.round(proj)}%)`,
+              color: 'var(--color-subscription)',
+              to: '/categories',
+            })
+          }
         }
       }
 
@@ -650,11 +688,63 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       if (monthlyBudgetLimit) {
-        const pct = (monthTotals().expense / monthlyBudgetLimit) * 100
+        const spent = monthTotals().expense
+        const pct = (spent / monthlyBudgetLimit) * 100
         if (pct >= 100) {
           list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: 'الميزانية الإجمالية', message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
         } else if (pct >= 80) {
           list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'warning', title: 'الميزانية الإجمالية', message: `قاربت على تجاوز الميزانية (${Math.round(pct)}%)`, color: 'var(--color-subscription)', to: '/categories' })
+        } else if (daysElapsedInMonth >= 5) {
+          const proj = projectedPct(spent, monthlyBudgetLimit)
+          if (proj >= 100) {
+            list.push({
+              id: `overall-budget-projected-${today.slice(0, 7)}`,
+              kind: 'budget',
+              severity: 'warning',
+              title: 'الميزانية الإجمالية',
+              message: `بمعدلك الحالي راح تتجاوز الميزانية بنهاية الشهر (متوقع ${Math.round(proj)}%)`,
+              color: 'var(--color-subscription)',
+              to: '/categories',
+            })
+          }
+        }
+      }
+
+      // الزكاة: يحتاج سعر ذهب مُدخل يدويًا (شاشة الأهداف) — بدونه ما نقدر نحسب النصاب فنتجاهل الفحص بالكامل.
+      const goldPrice = getGoldPricePerGram()
+      if (goldPrice) {
+        for (const a of accounts) {
+          if (a.type !== 'savings' || !a.goalAmount || !a.zakatHawlStartDate) continue
+          const z = computeZakatStatus(a.balance, goldPrice, a.zakatHawlStartDate)
+          if (z.meetsNisab && z.hawlComplete) {
+            list.push({
+              id: `zakat-${a.id}-${a.zakatHawlStartDate}`,
+              kind: 'zakat',
+              severity: 'critical',
+              title: a.goalLabel || a.name,
+              message: `اكتمل الحول — الزكاة المستحقة ${formatMoney(z.due)}`,
+              color: 'var(--color-commitment)',
+              to: '/goals',
+            })
+          }
+        }
+      }
+
+      // تذكير نسخة احتياطية محلية قديمة — مرجعه أول نسخة صُدِّرت، أو أول مرة شفنا فيها بيانات لو ما صُدِّرت نسخة بعد
+      // (عشان ما نزعج مستخدم جديد بأول أسبوع). ما يُرسَل كإشعار جهاز (severity warning) لأنه تذكير غير عاجل.
+      if (accounts.length > 0 || transactions.length > 0) {
+        const backupBaseline = getLastBackupExportedAt() ?? getOrInitFirstSeenAt()
+        const daysSinceBackup = Math.floor((Date.now() - new Date(backupBaseline).getTime()) / 86400000)
+        if (daysSinceBackup >= 30) {
+          list.push({
+            id: `backup-reminder-${Math.floor(daysSinceBackup / 7)}`,
+            kind: 'backup',
+            severity: 'warning',
+            title: 'نسخة احتياطية قديمة',
+            message: `مرّ ${daysSinceBackup} يومًا بدون نسخة احتياطية محلية جديدة`,
+            color: 'var(--color-text-2)',
+            to: '/sync-settings',
+          })
         }
       }
 
@@ -671,6 +761,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
       subscriptions,
       commitments,
       recurringTransactions,
+      zakatPayments,
+      logZakatPayment(accountId: string, amount: number) {
+        const account = accounts.find((a) => a.id === accountId)
+        if (!account || !account.zakatHawlStartDate) return
+        const payment: ZakatPayment = {
+          id: makeId(),
+          accountId,
+          date: new Date().toISOString().slice(0, 10),
+          amount,
+          hawlStartDate: account.zakatHawlStartDate,
+        }
+        persistZakatPayments([payment, ...zakatPayments])
+        // دفع الزكاة ينهي هذا الحول ويبدأ حول جديد من تاريخ الدفعة.
+        persistAccounts(accounts.map((a) => (a.id === accountId ? { ...a, zakatHawlStartDate: payment.date } : a)))
+      },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
       setMonthlyBudgetLimit: persistMonthlyBudgetLimit,
@@ -1072,6 +1177,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           commitments,
           recurringTransactions,
           monthlyBudgetLimit,
+          zakatPayments,
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1086,10 +1192,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistCommitments(snapshot.commitments ?? [])
         persistRecurringTransactions(snapshot.recurringTransactions ?? [])
         persistMonthlyBudgetLimit(snapshot.monthlyBudgetLimit ?? null)
+        persistZakatPayments(snapshot.zakatPayments ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
