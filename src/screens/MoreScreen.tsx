@@ -4,7 +4,6 @@ import { useAuth } from '../state/AuthContext'
 import { forceAppUpdate } from '../lib/cache'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppLogo } from '../components/AppLogo'
-import { BiometricToggleRow } from '../components/BiometricToggleRow'
 
 function SearchIcon() {
   return (
@@ -124,6 +123,14 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
     </svg>
   )
 }
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 19 6v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" />
+      <path d="M9.3 12 11 13.7 15 9.5" />
+    </svg>
+  )
+}
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -193,6 +200,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
     title: 'الحساب والنظام',
     items: [
+      { label: 'الأمان والخصوصية', desc: 'الرقم السري، البصمة، وإخفاء الأرصدة', to: '/security', icon: <ShieldIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
       { label: 'مزامنة Google Sheets', desc: 'نسخة احتياطية تلقائية لجدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)', bg: 'rgba(45,212,191,0.12)' },
       { label: 'حول التطبيق', desc: 'الإصدار، المطوّر، ومعلومات عن QB-Nomia', to: '/about', icon: <InfoIcon />, color: 'var(--color-text-2)', bg: 'rgba(255,255,255,0.06)' },
     ],
@@ -261,8 +269,6 @@ export function MoreScreen() {
           </div>
         </div>
       ))}
-
-      <BiometricToggleRow />
 
       <button
         onClick={() => setConfirmOpen(true)}

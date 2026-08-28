@@ -31,6 +31,8 @@ import { ComparisonsScreen } from './screens/ComparisonsScreen'
 import { ExportReportScreen } from './screens/ExportReportScreen'
 import { AboutScreen } from './screens/AboutScreen'
 import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
+import { SecurityScreen } from './screens/SecurityScreen'
+import { ChangePinScreen } from './screens/ChangePinScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -85,6 +87,8 @@ export default function App() {
         <Route path="comparisons" element={<ComparisonsScreen />} />
         <Route path="export-report" element={<ExportReportScreen />} />
         <Route path="about" element={<AboutScreen />} />
+        <Route path="security" element={<SecurityScreen />} />
+        <Route path="security/change-pin" element={<ChangePinScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { disableBiometric, enableBiometric, isBiometricEnabled, isBiometricSupported } from '../lib/biometric'
+import { ToggleRow } from './ToggleRow'
 
 function FingerprintIcon() {
   return (
@@ -43,31 +44,14 @@ export function BiometricToggleRow() {
   }
 
   return (
-    <div className="qb-card mb-5 p-4">
-      <button type="button" onClick={handleToggle} disabled={busy} className="qb-press flex w-full items-center justify-between text-right disabled:opacity-60">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]"
-            style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
-          >
-            <FingerprintIcon />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13.5px] font-bold">فتح التطبيق ببصمة الإصبع</div>
-            <div className="text-[11px] text-[var(--color-text-3)]">{busy ? 'جارٍ التفعيل...' : 'بديل سريع للرقم السري — يبقى متاحًا دائمًا كخيار احتياطي'}</div>
-          </div>
-        </div>
-        <div
-          className="flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
-          style={{ background: enabled ? 'var(--color-accent)' : 'rgba(255,255,255,0.14)' }}
-        >
-          <div
-            className="h-5 w-5 rounded-full transition-transform"
-            style={{ background: enabled ? '#0A0A0C' : '#fff', transform: enabled ? 'translateX(-20px)' : 'translateX(0)' }}
-          />
-        </div>
-      </button>
-      {errorMsg && <div className="mt-2.5 text-[11px] font-semibold" style={{ color: 'var(--color-expense)' }}>{errorMsg}</div>}
-    </div>
+    <ToggleRow
+      icon={<FingerprintIcon />}
+      label="فتح التطبيق ببصمة الإصبع"
+      desc={busy ? 'جارٍ التفعيل...' : 'بديل سريع للرقم السري — يبقى متاحًا دائمًا كخيار احتياطي'}
+      enabled={enabled}
+      onToggle={handleToggle}
+      busy={busy}
+      errorMsg={errorMsg}
+    />
   )
 }
