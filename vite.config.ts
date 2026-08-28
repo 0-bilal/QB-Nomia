@@ -63,6 +63,29 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // exceljs وjspdf/html2canvas تُحمَّل فقط عند فتح شاشة "تصدير التقرير" فعليًا (dynamic import
+        // بالكود بالفعل) — لكن precache الافتراضي لـ service worker يحمّلها لكل مستخدم بالخلفية
+        // بمجرد أول زيارة حتى لو ما استخدم التصدير أبدًا. نستثنيها من precache ونكتفي بتخزينها
+        // بالكاش أول مرة تُستخدم فعليًا (CacheFirst) — يوفّر أكثر من 1.5MB بأول تحميل لأغلب المستخدمين.
+        globIgnores: [
+          '**/exceljs.min-*.js',
+          '**/exportExcel-*.js',
+          '**/exportPdf-*.js',
+          '**/htmlToPdf-*.js',
+          '**/html2canvas-*.js',
+          '**/purify.es-*.js',
+          '**/index.es-*.js',
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/(exceljs\.min|exportExcel|exportPdf|htmlToPdf|html2canvas|purify\.es|index\.es)-.*\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'export-tools',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+        ],
       },
     }),
   ],
