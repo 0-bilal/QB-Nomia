@@ -123,6 +123,20 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
     </svg>
   )
 }
+function CalculatorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="16" height="18" rx="2.5" />
+      <path d="M7.5 7.5h9" />
+      <circle cx="8" cy="12.3" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12.3" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="12.3" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="16.3" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="16.3" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="16.3" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 function ShieldIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -173,6 +187,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
       { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
       { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
+      { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
     ],
   },
   {
