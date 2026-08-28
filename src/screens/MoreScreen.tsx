@@ -252,7 +252,9 @@ export function MoreScreen() {
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <div className="safe-top qb-glass-bar-top -mx-5 mb-5 px-5 pt-15 pb-3 text-xl font-bold">المزيد</div>
+      <div className="safe-top qb-sticky-header-row mb-5 pt-15">
+        <div className="qb-glass-circle w-fit rounded-full border px-4 py-2 text-xl font-bold">المزيد</div>
+      </div>
 
       {SECTIONS.map((section) => (
         <div key={section.title} className="mb-5">
