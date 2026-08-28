@@ -119,7 +119,7 @@ export function AccountsScreen() {
                   />
                 </div>
                 <div className="mt-1.5 text-[11px] font-semibold" style={{ color: textFaint }}>
-                  وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({mask(formatMoney(a.goalAmount))})
+                  وصلت لـ {Math.round((a.balance / a.goalAmount) * 100)}% من الهدف ({formatMoney(a.goalAmount)})
                 </div>
               </>
             ) : null}
@@ -164,7 +164,7 @@ export function AccountsScreen() {
                         {formatDate(item.date)}
                       </div>
                       <div className="num flex-shrink-0 text-[12px] font-bold" style={{ color: item.color }}>
-                        {mask(formatSigned(item.amount))}
+                        {formatSigned(item.amount)}
                       </div>
                     </button>
                   ))
