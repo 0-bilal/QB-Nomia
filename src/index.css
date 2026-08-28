@@ -92,12 +92,23 @@ textarea {
   display: none;
 }
 
+/*
+  margin لا padding عمدًا: كل استخدام لهاتين الفئتين مقرون بفئة pt-*/pb-* من Tailwind
+  على نفس العنصر (مثلًا "safe-top pt-14"). لو استخدمنا padding-top هنا بالذات، فهو
+  يستهدف نفس الخاصية اللي يستهدفها pt-14 على نفس العنصر — والفئة اللي تظهر مؤخرًا
+  بملف CSS النهائي (هذه الفئة، بعد أدوات Tailwind) تفوز بالكامل بدل ما تُضاف، فتُلغى
+  مسافة pt-14 كليًا كل مرة يكون فيها env(safe-area-inset-top) صفرًا (الحالة الشائعة
+  بمعظم الأجهزة والمتصفحات) — وهذا كان يخلي العناوين والأزرار تلامس حافة الشاشة
+  فعليًا رغم وجود pt-14/pb-2.5 بالكود. margin خاصية مختلفة عن padding فتُضاف فوقها
+  بدل ما تحل محلها، فنحصل دائمًا على: مسافة الأمان الفعلية للجهاز + المسافة الأساسية
+  المصمَّمة، مو أحدهما فقط.
+*/
 .safe-top {
-  padding-top: max(env(safe-area-inset-top), 0px);
+  margin-top: env(safe-area-inset-top, 0px);
 }
 
 .safe-bottom {
-  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  margin-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /*
