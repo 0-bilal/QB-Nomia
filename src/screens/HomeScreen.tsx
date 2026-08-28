@@ -83,9 +83,9 @@ export function HomeScreen() {
   return (
     <div dir="rtl" className="px-5 pb-4">
       <div className="safe-top qb-sticky-header-row mb-5 flex items-center justify-between pt-14">
-        <div className="qb-glass-circle rounded-full border px-4 py-2">
-          <div className="mb-0.5 text-[13px] font-semibold text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
-          <div className="num text-xs text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))}</div>
+        <div className="qb-glass-circle flex flex-col justify-center rounded-full border px-3.5 py-1" style={{ minHeight: 38 }}>
+          <div className="text-[11.5px] font-semibold leading-tight text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
+          <div className="num text-[9.5px] leading-tight text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))}</div>
         </div>
         <div className="flex items-center gap-2.5">
           <NotificationBellButton notifications={notifications} onClick={() => setNotificationsOpen(true)} />

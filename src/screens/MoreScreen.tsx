@@ -253,7 +253,7 @@ export function MoreScreen() {
       />
 
       <div className="safe-top qb-sticky-header-row mb-5 pt-15">
-        <div className="qb-glass-circle w-fit rounded-full border px-4 py-2 text-xl font-bold">المزيد</div>
+        <div className="qb-glass-circle flex h-9.5 w-fit items-center rounded-full border px-4 text-[15px] font-bold">المزيد</div>
       </div>
 
       {SECTIONS.map((section) => (

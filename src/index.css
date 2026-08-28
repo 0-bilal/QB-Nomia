@@ -112,15 +112,27 @@ textarea {
 }
 
 /*
-  دوائر زجاجية (glassmorphism) لأزرار رأس الشاشة (رجوع، إضافة، الجرس، العين...) —
-  خلفية شبه شفافة + ضبابية بدل خلفية صلبة، حتى تبقى واضحة ومقروءة فوق أي محتوى
-  يتحرك تحتها أو خلفها أثناء التمرير بدل ما تندمج فيه.
+  دوائر/كبسولات زجاجية (glassmorphism) لعناصر رأس الشاشة (رجوع، إضافة، الجرس،
+  العين، اسم الشاشة...) — خلفية شبه شفافة + ضبابية بدل خلفية صلبة، حتى تبقى
+  واضحة ومقروءة فوق أي محتوى يتحرك تحتها أو خلفها أثناء التمرير بدل ما تندمج
+  فيه. الـ::before يضيف انعكاس ضوء خفيف بالحافة العلوية (كأي سطح زجاجي حقيقي)
+  بدل سطح ضبابي مسطّح بلا عمق.
 */
 .qb-glass-circle {
+  position: relative;
   background: rgba(30, 30, 35, 0.55);
   border-color: rgba(255, 255, 255, 0.16);
   backdrop-filter: blur(16px) saturate(1.4);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  overflow: hidden;
+  isolation: isolate;
+}
+.qb-glass-circle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 30%, transparent 55%);
+  pointer-events: none;
 }
 
 /*

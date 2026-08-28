@@ -26,7 +26,7 @@ export function PeopleListScreen() {
   return (
     <div dir="rtl" className="px-5 pb-4">
       <div className="safe-top qb-sticky-header-row mb-5 flex items-center justify-between pt-14">
-        <div className="qb-glass-circle rounded-full border px-4 py-2 text-xl font-bold">الأشخاص</div>
+        <div className="qb-glass-circle flex h-9.5 items-center rounded-full border px-4 text-[15px] font-bold">الأشخاص</div>
         <button
           onClick={() => navigate('/loans/new')}
           className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
