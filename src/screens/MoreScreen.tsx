@@ -240,7 +240,7 @@ export function MoreScreen() {
   }
 
   return (
-    <div dir="rtl" className="safe-top px-5 pb-4 pt-15">
+    <div dir="rtl" className="px-5 pb-4">
       {busy && <UpdatingOverlay />}
 
       <ConfirmDialog
@@ -252,7 +252,7 @@ export function MoreScreen() {
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <div className="mb-5 text-xl font-bold">المزيد</div>
+      <div className="safe-top qb-glass-bar-top -mx-5 mb-5 px-5 pt-15 pb-3 text-xl font-bold">المزيد</div>
 
       {SECTIONS.map((section) => (
         <div key={section.title} className="mb-5">

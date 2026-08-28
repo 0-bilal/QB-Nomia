@@ -34,7 +34,7 @@ export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'p
           <button
             onClick={onBack}
             aria-label="رجوع"
-            className="qb-press flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
+            className="qb-glass-circle qb-press flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full border text-[var(--color-text)]"
             style={{ width: 38, height: 38 }}
           >
             <ChevronBackIcon />
