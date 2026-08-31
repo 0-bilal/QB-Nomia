@@ -5,6 +5,7 @@ import { formatMoney, formatDate } from '../lib/format'
 import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { AmountPad } from '../components/AmountPad'
 import { ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 
 function EditIcon() {
@@ -27,62 +28,49 @@ function CarIcon() {
   )
 }
 
-/** حوار مبسّط لإدخال قيمة رقمية واحدة (العداد أو الفاصل) — نفس نمط SetBudgetDialog بشاشة الفئات. */
-function NumberEntryDialog({
-  open,
-  title,
-  description,
+/**
+ * محرر مضمّن (مو نافذة منبثقة) بلوحة الأرقام الخاصة بالتطبيق (AmountPad) — نفس
+ * هوية إدخال الأرقام بباقي الشاشات (إضافة حركة، تقسيم حساب) بدل حقل نصي عادي.
+ */
+function InlineKmEditor({
+  label,
   initialValue,
+  color,
   onSave,
   onCancel,
 }: {
-  open: boolean
-  title: string
-  description: string
+  label: string
   initialValue: number | null
+  color: string
   onSave: (value: number) => void
   onCancel: () => void
 }) {
   const [value, setValue] = useState(initialValue ? String(initialValue) : '')
-
-  if (!open) return null
-
   const numeric = Number(value)
   const canSave = value.trim() !== '' && numeric > 0
 
   return (
-    <div dir="rtl" className="fixed inset-0 z-[60] flex items-center justify-center px-6">
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onCancel} aria-hidden="true" />
-      <div
-        className="relative w-full max-w-[320px] rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 text-center shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]"
-        style={{ animation: 'speed-dial-in 200ms ease-out both' }}
-      >
-        <div className="mb-1.5 text-[15px] font-bold">{title}</div>
-        <div className="mb-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">{description}</div>
-        <div dir="ltr" className="mb-4 flex items-center justify-center gap-2">
-          <input
-            autoFocus
-            inputMode="decimal"
-            value={value}
-            onChange={(e) => setValue(e.target.value.replace(/[^0-9.]/g, ''))}
-            placeholder="0"
-            className="num w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] px-4 py-3 text-center text-[18px] font-bold outline-none placeholder:text-[var(--color-text-3)]"
-          />
-          <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">كم</span>
-        </div>
-        <div className="flex gap-2.5">
-          <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
-            إلغاء
-          </button>
-          <button
-            onClick={() => canSave && onSave(numeric)}
-            disabled={!canSave}
-            className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
-            style={{ background: 'var(--color-vehicle)' }}
-          >
-            حفظ
-          </button>
-        </div>
+    <div>
+      <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">{label}</div>
+      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
+        <span className="num text-[32px] font-bold">{value || '0'}</span>
+        <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">كم</span>
+      </div>
+      <div className="mb-4 flex justify-center">
+        <AmountPad value={value} onChange={setValue} color={color} />
+      </div>
+      <div className="flex gap-2.5">
+        <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
+          إلغاء
+        </button>
+        <button
+          onClick={() => canSave && onSave(numeric)}
+          disabled={!canSave}
+          className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
+          style={{ background: color }}
+        >
+          حفظ
+        </button>
       </div>
     </div>
   )
@@ -100,40 +88,15 @@ export function VehicleScreen() {
     accounts,
   } = useData()
 
-  const [odometerDialogOpen, setOdometerDialogOpen] = useState(false)
-  const [intervalDialogOpen, setIntervalDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<'odometer' | 'interval' | null>(null)
 
   const hasBaseline = vehicleOdometerKm !== null && vehicleOilBaselineKm !== null
   const oil = hasBaseline ? computeOilChangeStatus(vehicleOdometerKm!, vehicleOilBaselineKm!, vehicleOilIntervalKm) : null
   const pct = oil ? Math.min(100, Math.max(0, oil.pct)) : 0
-
-  function handleSaveOdometer(km: number) {
-    setVehicleOdometerKm(km)
-    setOdometerDialogOpen(false)
-  }
+  const nextChangeKm = hasBaseline ? vehicleOilBaselineKm! + vehicleOilIntervalKm : null
 
   return (
     <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
-      <NumberEntryDialog
-        open={odometerDialogOpen}
-        title="عداد السيارة الحالي"
-        description="كم قطعت السيارة إجمالًا حتى الآن (بالكيلومتر)"
-        initialValue={vehicleOdometerKm}
-        onSave={handleSaveOdometer}
-        onCancel={() => setOdometerDialogOpen(false)}
-      />
-      <NumberEntryDialog
-        open={intervalDialogOpen}
-        title="فاصل تغيير الزيت"
-        description="كل كم كيلومتر توصي بتغيير الزيت لسيارتك (الافتراضي 5000)"
-        initialValue={vehicleOilIntervalKm}
-        onSave={(v) => {
-          setVehicleOilIntervalKm(v)
-          setIntervalDialogOpen(false)
-        }}
-        onCancel={() => setIntervalDialogOpen(false)}
-      />
-
       <div className="qb-card-elevated mb-5 p-4.5">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'rgba(56,189,248,0.14)', color: 'var(--color-vehicle)' }}>
@@ -145,60 +108,89 @@ export function VehicleScreen() {
           </div>
         </div>
 
-        <button onClick={() => setOdometerDialogOpen(true)} className="qb-press mb-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
-          <div className="text-[12px] text-[var(--color-text-3)]">عداد السيارة الحالي</div>
-          <div className="flex items-center gap-2">
-            <span className="num text-[15px] font-bold">{vehicleOdometerKm !== null ? `${vehicleOdometerKm.toLocaleString('en-US')} كم` : 'ما تحدد بعد'}</span>
-            <div className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
-              <EditIcon />
-            </div>
-          </div>
-        </button>
-
-        {!hasBaseline ? (
-          <div className="rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(56,189,248,0.4)', color: 'var(--color-text-2)' }}>
-            {vehicleOdometerKm === null
-              ? 'حدّد عداد السيارة الحالي، ثم اضغط "تم تغيير الزيت" أول مرة عشان يبدأ التتبّع.'
-              : 'اضغط "تم تغيير الزيت" أول مرة عشان يبدأ حساب الممشى منذ آخر تغيير.'}
-          </div>
+        {editing === 'odometer' ? (
+          <InlineKmEditor
+            label="عداد السيارة الحالي"
+            initialValue={vehicleOdometerKm}
+            color="var(--color-vehicle)"
+            onSave={(v) => {
+              setVehicleOdometerKm(v)
+              setEditing(null)
+            }}
+            onCancel={() => setEditing(null)}
+          />
+        ) : editing === 'interval' ? (
+          <InlineKmEditor
+            label="فاصل تغيير الزيت (كل كم كيلومتر توصي بالتغيير)"
+            initialValue={vehicleOilIntervalKm}
+            color="var(--color-vehicle)"
+            onSave={(v) => {
+              setVehicleOilIntervalKm(v)
+              setEditing(null)
+            }}
+            onCancel={() => setEditing(null)}
+          />
         ) : (
           <>
-            <div className="num mb-2 flex items-baseline justify-between">
-              <span className="text-[19px] font-bold" style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-vehicle)' }}>
-                {Math.round(oil!.drivenSinceLastChange).toLocaleString('en-US')} كم
-              </span>
-              <span className="text-[12px] text-[var(--color-text-3)]">من {vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/8">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${pct}%`, background: oil!.overdue ? 'var(--color-expense)' : oil!.dueSoon ? 'var(--color-subscription)' : 'var(--color-vehicle)' }}
-              />
-            </div>
-            <div className="mt-1.5 text-[11px]" style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-text-3)' }}>
-              {oil!.overdue
-                ? `تجاوزت الفاصل الموصى به بـ ${Math.round(-oil!.remainingKm).toLocaleString('en-US')} كم`
-                : `متبقي ${Math.round(oil!.remainingKm).toLocaleString('en-US')} كم لتغيير الزيت`}
-            </div>
+            <button onClick={() => setEditing('odometer')} className="qb-press mb-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
+              <div className="text-[12px] text-[var(--color-text-3)]">عداد السيارة الحالي</div>
+              <div className="flex items-center gap-2">
+                <span className="num text-[15px] font-bold">{vehicleOdometerKm !== null ? `${vehicleOdometerKm.toLocaleString('en-US')} كم` : 'ما تحدد بعد'}</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <EditIcon />
+                </div>
+              </div>
+            </button>
+
+            {!hasBaseline ? (
+              <div className="rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(56,189,248,0.4)', color: 'var(--color-text-2)' }}>
+                {vehicleOdometerKm === null
+                  ? 'حدّد عداد السيارة الحالي، ثم اضغط "تم تغيير الزيت" أول مرة عشان يبدأ التتبّع.'
+                  : 'اضغط "تم تغيير الزيت" أول مرة عشان يبدأ حساب الممشى منذ آخر تغيير.'}
+              </div>
+            ) : (
+              <>
+                <div className="num mb-2 flex items-baseline justify-between">
+                  <span className="text-[19px] font-bold" style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-vehicle)' }}>
+                    {Math.round(oil!.drivenSinceLastChange).toLocaleString('en-US')} كم
+                  </span>
+                  <span className="text-[12px] text-[var(--color-text-3)]">من {vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/8">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct}%`, background: oil!.overdue ? 'var(--color-expense)' : oil!.dueSoon ? 'var(--color-subscription)' : 'var(--color-vehicle)' }}
+                  />
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                  <span style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-text-3)' }}>
+                    {oil!.overdue
+                      ? `تجاوزت الفاصل الموصى به بـ ${Math.round(-oil!.remainingKm).toLocaleString('en-US')} كم`
+                      : `متبقي ${Math.round(oil!.remainingKm).toLocaleString('en-US')} كم لتغيير الزيت`}
+                  </span>
+                  <span className="num font-semibold text-[var(--color-text-3)]">التغيير القادم عند {nextChangeKm!.toLocaleString('en-US')} كم</span>
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={() => setEditing('interval')}
+              className="qb-press mt-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5"
+            >
+              <span className="text-[11.5px] text-[var(--color-text-3)]">فاصل تغيير الزيت</span>
+              <span className="num text-[12.5px] font-semibold">{vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/vehicle/log-oil-change')}
+              disabled={vehicleOdometerKm === null}
+              className="qb-press mt-3 w-full rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
+              style={{ background: 'rgba(56,189,248,0.18)', color: 'var(--color-vehicle)' }}
+            >
+              تم تغيير الزيت
+            </button>
           </>
         )}
-
-        <button
-          onClick={() => setIntervalDialogOpen(true)}
-          className="qb-press mt-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5"
-        >
-          <span className="text-[11.5px] text-[var(--color-text-3)]">فاصل تغيير الزيت</span>
-          <span className="num text-[12.5px] font-semibold">{vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/vehicle/log-oil-change')}
-          disabled={vehicleOdometerKm === null}
-          className="qb-press mt-3 w-full rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
-          style={{ background: 'rgba(56,189,248,0.18)', color: 'var(--color-vehicle)' }}
-        >
-          تم تغيير الزيت
-        </button>
       </div>
 
       <div className="qb-section-label mb-2 px-1">سجل تغييرات الزيت</div>
