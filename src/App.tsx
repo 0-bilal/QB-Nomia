@@ -34,6 +34,8 @@ import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
 import { SecurityScreen } from './screens/SecurityScreen'
 import { ChangePinScreen } from './screens/ChangePinScreen'
 import { CalculatorScreen } from './screens/CalculatorScreen'
+import { VehicleScreen } from './screens/VehicleScreen'
+import { LogOilChangeScreen } from './screens/LogOilChangeScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -91,6 +93,8 @@ export default function App() {
         <Route path="security" element={<SecurityScreen />} />
         <Route path="security/change-pin" element={<ChangePinScreen />} />
         <Route path="calculator" element={<CalculatorScreen />} />
+        <Route path="vehicle" element={<VehicleScreen />} />
+        <Route path="vehicle/log-oil-change" element={<LogOilChangeScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

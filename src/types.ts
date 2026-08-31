@@ -21,6 +21,15 @@ export interface ZakatPayment {
   hawlStartDate: string
 }
 
+/** سجل تغيير زيت السيارة — كل مرة تنهي فترة وتبدأ حساب فترة جديدة من عداد السيارة عند هذا التاريخ. */
+export interface OilChangeLog {
+  id: string
+  date: string
+  odometerKm: number
+  cost?: number
+  accountId?: string
+}
+
 export interface Person {
   id: string
   name: string

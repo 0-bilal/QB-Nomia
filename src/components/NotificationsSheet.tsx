@@ -79,6 +79,16 @@ function BackupIcon() {
     </svg>
   )
 }
+function VehicleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 13.5 5 8a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5.5" />
+      <path d="M2.5 13.5h19v4a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-11v1a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-4Z" />
+      <circle cx="7" cy="15.5" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="17" cy="15.5" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 function DeviceIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -103,6 +113,7 @@ const KIND_ICON: Record<AppNotification['kind'], () => React.ReactElement> = {
   recurring: RecurringIcon,
   zakat: ZakatIcon,
   backup: BackupIcon,
+  vehicle: VehicleIcon,
 }
 
 export function NotificationBellButton({ notifications, onClick }: { notifications: AppNotification[]; onClick: () => void }) {

@@ -145,6 +145,16 @@ function ShieldIcon() {
     </svg>
   )
 }
+function CarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 13.5 5 8a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5.5" />
+      <path d="M2.5 13.5h19v4a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-11v1a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-4Z" />
+      <circle cx="7" cy="15.5" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="17" cy="15.5" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -202,6 +212,12 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
     title: 'الادخار',
     items: [
       { label: 'الأهداف', desc: 'تتبّع أهداف الادخار وموعد تحقيقها', to: '/goals', icon: <GoalIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
+    ],
+  },
+  {
+    title: 'السيارة',
+    items: [
+      { label: 'صيانة السيارة', desc: 'تتبّع العداد وموعد تغيير الزيت القادم', to: '/vehicle', icon: <CarIcon />, color: 'var(--color-vehicle)', bg: 'rgba(56,189,248,0.12)' },
     ],
   },
   {
