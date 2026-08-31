@@ -5,18 +5,21 @@ export const ACCOUNT_ICON_COLOR: Record<Account['type'], string> = {
   bank: 'var(--color-transfer)',
   savings: 'var(--color-subscription)',
   wallet: 'var(--color-accent)',
+  emergency: 'var(--color-emergency)',
 }
 export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.14)',
   bank: 'rgba(124,108,255,0.14)',
   savings: 'rgba(245,185,66,0.14)',
   wallet: 'rgba(255,255,255,0.12)',
+  emergency: 'rgba(225,29,72,0.14)',
 }
 export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   cash: 'نقدي',
   bank: 'بنكي',
   savings: 'ادخار',
   wallet: 'محفظة رقمية',
+  emergency: 'طوارئ',
 }
 
 /**
@@ -29,6 +32,7 @@ export const ACCOUNT_CARD_BG: Record<Account['type'], string> = {
   bank: 'radial-gradient(120% 90% at 8% 0%, rgba(212,161,58,0.4) 0%, transparent 58%), linear-gradient(155deg, #221a09 0%, #7a5a1c 42%, #d7a83e 68%, #221a09 100%)',
   savings: 'radial-gradient(120% 90% at 8% 0%, rgba(192,142,119,0.38) 0%, transparent 58%), linear-gradient(155deg, #221714 0%, #6e4a3f 42%, #c08e77 68%, #221714 100%)',
   wallet: 'radial-gradient(120% 90% at 8% 0%, rgba(140,140,152,0.3) 0%, transparent 58%), linear-gradient(155deg, #131316 0%, #313138 42%, #62626c 68%, #131316 100%)',
+  emergency: 'radial-gradient(120% 90% at 8% 0%, rgba(216,27,74,0.4) 0%, transparent 58%), linear-gradient(155deg, #1f0508 0%, #6b0f22 42%, #d81b4a 68%, #1f0508 100%)',
 }
 
 /** لون التمييز (Accent) الخاص بسطح كل بطاقة — يُستخدم لأيقونة نوع الحساب وشارة الدفع اللاتلامسي فوق سطح البطاقة نفسه. منفصل عن ACCOUNT_ICON_COLOR المستخدم بباقي شاشات التطبيق (منتقيات الحساب، النماذج...) عشان ما يتأثر أي مكان ثاني بهذا التغيير. */
@@ -37,6 +41,7 @@ export const ACCOUNT_CARD_ACCENT: Record<Account['type'], string> = {
   bank: '#ffce6e',
   savings: '#e8b7a0',
   wallet: '#b6b6c0',
+  emergency: '#ff96ae',
 }
 
 /** خلفية شارة أيقونة الدفع اللاتلامسي فوق البطاقة — نسخة شفافة من ACCOUNT_CARD_ACCENT. */
@@ -45,6 +50,7 @@ export const ACCOUNT_CARD_ACCENT_BG: Record<Account['type'], string> = {
   bank: 'rgba(212,161,58,0.18)',
   savings: 'rgba(192,142,119,0.16)',
   wallet: 'rgba(140,140,152,0.14)',
+  emergency: 'rgba(216,27,74,0.2)',
 }
 
 /**
@@ -61,12 +67,14 @@ export const ACCOUNT_CARD_TEXT_MUTED: Record<Account['type'], string> = {
   bank: '#3d2a10',
   savings: '#3a2118',
   wallet: '#e4e4ea',
+  emergency: '#3d0a17',
 }
 export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   cash: 'var(--color-text-3)',
   bank: '#4d3714',
   savings: '#4d2e22',
   wallet: '#c4c4cd',
+  emergency: '#520f20',
 }
 
 export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; size?: number }) {
@@ -93,6 +101,14 @@ export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; si
         <path d="M4 7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1H4Z" />
         <path d="M4 8h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
         <circle cx="16.5" cy="13.5" r="1.4" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+  if (type === 'emergency') {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3.5 4.5 6.3v5.4c0 5 3.2 8.4 7.5 9.8 4.3-1.4 7.5-4.8 7.5-9.8V6.3L12 3.5Z" />
+        <path d="M12 8.2v4M12 15.2h.01" />
       </svg>
     )
   }
