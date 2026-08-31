@@ -13,6 +13,7 @@ const TYPE_OPTIONS: [AccountType, string][] = [
   ['bank', 'بنكي'],
   ['savings', 'ادخار'],
   ['wallet', 'محفظة رقمية'],
+  ['emergency', 'طوارئ'],
 ]
 
 export function AddAccountScreen() {
@@ -191,6 +192,12 @@ export function AddAccountScreen() {
       {type === 'wallet' && (
         <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
           محفظة رقمية زي "Google Play" — عبّيها بتحويل من الكاش أو البنكي، واربط اشتراكاتك فيها عشان تعرف الرصيد المتبقي بها في أي وقت.
+        </div>
+      )}
+
+      {type === 'emergency' && (
+        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(225,29,72,0.4)', color: 'var(--color-text-2)' }}>
+          حساب مخصص للطوارئ فقط — المبلغ اللي تحطه هنا يبقى جانبًا بعيد عن مصاريفك اليومية، لأي ظرف مفاجئ تحتاج تغطيته بسرعة.
         </div>
       )}
     </ScreenScroll>
