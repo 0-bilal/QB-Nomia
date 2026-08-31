@@ -1,0 +1,156 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useData } from '../state/DataContext'
+import { ScreenScroll } from '../components/ScreenScroll'
+import { ScreenHeader } from '../components/ScreenHeader'
+import { PickerField } from '../components/PickerField'
+import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
+import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
+import { formatMoney } from '../lib/format'
+
+export function LogOilChangeScreen() {
+  const navigate = useNavigate()
+  const { accounts, vehicleOdometerKm, logOilChange } = useData()
+
+  const [odometerKm, setOdometerKm] = useState(vehicleOdometerKm !== null ? String(vehicleOdometerKm) : '')
+  const [hasCost, setHasCost] = useState(false)
+  const [cost, setCost] = useState('')
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false)
+
+  const numericOdometer = Number(odometerKm)
+  const numericCost = Number(cost)
+  const selectedAccount = accounts.find((a) => a.id === accountId)
+  const canSave = numericOdometer > 0 && (!hasCost || (numericCost > 0 && accountId))
+
+  function handleSave() {
+    if (!canSave) return
+    logOilChange({
+      odometerKm: numericOdometer,
+      cost: hasCost ? numericCost : undefined,
+      accountId: hasCost ? accountId : undefined,
+    })
+    navigate('/vehicle', { replace: true })
+  }
+
+  return (
+    <ScreenScroll
+      header={<ScreenHeader title="تسجيل تغيير الزيت" onBack={() => navigate(-1)} cancelLabel="إلغاء" className="pt-8 pb-6" />}
+      footer={
+        <div className="px-5 pb-6 pt-3">
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            style={{ background: 'var(--color-vehicle)' }}
+          >
+            تسجيل
+          </button>
+        </div>
+      }
+    >
+      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">عداد السيارة عند التغيير</label>
+      <div dir="ltr" className="mb-1.5 flex items-center gap-2">
+        <input
+          inputMode="decimal"
+          value={odometerKm}
+          onChange={(e) => setOdometerKm(e.target.value.replace(/[^0-9.]/g, ''))}
+          placeholder="0"
+          className="num w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        />
+        <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">كم</span>
+      </div>
+      <div className="mb-5 px-1 text-[11px] leading-relaxed text-[var(--color-text-3)]">يبدأ حساب الفاصل التالي (5000 كم افتراضيًا) من هذا الرقم</div>
+
+      <button
+        type="button"
+        onClick={() => setHasCost((v) => !v)}
+        className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
+      >
+        <div>
+          <div className="text-[13.5px] font-bold">له تكلفة مالية</div>
+          <div className="text-[11.5px] text-[var(--color-text-3)]">فعّلها لو تبي تسجّل مصروف تغيير الزيت على أحد حساباتك</div>
+        </div>
+        <div
+          className="flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
+          style={{ background: hasCost ? 'var(--color-vehicle)' : 'rgba(255,255,255,0.14)' }}
+        >
+          <div className="h-5 w-5 rounded-full bg-white transition-transform" style={{ transform: hasCost ? 'translateX(-20px)' : 'translateX(0)' }} />
+        </div>
+      </button>
+
+      {hasCost && (
+        <>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التكلفة</label>
+          <input
+            dir="ltr"
+            inputMode="decimal"
+            value={cost}
+            onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))}
+            placeholder="0"
+            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+          />
+
+          <SelectSheet
+            open={accountSheetOpen}
+            title="اختر الحساب الذي يُخصم منه"
+            items={accounts.map(
+              (a): SelectSheetItem => ({
+                id: a.id,
+                icon: <AccountTypeIcon type={a.type} size={17} />,
+                iconColor: ACCOUNT_ICON_COLOR[a.type],
+                iconBg: ACCOUNT_ICON_BG[a.type],
+                title: a.name,
+                subtitle: ACCOUNT_TYPE_LABELS[a.type],
+                trailing: (
+                  <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
+                    {formatMoney(a.balance)}
+                  </span>
+                ),
+              }),
+            )}
+            selectedId={accountId}
+            onSelect={(v) => {
+              setAccountId(v)
+              setAccountSheetOpen(false)
+            }}
+            onClose={() => setAccountSheetOpen(false)}
+            emptyLabel="لا توجد حسابات بعد"
+            footer={
+              <button
+                onClick={() => {
+                  setAccountSheetOpen(false)
+                  navigate('/accounts/new')
+                }}
+                className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
+                style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+              >
+                + إضافة حساب جديد
+              </button>
+            }
+          />
+
+          <div className="mb-5">
+            <PickerField
+              label="يُخصم من حساب"
+              icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
+              iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
+              iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
+              title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
+              placeholder={!selectedAccount}
+              subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
+              trailing={
+                selectedAccount ? (
+                  <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
+                    {formatMoney(selectedAccount.balance)}
+                  </span>
+                ) : undefined
+              }
+              onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
+            />
+          </div>
+        </>
+      )}
+    </ScreenScroll>
+  )
+}

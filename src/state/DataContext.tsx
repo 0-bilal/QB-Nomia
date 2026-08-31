@@ -5,6 +5,7 @@ import { scheduleBackgroundSync } from '../lib/autoSync'
 import { computeZakatStatus, getGoldPricePerGram } from '../lib/zakat'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 import { getLastBackupExportedAt, getOrInitFirstSeenAt } from '../lib/backup'
+import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
 import { formatMoney } from '../lib/format'
 import type {
   Account,
@@ -17,6 +18,7 @@ import type {
   IncomeSource,
   LoanDirection,
   LoanTransaction,
+  OilChangeLog,
   Person,
   RecurringStatus,
   RecurringTransaction,
@@ -38,6 +40,11 @@ const COMMITMENTS_KEY = 'qbnomia.commitments'
 const RECURRING_KEY = 'qbnomia.recurringTransactions'
 const MONTHLY_BUDGET_KEY = 'qbnomia.monthlyBudgetLimit'
 const ZAKAT_PAYMENTS_KEY = 'qbnomia.zakatPayments'
+const VEHICLE_ODOMETER_KEY = 'qbnomia.vehicle.odometerKm'
+const VEHICLE_OIL_INTERVAL_KEY = 'qbnomia.vehicle.oilIntervalKm'
+const VEHICLE_OIL_BASELINE_KEY = 'qbnomia.vehicle.oilBaselineKm'
+const OIL_CHANGES_KEY = 'qbnomia.vehicle.oilChanges'
+const DEFAULT_OIL_INTERVAL_KM = 5000
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -63,6 +70,7 @@ function seedCategories(): Category[] {
     { id: 'cat-fun', name: 'ترفيه', kind: 'expense' },
     { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
     { id: 'cat-commitments', name: 'التزامات', kind: 'expense' },
+    { id: 'cat-vehicle', name: 'صيانة السيارة', kind: 'expense' },
   ]
 }
 
@@ -202,7 +210,7 @@ export interface ActivityItem {
 
 export interface AppNotification {
   id: string
-  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup'
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle'
   severity: 'critical' | 'warning'
   title: string
   message: string
@@ -224,6 +232,13 @@ interface DataContextValue {
   recurringTransactions: RecurringTransaction[]
   zakatPayments: ZakatPayment[]
   logZakatPayment: (accountId: string, amount: number) => void
+  vehicleOdometerKm: number | null
+  setVehicleOdometerKm: (km: number) => void
+  vehicleOilIntervalKm: number
+  setVehicleOilIntervalKm: (km: number) => void
+  vehicleOilBaselineKm: number | null
+  oilChanges: OilChangeLog[]
+  logOilChange: (input: { odometerKm: number; cost?: number; accountId?: string }) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -289,6 +304,10 @@ export interface DataSnapshot {
   recurringTransactions?: RecurringTransaction[]
   monthlyBudgetLimit?: number | null
   zakatPayments?: ZakatPayment[]
+  vehicleOdometerKm?: number | null
+  vehicleOilIntervalKm?: number
+  vehicleOilBaselineKm?: number | null
+  oilChanges?: OilChangeLog[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -343,6 +362,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadJSON<number | null>(MONTHLY_BUDGET_KEY, null),
   )
   const [zakatPayments, setZakatPayments] = useState<ZakatPayment[]>(() => loadJSON(ZAKAT_PAYMENTS_KEY, []))
+  const [vehicleOdometerKm, setVehicleOdometerKmState] = useState<number | null>(() =>
+    loadJSON<number | null>(VEHICLE_ODOMETER_KEY, null),
+  )
+  const [vehicleOilIntervalKm, setVehicleOilIntervalKmState] = useState<number>(() =>
+    loadJSON<number>(VEHICLE_OIL_INTERVAL_KEY, DEFAULT_OIL_INTERVAL_KM),
+  )
+  const [vehicleOilBaselineKm, setVehicleOilBaselineKm] = useState<number | null>(() =>
+    loadJSON<number | null>(VEHICLE_OIL_BASELINE_KEY, null),
+  )
+  const [oilChanges, setOilChanges] = useState<OilChangeLog[]>(() => loadJSON(OIL_CHANGES_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -388,6 +417,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setZakatPayments(next)
     saveJSON(ZAKAT_PAYMENTS_KEY, next)
   }
+  function persistVehicleOdometerKm(next: number | null) {
+    setVehicleOdometerKmState(next)
+    saveJSON(VEHICLE_ODOMETER_KEY, next)
+  }
+  function persistVehicleOilIntervalKm(next: number) {
+    setVehicleOilIntervalKmState(next)
+    saveJSON(VEHICLE_OIL_INTERVAL_KEY, next)
+  }
+  function persistVehicleOilBaselineKm(next: number | null) {
+    setVehicleOilBaselineKm(next)
+    saveJSON(VEHICLE_OIL_BASELINE_KEY, next)
+  }
+  function persistOilChanges(next: OilChangeLog[]) {
+    setOilChanges(next)
+    saveJSON(OIL_CHANGES_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -417,9 +462,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       recurringTransactions,
       monthlyBudgetLimit,
       zakatPayments,
+      vehicleOdometerKm,
+      vehicleOilIntervalKm,
+      vehicleOilBaselineKm,
+      oilChanges,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -727,6 +776,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // تغيير الزيت: يحتاج عداد حالي وخط أساس (baseline) — بدونهما ما نقدر نحسب الممشى منذ آخر تغيير.
+      if (vehicleOdometerKm !== null && vehicleOilBaselineKm !== null) {
+        const oil = computeOilChangeStatus(vehicleOdometerKm, vehicleOilBaselineKm, vehicleOilIntervalKm)
+        if (oil.overdue) {
+          list.push({
+            id: `oil-overdue-${vehicleOilBaselineKm}`,
+            kind: 'vehicle',
+            severity: 'critical',
+            title: 'صيانة السيارة',
+            message: `تجاوزت ممشى تغيير الزيت الموصى به بـ ${Math.round(-oil.remainingKm)} كم`,
+            color: 'var(--color-vehicle)',
+            to: '/vehicle',
+          })
+        } else if (oil.dueSoon) {
+          list.push({
+            id: `oil-due-soon-${vehicleOilBaselineKm}`,
+            kind: 'vehicle',
+            severity: 'warning',
+            title: 'صيانة السيارة',
+            message: `يتبقى ${Math.round(oil.remainingKm)} كم فقط لموعد تغيير الزيت`,
+            color: 'var(--color-vehicle)',
+            to: '/vehicle',
+          })
+        }
+      }
+
       // تذكير نسخة احتياطية محلية قديمة — مرجعه أول نسخة صُدِّرت، أو أول مرة شفنا فيها بيانات لو ما صُدِّرت نسخة بعد
       // (عشان ما نزعج مستخدم جديد بأول أسبوع). ما يُرسَل كإشعار جهاز (severity warning) لأنه تذكير غير عاجل.
       if (accounts.length > 0 || transactions.length > 0) {
@@ -772,6 +847,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistZakatPayments([payment, ...zakatPayments])
         // دفع الزكاة ينهي هذا الحول ويبدأ حول جديد من تاريخ الدفعة.
         persistAccounts(accounts.map((a) => (a.id === accountId ? { ...a, zakatHawlStartDate: payment.date } : a)))
+      },
+      vehicleOdometerKm,
+      setVehicleOdometerKm: persistVehicleOdometerKm,
+      vehicleOilIntervalKm,
+      setVehicleOilIntervalKm: persistVehicleOilIntervalKm,
+      vehicleOilBaselineKm,
+      oilChanges,
+      logOilChange(input: { odometerKm: number; cost?: number; accountId?: string }) {
+        const log: OilChangeLog = {
+          id: makeId(),
+          date: new Date().toISOString().slice(0, 10),
+          odometerKm: input.odometerKm,
+          cost: input.cost,
+          accountId: input.accountId,
+        }
+        persistOilChanges([log, ...oilChanges])
+        // كل تغيير زيت ينهي فترة تتبّع ويبدأ فترة جديدة من عداد السيارة عند هذا التاريخ.
+        persistVehicleOdometerKm(input.odometerKm)
+        persistVehicleOilBaselineKm(input.odometerKm)
+        if (input.cost && input.accountId) {
+          const txn: Transaction = {
+            id: makeId(),
+            type: 'expense',
+            amount: input.cost,
+            date: log.date,
+            accountId: input.accountId,
+            categoryId: 'cat-vehicle',
+            note: 'تغيير زيت المحرك',
+          }
+          persistTransactions([txn, ...transactions])
+          persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance - input.cost! } : a)))
+        }
       },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
@@ -1175,6 +1282,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           recurringTransactions,
           monthlyBudgetLimit,
           zakatPayments,
+          vehicleOdometerKm,
+          vehicleOilIntervalKm,
+          vehicleOilBaselineKm,
+          oilChanges,
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1190,10 +1301,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistRecurringTransactions(snapshot.recurringTransactions ?? [])
         persistMonthlyBudgetLimit(snapshot.monthlyBudgetLimit ?? null)
         persistZakatPayments(snapshot.zakatPayments ?? [])
+        persistVehicleOdometerKm(snapshot.vehicleOdometerKm ?? null)
+        persistVehicleOilIntervalKm(snapshot.vehicleOilIntervalKm ?? DEFAULT_OIL_INTERVAL_KM)
+        persistVehicleOilBaselineKm(snapshot.vehicleOilBaselineKm ?? null)
+        persistOilChanges(snapshot.oilChanges ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
