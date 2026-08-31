@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { AmountPad } from '../components/AmountPad'
 import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
@@ -50,17 +51,14 @@ export function LogOilChangeScreen() {
       }
     >
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">عداد السيارة عند التغيير</label>
-      <div dir="ltr" className="mb-1.5 flex items-center gap-2">
-        <input
-          inputMode="decimal"
-          value={odometerKm}
-          onChange={(e) => setOdometerKm(e.target.value.replace(/[^0-9.]/g, ''))}
-          placeholder="0"
-          className="num w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-        />
+      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
+        <span className="num text-[32px] font-bold">{odometerKm || '0'}</span>
         <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">كم</span>
       </div>
-      <div className="mb-5 px-1 text-[11px] leading-relaxed text-[var(--color-text-3)]">يبدأ حساب الفاصل التالي (5000 كم افتراضيًا) من هذا الرقم</div>
+      <div className="mb-4 flex justify-center">
+        <AmountPad value={odometerKm} onChange={setOdometerKm} color="var(--color-vehicle)" />
+      </div>
+      <div className="mb-5 px-1 text-center text-[11px] leading-relaxed text-[var(--color-text-3)]">يبدأ حساب الفاصل التالي (5000 كم افتراضيًا) من هذا الرقم</div>
 
       <button
         type="button"
@@ -82,14 +80,12 @@ export function LogOilChangeScreen() {
       {hasCost && (
         <>
           <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التكلفة</label>
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            value={cost}
-            onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))}
-            placeholder="0"
-            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-          />
+          <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
+            <span className="num text-[32px] font-bold">{cost || '0'}</span>
+          </div>
+          <div className="mb-5 flex justify-center">
+            <AmountPad value={cost} onChange={setCost} color="var(--color-vehicle)" />
+          </div>
 
           <SelectSheet
             open={accountSheetOpen}
