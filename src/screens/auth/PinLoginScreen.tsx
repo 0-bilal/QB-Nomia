@@ -7,6 +7,7 @@ import { AppLogo } from '../../components/AppLogo'
 import { configuredDigits } from '../../lib/auth'
 import { runBackgroundPull } from '../../lib/autoSync'
 import { isBiometricEnabled, verifyBiometric } from '../../lib/biometric'
+import { APP_VERSION } from '../../lib/version'
 
 type Stage = 'input' | 'success'
 
@@ -125,6 +126,8 @@ export function PinLoginScreen() {
         >
           هل نسيت الرقم السري؟
         </button>
+
+        <div className="num mt-6 text-[10.5px] text-[var(--color-text-3)]">الإصدار {APP_VERSION}</div>
       </div>
 
       {stage === 'success' && (
