@@ -5,10 +5,12 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { showUndoToast } from '../lib/undoToast'
+import { formatDate, formatMoney } from '../lib/format'
+import { ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 
 export function AddCategoryScreen() {
   const { id } = useParams<{ id?: string }>()
-  const { categories, addCategory, updateCategory, deleteCategory } = useData()
+  const { categories, addCategory, updateCategory, deleteCategory, transactions, accounts } = useData()
   const navigate = useNavigate()
 
   const existing = id ? categories.find((c) => c.id === id) : undefined
@@ -17,6 +19,13 @@ export function AddCategoryScreen() {
   const [name, setName] = useState(existing?.name ?? '')
   const [budgetLimit, setBudgetLimit] = useState(existing?.budgetLimit ? String(existing.budgetLimit) : '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+
+  // كل حركات هذي الفئة من أول ما استُخدمت — مو بس الشهر الحالي (المعروض
+  // أصلًا بشاشة "فئات المصاريف" نفسها كمصروف/ميزانية الشهر).
+  const categoryTransactions = isEditing
+    ? transactions.filter((t) => t.type === 'expense' && t.categoryId === id).sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1))
+    : []
+  const categoryTotal = categoryTransactions.reduce((sum, t) => sum + t.amount, 0)
 
   function handleSave() {
     if (!name.trim()) return
@@ -97,6 +106,45 @@ export function AddCategoryScreen() {
         placeholder="0"
         className="num mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
+
+      {isEditing && (
+        <>
+          <div className="mb-2 mt-3 flex items-center justify-between px-1">
+            <div className="qb-section-label">حركات هذه الفئة</div>
+            {categoryTransactions.length > 0 && (
+              <span className="num text-[12.5px] font-bold" style={{ color: 'var(--color-expense)' }}>
+                الإجمالي {formatMoney(categoryTotal)}
+              </span>
+            )}
+          </div>
+          {categoryTransactions.length === 0 ? (
+            <div className="qb-card py-8 text-center text-[12.5px] text-[var(--color-text-3)]">لا توجد حركات مسجّلة على هذي الفئة بعد</div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {categoryTransactions.map((t) => {
+                const account = accounts.find((a) => a.id === t.accountId)
+                return (
+                  <button key={t.id} onClick={() => navigate(`/add/transaction/${t.id}`)} className="qb-card qb-press p-3.5 text-right">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[13px] font-bold">{formatDate(t.date)}</div>
+                      <span className="num text-[13px] font-bold" style={{ color: 'var(--color-expense)' }}>
+                        {formatMoney(t.amount)}
+                      </span>
+                    </div>
+                    {t.note && <div className="mt-1 truncate text-[11.5px] text-[var(--color-text-2)]">{t.note}</div>}
+                    {account && (
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+                        <AccountTypeIcon type={account.type} size={13} />
+                        <span>{account.name} · {ACCOUNT_TYPE_LABELS[account.type]}</span>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
     </ScreenScroll>
   )
 }

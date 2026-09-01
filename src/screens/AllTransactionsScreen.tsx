@@ -6,7 +6,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { DatePicker } from '../components/DatePicker'
 import { activityEditPath } from '../lib/activityNav'
-import { formatDate, formatSigned } from '../lib/format'
+import { formatDate, formatMoney, formatSigned } from '../lib/format'
 import type { ActivityItem } from '../state/DataContext'
 
 function SearchIcon() {
@@ -49,9 +49,11 @@ interface Filters {
   to: string
   minAmount: string
   maxAmount: string
+  /** أسماء فئات المصاريف المختارة من مربعات "حسب الفئة" فوق سجل الحركات — تُطبَّق فورًا بدون المرور بنافذة الفلترة. */
+  categories: string[]
 }
 
-const EMPTY_FILTERS: Filters = { types: [], accountId: null, from: '', to: '', minAmount: '', maxAmount: '' }
+const EMPTY_FILTERS: Filters = { types: [], accountId: null, from: '', to: '', minAmount: '', maxAmount: '', categories: [] }
 
 function countActive(f: Filters): number {
   let n = 0
@@ -59,6 +61,7 @@ function countActive(f: Filters): number {
   if (f.accountId) n++
   if (f.from || f.to) n++
   if (f.minAmount || f.maxAmount) n++
+  if (f.categories.length > 0) n++
   return n
 }
 
@@ -224,7 +227,9 @@ export function AllTransactionsScreen() {
     [recentActivity],
   )
 
-  const filtered = useMemo(() => {
+  // كل الفلاتر عدا فلتر الفئة — الأساس اللي تُحسب عليه مربعات "حسب الفئة"
+  // نفسها، عشان كل المربعات تفضل ظاهرة وقابلة للاختيار حتى بعد اختيار فئة.
+  const baseFiltered = useMemo(() => {
     const q = query.trim()
     return all.filter((item: ActivityItem) => {
       if (q && !item.title.includes(q) && !item.subtitle.includes(q) && !(item.note ?? '').includes(q)) return false
@@ -238,6 +243,26 @@ export function AllTransactionsScreen() {
       return true
     })
   }, [all, query, filters])
+
+  const filtered = useMemo(
+    () => baseFiltered.filter((item) => filters.categories.length === 0 || (item.kind === 'expense' && filters.categories.includes(item.title))),
+    [baseFiltered, filters.categories],
+  )
+
+  // إجمالي كل فئة يعتمد على باقي الفلاتر النشطة (الحساب، التاريخ، النوع،
+  // المبلغ، البحث) — الأعلى إنفاقًا أولًا.
+  const categoryTiles = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const item of baseFiltered) {
+      if (item.kind !== 'expense') continue
+      totals.set(item.title, (totals.get(item.title) ?? 0) + Math.abs(item.amount))
+    }
+    return [...totals.entries()].map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total)
+  }, [baseFiltered])
+
+  function toggleCategory(name: string) {
+    setFilters((f) => ({ ...f, categories: f.categories.includes(name) ? f.categories.filter((c) => c !== name) : [...f.categories, name] }))
+  }
 
   const activeCount = countActive(filters)
 
@@ -291,6 +316,29 @@ export function AllTransactionsScreen() {
           )}
         </button>
       </div>
+
+      {categoryTiles.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {categoryTiles.map((tile) => {
+            const active = filters.categories.includes(tile.name)
+            return (
+              <button
+                key={tile.name}
+                onClick={() => toggleCategory(tile.name)}
+                className="qb-press flex min-w-[86px] flex-col items-center gap-0.5 rounded-2xl px-3 py-2.5 text-center"
+                style={
+                  active
+                    ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)', border: '1px solid var(--color-accent)' }
+                    : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
+                }
+              >
+                <span className="truncate text-[11.5px] font-semibold">{tile.name}</span>
+                <span className="num text-[12.5px] font-bold">{formatMoney(tile.total)}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {all.length === 0 ? (
         <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
