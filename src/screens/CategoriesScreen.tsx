@@ -14,6 +14,22 @@ function EditIcon() {
   )
 }
 
+function ChevronUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 15 12 8 19 15" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 9 12 16 19 9" />
+    </svg>
+  )
+}
+
 function SetBudgetDialog({
   open,
   initialValue,
@@ -78,7 +94,7 @@ function SetBudgetDialog({
 }
 
 export function CategoriesScreen() {
-  const { categories, categorySpentThisMonth, monthlyBudgetLimit, setMonthlyBudgetLimit, monthTotals } = useData()
+  const { categories, categorySpentThisMonth, monthlyBudgetLimit, setMonthlyBudgetLimit, monthTotals, moveCategoryUp, moveCategoryDown } = useData()
   const navigate = useNavigate()
   const [budgetDialogOpen, setBudgetDialogOpen] = useState(false)
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
@@ -163,48 +179,70 @@ export function CategoriesScreen() {
         )}
       </button>
 
-      <div className="qb-section-label mb-2 px-1">ميزانيات الفئات</div>
+      <div className="mb-2 px-1">
+        <div className="qb-section-label mb-1">ميزانيات الفئات</div>
+        <div className="text-[11px] leading-relaxed text-[var(--color-text-3)]">رتّب فئاتك بالأسهم عشان الأكثر استخدامًا تطلع أول قائمة اختيار الفئة بإضافة الحركات</div>
+      </div>
 
       {expenseCategories.length === 0 ? (
         <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد فئات بعد</div>
       ) : (
         <div className="flex flex-col gap-2.5">
-          {expenseCategories.map((c) => {
+          {expenseCategories.map((c, idx) => {
             const spent = categorySpentThisMonth(c.id)
             const rawPct = c.budgetLimit ? (spent / c.budgetLimit) * 100 : null
             const pct = rawPct !== null ? Math.min(100, rawPct) : null
             return (
-              <button
-                key={c.id}
-                onClick={() => navigate(`/categories/${c.id}/edit`)}
-                className="qb-card qb-press p-4 text-right"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-[13.5px] font-bold">{c.name}</div>
-                  <div className="num text-[13px] font-semibold text-[var(--color-text-2)]">
-                    {formatMoney(spent)}
-                    {c.budgetLimit ? ` / ${formatMoney(c.budgetLimit)}` : ''}
-                  </div>
+              <div key={c.id} className="qb-card flex items-stretch gap-2.5 p-3.5">
+                <div className="flex flex-shrink-0 flex-col gap-1.5">
+                  <button
+                    onClick={() => moveCategoryUp(c.id)}
+                    disabled={idx === 0}
+                    aria-label="نقل الفئة لأعلى"
+                    className="qb-press flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)] disabled:opacity-30"
+                    style={{ background: 'rgba(255,255,255,0.08)' }}
+                  >
+                    <ChevronUpIcon />
+                  </button>
+                  <button
+                    onClick={() => moveCategoryDown(c.id)}
+                    disabled={idx === expenseCategories.length - 1}
+                    aria-label="نقل الفئة لأسفل"
+                    className="qb-press flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)] disabled:opacity-30"
+                    style={{ background: 'rgba(255,255,255,0.08)' }}
+                  >
+                    <ChevronDownIcon />
+                  </button>
                 </div>
-                {pct !== null && (
-                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/6">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-expense)' : pct >= 80 ? 'var(--color-subscription)' : 'var(--color-accent)' }}
-                    />
+
+                <button onClick={() => navigate(`/categories/${c.id}/edit`)} className="qb-press min-w-0 flex-1 text-right">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[13.5px] font-bold">{c.name}</div>
+                    <div className="num text-[13px] font-semibold text-[var(--color-text-2)]">
+                      {formatMoney(spent)}
+                      {c.budgetLimit ? ` / ${formatMoney(c.budgetLimit)}` : ''}
+                    </div>
                   </div>
-                )}
-                {rawPct !== null && rawPct >= 100 && (
-                  <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-                    تجاوزت الميزانية بـ {formatMoney(spent - (c.budgetLimit ?? 0))}
-                  </div>
-                )}
-                {rawPct !== null && rawPct >= 80 && rawPct < 100 && (
-                  <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
-                    قاربت على تجاوز الميزانية ({Math.round(rawPct)}%)
-                  </div>
-                )}
-              </button>
+                  {pct !== null && (
+                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/6">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-expense)' : pct >= 80 ? 'var(--color-subscription)' : 'var(--color-accent)' }}
+                      />
+                    </div>
+                  )}
+                  {rawPct !== null && rawPct >= 100 && (
+                    <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                      تجاوزت الميزانية بـ {formatMoney(spent - (c.budgetLimit ?? 0))}
+                    </div>
+                  )}
+                  {rawPct !== null && rawPct >= 80 && rawPct < 100 && (
+                    <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
+                      قاربت على تجاوز الميزانية ({Math.round(rawPct)}%)
+                    </div>
+                  )}
+                </button>
+              </div>
             )
           })}
         </div>

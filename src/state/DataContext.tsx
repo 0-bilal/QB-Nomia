@@ -92,6 +92,26 @@ function ensureDefaultCategories(categories: Category[]): Category[] {
   return missing.length > 0 ? [...categories, ...missing] : categories
 }
 
+/**
+ * ترتيب مصفوفة الفئات هو نفسه ترتيب عرضها بكل مكان بالتطبيق (قائمة الفئات،
+ * منتقي الفئة بإضافة حركة، ...) — فتحريك فئة هنا يبدّل مكانها مع أقرب فئة
+ * من نفس النوع (kind) بدل تبديل عشوائي مع فئة من نوع مختلف قد تقع بينهما.
+ */
+function moveCategory(categories: Category[], id: string, direction: 'up' | 'down'): Category[] {
+  const idx = categories.findIndex((c) => c.id === id)
+  if (idx === -1) return categories
+  const kind = categories[idx].kind
+  const step = direction === 'up' ? -1 : 1
+  let swapIdx = idx + step
+  while (swapIdx >= 0 && swapIdx < categories.length && categories[swapIdx].kind !== kind) {
+    swapIdx += step
+  }
+  if (swapIdx < 0 || swapIdx >= categories.length) return categories
+  const next = [...categories]
+  ;[next[idx], next[swapIdx]] = [next[swapIdx], next[idx]]
+  return next
+}
+
 function seedIncomeSources(): IncomeSource[] {
   return [
     { id: 'src-salary', name: 'راتب' },
@@ -298,6 +318,8 @@ interface DataContextValue {
   addCategory: (input: AddCategoryInput) => Category
   updateCategory: (id: string, input: AddCategoryInput) => void
   deleteCategory: (id: string) => void
+  moveCategoryUp: (id: string) => void
+  moveCategoryDown: (id: string) => void
   addIncomeSource: (input: AddIncomeSourceInput) => IncomeSource
   updateIncomeSource: (id: string, input: AddIncomeSourceInput) => void
   deleteIncomeSource: (id: string) => void
@@ -1057,6 +1079,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       deleteCategory(id: string) {
         persistCategories(categories.filter((c) => c.id !== id))
+      },
+      moveCategoryUp(id: string) {
+        persistCategories(moveCategory(categories, id, 'up'))
+      },
+      moveCategoryDown(id: string) {
+        persistCategories(moveCategory(categories, id, 'down'))
       },
       addIncomeSource(input: AddIncomeSourceInput) {
         const source: IncomeSource = { id: makeId(), name: input.name.trim() }
