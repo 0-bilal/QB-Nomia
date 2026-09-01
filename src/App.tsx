@@ -36,6 +36,7 @@ import { ChangePinScreen } from './screens/ChangePinScreen'
 import { CalculatorScreen } from './screens/CalculatorScreen'
 import { VehicleScreen } from './screens/VehicleScreen'
 import { LogOilChangeScreen } from './screens/LogOilChangeScreen'
+import { LogFuelScreen } from './screens/LogFuelScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="calculator" element={<CalculatorScreen />} />
         <Route path="vehicle" element={<VehicleScreen />} />
         <Route path="vehicle/log-oil-change" element={<LogOilChangeScreen />} />
+        <Route path="vehicle/log-fuel" element={<LogFuelScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

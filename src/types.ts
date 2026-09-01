@@ -30,6 +30,17 @@ export interface OilChangeLog {
   accountId?: string
 }
 
+/** سجل تعبئة وقود — isFullTank يحدد إذا كانت تعبئة لين آخر الخزان (تُستخدم لحساب معدل الاستهلاك) أو تعبئة جزئية (تُسجَّل للتكلفة فقط). */
+export interface FuelLog {
+  id: string
+  date: string
+  odometerKm: number
+  liters: number
+  isFullTank: boolean
+  cost?: number
+  accountId?: string
+}
+
 export interface Person {
   id: string
   name: string
