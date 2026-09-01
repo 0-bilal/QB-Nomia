@@ -69,6 +69,8 @@ export interface Category {
   name: string
   kind: CategoryKind
   budgetLimit?: number
+  /** مفتاح أيقونة مختارة من CATEGORY_ICON_OPTIONS — اختياري، يعرض أول حرف من الاسم لو ما تحدّدت. */
+  icon?: string
 }
 
 export interface IncomeSource {
