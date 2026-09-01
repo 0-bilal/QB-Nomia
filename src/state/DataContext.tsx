@@ -62,6 +62,15 @@ function seedLoans(): LoanTransaction[] {
   return []
 }
 
+// فئات لازم تكون موجودة دائمًا — حتى لمستخدم أنشأ حسابه قبل إضافتها للكود.
+// بدون هذا، حركة مربوطة بـ categoryId زي 'cat-fuel' تظل بلا تصنيف ظاهر لأي
+// مستخدم قديم، لأن الفئة نفسها غير موجودة أصلًا بقائمته (seedCategories
+// تُستخدم فقط أول مرة يُفتح فيها التطبيق ولا تُعاد على مستخدم عنده بيانات).
+const REQUIRED_DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-vehicle', name: 'صيانة السيارة', kind: 'expense' },
+  { id: 'cat-fuel', name: 'وقود السيارة', kind: 'expense' },
+]
+
 // الفئات ومصادر الدخل مجرد تسميات تنظيمية جاهزة (مو بيانات مالية وهمية) فتبقى كنقطة انطلاق مفيدة.
 function seedCategories(): Category[] {
   return [
@@ -73,9 +82,14 @@ function seedCategories(): Category[] {
     { id: 'cat-fun', name: 'ترفيه', kind: 'expense' },
     { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
     { id: 'cat-commitments', name: 'التزامات', kind: 'expense' },
-    { id: 'cat-vehicle', name: 'صيانة السيارة', kind: 'expense' },
-    { id: 'cat-fuel', name: 'وقود السيارة', kind: 'expense' },
+    ...REQUIRED_DEFAULT_CATEGORIES,
   ]
+}
+
+/** يحقن أي فئة أساسية ناقصة من REQUIRED_DEFAULT_CATEGORIES بقائمة فئات مستخدم قديم، بدون المساس بأي فئة أنشأها هو بنفسه. */
+function ensureDefaultCategories(categories: Category[]): Category[] {
+  const missing = REQUIRED_DEFAULT_CATEGORIES.filter((req) => !categories.some((c) => c.id === req.id))
+  return missing.length > 0 ? [...categories, ...missing] : categories
 }
 
 function seedIncomeSources(): IncomeSource[] {
@@ -352,7 +366,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loanTransactions, setLoanTransactions] = useState<LoanTransaction[]>(() =>
     loadJSON(LOANS_KEY, seedLoans()),
   )
-  const [categories, setCategories] = useState<Category[]>(() => loadJSON(CATEGORIES_KEY, seedCategories()))
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const loaded = loadJSON<Category[]>(CATEGORIES_KEY, seedCategories())
+    const withDefaults = ensureDefaultCategories(loaded)
+    if (withDefaults !== loaded) saveJSON(CATEGORIES_KEY, withDefaults)
+    return withDefaults
+  })
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>(() =>
     loadJSON(INCOME_SOURCES_KEY, seedIncomeSources()),
   )
@@ -1350,7 +1369,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistAccounts(snapshot.accounts ?? [])
         persistPeople(snapshot.people ?? [])
         persistLoans(snapshot.loanTransactions ?? [])
-        persistCategories(snapshot.categories ?? [])
+        persistCategories(ensureDefaultCategories(snapshot.categories ?? []))
         persistIncomeSources(snapshot.incomeSources ?? [])
         persistTransactions(snapshot.transactions ?? [])
         persistSubscriptions(snapshot.subscriptions ?? [])
