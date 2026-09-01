@@ -4,6 +4,8 @@ import { useData } from '../state/DataContext'
 import { formatMoney } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { colorFor } from '../components/Avatar'
+import { CategoryIcon } from '../components/CategoryIcons'
 
 function EditIcon() {
   return (
@@ -215,7 +217,14 @@ export function CategoriesScreen() {
                   </button>
                 </div>
 
-                <button onClick={() => navigate(`/categories/${c.id}/edit`)} className="qb-press min-w-0 flex-1 text-right">
+                <button onClick={() => navigate(`/categories/${c.id}/edit`)} className="qb-press flex min-w-0 flex-1 items-center gap-3 text-right">
+                  <div
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+                    style={{ width: 40, height: 40, background: `${colorFor(c.name)}22`, color: colorFor(c.name) }}
+                  >
+                    {c.icon ? <CategoryIcon iconKey={c.icon} size={18} /> : <span style={{ fontWeight: 700, fontSize: 15 }}>{c.name.trim().charAt(0) || '؟'}</span>}
+                  </div>
+                  <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <div className="text-[13.5px] font-bold">{c.name}</div>
                     <div className="num text-[13px] font-semibold text-[var(--color-text-2)]">
@@ -241,6 +250,7 @@ export function CategoriesScreen() {
                       قاربت على تجاوز الميزانية ({Math.round(rawPct)}%)
                     </div>
                   )}
+                  </div>
                 </button>
               </div>
             )

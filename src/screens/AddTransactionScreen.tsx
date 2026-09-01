@@ -10,6 +10,7 @@ import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { colorFor } from '../components/Avatar'
+import { CategoryIcon } from '../components/CategoryIcons'
 import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import type { TransactionType } from '../types'
@@ -188,7 +189,7 @@ export function AddTransactionScreen() {
     const cColor = colorFor(c.name)
     return {
       id: c.id,
-      icon: <span style={{ fontWeight: 700, fontSize: 14 }}>{c.name.trim().charAt(0) || '؟'}</span>,
+      icon: c.icon ? <CategoryIcon iconKey={c.icon} size={17} /> : <span style={{ fontWeight: 700, fontSize: 14 }}>{c.name.trim().charAt(0) || '؟'}</span>,
       iconColor: cColor,
       iconBg: `${cColor}22`,
       title: c.name,
@@ -413,7 +414,11 @@ export function AddTransactionScreen() {
             icon={
               type === 'expense' ? (
                 selectedCategory ? (
-                  <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedCategory.name.trim().charAt(0)}</span>
+                  selectedCategory.icon ? (
+                    <CategoryIcon iconKey={selectedCategory.icon} size={17} />
+                  ) : (
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedCategory.name.trim().charAt(0)}</span>
+                  )
                 ) : (
                   <TagIcon />
                 )

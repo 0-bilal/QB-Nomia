@@ -167,6 +167,7 @@ interface AddCategoryInput {
   name: string
   kind: CategoryKind
   budgetLimit?: number
+  icon?: string
 }
 
 interface AddIncomeSourceInput {
@@ -1068,13 +1069,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           name: input.name.trim(),
           kind: input.kind,
           budgetLimit: input.budgetLimit,
+          icon: input.icon,
         }
         persistCategories([...categories, category])
         return category
       },
       updateCategory(id: string, input: AddCategoryInput) {
         persistCategories(
-          categories.map((c) => (c.id === id ? { ...c, name: input.name.trim(), kind: input.kind, budgetLimit: input.budgetLimit } : c)),
+          categories.map((c) => (c.id === id ? { ...c, name: input.name.trim(), kind: input.kind, budgetLimit: input.budgetLimit, icon: input.icon } : c)),
         )
       },
       deleteCategory(id: string) {
