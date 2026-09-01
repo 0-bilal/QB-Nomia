@@ -15,6 +15,7 @@ import type {
   Commitment,
   CommitmentIntervalUnit,
   CommitmentStatus,
+  FuelLog,
   IncomeSource,
   LoanDirection,
   LoanTransaction,
@@ -45,6 +46,8 @@ const VEHICLE_OIL_INTERVAL_KEY = 'qbnomia.vehicle.oilIntervalKm'
 const VEHICLE_OIL_BASELINE_KEY = 'qbnomia.vehicle.oilBaselineKm'
 const OIL_CHANGES_KEY = 'qbnomia.vehicle.oilChanges'
 const DEFAULT_OIL_INTERVAL_KM = 5000
+const FUEL_TANK_CAPACITY_KEY = 'qbnomia.vehicle.fuelTankCapacityL'
+const FUEL_LOGS_KEY = 'qbnomia.vehicle.fuelLogs'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -71,6 +74,7 @@ function seedCategories(): Category[] {
     { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
     { id: 'cat-commitments', name: 'التزامات', kind: 'expense' },
     { id: 'cat-vehicle', name: 'صيانة السيارة', kind: 'expense' },
+    { id: 'cat-fuel', name: 'وقود السيارة', kind: 'expense' },
   ]
 }
 
@@ -239,6 +243,10 @@ interface DataContextValue {
   vehicleOilBaselineKm: number | null
   oilChanges: OilChangeLog[]
   logOilChange: (input: { odometerKm: number; cost?: number; accountId?: string }) => void
+  fuelTankCapacityL: number | null
+  setFuelTankCapacityL: (liters: number) => void
+  fuelLogs: FuelLog[]
+  logFuel: (input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string }) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -308,6 +316,8 @@ export interface DataSnapshot {
   vehicleOilIntervalKm?: number
   vehicleOilBaselineKm?: number | null
   oilChanges?: OilChangeLog[]
+  fuelTankCapacityL?: number | null
+  fuelLogs?: FuelLog[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -372,6 +382,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadJSON<number | null>(VEHICLE_OIL_BASELINE_KEY, null),
   )
   const [oilChanges, setOilChanges] = useState<OilChangeLog[]>(() => loadJSON(OIL_CHANGES_KEY, []))
+  const [fuelTankCapacityL, setFuelTankCapacityLState] = useState<number | null>(() =>
+    loadJSON<number | null>(FUEL_TANK_CAPACITY_KEY, null),
+  )
+  const [fuelLogs, setFuelLogs] = useState<FuelLog[]>(() => loadJSON(FUEL_LOGS_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -433,6 +447,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setOilChanges(next)
     saveJSON(OIL_CHANGES_KEY, next)
   }
+  function persistFuelTankCapacityL(next: number | null) {
+    setFuelTankCapacityLState(next)
+    saveJSON(FUEL_TANK_CAPACITY_KEY, next)
+  }
+  function persistFuelLogs(next: FuelLog[]) {
+    setFuelLogs(next)
+    saveJSON(FUEL_LOGS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -466,9 +488,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicleOilIntervalKm,
       vehicleOilBaselineKm,
       oilChanges,
+      fuelTankCapacityL,
+      fuelLogs,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -880,6 +904,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
           persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance - input.cost! } : a)))
         }
       },
+      fuelTankCapacityL,
+      setFuelTankCapacityL: persistFuelTankCapacityL,
+      fuelLogs,
+      logFuel(input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string }) {
+        const log: FuelLog = {
+          id: makeId(),
+          date: new Date().toISOString().slice(0, 10),
+          odometerKm: input.odometerKm,
+          liters: input.liters,
+          isFullTank: input.isFullTank,
+          cost: input.cost,
+          accountId: input.accountId,
+        }
+        persistFuelLogs([log, ...fuelLogs])
+        // تعبئة الوقود أكثر تكرارًا من تغيير الزيت، فنحدّث عداد السيارة العام
+        // منها أيضًا — يبقي حساب ممشى تغيير الزيت محدَّثًا بدون إدخال منفصل.
+        persistVehicleOdometerKm(input.odometerKm)
+        if (input.cost && input.accountId) {
+          const txn: Transaction = {
+            id: makeId(),
+            type: 'expense',
+            amount: input.cost,
+            date: log.date,
+            accountId: input.accountId,
+            categoryId: 'cat-fuel',
+            note: 'تعبئة وقود',
+          }
+          persistTransactions([txn, ...transactions])
+          persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance - input.cost! } : a)))
+        }
+      },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
       setMonthlyBudgetLimit: persistMonthlyBudgetLimit,
@@ -1286,6 +1341,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           vehicleOilIntervalKm,
           vehicleOilBaselineKm,
           oilChanges,
+          fuelTankCapacityL,
+          fuelLogs,
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1305,10 +1362,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistVehicleOilIntervalKm(snapshot.vehicleOilIntervalKm ?? DEFAULT_OIL_INTERVAL_KM)
         persistVehicleOilBaselineKm(snapshot.vehicleOilBaselineKm ?? null)
         persistOilChanges(snapshot.oilChanges ?? [])
+        persistFuelTankCapacityL(snapshot.fuelTankCapacityL ?? null)
+        persistFuelLogs(snapshot.fuelLogs ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

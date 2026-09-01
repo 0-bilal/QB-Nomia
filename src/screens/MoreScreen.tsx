@@ -217,7 +217,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
     title: 'السيارة',
     items: [
-      { label: 'صيانة السيارة', desc: 'تتبّع العداد وموعد تغيير الزيت القادم', to: '/vehicle', icon: <CarIcon />, color: 'var(--color-vehicle)', bg: 'rgba(56,189,248,0.12)' },
+      { label: 'صيانة السيارة', desc: 'تتبّع العداد، تغيير الزيت، واستهلاك الوقود', to: '/vehicle', icon: <CarIcon />, color: 'var(--color-vehicle)', bg: 'rgba(56,189,248,0.12)' },
     ],
   },
   {
