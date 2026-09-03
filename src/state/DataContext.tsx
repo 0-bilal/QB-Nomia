@@ -23,6 +23,7 @@ import type {
   Person,
   RecurringStatus,
   RecurringTransaction,
+  SalaryAdvance,
   Subscription,
   SubscriptionStatus,
   Transaction,
@@ -48,6 +49,10 @@ const OIL_CHANGES_KEY = 'qbnomia.vehicle.oilChanges'
 const DEFAULT_OIL_INTERVAL_KM = 5000
 const FUEL_TANK_CAPACITY_KEY = 'qbnomia.vehicle.fuelTankCapacityL'
 const FUEL_LOGS_KEY = 'qbnomia.vehicle.fuelLogs'
+const SALARY_ADVANCES_KEY = 'qbnomia.salaryAdvances'
+/** مصدر الدخل المخصَّص لتسجيل السلفة نفسها لحظة استلامها — منفصل عن مصدر "راتب" الأصلي حتى ما نخلط بين الاثنين عند البحث عن حركة راتب لتسوية السلفة منها. */
+const SALARY_ADVANCE_SOURCE_ID = 'src-salary-advance'
+const SALARY_INCOME_SOURCE_ID = 'src-salary'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -112,13 +117,23 @@ function moveCategory(categories: Category[], id: string, direction: 'up' | 'dow
   return next
 }
 
+// مصادر لازم تكون موجودة دائمًا — نفس مبدأ REQUIRED_DEFAULT_CATEGORIES، تُحقن
+// تلقائيًا لمستخدم قديم فتح حسابه قبل إضافتها.
+const REQUIRED_DEFAULT_INCOME_SOURCES: IncomeSource[] = [{ id: SALARY_ADVANCE_SOURCE_ID, name: 'سلفة راتب' }]
+
 function seedIncomeSources(): IncomeSource[] {
   return [
-    { id: 'src-salary', name: 'راتب' },
+    { id: SALARY_INCOME_SOURCE_ID, name: 'راتب' },
+    ...REQUIRED_DEFAULT_INCOME_SOURCES,
     { id: 'src-freelance', name: 'عمل حر' },
     { id: 'src-gifts', name: 'هدايا' },
     { id: 'src-other', name: 'أخرى' },
   ]
+}
+
+function ensureDefaultIncomeSources(sources: IncomeSource[]): IncomeSource[] {
+  const missing = REQUIRED_DEFAULT_INCOME_SOURCES.filter((req) => !sources.some((s) => s.id === req.id))
+  return missing.length > 0 ? [...sources, ...missing] : sources
 }
 
 function seedTransactions(): Transaction[] {
@@ -249,7 +264,7 @@ export interface ActivityItem {
 
 export interface AppNotification {
   id: string
-  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle'
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle' | 'salary-advance'
   severity: 'critical' | 'warning'
   title: string
   message: string
@@ -282,6 +297,8 @@ interface DataContextValue {
   setFuelTankCapacityL: (liters: number) => void
   fuelLogs: FuelLog[]
   logFuel: (input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string }) => void
+  salaryAdvances: SalaryAdvance[]
+  logSalaryAdvance: (input: { amount: number; accountId: string }) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -355,6 +372,7 @@ export interface DataSnapshot {
   oilChanges?: OilChangeLog[]
   fuelTankCapacityL?: number | null
   fuelLogs?: FuelLog[]
+  salaryAdvances?: SalaryAdvance[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -383,6 +401,36 @@ function withLoanEffect(accs: Account[], txn: LoanTransaction, multiplier: 1 | -
   return accs.map((a) => (a.id === txn.accountId ? { ...a, balance: a.balance + multiplier * delta } : a))
 }
 
+/**
+ * تخصم أي سلف رواتب غير مسدَّدة (الأقدم أولًا) من أول حركة دخل "راتب" جديدة —
+ * تلقائيًا وبدون تدخّل المستخدم. سلفة تُخصم بالكامل فقط لو غطّاها المبلغ
+ * المتبقي من حركة الراتب (بدون تسديد جزئي لسلفة واحدة)، فلو كان مجموع السلف
+ * القائمة أكبر من الراتب نفسه، تفضل أقدم سلفة غير مغطاة قائمة للمرة القادمة.
+ * يرجّع صافي المبلغ بعد الخصم (المخزَّن فعليًا بالحركة) + قائمة السلف
+ * المحدَّثة + ملاحظة توضيحية لو صار خصم فعلي.
+ */
+function settleSalaryAdvances(
+  grossAmount: number,
+  advances: SalaryAdvance[],
+  txnId: string,
+  date: string,
+): { netAmount: number; updatedAdvances: SalaryAdvance[]; deductionNote: string | null } {
+  const unsettled = [...advances].filter((a) => !a.settled).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  let budget = grossAmount
+  let totalDeducted = 0
+  const settledIds = new Set<string>()
+  for (const adv of unsettled) {
+    if (adv.amount > budget) break
+    budget -= adv.amount
+    totalDeducted += adv.amount
+    settledIds.add(adv.id)
+  }
+  if (settledIds.size === 0) return { netAmount: grossAmount, updatedAdvances: advances, deductionNote: null }
+  const updatedAdvances = advances.map((a) => (settledIds.has(a.id) ? { ...a, settled: true, settledDate: date, settledTransactionId: txnId } : a))
+  const deductionNote = `صافي بعد خصم سلفة راتب سابقة ${formatMoney(totalDeducted)} من إجمالي ${formatMoney(grossAmount)}`
+  return { netAmount: grossAmount - totalDeducted, updatedAdvances, deductionNote }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<Account[]>(() => loadJSON(ACCOUNTS_KEY, seedAccounts()))
   const [people, setPeople] = useState<Person[]>(() => loadJSON(PEOPLE_KEY, seedPeople()))
@@ -395,9 +443,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (withDefaults !== loaded) saveJSON(CATEGORIES_KEY, withDefaults)
     return withDefaults
   })
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>(() =>
-    loadJSON(INCOME_SOURCES_KEY, seedIncomeSources()),
-  )
+  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>(() => {
+    const loaded = loadJSON<IncomeSource[]>(INCOME_SOURCES_KEY, seedIncomeSources())
+    const withDefaults = ensureDefaultIncomeSources(loaded)
+    if (withDefaults !== loaded) saveJSON(INCOME_SOURCES_KEY, withDefaults)
+    return withDefaults
+  })
   const [transactions, setTransactions] = useState<Transaction[]>(() =>
     loadJSON(TRANSACTIONS_KEY, seedTransactions()),
   )
@@ -428,6 +479,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadJSON<number | null>(FUEL_TANK_CAPACITY_KEY, null),
   )
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>(() => loadJSON(FUEL_LOGS_KEY, []))
+  const [salaryAdvances, setSalaryAdvances] = useState<SalaryAdvance[]>(() => loadJSON(SALARY_ADVANCES_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -497,6 +549,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setFuelLogs(next)
     saveJSON(FUEL_LOGS_KEY, next)
   }
+  function persistSalaryAdvances(next: SalaryAdvance[]) {
+    setSalaryAdvances(next)
+    saveJSON(SALARY_ADVANCES_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -532,9 +588,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       oilChanges,
       fuelTankCapacityL,
       fuelLogs,
+      salaryAdvances,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -868,6 +925,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // سلفة راتب قائمة — تذكير بس، لأن الخصم نفسه يصير تلقائيًا أول ما تُسجَّل حركة دخل "راتب".
+      const outstandingAdvance = salaryAdvances.filter((a) => !a.settled).reduce((sum, a) => sum + a.amount, 0)
+      if (outstandingAdvance > 0) {
+        list.push({
+          id: `salary-advance-outstanding-${Math.round(outstandingAdvance)}`,
+          kind: 'salary-advance',
+          severity: 'warning',
+          title: 'سلفة الراتب',
+          message: `عندك سلفة قائمة بقيمة ${formatMoney(outstandingAdvance)} — بتُخصم تلقائيًا من أول دخل براتب`,
+          color: 'var(--color-income)',
+          to: '/salary-advance',
+        })
+      }
+
       // تذكير نسخة احتياطية محلية قديمة — مرجعه أول نسخة صُدِّرت، أو أول مرة شفنا فيها بيانات لو ما صُدِّرت نسخة بعد
       // (عشان ما نزعج مستخدم جديد بأول أسبوع). ما يُرسَل كإشعار جهاز (severity warning) لأنه تذكير غير عاجل.
       if (accounts.length > 0 || transactions.length > 0) {
@@ -976,6 +1047,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
           persistTransactions([txn, ...transactions])
           persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance - input.cost! } : a)))
         }
+      },
+      salaryAdvances,
+      logSalaryAdvance(input: { amount: number; accountId: string }) {
+        const date = new Date().toISOString().slice(0, 10)
+        const advance: SalaryAdvance = {
+          id: makeId(),
+          date,
+          amount: input.amount,
+          accountId: input.accountId,
+          settled: false,
+        }
+        persistSalaryAdvances([advance, ...salaryAdvances])
+        const txn: Transaction = {
+          id: makeId(),
+          type: 'income',
+          amount: input.amount,
+          date,
+          accountId: input.accountId,
+          incomeSourceId: SALARY_ADVANCE_SOURCE_ID,
+          note: 'سلفة راتب',
+        }
+        persistTransactions([txn, ...transactions])
+        persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance + input.amount } : a)))
       },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
@@ -1100,16 +1194,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistIncomeSources(incomeSources.filter((s) => s.id !== id))
       },
       addTransaction(input: AddTransactionInput) {
+        const txnId = makeId()
+        let amount = input.amount
+        let note = input.note?.trim() || undefined
+        if (input.type === 'income' && input.incomeSourceId === SALARY_INCOME_SOURCE_ID) {
+          const settled = settleSalaryAdvances(input.amount, salaryAdvances, txnId, input.date)
+          amount = settled.netAmount
+          if (settled.deductionNote) {
+            note = note ? `${note} — ${settled.deductionNote}` : settled.deductionNote
+            persistSalaryAdvances(settled.updatedAdvances)
+          }
+        }
         const txn: Transaction = {
-          id: makeId(),
+          id: txnId,
           type: input.type,
-          amount: input.amount,
+          amount,
           date: input.date,
           accountId: input.accountId,
           categoryId: input.type === 'expense' ? input.categoryId : undefined,
           incomeSourceId: input.type === 'income' ? input.incomeSourceId : undefined,
           transferToAccountId: input.type === 'transfer' ? input.transferToAccountId : undefined,
-          note: input.note?.trim() || undefined,
+          note,
         }
         persistTransactions([txn, ...transactions])
         persistAccounts(withTransactionEffect(accounts, txn, 1))
@@ -1318,16 +1423,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const recurring = recurringTransactions.find((r) => r.id === id)
         if (!recurring) return
 
+        const txnId = makeId()
+        let amount = input.amount
+        let note = input.note?.trim() || recurring.name
+        if (recurring.type === 'income' && recurring.incomeSourceId === SALARY_INCOME_SOURCE_ID) {
+          const settled = settleSalaryAdvances(input.amount, salaryAdvances, txnId, input.date)
+          amount = settled.netAmount
+          if (settled.deductionNote) {
+            note = `${note} — ${settled.deductionNote}`
+            persistSalaryAdvances(settled.updatedAdvances)
+          }
+        }
         const txn: Transaction = {
-          id: makeId(),
+          id: txnId,
           type: recurring.type,
-          amount: input.amount,
+          amount,
           date: input.date,
           accountId: recurring.accountId,
           categoryId: recurring.type === 'expense' ? recurring.categoryId : undefined,
           incomeSourceId: recurring.type === 'income' ? recurring.incomeSourceId : undefined,
           transferToAccountId: recurring.type === 'transfer' ? recurring.transferToAccountId : undefined,
-          note: input.note?.trim() || recurring.name,
+          note,
         }
         persistTransactions([txn, ...transactions])
         persistAccounts(withTransactionEffect(accounts, txn, 1))
@@ -1392,6 +1508,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           oilChanges,
           fuelTankCapacityL,
           fuelLogs,
+          salaryAdvances,
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1400,7 +1517,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistPeople(snapshot.people ?? [])
         persistLoans(snapshot.loanTransactions ?? [])
         persistCategories(ensureDefaultCategories(snapshot.categories ?? []))
-        persistIncomeSources(snapshot.incomeSources ?? [])
+        persistIncomeSources(ensureDefaultIncomeSources(snapshot.incomeSources ?? []))
         persistTransactions(snapshot.transactions ?? [])
         persistSubscriptions(snapshot.subscriptions ?? [])
         persistCommitments(snapshot.commitments ?? [])
@@ -1413,10 +1530,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistOilChanges(snapshot.oilChanges ?? [])
         persistFuelTankCapacityL(snapshot.fuelTankCapacityL ?? null)
         persistFuelLogs(snapshot.fuelLogs ?? [])
+        persistSalaryAdvances(snapshot.salaryAdvances ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
