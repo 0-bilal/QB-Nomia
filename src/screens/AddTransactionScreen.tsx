@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useData } from '../state/DataContext'
+import { useData, SALARY_INCOME_SOURCE_ID } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
@@ -102,6 +102,8 @@ export function AddTransactionScreen() {
   const [incomeSourceId, setIncomeSourceId] = useState(existing?.incomeSourceId ?? incomeSources[0]?.id ?? '')
   const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(existing?.note ?? '')
+  const [hasViolation, setHasViolation] = useState(false)
+  const [violationAmount, setViolationAmount] = useState('')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const [fromSheetOpen, setFromSheetOpen] = useState(false)
@@ -124,12 +126,16 @@ export function AddTransactionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, accountId])
 
+  const isSalaryIncome = type === 'income' && incomeSourceId === SALARY_INCOME_SOURCE_ID
+  const showViolationToggle = isSalaryIncome && !isEditing
+
   const canSave =
     numericAmount > 0 &&
     accountId &&
     (type !== 'expense' || categoryId) &&
     (type !== 'income' || incomeSourceId) &&
-    (type !== 'transfer' || (transferToId && transferToId !== accountId))
+    (type !== 'transfer' || (transferToId && transferToId !== accountId)) &&
+    (!showViolationToggle || !hasViolation || Number(violationAmount) > 0)
 
   function handleSave() {
     if (!canSave) return
@@ -142,6 +148,7 @@ export function AddTransactionScreen() {
       incomeSourceId: type === 'income' ? incomeSourceId : undefined,
       transferToAccountId: type === 'transfer' ? transferToId : undefined,
       note,
+      violationDeductionAmount: showViolationToggle && hasViolation ? Number(violationAmount) : undefined,
     }
     if (isEditing && id) {
       updateTransaction(id, input)
@@ -465,6 +472,42 @@ export function AddTransactionScreen() {
             }}
           />
         </div>
+      )}
+
+      {showViolationToggle && (
+        <>
+          <button
+            type="button"
+            onClick={() => setHasViolation((v) => !v)}
+            className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
+          >
+            <div>
+              <div className="text-[13.5px] font-bold">خصم مخالفة (اختياري)</div>
+              <div className="text-[11.5px] text-[var(--color-text-3)]">فعّله لو فيه مبلغ يُخصم من هذا الراتب بسبب مخالفة عمل</div>
+            </div>
+            <div
+              className="flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
+              style={{ background: hasViolation ? 'var(--color-expense)' : 'rgba(255,255,255,0.14)' }}
+            >
+              <div
+                className="h-5 w-5 rounded-full bg-white transition-transform"
+                style={{ transform: hasViolation ? 'translateX(-20px)' : 'translateX(0)' }}
+              />
+            </div>
+          </button>
+
+          {hasViolation && (
+            <div className="mb-5">
+              <div className="mb-3 text-center">
+                <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">مبلغ الخصم</div>
+                <div className="num text-[28px] font-bold" style={{ color: 'var(--color-expense)' }}>
+                  {violationAmount || '0'}
+                </div>
+              </div>
+              <AmountPad value={violationAmount} onChange={setViolationAmount} color="var(--color-expense)" />
+            </div>
+          )}
+        </>
       )}
 
       <div className="mb-5">

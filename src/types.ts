@@ -54,6 +54,17 @@ export interface SalaryAdvance {
   settledTransactionId?: string
 }
 
+/** خصم مخالفة عمل من راتب — يُسجَّل مباشرة وقت إضافة حركة الراتب نفسها (مو مسبقًا زي سلفة الراتب)، فيقل صافي الحركة بمقدار الخصم فورًا. */
+export interface SalaryViolationDeduction {
+  id: string
+  date: string
+  amount: number
+  accountId: string
+  note?: string
+  /** حركة الراتب اللي انخصم منها هذا المبلغ — تُحدَّث أو تُحذف معها لو عُدِّل الخصم أو حُذف. */
+  transactionId: string
+}
+
 export interface Person {
   id: string
   name: string

@@ -24,6 +24,7 @@ import type {
   RecurringStatus,
   RecurringTransaction,
   SalaryAdvance,
+  SalaryViolationDeduction,
   Subscription,
   SubscriptionStatus,
   Transaction,
@@ -52,7 +53,8 @@ const FUEL_LOGS_KEY = 'qbnomia.vehicle.fuelLogs'
 const SALARY_ADVANCES_KEY = 'qbnomia.salaryAdvances'
 /** مصدر الدخل المخصَّص لتسجيل السلفة نفسها لحظة استلامها — منفصل عن مصدر "راتب" الأصلي حتى ما نخلط بين الاثنين عند البحث عن حركة راتب لتسوية السلفة منها. */
 const SALARY_ADVANCE_SOURCE_ID = 'src-salary-advance'
-const SALARY_INCOME_SOURCE_ID = 'src-salary'
+export const SALARY_INCOME_SOURCE_ID = 'src-salary'
+const SALARY_VIOLATIONS_KEY = 'qbnomia.salaryViolations'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -198,6 +200,8 @@ interface AddTransactionInput {
   incomeSourceId?: string
   transferToAccountId?: string
   note?: string
+  /** خصم مخالفة عمل يُطبَّق فورًا على حركة راتب جديدة — يُتجاهَل لأي نوع/مصدر حركة غير "دخل براتب". */
+  violationDeductionAmount?: number
 }
 
 interface AddSubscriptionInput {
@@ -301,6 +305,9 @@ interface DataContextValue {
   logSalaryAdvance: (input: { amount: number; accountId: string }) => void
   updateSalaryAdvance: (id: string, input: { amount: number; accountId: string }) => void
   deleteSalaryAdvance: (id: string) => void
+  salaryViolations: SalaryViolationDeduction[]
+  updateSalaryViolation: (id: string, input: { amount: number; note?: string }) => void
+  deleteSalaryViolation: (id: string) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -375,6 +382,7 @@ export interface DataSnapshot {
   fuelTankCapacityL?: number | null
   fuelLogs?: FuelLog[]
   salaryAdvances?: SalaryAdvance[]
+  salaryViolations?: SalaryViolationDeduction[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -482,6 +490,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>(() => loadJSON(FUEL_LOGS_KEY, []))
   const [salaryAdvances, setSalaryAdvances] = useState<SalaryAdvance[]>(() => loadJSON(SALARY_ADVANCES_KEY, []))
+  const [salaryViolations, setSalaryViolations] = useState<SalaryViolationDeduction[]>(() => loadJSON(SALARY_VIOLATIONS_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -555,6 +564,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setSalaryAdvances(next)
     saveJSON(SALARY_ADVANCES_KEY, next)
   }
+  function persistSalaryViolations(next: SalaryViolationDeduction[]) {
+    setSalaryViolations(next)
+    saveJSON(SALARY_VIOLATIONS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -591,9 +604,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fuelTankCapacityL,
       fuelLogs,
       salaryAdvances,
+      salaryViolations,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -1051,6 +1065,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
       salaryAdvances,
+      salaryViolations,
       logSalaryAdvance(input: { amount: number; accountId: string }) {
         const date = new Date().toISOString().slice(0, 10)
         const txnId = makeId()
@@ -1098,6 +1113,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
           persistTransactions(transactions.filter((t) => t.id !== advance.transactionId))
         }
         persistSalaryAdvances(salaryAdvances.filter((a) => a.id !== id))
+      },
+      // خصم المخالفة مو حركة مستقلة (بخلاف السلفة) — هو مبلغ مطروح من حركة راتب
+      // موجودة أصلًا، فتعديله أو حذفه يرجّع نفس المبلغ لتلك الحركة ولرصيد
+      // الحساب بدل حذف الحركة نفسها.
+      updateSalaryViolation(id: string, input: { amount: number; note?: string }) {
+        const violation = salaryViolations.find((v) => v.id === id)
+        if (!violation) return
+        const txn = transactions.find((t) => t.id === violation.transactionId)
+        if (!txn) return
+        const delta = input.amount - violation.amount
+        const oldFragment = `خصم مخالفة عمل ${formatMoney(violation.amount)}`
+        const newFragment = `خصم مخالفة عمل ${formatMoney(input.amount)}`
+        const updatedNote =
+          txn.note === oldFragment
+            ? newFragment
+            : txn.note?.endsWith(` — ${oldFragment}`)
+              ? txn.note.slice(0, -oldFragment.length) + newFragment
+              : txn.note
+        const updatedTxn: Transaction = { ...txn, amount: txn.amount - delta, note: updatedNote }
+        persistAccounts(accounts.map((a) => (a.id === txn.accountId ? { ...a, balance: a.balance - delta } : a)))
+        persistTransactions(transactions.map((t) => (t.id === txn.id ? updatedTxn : t)))
+        persistSalaryViolations(salaryViolations.map((v) => (v.id === id ? { ...v, amount: input.amount, note: input.note?.trim() || undefined } : v)))
+      },
+      deleteSalaryViolation(id: string) {
+        const violation = salaryViolations.find((v) => v.id === id)
+        if (!violation) return
+        const txn = transactions.find((t) => t.id === violation.transactionId)
+        if (txn) {
+          const fragment = `خصم مخالفة عمل ${formatMoney(violation.amount)}`
+          const restoredNote = txn.note === fragment ? undefined : txn.note?.endsWith(` — ${fragment}`) ? txn.note.slice(0, -(` — ${fragment}`).length) : txn.note
+          const restoredTxn: Transaction = { ...txn, amount: txn.amount + violation.amount, note: restoredNote }
+          persistAccounts(accounts.map((a) => (a.id === txn.accountId ? { ...a, balance: a.balance + violation.amount } : a)))
+          persistTransactions(transactions.map((t) => (t.id === txn.id ? restoredTxn : t)))
+        }
+        persistSalaryViolations(salaryViolations.filter((v) => v.id !== id))
       },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
@@ -1225,12 +1275,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const txnId = makeId()
         let amount = input.amount
         let note = input.note?.trim() || undefined
+        let newViolation: SalaryViolationDeduction | null = null
         if (input.type === 'income' && input.incomeSourceId === SALARY_INCOME_SOURCE_ID) {
           const settled = settleSalaryAdvances(input.amount, salaryAdvances, txnId, input.date)
           amount = settled.netAmount
           if (settled.deductionNote) {
             note = note ? `${note} — ${settled.deductionNote}` : settled.deductionNote
             persistSalaryAdvances(settled.updatedAdvances)
+          }
+          if (input.violationDeductionAmount && input.violationDeductionAmount > 0) {
+            const violationAmount = Math.min(input.violationDeductionAmount, amount)
+            amount -= violationAmount
+            const violationNote = `خصم مخالفة عمل ${formatMoney(violationAmount)}`
+            note = note ? `${note} — ${violationNote}` : violationNote
+            newViolation = { id: makeId(), date: input.date, amount: violationAmount, accountId: input.accountId, transactionId: txnId }
           }
         }
         const txn: Transaction = {
@@ -1246,6 +1304,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistTransactions([txn, ...transactions])
         persistAccounts(withTransactionEffect(accounts, txn, 1))
+        if (newViolation) persistSalaryViolations([newViolation, ...salaryViolations])
       },
       updateTransaction(id: string, input: AddTransactionInput) {
         const old = transactions.find((t) => t.id === id)
@@ -1537,6 +1596,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           fuelTankCapacityL,
           fuelLogs,
           salaryAdvances,
+          salaryViolations,
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1559,10 +1619,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistFuelTankCapacityL(snapshot.fuelTankCapacityL ?? null)
         persistFuelLogs(snapshot.fuelLogs ?? [])
         persistSalaryAdvances(snapshot.salaryAdvances ?? [])
+        persistSalaryViolations(snapshot.salaryViolations ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
