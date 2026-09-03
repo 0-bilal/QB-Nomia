@@ -41,6 +41,17 @@ export interface FuelLog {
   accountId?: string
 }
 
+/** سلفة راتب — مبلغ يُستلم مقدَّمًا (يُسجَّل كدخل بحسابه فورًا) ويُخصم تلقائيًا من أول حركة دخل "راتب" تُسجَّل بعدها. */
+export interface SalaryAdvance {
+  id: string
+  date: string
+  amount: number
+  accountId: string
+  settled: boolean
+  settledDate?: string
+  settledTransactionId?: string
+}
+
 export interface Person {
   id: string
   name: string

@@ -21,6 +21,16 @@ function TagIcon() {
     </svg>
   )
 }
+function SalaryAdvanceIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="6" width="14" height="10" rx="2" />
+      <circle cx="9.5" cy="11" r="2" />
+      <path d="M19 8.5 22 11.5 19 14.5" />
+      <path d="M22 11.5h-5" />
+    </svg>
+  )
+}
 function IncomeIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -197,6 +207,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
       { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
       { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
+      { label: 'سلفة الراتب', desc: 'سجّل سلفة وتُخصم تلقائيًا من أول راتب قادم', to: '/salary-advance', icon: <SalaryAdvanceIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
       { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
     ],
   },
