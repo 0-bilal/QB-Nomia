@@ -7,7 +7,9 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
 import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
+import type { AccountType } from '../types'
 
 function SalaryAdvanceIcon({ size = 20 }: { size?: number }) {
   return (
@@ -21,23 +23,28 @@ function SalaryAdvanceIcon({ size = 20 }: { size?: number }) {
 }
 
 /**
- * محرر تسجيل سلفة مضمّن (مو نافذة منبثقة) — نفس نمط بقية شاشات إدخال الأرقام
- * بالتطبيق: لوحة أرقام النظام (AmountPad) بدل كيبورد الهاتف.
+ * محرر تسجيل/تعديل سلفة مضمّن (مو نافذة منبثقة) — نفس نمط بقية شاشات إدخال
+ * الأرقام بالتطبيق: لوحة أرقام النظام (AmountPad) بدل كيبورد الهاتف. لو
+ * initial محددة، يعمل بوضع تعديل (يظهر زر حذف).
  */
 function LogAdvanceForm({
   accounts,
   color,
+  initial,
   onSave,
+  onDelete,
   onCancel,
 }: {
-  accounts: { id: string; name: string; type: import('../types').AccountType; balance: number }[]
+  accounts: { id: string; name: string; type: AccountType; balance: number }[]
   color: string
+  initial?: { amount: number; accountId: string }
   onSave: (amount: number, accountId: string) => void
+  onDelete?: () => void
   onCancel: () => void
 }) {
   const navigate = useNavigate()
-  const [amount, setAmount] = useState('')
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [accountId, setAccountId] = useState(initial?.accountId ?? accounts[0]?.id ?? '')
   const [accountSheetOpen, setAccountSheetOpen] = useState(false)
 
   const numeric = Number(amount)
@@ -127,21 +134,43 @@ function LogAdvanceForm({
           حفظ
         </button>
       </div>
+
+      {onDelete && (
+        <button onClick={onDelete} className="qb-press mt-3 w-full text-center text-[12.5px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+          حذف السلفة
+        </button>
+      )}
     </div>
   )
 }
 
 export function SalaryAdvanceScreen() {
   const navigate = useNavigate()
-  const { salaryAdvances, logSalaryAdvance, accounts } = useData()
-  const [editing, setEditing] = useState(false)
+  const { salaryAdvances, logSalaryAdvance, updateSalaryAdvance, deleteSalaryAdvance, accounts } = useData()
+  const [editingId, setEditingId] = useState<'new' | string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const outstanding = salaryAdvances.filter((a) => !a.settled)
   const outstandingTotal = outstanding.reduce((sum, a) => sum + a.amount, 0)
   const color = 'var(--color-income)'
+  const editingAdvance = editingId && editingId !== 'new' ? salaryAdvances.find((a) => a.id === editingId) : undefined
 
   return (
     <ScreenScroll header={<ScreenHeader title="سلفة الراتب" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="حذف السلفة"
+        message="بيتم حذف هذي السلفة والحركة المالية المرتبطة بيها من سجلك، وخصم مبلغها من رصيد الحساب."
+        confirmLabel="حذف"
+        color="var(--color-expense)"
+        onConfirm={() => {
+          if (confirmDeleteId) deleteSalaryAdvance(confirmDeleteId)
+          setConfirmDeleteId(null)
+          setEditingId(null)
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+
       <div className="qb-card-elevated mb-5 p-4.5">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'rgba(34,197,94,0.14)', color }}>
@@ -153,15 +182,27 @@ export function SalaryAdvanceScreen() {
           </div>
         </div>
 
-        {editing ? (
+        {editingId === 'new' ? (
           <LogAdvanceForm
             accounts={accounts}
             color={color}
             onSave={(amount, accountId) => {
               logSalaryAdvance({ amount, accountId })
-              setEditing(false)
+              setEditingId(null)
             }}
-            onCancel={() => setEditing(false)}
+            onCancel={() => setEditingId(null)}
+          />
+        ) : editingAdvance ? (
+          <LogAdvanceForm
+            accounts={accounts}
+            color={color}
+            initial={{ amount: editingAdvance.amount, accountId: editingAdvance.accountId }}
+            onSave={(amount, accountId) => {
+              updateSalaryAdvance(editingAdvance.id, { amount, accountId })
+              setEditingId(null)
+            }}
+            onDelete={() => setConfirmDeleteId(editingAdvance.id)}
+            onCancel={() => setEditingId(null)}
           />
         ) : (
           <>
@@ -179,7 +220,7 @@ export function SalaryAdvanceScreen() {
             )}
 
             <button
-              onClick={() => setEditing(true)}
+              onClick={() => setEditingId('new')}
               disabled={accounts.length === 0}
               className="qb-press w-full rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
               style={{ background: 'rgba(34,197,94,0.18)', color }}
@@ -197,8 +238,8 @@ export function SalaryAdvanceScreen() {
         <div className="flex flex-col gap-2.5">
           {salaryAdvances.map((a) => {
             const account = accounts.find((acc) => acc.id === a.accountId)
-            return (
-              <div key={a.id} className="qb-card p-3.5">
+            const row = (
+              <>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <div className="text-[13px] font-bold">{formatDate(a.date)}</div>
@@ -222,7 +263,16 @@ export function SalaryAdvanceScreen() {
                 {a.settled && a.settledDate && (
                   <div className="mt-1 text-[11px] text-[var(--color-text-3)]">تمّ خصمها من الراتب بتاريخ {formatDate(a.settledDate)}</div>
                 )}
+              </>
+            )
+            return a.settled ? (
+              <div key={a.id} className="qb-card p-3.5">
+                {row}
               </div>
+            ) : (
+              <button key={a.id} onClick={() => setEditingId(a.id)} className="qb-card qb-press p-3.5 text-right">
+                {row}
+              </button>
             )
           })}
         </div>

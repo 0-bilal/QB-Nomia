@@ -47,6 +47,8 @@ export interface SalaryAdvance {
   date: string
   amount: number
   accountId: string
+  /** الحركة المالية (دخل) المرتبطة بلحظة استلام السلفة — تُحدَّث أو تُحذف معها لو عُدِّلت السلفة أو حُذفت. */
+  transactionId?: string
   settled: boolean
   settledDate?: string
   settledTransactionId?: string

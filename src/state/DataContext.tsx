@@ -299,6 +299,8 @@ interface DataContextValue {
   logFuel: (input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string }) => void
   salaryAdvances: SalaryAdvance[]
   logSalaryAdvance: (input: { amount: number; accountId: string }) => void
+  updateSalaryAdvance: (id: string, input: { amount: number; accountId: string }) => void
+  deleteSalaryAdvance: (id: string) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -1051,16 +1053,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       salaryAdvances,
       logSalaryAdvance(input: { amount: number; accountId: string }) {
         const date = new Date().toISOString().slice(0, 10)
+        const txnId = makeId()
         const advance: SalaryAdvance = {
           id: makeId(),
           date,
           amount: input.amount,
           accountId: input.accountId,
+          transactionId: txnId,
           settled: false,
         }
         persistSalaryAdvances([advance, ...salaryAdvances])
         const txn: Transaction = {
-          id: makeId(),
+          id: txnId,
           type: 'income',
           amount: input.amount,
           date,
@@ -1070,6 +1074,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         persistTransactions([txn, ...transactions])
         persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance + input.amount } : a)))
+      },
+      // التعديل والحذف مقصوران على سلفة لسا "قائمة" — سلفة مسدَّدة عدّلت
+      // فعليًا صافي حركة راتب سابقة (بمبلغ مخصوم مو محفوظ منفصلًا)، فالتراجع
+      // عنها بأمان غير ممكن من غير المساس بتلك الحركة.
+      updateSalaryAdvance(id: string, input: { amount: number; accountId: string }) {
+        const advance = salaryAdvances.find((a) => a.id === id)
+        if (!advance || advance.settled || !advance.transactionId) return
+        const oldTxn = transactions.find((t) => t.id === advance.transactionId)
+        if (!oldTxn) return
+        const updatedTxn: Transaction = { ...oldTxn, amount: input.amount, accountId: input.accountId }
+        const reverted = withTransactionEffect(accounts, oldTxn, -1)
+        persistAccounts(withTransactionEffect(reverted, updatedTxn, 1))
+        persistTransactions(transactions.map((t) => (t.id === advance.transactionId ? updatedTxn : t)))
+        persistSalaryAdvances(salaryAdvances.map((a) => (a.id === id ? { ...a, amount: input.amount, accountId: input.accountId } : a)))
+      },
+      deleteSalaryAdvance(id: string) {
+        const advance = salaryAdvances.find((a) => a.id === id)
+        if (!advance || advance.settled) return
+        const txn = advance.transactionId ? transactions.find((t) => t.id === advance.transactionId) : undefined
+        if (txn) {
+          persistAccounts(withTransactionEffect(accounts, txn, -1))
+          persistTransactions(transactions.filter((t) => t.id !== advance.transactionId))
+        }
+        persistSalaryAdvances(salaryAdvances.filter((a) => a.id !== id))
       },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
