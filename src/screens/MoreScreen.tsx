@@ -21,6 +21,15 @@ function TagIcon() {
     </svg>
   )
 }
+function SalaryViolationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5 22 20.5H2Z" />
+      <line x1="12" y1="9.5" x2="12" y2="14" />
+      <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
 function SalaryAdvanceIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -208,6 +217,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
       { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
       { label: 'سلفة الراتب', desc: 'سجّل سلفة وتُخصم تلقائيًا من أول راتب قادم', to: '/salary-advance', icon: <SalaryAdvanceIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
+      { label: 'خصومات المخالفات', desc: 'سجل خصومات المخالفات المطبَّقة على رواتبك', to: '/salary-violations', icon: <SalaryViolationIcon />, color: 'var(--color-expense)', bg: 'rgba(239,68,68,0.12)' },
       { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
     ],
   },
