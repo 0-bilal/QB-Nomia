@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { computeFuelSegments, computeFuelStats } from './fuelConsumption'
-import type { FuelLog } from '../types'
+import { computeFuelSegments, computeFuelStats, computeVehicleCostStats } from './fuelConsumption'
+import type { FuelLog, OilChangeLog } from '../types'
 
 function log(id: string, odometerKm: number, liters: number, isFullTank: boolean): FuelLog {
   return { id, date: '2026-01-01', odometerKm, liters, isFullTank }
+}
+
+function oilLog(id: string, odometerKm: number, cost?: number): OilChangeLog {
+  return { id, date: '2026-01-01', odometerKm, cost }
 }
 
 describe('computeFuelSegments', () => {
@@ -94,5 +98,35 @@ describe('computeFuelStats', () => {
     const totalKm = 500 * 4 + 600
     const totalLiters = 40 * 5
     expect(stats.avgKmPerLiter).toBeCloseTo(totalKm / totalLiters, 5)
+  })
+})
+
+describe('computeVehicleCostStats', () => {
+  it('returns a null cost-per-km with no logs', () => {
+    const stats = computeVehicleCostStats([], [])
+    expect(stats).toMatchObject({ fuelCostTotal: 0, oilCostTotal: 0, totalCost: 0, drivenKm: 0, costPerKm: null })
+  })
+
+  it('sums fuel and oil costs, and divides by distance across both logs combined', () => {
+    const fuelLogs = [log('f1', 100000, 40, true), log('f2', 100500, 40, true)]
+    fuelLogs[0].cost = 100
+    fuelLogs[1].cost = 120
+    const oilChanges = [oilLog('o1', 100800, 150)]
+    const stats = computeVehicleCostStats(fuelLogs, oilChanges)
+    // المسافة = أعلى قراءة (100800) - أقل قراءة (100000) = 800
+    expect(stats.fuelCostTotal).toBe(220)
+    expect(stats.oilCostTotal).toBe(150)
+    expect(stats.totalCost).toBe(370)
+    expect(stats.drivenKm).toBe(800)
+    expect(stats.costPerKm).toBeCloseTo(370 / 800, 5)
+  })
+
+  it('ignores entries with no recorded cost when summing, but still counts their odometer reading for distance', () => {
+    const fuelLogs = [log('f1', 100000, 40, true), log('f2', 100500, 40, true)]
+    // لا تكلفة مسجَّلة لأي منهما
+    const stats = computeVehicleCostStats(fuelLogs, [])
+    expect(stats.totalCost).toBe(0)
+    expect(stats.drivenKm).toBe(500)
+    expect(stats.costPerKm).toBeNull()
   })
 })

@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useData } from '../../state/DataContext'
+import { formatMoney } from '../../lib/format'
 import { PeoplePanel } from './PeoplePanel'
 import { SalaryAdvancePanel } from './SalaryAdvancePanel'
 import { SalaryViolationsPanel } from './SalaryViolationsPanel'
 import { StoreDebtsPanel } from './StoreDebtsPanel'
 
-type TabKey = 'people' | 'advance' | 'violations' | 'stores'
+type TabKey = 'overview' | 'people' | 'advance' | 'violations' | 'stores'
 
 const TABS: { key: TabKey; label: string }[] = [
+  { key: 'overview', label: 'نظرة عامة' },
   { key: 'people', label: 'أشخاص' },
   { key: 'advance', label: 'سلفة راتب' },
   { key: 'violations', label: 'خصومات مخالفات' },
@@ -15,7 +18,83 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 function isTabKey(v: string | null): v is TabKey {
-  return v === 'people' || v === 'advance' || v === 'violations' || v === 'stores'
+  return v === 'overview' || v === 'people' || v === 'advance' || v === 'violations' || v === 'stores'
+}
+
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15,6 9,12 15,18" />
+    </svg>
+  )
+}
+
+/** ملخّص موحّد لكل أنواع الديون والسلف بمكان واحد — يجمع أرقامًا مبعثرة بأربع تبويبات مختلفة بمكان واحد بدل ما يفتح المستخدم كل تبويب لوحده عشان يعرف وضعه الإجمالي. */
+function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: TabKey) => void }) {
+  const { totalOwedToMe, totalIOwe, salaryAdvances, storeDebts, storeDebtPayments, salaryViolations } = useData()
+
+  const outstandingAdvance = salaryAdvances.filter((a) => !a.settled).reduce((s, a) => s + a.amount, 0)
+  const outstandingStoreDebt = storeDebts.reduce((sum, d) => {
+    const paid = storeDebtPayments.filter((p) => p.debtId === d.id).reduce((s, p) => s + p.amount, 0)
+    return sum + Math.max(0, d.amount - paid)
+  }, 0)
+  const totalViolations = salaryViolations.reduce((s, v) => s + v.amount, 0)
+  const totalIOweAll = totalIOwe + outstandingAdvance + outstandingStoreDebt
+
+  const rows: { label: string; value: number; tab: TabKey }[] = [
+    { label: 'سلف الأشخاص (عليك)', value: totalIOwe, tab: 'people' },
+    { label: 'سلفة الراتب (متبقي)', value: outstandingAdvance, tab: 'advance' },
+    { label: 'ديون المتاجر (متبقي)', value: outstandingStoreDebt, tab: 'stores' },
+  ]
+
+  return (
+    <>
+      <div className="mb-4 grid grid-cols-2 gap-2.5">
+        <div className="qb-card-elevated p-4">
+          <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">إجمالي عليك</div>
+          <div className="num text-[19px] font-bold" style={{ color: 'var(--color-expense)' }}>
+            {formatMoney(totalIOweAll)}
+          </div>
+        </div>
+        <div className="qb-card-elevated p-4">
+          <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">مستحق لك (من أشخاص)</div>
+          <div className="num text-[19px] font-bold" style={{ color: 'var(--color-income)' }}>
+            {formatMoney(totalOwedToMe)}
+          </div>
+        </div>
+      </div>
+
+      <div className="qb-section-label mb-2 px-1">تفصيل ما عليك</div>
+      <div className="qb-card mb-4 overflow-hidden">
+        {rows.map((r, i) => (
+          <button
+            key={r.tab}
+            onClick={() => onOpenTab(r.tab)}
+            className={`qb-press flex w-full items-center justify-between px-4 py-3.5 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
+          >
+            <span className="text-[12.5px] font-semibold">{r.label}</span>
+            <span className="flex items-center gap-2">
+              <span className="num text-[13.5px] font-bold" style={{ color: r.value > 0 ? 'var(--color-expense)' : 'var(--color-text-3)' }}>
+                {formatMoney(r.value)}
+              </span>
+              <span className="text-[var(--color-text-3)]">
+                <ChevronIcon />
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {totalViolations > 0 && (
+        <button onClick={() => onOpenTab('violations')} className="qb-press flex w-full items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3.5 text-right">
+          <span className="text-[12px] text-[var(--color-text-3)]">إجمالي خصومات المخالفات المسجَّلة</span>
+          <span className="num text-[13px] font-bold" style={{ color: 'var(--color-expense)' }}>
+            {formatMoney(totalViolations)}
+          </span>
+        </button>
+      )}
+    </>
+  )
 }
 
 /**
@@ -27,11 +106,11 @@ export function DebtsHubScreen() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const initialTab = searchParams.get('tab')
-  const [tab, setTab] = useState<TabKey>(isTabKey(initialTab) ? initialTab : 'people')
+  const [tab, setTab] = useState<TabKey>(isTabKey(initialTab) ? initialTab : 'overview')
 
   function selectTab(next: TabKey) {
     setTab(next)
-    setSearchParams(next === 'people' ? {} : { tab: next }, { replace: true })
+    setSearchParams(next === 'overview' ? {} : { tab: next }, { replace: true })
   }
 
   return (
@@ -72,6 +151,7 @@ export function DebtsHubScreen() {
         ))}
       </div>
 
+      {tab === 'overview' && <OverviewPanel onOpenTab={selectTab} />}
       {tab === 'people' && <PeoplePanel />}
       {tab === 'advance' && <SalaryAdvancePanel />}
       {tab === 'violations' && <SalaryViolationsPanel />}

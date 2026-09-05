@@ -264,6 +264,11 @@ const SECTIONS: { title: string; layout?: 'grid' | 'feature'; items: MoreItem[] 
       { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)' },
       { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)' },
       { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)' },
+    ],
+  },
+  {
+    title: 'أدوات',
+    items: [
       { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)' },
     ],
   },

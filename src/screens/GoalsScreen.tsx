@@ -6,6 +6,7 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { computeZakatStatus, getGoldPricePerGram, getGoldPriceUpdatedAt, setGoldPricePerGram } from '../lib/zakat'
+import { projectGoalCompletion } from '../lib/goalProjection'
 import type { Account, ZakatPayment } from '../types'
 
 function GoalIcon() {
@@ -96,7 +97,7 @@ function monthsUntil(dateStr: string): number {
 }
 
 export function GoalsScreen() {
-  const { accounts, zakatPayments, logZakatPayment } = useData()
+  const { accounts, transactions, zakatPayments, logZakatPayment } = useData()
   const navigate = useNavigate()
   const goals = accounts.filter((a) => a.type === 'savings' && a.goalAmount)
 
@@ -186,6 +187,8 @@ export function GoalsScreen() {
             const months = a.goalTargetDate ? monthsUntil(a.goalTargetDate) : null
             const monthlyNeeded = months && remaining > 0 ? remaining / months : null
             const reached = a.balance >= goalAmount
+            const projection = !reached ? projectGoalCompletion(a.id, remaining, transactions) : null
+            const projectionAheadOfTarget = projection?.projectedDate && a.goalTargetDate ? projection.projectedDate <= a.goalTargetDate : null
 
             return (
               <div key={a.id} onClick={() => navigate(`/accounts/${a.id}/edit`)} className="qb-card-elevated qb-press block w-full p-4.5 text-right">
@@ -233,6 +236,31 @@ export function GoalsScreen() {
                         <span className="num font-bold" style={{ color: 'var(--color-subscription)' }}>
                           {formatMoney(monthlyNeeded)}
                         </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!reached && projection?.projectedDate && (
+                  <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5">
+                    <div className="flex items-center justify-between text-[11.5px]">
+                      <span className="text-[var(--color-text-3)]">بمعدّلك الحالي (آخر 3 أشهر)</span>
+                      <span className="num font-semibold" style={{ color: 'var(--color-income)' }}>
+                        +{formatMoney(projection.avgMonthlyContribution)}/شهر
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[11.5px]">
+                      <span className="text-[var(--color-text-3)]">متوقّع تصل الهدف بحلول</span>
+                      <span
+                        className="num font-bold"
+                        style={{ color: projectionAheadOfTarget === false ? 'var(--color-expense)' : 'var(--color-income)' }}
+                      >
+                        {formatDate(projection.projectedDate)}
+                      </span>
+                    </div>
+                    {projectionAheadOfTarget !== null && (
+                      <div className="mt-1 text-[10.5px]" style={{ color: projectionAheadOfTarget ? 'var(--color-income)' : 'var(--color-expense)' }}>
+                        {projectionAheadOfTarget ? 'قبل الموعد المحدد أو بحدوده — استمر' : 'بعد الموعد المحدد — تحتاج ترفع معدّل الإيداع'}
                       </div>
                     )}
                   </div>
