@@ -99,6 +99,16 @@ function SalaryAdvanceIcon() {
     </svg>
   )
 }
+function StoreDebtIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3.5 9.5 4.5 4h15l1 5.5" />
+      <path d="M3.5 9.5a2.3 2.3 0 0 0 4.6 0 2.3 2.3 0 0 0 4.6 0 2.3 2.3 0 0 0 4.6 0 2.3 2.3 0 0 0 4.6 0" />
+      <path d="M5 9.5V20h14V9.5" />
+      <path d="M10 20v-5.5h4V20" />
+    </svg>
+  )
+}
 function DeviceIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -125,6 +135,7 @@ const KIND_ICON: Record<AppNotification['kind'], () => React.ReactElement> = {
   backup: BackupIcon,
   vehicle: VehicleIcon,
   'salary-advance': SalaryAdvanceIcon,
+  'store-debt': StoreDebtIcon,
 }
 
 export function NotificationBellButton({ notifications, onClick }: { notifications: AppNotification[]; onClick: () => void }) {

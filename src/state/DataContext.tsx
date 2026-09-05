@@ -25,6 +25,8 @@ import type {
   RecurringTransaction,
   SalaryAdvance,
   SalaryViolationDeduction,
+  StoreDebt,
+  StoreDebtPayment,
   Subscription,
   SubscriptionStatus,
   Transaction,
@@ -55,6 +57,10 @@ const SALARY_ADVANCES_KEY = 'qbnomia.salaryAdvances'
 const SALARY_ADVANCE_SOURCE_ID = 'src-salary-advance'
 export const SALARY_INCOME_SOURCE_ID = 'src-salary'
 const SALARY_VIOLATIONS_KEY = 'qbnomia.salaryViolations'
+const STORE_DEBTS_KEY = 'qbnomia.storeDebts'
+const STORE_DEBT_PAYMENTS_KEY = 'qbnomia.storeDebtPayments'
+/** فئة مخصَّصة لحركات سداد ديون المتاجر — نفس مبدأ REQUIRED_DEFAULT_CATEGORIES. */
+const STORE_DEBT_CATEGORY_ID = 'cat-store-debt'
 
 // لا حسابات ولا أشخاص ولا حركات افتراضية — المستخدم يبنيها بنفسه من الصفر.
 function seedAccounts(): Account[] {
@@ -76,6 +82,7 @@ function seedLoans(): LoanTransaction[] {
 const REQUIRED_DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-vehicle', name: 'صيانة السيارة', kind: 'expense' },
   { id: 'cat-fuel', name: 'وقود السيارة', kind: 'expense' },
+  { id: STORE_DEBT_CATEGORY_ID, name: 'سداد ديون', kind: 'expense' },
 ]
 
 // الفئات ومصادر الدخل مجرد تسميات تنظيمية جاهزة (مو بيانات مالية وهمية) فتبقى كنقطة انطلاق مفيدة.
@@ -268,7 +275,7 @@ export interface ActivityItem {
 
 export interface AppNotification {
   id: string
-  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle' | 'salary-advance'
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle' | 'salary-advance' | 'store-debt'
   severity: 'critical' | 'warning'
   title: string
   message: string
@@ -308,6 +315,13 @@ interface DataContextValue {
   salaryViolations: SalaryViolationDeduction[]
   updateSalaryViolation: (id: string, input: { amount: number; note?: string }) => void
   deleteSalaryViolation: (id: string) => void
+  storeDebts: StoreDebt[]
+  storeDebtPayments: StoreDebtPayment[]
+  addStoreDebt: (input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) => StoreDebt
+  updateStoreDebt: (id: string, input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) => void
+  deleteStoreDebt: (id: string) => void
+  addStoreDebtPayment: (input: { debtId: string; amount: number; date: string; accountId: string }) => void
+  deleteStoreDebtPayment: (id: string) => void
   notifications: AppNotification[]
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
@@ -383,6 +397,8 @@ export interface DataSnapshot {
   fuelLogs?: FuelLog[]
   salaryAdvances?: SalaryAdvance[]
   salaryViolations?: SalaryViolationDeduction[]
+  storeDebts?: StoreDebt[]
+  storeDebtPayments?: StoreDebtPayment[]
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -491,6 +507,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>(() => loadJSON(FUEL_LOGS_KEY, []))
   const [salaryAdvances, setSalaryAdvances] = useState<SalaryAdvance[]>(() => loadJSON(SALARY_ADVANCES_KEY, []))
   const [salaryViolations, setSalaryViolations] = useState<SalaryViolationDeduction[]>(() => loadJSON(SALARY_VIOLATIONS_KEY, []))
+  const [storeDebts, setStoreDebts] = useState<StoreDebt[]>(() => loadJSON(STORE_DEBTS_KEY, []))
+  const [storeDebtPayments, setStoreDebtPayments] = useState<StoreDebtPayment[]>(() => loadJSON(STORE_DEBT_PAYMENTS_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -568,6 +586,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setSalaryViolations(next)
     saveJSON(SALARY_VIOLATIONS_KEY, next)
   }
+  function persistStoreDebts(next: StoreDebt[]) {
+    setStoreDebts(next)
+    saveJSON(STORE_DEBTS_KEY, next)
+  }
+  function persistStoreDebtPayments(next: StoreDebtPayment[]) {
+    setStoreDebtPayments(next)
+    saveJSON(STORE_DEBT_PAYMENTS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -605,9 +631,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fuelLogs,
       salaryAdvances,
       salaryViolations,
+      storeDebts,
+      storeDebtPayments,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -872,6 +900,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      for (const debt of storeDebts) {
+        if (!debt.dueDate || debt.dueDate >= today) continue
+        const paid = storeDebtPayments.filter((p) => p.debtId === debt.id).reduce((s, p) => s + p.amount, 0)
+        if (debt.amount - paid > 0) {
+          list.push({ id: `store-debt-${debt.id}`, kind: 'store-debt', severity: 'critical', title: debt.storeName, message: 'متأخر بسداد دَين', color: 'var(--color-expense)', to: '/store-debts' })
+        }
+      }
+
       if (monthlyBudgetLimit) {
         const spent = monthTotals().expense
         const pct = (spent / monthlyBudgetLimit) * 100
@@ -1066,6 +1102,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       salaryAdvances,
       salaryViolations,
+      storeDebts,
+      storeDebtPayments,
       logSalaryAdvance(input: { amount: number; accountId: string }) {
         const date = new Date().toISOString().slice(0, 10)
         const txnId = makeId()
@@ -1148,6 +1186,75 @@ export function DataProvider({ children }: { children: ReactNode }) {
           persistTransactions(transactions.map((t) => (t.id === txn.id ? restoredTxn : t)))
         }
         persistSalaryViolations(salaryViolations.filter((v) => v.id !== id))
+      },
+      // أخذ دَين من متجر لا يؤثر على أي رصيد فورًا (ما دُفع شي بعد) — الأثر
+      // الفعلي على الرصيد يصير فقط عند تسجيل سداد له (addStoreDebtPayment).
+      addStoreDebt(input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) {
+        const debt: StoreDebt = {
+          id: makeId(),
+          storeName: input.storeName.trim(),
+          amount: input.amount,
+          date: input.date,
+          dueDate: input.dueDate,
+          note: input.note?.trim() || undefined,
+        }
+        persistStoreDebts([debt, ...storeDebts])
+        return debt
+      },
+      updateStoreDebt(id: string, input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) {
+        persistStoreDebts(
+          storeDebts.map((d) =>
+            d.id === id
+              ? { ...d, storeName: input.storeName.trim(), amount: input.amount, date: input.date, dueDate: input.dueDate, note: input.note?.trim() || undefined }
+              : d,
+          ),
+        )
+      },
+      deleteStoreDebt(id: string) {
+        const payments = storeDebtPayments.filter((p) => p.debtId === id)
+        let nextAccounts = accounts
+        let nextTransactions = transactions
+        for (const payment of payments) {
+          const txn = nextTransactions.find((t) => t.id === payment.transactionId)
+          if (txn) {
+            nextAccounts = withTransactionEffect(nextAccounts, txn, -1)
+            nextTransactions = nextTransactions.filter((t) => t.id !== txn.id)
+          }
+        }
+        if (payments.length > 0) {
+          persistAccounts(nextAccounts)
+          persistTransactions(nextTransactions)
+          persistStoreDebtPayments(storeDebtPayments.filter((p) => p.debtId !== id))
+        }
+        persistStoreDebts(storeDebts.filter((d) => d.id !== id))
+      },
+      addStoreDebtPayment(input: { debtId: string; amount: number; date: string; accountId: string }) {
+        const debt = storeDebts.find((d) => d.id === input.debtId)
+        if (!debt) return
+        const txnId = makeId()
+        const txn: Transaction = {
+          id: txnId,
+          type: 'expense',
+          amount: input.amount,
+          date: input.date,
+          accountId: input.accountId,
+          categoryId: STORE_DEBT_CATEGORY_ID,
+          note: `سداد دَين — ${debt.storeName}`,
+        }
+        persistTransactions([txn, ...transactions])
+        persistAccounts(withTransactionEffect(accounts, txn, 1))
+        const payment: StoreDebtPayment = { id: makeId(), debtId: input.debtId, amount: input.amount, date: input.date, accountId: input.accountId, transactionId: txnId }
+        persistStoreDebtPayments([payment, ...storeDebtPayments])
+      },
+      deleteStoreDebtPayment(id: string) {
+        const payment = storeDebtPayments.find((p) => p.id === id)
+        if (!payment) return
+        const txn = transactions.find((t) => t.id === payment.transactionId)
+        if (txn) {
+          persistAccounts(withTransactionEffect(accounts, txn, -1))
+          persistTransactions(transactions.filter((t) => t.id !== txn.id))
+        }
+        persistStoreDebtPayments(storeDebtPayments.filter((p) => p.id !== id))
       },
       notifications: buildNotifications(),
       monthlyBudgetLimit,
@@ -1597,6 +1704,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           fuelLogs,
           salaryAdvances,
           salaryViolations,
+          storeDebts,
+          storeDebtPayments,
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1620,10 +1729,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistFuelLogs(snapshot.fuelLogs ?? [])
         persistSalaryAdvances(snapshot.salaryAdvances ?? [])
         persistSalaryViolations(snapshot.salaryViolations ?? [])
+        persistStoreDebts(snapshot.storeDebts ?? [])
+        persistStoreDebtPayments(snapshot.storeDebtPayments ?? [])
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
