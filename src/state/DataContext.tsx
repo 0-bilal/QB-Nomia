@@ -913,7 +913,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!debt.dueDate || debt.dueDate >= today) continue
         const paid = storeDebtPayments.filter((p) => p.debtId === debt.id).reduce((s, p) => s + p.amount, 0)
         if (debt.amount - paid > 0) {
-          list.push({ id: `store-debt-${debt.id}`, kind: 'store-debt', severity: 'critical', title: debt.storeName, message: 'متأخر بسداد دَين', color: 'var(--color-expense)', to: '/store-debts' })
+          list.push({ id: `store-debt-${debt.id}`, kind: 'store-debt', severity: 'critical', title: debt.storeName, message: 'متأخر بسداد دَين', color: 'var(--color-expense)', to: '/loans?tab=stores' })
         }
       }
 
@@ -996,7 +996,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           title: 'سلفة الراتب',
           message: `عندك سلفة قائمة بقيمة ${formatMoney(outstandingAdvance)} — بتُخصم تلقائيًا من أول دخل براتب`,
           color: 'var(--color-income)',
-          to: '/salary-advance',
+          to: '/loans?tab=advance',
         })
       }
 
