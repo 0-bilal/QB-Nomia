@@ -1,4 +1,4 @@
-import type { FuelLog } from '../types'
+import type { FuelLog, OilChangeLog } from '../types'
 
 /** عدد آخر فترات (بين تعبئتين كاملتين متتاليتين) تُستخدم لحساب معدل الاستهلاك — متوسط متحرك بدل الاعتماد على فترة وحدة قد تتذبذب مع الزحمة أو نمط القيادة. */
 const SEGMENT_WINDOW = 5
@@ -63,4 +63,30 @@ export function computeFuelStats(logs: FuelLog[], tankCapacityL: number | null):
   const estimatedRangeKm = tankCapacityL !== null && avgKmPerLiter !== null ? tankCapacityL * avgKmPerLiter : null
 
   return { segments, avgKmPerLiter, avgLitersPer100Km, estimatedRangeKm }
+}
+
+export interface VehicleCostStats {
+  fuelCostTotal: number
+  oilCostTotal: number
+  totalCost: number
+  drivenKm: number
+  /** التكلفة الإجمالية (وقود + زيت) مقسومة على المسافة المقطوعة منذ أول قراءة عداد مسجَّلة — null لو ما فيه مسافة كافية أو تكلفة مسجَّلة. */
+  costPerKm: number | null
+}
+
+/**
+ * تكلفة السيارة لكل كيلومتر — تجمع كل تكاليف الوقود وتغيير الزيت المسجَّلة
+ * (لو فيها) وتقسمها على المسافة بين أقدم وأحدث قراءة عداد بكل السجلّين معًا،
+ * بغضّ النظر هل كل عملية سُجِّل لها حساب/تكلفة أو لا.
+ */
+export function computeVehicleCostStats(fuelLogs: FuelLog[], oilChanges: OilChangeLog[]): VehicleCostStats {
+  const fuelCostTotal = fuelLogs.reduce((s, l) => s + (l.cost ?? 0), 0)
+  const oilCostTotal = oilChanges.reduce((s, l) => s + (l.cost ?? 0), 0)
+  const totalCost = fuelCostTotal + oilCostTotal
+
+  const odometerReadings = [...fuelLogs.map((l) => l.odometerKm), ...oilChanges.map((l) => l.odometerKm)]
+  const drivenKm = odometerReadings.length >= 2 ? Math.max(...odometerReadings) - Math.min(...odometerReadings) : 0
+  const costPerKm = drivenKm > 0 && totalCost > 0 ? totalCost / drivenKm : null
+
+  return { fuelCostTotal, oilCostTotal, totalCost, drivenKm, costPerKm }
 }

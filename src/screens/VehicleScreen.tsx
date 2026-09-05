@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney, formatDate } from '../lib/format'
 import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
-import { computeFuelStats } from '../lib/fuelConsumption'
+import { computeFuelStats, computeVehicleCostStats } from '../lib/fuelConsumption'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
@@ -118,6 +118,7 @@ export function VehicleScreen() {
   const nextChangeKm = hasBaseline ? vehicleOilBaselineKm! + vehicleOilIntervalKm : null
 
   const fuelStats = computeFuelStats(fuelLogs, fuelTankCapacityL)
+  const costStats = computeVehicleCostStats(fuelLogs, oilChanges)
 
   const combinedLogs: CombinedLogEntry[] = [
     ...oilChanges.map((log): CombinedLogEntry => ({ kind: 'oil', log })),
@@ -315,6 +316,26 @@ export function VehicleScreen() {
           </>
         )}
       </div>
+
+      {costStats.costPerKm !== null && (
+        <div className="qb-card mb-4 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="qb-section-label">تكلفة السيارة</div>
+            <div className="num text-[11px] text-[var(--color-text-3)]">آخر {Math.round(costStats.drivenKm).toLocaleString('en-US')} كم مسجَّلة</div>
+          </div>
+          <div className="mb-3 flex items-baseline justify-between">
+            <span className="text-[12px] text-[var(--color-text-3)]">التكلفة لكل كيلومتر</span>
+            <span className="num text-[17px] font-bold" style={{ color: 'var(--color-vehicle)' }}>
+              {costStats.costPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11.5px] text-[var(--color-text-3)]">
+            <span>وقود: {formatMoney(costStats.fuelCostTotal)}</span>
+            <span>زيت: {formatMoney(costStats.oilCostTotal)}</span>
+            <span className="font-semibold text-[var(--color-text-2)]">الإجمالي: {formatMoney(costStats.totalCost)}</span>
+          </div>
+        </div>
+      )}
 
       <div className="qb-section-label mb-2 px-1">سجل العمليات</div>
       {combinedLogs.length === 0 ? (
