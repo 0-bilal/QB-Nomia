@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useData } from '../state/DataContext'
+import { useData, isProtectedCategory } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -90,6 +90,7 @@ export function AddCategoryScreen() {
 
   const existing = id ? categories.find((c) => c.id === id) : undefined
   const isEditing = Boolean(existing)
+  const isProtected = Boolean(id && isProtectedCategory(id))
 
   const [name, setName] = useState(existing?.name ?? '')
   const [budgetLimit, setBudgetLimit] = useState(existing?.budgetLimit ? String(existing.budgetLimit) : '')
@@ -135,7 +136,7 @@ export function AddCategoryScreen() {
           cancelLabel="إلغاء"
           className="pt-8 pb-6"
           right={
-            isEditing ? (
+            isEditing && !isProtected ? (
               <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
                 حذف
               </button>
@@ -200,6 +201,12 @@ export function AddCategoryScreen() {
           </span>
         </button>
       </div>
+
+      {isProtected && (
+        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.16)', color: 'var(--color-text-2)' }}>
+          هذي فئة أساسية يعتمد عليها التطبيق داخليًا (لحركات مثل الاشتراكات أو الالتزامات أو تسديد الديون)، فما ينحذفها حتى ما تختفي فئة تلك الحركات مستقبلًا. تقدر تعدّل اسمها أو أيقونتها بس.
+        </div>
+      )}
 
       <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الفئة</label>
       <input

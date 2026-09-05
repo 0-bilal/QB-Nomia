@@ -83,7 +83,18 @@ const REQUIRED_DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-vehicle', name: 'صيانة السيارة', kind: 'expense' },
   { id: 'cat-fuel', name: 'وقود السيارة', kind: 'expense' },
   { id: STORE_DEBT_CATEGORY_ID, name: 'سداد ديون', kind: 'expense' },
+  // هاتين الفئتين تُستخدمان داخليًا لحركات الاشتراكات والالتزامات
+  // التلقائية (logSubscriptionPayment/logCommitmentRenewal) بمعرّف ثابت —
+  // لازم تبقيان موجودتين دائمًا، وإلا صارت تلك الحركات "بلا فئة" فجأة لو
+  // المستخدم حذفهما من شاشة الفئات.
+  { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
+  { id: 'cat-commitments', name: 'التزامات', kind: 'expense' },
 ]
+const REQUIRED_CATEGORY_IDS = new Set(REQUIRED_DEFAULT_CATEGORIES.map((c) => c.id))
+/** يمنع حذف فئة يعتمد عليها التطبيق داخليًا لحركات تلقائية بمعرّف ثابت — حذفها يجعل تلك الحركات "بلا فئة". */
+export function isProtectedCategory(id: string): boolean {
+  return REQUIRED_CATEGORY_IDS.has(id)
+}
 
 // الفئات ومصادر الدخل مجرد تسميات تنظيمية جاهزة (مو بيانات مالية وهمية) فتبقى كنقطة انطلاق مفيدة.
 function seedCategories(): Category[] {
@@ -94,8 +105,6 @@ function seedCategories(): Category[] {
     { id: 'cat-shopping', name: 'تسوق', kind: 'expense' },
     { id: 'cat-health', name: 'صحة', kind: 'expense' },
     { id: 'cat-fun', name: 'ترفيه', kind: 'expense' },
-    { id: 'cat-subscriptions', name: 'اشتراكات', kind: 'expense' },
-    { id: 'cat-commitments', name: 'التزامات', kind: 'expense' },
     ...REQUIRED_DEFAULT_CATEGORIES,
   ]
 }
