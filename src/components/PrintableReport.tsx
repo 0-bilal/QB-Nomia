@@ -95,6 +95,71 @@ export function PrintableReport({ data }: { data: ReportData }) {
         </table>
       )}
 
+      {data.extras?.subscriptions && data.extras.subscriptions.length > 0 && (
+        <>
+          <SectionTitle>الاشتراكات النشطة</SectionTitle>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 28, fontSize: 12 }}>
+            <thead>
+              <tr>
+                <Th align="right">الاشتراك</Th>
+                <Th align="left">دورة الفوترة</Th>
+                <Th align="left">التكلفة</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.extras.subscriptions.map((s, i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#FAFAFA' }}>
+                  <Td align="right">{s.name}</Td>
+                  <Td align="left">{s.billingCycleLabel}</Td>
+                  <Td align="left" numeric>{formatMoney(s.cost)}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {data.extras?.commitments && data.extras.commitments.length > 0 && (
+        <>
+          <SectionTitle>الالتزامات النشطة</SectionTitle>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 28, fontSize: 12 }}>
+            <thead>
+              <tr>
+                <Th align="right">الالتزام</Th>
+                <Th align="left">التكلفة</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.extras.commitments.map((c, i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#FAFAFA' }}>
+                  <Td align="right">{c.name}</Td>
+                  <Td align="left" numeric>{formatMoney(c.cost)}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {data.extras?.debts && (
+        <>
+          <SectionTitle>ملخص الديون</SectionTitle>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 28 }}>
+            <SummaryCard label="إجمالي عليك (سلف أشخاص)" value={formatMoney(data.extras.debts.totalIOwe)} />
+            <SummaryCard label="مستحق لك (سلف أشخاص)" value={formatMoney(data.extras.debts.totalOwedToMe)} />
+          </div>
+        </>
+      )}
+
+      {data.extras?.vehicleCostPerKm != null && (
+        <>
+          <SectionTitle>تكلفة السيارة</SectionTitle>
+          <div style={{ marginBottom: 28 }}>
+            <SummaryCard label="التكلفة لكل كيلومتر" value={`${data.extras.vehicleCostPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم`} />
+          </div>
+        </>
+      )}
+
       <div style={{ marginTop: 32, paddingTop: 12, borderTop: `1px solid ${border}`, fontSize: 10, color: inkFaint, textAlign: 'center' }}>
         تم إنشاء هذا التقرير تلقائيًا بواسطة تطبيق QB-Nomia
       </div>

@@ -4,7 +4,7 @@ import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { formatMoney } from '../lib/format'
-import type { Transaction } from '../types'
+import type { Account, IncomeSource, Transaction } from '../types'
 
 type PeriodType = 'month' | 'quarter' | 'year'
 
@@ -65,6 +65,31 @@ function categorySpendFor(transactions: Transaction[], range: Range): Map<string
   return map
 }
 
+function incomeSourceAmountFor(transactions: Transaction[], range: Range): Map<string, number> {
+  const inRange = transactions.filter((t) => t.type === 'income' && t.date >= range.startISO && t.date < range.endISO)
+  const map = new Map<string, number>()
+  for (const t of inRange) {
+    const key = t.incomeSourceId ?? '—'
+    map.set(key, (map.get(key) ?? 0) + t.amount)
+  }
+  return map
+}
+
+/** صافي أثر حركات الفترة على حساب مُحدَّد — دخل وارد لهذا الحساب + تحويلات واردة - مصروف منه - تحويلات صادرة منه. يعكس نشاط/نمو الحساب خلال الفترة، مو رصيده التاريخي. */
+function accountNetMovementFor(transactions: Transaction[], range: Range, accountId: string): number {
+  const inRange = transactions.filter((t) => t.date >= range.startISO && t.date < range.endISO && (t.accountId === accountId || t.transferToAccountId === accountId))
+  let net = 0
+  for (const t of inRange) {
+    if (t.accountId === accountId) {
+      if (t.type === 'income') net += t.amount
+      else net -= t.amount // expense أو تحويل صادر
+    } else if (t.transferToAccountId === accountId) {
+      net += t.amount
+    }
+  }
+  return net
+}
+
 function DeltaBadge({ current, previous, goodWhenUp }: { current: number; previous: number; goodWhenUp: boolean }) {
   if (previous === 0 && current === 0) return null
   const delta = current - previous
@@ -82,7 +107,7 @@ function DeltaBadge({ current, previous, goodWhenUp }: { current: number; previo
 
 export function ComparisonsScreen() {
   const navigate = useNavigate()
-  const { transactions, categories } = useData()
+  const { transactions, categories, incomeSources, accounts } = useData()
   const [periodType, setPeriodType] = useState<PeriodType>('month')
 
   const current = useMemo(() => rangeFor(periodType, 0), [periodType])
@@ -111,6 +136,28 @@ export function ComparisonsScreen() {
       }))
       .sort((a, b) => b.current - a.current)
   }, [categories, currentCatSpend, previousCatSpend])
+
+  const currentIncomeSrc = useMemo(() => incomeSourceAmountFor(transactions, current), [transactions, current])
+  const previousIncomeSrc = useMemo(() => incomeSourceAmountFor(transactions, previous), [transactions, previous])
+  const incomeSourceRows = useMemo(() => {
+    const ids = new Set([...currentIncomeSrc.keys(), ...previousIncomeSrc.keys()])
+    return incomeSources
+      .filter((s: IncomeSource) => ids.has(s.id))
+      .map((s) => ({ id: s.id, name: s.name, current: currentIncomeSrc.get(s.id) ?? 0, previous: previousIncomeSrc.get(s.id) ?? 0 }))
+      .sort((a, b) => b.current - a.current)
+  }, [incomeSources, currentIncomeSrc, previousIncomeSrc])
+
+  const accountRows = useMemo(() => {
+    return accounts
+      .map((a: Account) => ({
+        id: a.id,
+        name: a.name,
+        current: accountNetMovementFor(transactions, current, a.id),
+        previous: accountNetMovementFor(transactions, previous, a.id),
+      }))
+      .filter((r) => r.current !== 0 || r.previous !== 0)
+      .sort((a, b) => b.current - a.current)
+  }, [accounts, transactions, current, previous])
 
   return (
     <ScreenScroll header={<ScreenHeader title="المقارنة الشخصية" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
@@ -205,6 +252,48 @@ export function ComparisonsScreen() {
             </div>
           ))}
         </div>
+      )}
+
+      {incomeSourceRows.length > 0 && (
+        <>
+          <div className="qb-section-label mb-2 mt-4">الدخل حسب المصدر</div>
+          <div className="qb-card flex flex-col gap-3 p-4">
+            {incomeSourceRows.map((s) => (
+              <div key={s.id} className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12.5px] font-semibold">{s.name}</div>
+                  <div className="num text-[11px] text-[var(--color-text-3)]">سابقًا {formatMoney(s.previous)}</div>
+                </div>
+                <div className="flex-shrink-0 text-left">
+                  <div className="num text-[13px] font-bold" style={{ color: 'var(--color-income)' }}>{formatMoney(s.current)}</div>
+                  <DeltaBadge current={s.current} previous={s.previous} goodWhenUp={true} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {accountRows.length > 0 && (
+        <>
+          <div className="qb-section-label mb-2 mt-4">نشاط الحسابات (صافي الحركة بالفترة)</div>
+          <div className="qb-card flex flex-col gap-3 p-4">
+            {accountRows.map((a) => (
+              <div key={a.id} className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12.5px] font-semibold">{a.name}</div>
+                  <div className="num text-[11px] text-[var(--color-text-3)]">سابقًا {formatMoney(a.previous)}</div>
+                </div>
+                <div className="flex-shrink-0 text-left">
+                  <div className="num text-[13px] font-bold" style={{ color: a.current >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
+                    {formatMoney(a.current)}
+                  </div>
+                  <DeltaBadge current={a.current} previous={a.previous} goodWhenUp={true} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </ScreenScroll>
   )
