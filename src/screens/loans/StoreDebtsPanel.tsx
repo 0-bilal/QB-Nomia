@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData } from '../state/DataContext'
-import { formatMoney, formatDate } from '../lib/format'
-import { ScreenScroll } from '../components/ScreenScroll'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { AmountPad } from '../components/AmountPad'
-import { DatePicker } from '../components/DatePicker'
-import { PickerField } from '../components/PickerField'
-import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
-import { ConfirmDialog } from '../components/ConfirmDialog'
-import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
-import type { Account, StoreDebt, StoreDebtPayment } from '../types'
+import { useData } from '../../state/DataContext'
+import { formatMoney, formatDate } from '../../lib/format'
+import { AmountPad } from '../../components/AmountPad'
+import { DatePicker } from '../../components/DatePicker'
+import { PickerField } from '../../components/PickerField'
+import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
+import type { Account, StoreDebt, StoreDebtPayment } from '../../types'
 
 const color = 'var(--color-expense)'
 
@@ -354,8 +352,8 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
   )
 }
 
-export function StoreDebtsScreen() {
-  const navigate = useNavigate()
+/** محتوى تبويب "ديون متاجر" داخل شاشة الديون والسلف. */
+export function StoreDebtsPanel() {
   const { storeDebts, storeDebtPayments, addStoreDebt, accounts } = useData()
   const [addingNew, setAddingNew] = useState(false)
 
@@ -363,7 +361,7 @@ export function StoreDebtsScreen() {
   const totalOutstanding = storeDebts.reduce((sum, d) => sum + Math.max(0, remainingOf(d)), 0)
 
   return (
-    <ScreenScroll header={<ScreenHeader title="ديون المتاجر" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
+    <>
       <div className="qb-card-elevated mb-5 p-4.5">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'rgba(255,92,92,0.14)', color }}>
@@ -414,6 +412,6 @@ export function StoreDebtsScreen() {
           ))}
         </div>
       )}
-    </ScreenScroll>
+    </>
   )
 }

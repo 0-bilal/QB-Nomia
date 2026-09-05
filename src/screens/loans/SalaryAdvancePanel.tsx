@@ -1,15 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData } from '../state/DataContext'
-import { formatMoney, formatDate } from '../lib/format'
-import { ScreenScroll } from '../components/ScreenScroll'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { AmountPad } from '../components/AmountPad'
-import { PickerField } from '../components/PickerField'
-import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
-import { ConfirmDialog } from '../components/ConfirmDialog'
-import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
-import type { AccountType } from '../types'
+import { useData } from '../../state/DataContext'
+import { formatMoney, formatDate } from '../../lib/format'
+import { AmountPad } from '../../components/AmountPad'
+import { PickerField } from '../../components/PickerField'
+import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
+import type { AccountType } from '../../types'
 
 function SalaryAdvanceIcon({ size = 20 }: { size?: number }) {
   return (
@@ -144,8 +142,8 @@ function LogAdvanceForm({
   )
 }
 
-export function SalaryAdvanceScreen() {
-  const navigate = useNavigate()
+/** محتوى تبويب "سلفة راتب" داخل شاشة الديون والسلف — بدون غلاف/عنوان خاص به، تُدرَج مباشرة تحت رأس التبويبات المشترك. */
+export function SalaryAdvancePanel() {
   const { salaryAdvances, logSalaryAdvance, updateSalaryAdvance, deleteSalaryAdvance, accounts } = useData()
   const [editingId, setEditingId] = useState<'new' | string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -156,7 +154,7 @@ export function SalaryAdvanceScreen() {
   const editingAdvance = editingId && editingId !== 'new' ? salaryAdvances.find((a) => a.id === editingId) : undefined
 
   return (
-    <ScreenScroll header={<ScreenHeader title="سلفة الراتب" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
+    <>
       <ConfirmDialog
         open={confirmDeleteId !== null}
         title="حذف السلفة"
@@ -277,6 +275,6 @@ export function SalaryAdvanceScreen() {
           })}
         </div>
       )}
-    </ScreenScroll>
+    </>
   )
 }

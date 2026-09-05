@@ -1,12 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useData } from '../state/DataContext'
-import { formatMoney, formatDate } from '../lib/format'
-import { ScreenScroll } from '../components/ScreenScroll'
-import { ScreenHeader } from '../components/ScreenHeader'
-import { AmountPad } from '../components/AmountPad'
-import { ConfirmDialog } from '../components/ConfirmDialog'
-import { ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
+import { useData } from '../../state/DataContext'
+import { formatMoney, formatDate } from '../../lib/format'
+import { AmountPad } from '../../components/AmountPad'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 
 const color = 'var(--color-expense)'
 
@@ -81,8 +78,8 @@ function EditViolationForm({
   )
 }
 
-export function SalaryViolationsScreen() {
-  const navigate = useNavigate()
+/** محتوى تبويب "خصومات مخالفات" داخل شاشة الديون والسلف. */
+export function SalaryViolationsPanel() {
   const { salaryViolations, updateSalaryViolation, deleteSalaryViolation, accounts } = useData()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -91,7 +88,7 @@ export function SalaryViolationsScreen() {
   const editingViolation = editingId ? salaryViolations.find((v) => v.id === editingId) : undefined
 
   return (
-    <ScreenScroll header={<ScreenHeader title="خصومات المخالفات" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
+    <>
       <ConfirmDialog
         open={confirmDeleteId !== null}
         title="حذف الخصم"
@@ -168,6 +165,6 @@ export function SalaryViolationsScreen() {
           })}
         </div>
       )}
-    </ScreenScroll>
+    </>
   )
 }

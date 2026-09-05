@@ -21,7 +21,7 @@ import { GoalsScreen } from './screens/GoalsScreen'
 import { RecurringScreen } from './screens/RecurringScreen'
 import { AddRecurringScreen } from './screens/AddRecurringScreen'
 import { ConfirmRecurringScreen } from './screens/ConfirmRecurringScreen'
-import { PeopleListScreen } from './screens/loans/PeopleListScreen'
+import { DebtsHubScreen } from './screens/loans/DebtsHubScreen'
 import { AddPersonScreen } from './screens/loans/AddPersonScreen'
 import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
 import { AddLoanScreen } from './screens/loans/AddLoanScreen'
@@ -36,9 +36,6 @@ import { ChangePinScreen } from './screens/ChangePinScreen'
 import { CalculatorScreen } from './screens/CalculatorScreen'
 import { VehicleScreen } from './screens/VehicleScreen'
 import { LogVehicleScreen } from './screens/LogVehicleScreen'
-import { SalaryAdvanceScreen } from './screens/SalaryAdvanceScreen'
-import { SalaryViolationsScreen } from './screens/SalaryViolationsScreen'
-import { StoreDebtsScreen } from './screens/StoreDebtsScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -57,7 +54,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<HomeScreen />} />
           <Route path="accounts" element={<AccountsScreen />} />
-          <Route path="loans" element={<PeopleListScreen />} />
+          <Route path="loans" element={<DebtsHubScreen />} />
           <Route path="more" element={<MoreScreen />} />
         </Route>
         <Route path="add" element={<AddChooserScreen />} />
@@ -98,9 +95,6 @@ export default function App() {
         <Route path="calculator" element={<CalculatorScreen />} />
         <Route path="vehicle" element={<VehicleScreen />} />
         <Route path="vehicle/log/:type" element={<LogVehicleScreen />} />
-        <Route path="salary-advance" element={<SalaryAdvanceScreen />} />
-        <Route path="salary-violations" element={<SalaryViolationsScreen />} />
-        <Route path="store-debts" element={<StoreDebtsScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

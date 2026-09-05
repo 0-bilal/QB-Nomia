@@ -6,7 +6,8 @@ import { formatMoney } from '../../lib/format'
 
 type Filter = 'all' | 'owedToMe' | 'iOwe'
 
-export function PeopleListScreen() {
+/** محتوى تبويب "أشخاص" داخل شاشة الديون والسلف — بدون رأس خاص به (الرأس + زر الإضافة بالمستوى الأعلى). */
+export function PeoplePanel() {
   const { people, personBalance, totalOwedToMe, totalIOwe } = useData()
   const navigate = useNavigate()
   const [filter, setFilter] = useState<Filter>('all')
@@ -24,22 +25,7 @@ export function PeopleListScreen() {
   }, [people, personBalance, filter, query])
 
   return (
-    <div dir="rtl" className="px-5 pb-4">
-      <div className="safe-top qb-sticky-header-row mb-5 flex items-center justify-between pt-14">
-        <div className="qb-glass-circle flex h-9.5 items-center rounded-full border px-4 text-[15px] font-bold">الأشخاص</div>
-        <button
-          onClick={() => navigate('/loans/new')}
-          className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-          style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-          aria-label="إضافة شخص"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
-      </div>
-
+    <>
       <div className="mb-4 flex gap-2.5">
         <div className="qb-card flex-1 p-3.5">
           <div className="mb-1 text-[11px] text-[var(--color-text-2)]">إجمالي مستحق لك</div>
@@ -110,6 +96,6 @@ export function PeopleListScreen() {
           ))}
         </div>
       )}
-    </div>
+    </>
   )
 }

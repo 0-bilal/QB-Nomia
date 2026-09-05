@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { forceAppUpdate } from '../lib/cache'
+import { recordMoreVisit, topUsedRoutes } from '../lib/moreUsage'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppLogo } from '../components/AppLogo'
 
@@ -18,35 +19,6 @@ function TagIcon() {
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3h6a2 2 0 0 1 2 2v6L11 20l-8-8Z" />
       <circle cx="15.5" cy="8.5" r="1.3" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-function StoreDebtIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3.5 9.5 4.5 4h15l1 5.5" />
-      <path d="M3.5 9.5a2.3 2.3 0 0 0 4.6 0 2.3 2.3 0 0 0 4.6 0 2.3 2.3 0 0 0 4.6 0 2.3 2.3 0 0 0 4.6 0" />
-      <path d="M5 9.5V20h14V9.5" />
-      <path d="M10 20v-5.5h4V20" />
-    </svg>
-  )
-}
-function SalaryViolationIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.5 22 20.5H2Z" />
-      <line x1="12" y1="9.5" x2="12" y2="14" />
-      <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-function SalaryAdvanceIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2.5" y="6" width="14" height="10" rx="2" />
-      <circle cx="9.5" cy="11" r="2" />
-      <path d="M19 8.5 22 11.5 19 14.5" />
-      <path d="M22 11.5h-5" />
     </svg>
   )
 }
@@ -197,6 +169,42 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15,6 9,12 15,18" />
+    </svg>
+  )
+}
+
+function ListRow({ item, onClick, showDesc = true }: { item: MoreItem; onClick: () => void; showDesc?: boolean }) {
+  return (
+    <button onClick={onClick} className="qb-press flex w-full items-center gap-3 px-4 py-3 text-right">
+      <div className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ width: 38, height: 38, background: item.bg, color: item.color }}>
+        {item.icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-bold">{item.label}</div>
+        {showDesc && <div className="truncate text-[11px] text-[var(--color-text-3)]">{item.desc}</div>}
+      </div>
+      <div className="flex-shrink-0 text-[var(--color-text-3)]">
+        <ChevronIcon />
+      </div>
+    </button>
+  )
+}
+
+function GridTile({ item, onClick }: { item: MoreItem; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="qb-card qb-press flex flex-col items-center gap-2 p-3.5 text-center">
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: item.bg, color: item.color }}>
+        {item.icon}
+      </div>
+      <div className="text-[11.5px] font-semibold leading-tight">{item.label}</div>
+    </button>
+  )
+}
+
 function UpdatingOverlay() {
   return (
     <div dir="rtl" className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-5 bg-[var(--color-bg)]">
@@ -219,16 +227,14 @@ interface MoreItem {
   bg: string
 }
 
-const SECTIONS: { title: string; items: MoreItem[] }[] = [
+const SECTIONS: { title: string; layout?: 'grid'; items: MoreItem[] }[] = [
   {
     title: 'البيانات المالية',
+    layout: 'grid',
     items: [
       { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
       { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
       { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
-      { label: 'سلفة الراتب', desc: 'سجّل سلفة وتُخصم تلقائيًا من أول راتب قادم', to: '/salary-advance', icon: <SalaryAdvanceIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
-      { label: 'خصومات المخالفات', desc: 'سجل خصومات المخالفات المطبَّقة على رواتبك', to: '/salary-violations', icon: <SalaryViolationIcon />, color: 'var(--color-expense)', bg: 'rgba(239,68,68,0.12)' },
-      { label: 'ديون المتاجر', desc: 'سلع أو خدمات أخذتها ولسه ما دفعت قيمتها بالكامل', to: '/store-debts', icon: <StoreDebtIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
       { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
     ],
   },
@@ -254,6 +260,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
   },
   {
     title: 'التقارير والتحليلات',
+    layout: 'grid',
     items: [
       { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
       { label: 'المقارنة الشخصية', desc: 'قارن دخلك ومصاريفك شهريًا، ربع سنويًا، أو سنويًا', to: '/comparisons', icon: <CompareIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
@@ -270,11 +277,14 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
   },
 ]
 
+const ALL_ITEMS: MoreItem[] = SECTIONS.flatMap((s) => s.items)
+
 export function MoreScreen() {
   const navigate = useNavigate()
   const auth = useAuth()
   const [busy, setBusy] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [query, setQuery] = useState('')
 
   async function confirmUpdateApp() {
     setConfirmOpen(false)
@@ -286,6 +296,19 @@ export function MoreScreen() {
       setBusy(false)
     }
   }
+
+  function goTo(item: MoreItem) {
+    recordMoreVisit(item.to)
+    navigate(item.to)
+  }
+
+  const topItems = useMemo(() => {
+    const routes = topUsedRoutes(3)
+    return routes.map((r) => ALL_ITEMS.find((i) => i.to === r)).filter((i): i is MoreItem => Boolean(i))
+  }, [])
+
+  const trimmedQuery = query.trim()
+  const searchResults = trimmedQuery ? ALL_ITEMS.filter((i) => i.label.includes(trimmedQuery)) : null
 
   return (
     <div dir="rtl" className="px-5 pb-4">
@@ -304,36 +327,58 @@ export function MoreScreen() {
         <div className="qb-glass-circle flex h-9.5 w-fit items-center rounded-full border px-4 text-[15px] font-bold">المزيد</div>
       </div>
 
-      {SECTIONS.map((section) => (
-        <div key={section.title} className="mb-5">
-          <div className="qb-section-label mb-2 px-1">{section.title}</div>
-          <div className="qb-card overflow-hidden">
-            {section.items.map((item, i) => (
-              <button
-                key={item.label}
-                onClick={() => navigate(item.to)}
-                className={`qb-press flex w-full items-center gap-3 px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
-              >
-                <div
-                  className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]"
-                  style={{ width: 38, height: 38, background: item.bg, color: item.color }}
-                >
-                  {item.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-bold">{item.label}</div>
-                  <div className="truncate text-[11px] text-[var(--color-text-3)]">{item.desc}</div>
-                </div>
-                <div className="flex-shrink-0 text-[var(--color-text-3)]">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15,6 9,12 15,18" />
-                  </svg>
-                </div>
-              </button>
+      {!searchResults && topItems.length > 0 && (
+        <div className="mb-5">
+          <div className="qb-section-label mb-2 px-1">الأكثر استخدامًا</div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {topItems.map((item) => (
+              <GridTile key={item.label} item={item} onClick={() => goTo(item)} />
             ))}
           </div>
         </div>
-      ))}
+      )}
+
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="ابحث بالاسم..."
+        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[13.5px] outline-none placeholder:text-[var(--color-text-3)]"
+      />
+
+      {searchResults ? (
+        searchResults.length === 0 ? (
+          <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد نتائج مطابقة</div>
+        ) : (
+          <div className="qb-card mb-5 overflow-hidden">
+            {searchResults.map((item, i) => (
+              <div key={item.label} className={i > 0 ? 'border-t qb-divider' : ''}>
+                <ListRow item={item} onClick={() => goTo(item)} />
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        SECTIONS.map((section) => (
+          <div key={section.title} className="mb-5">
+            <div className="qb-section-label mb-2 px-1">{section.title}</div>
+            {section.layout === 'grid' ? (
+              <div className="grid grid-cols-3 gap-2.5">
+                {section.items.map((item) => (
+                  <GridTile key={item.label} item={item} onClick={() => goTo(item)} />
+                ))}
+              </div>
+            ) : (
+              <div className="qb-card overflow-hidden">
+                {section.items.map((item, i) => (
+                  <div key={item.label} className={i > 0 ? 'border-t qb-divider' : ''}>
+                    <ListRow item={item} onClick={() => goTo(item)} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))
+      )}
 
       <button
         onClick={() => setConfirmOpen(true)}
