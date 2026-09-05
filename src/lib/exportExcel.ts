@@ -42,6 +42,49 @@ export async function exportReportExcel(data: ReportData, filename: string): Pro
     styleBodyRow(row)
   }
 
+  if (data.extras?.subscriptions && data.extras.subscriptions.length > 0) {
+    summarySheet.addRow([])
+    const subHeaderRow = summarySheet.addRow(['الاشتراك', 'دورة الفوترة', 'التكلفة'])
+    styleHeaderRow(subHeaderRow)
+    for (const s of data.extras.subscriptions) {
+      const row = summarySheet.addRow([s.name, s.billingCycleLabel, s.cost])
+      row.getCell(3).numFmt = '#,##0.00 "ر.س"'
+      styleBodyRow(row)
+    }
+  }
+
+  if (data.extras?.commitments && data.extras.commitments.length > 0) {
+    summarySheet.addRow([])
+    const comHeaderRow = summarySheet.addRow(['الالتزام', 'التكلفة'])
+    styleHeaderRow(comHeaderRow)
+    for (const c of data.extras.commitments) {
+      const row = summarySheet.addRow([c.name, c.cost])
+      row.getCell(2).numFmt = '#,##0.00 "ر.س"'
+      styleBodyRow(row)
+    }
+  }
+
+  if (data.extras?.debts) {
+    summarySheet.addRow([])
+    const debtHeaderRow = summarySheet.addRow(['ملخص الديون', ''])
+    styleHeaderRow(debtHeaderRow)
+    const oweRow = summarySheet.addRow(['إجمالي عليك (سلف أشخاص)', data.extras.debts.totalIOwe])
+    oweRow.getCell(2).numFmt = '#,##0.00 "ر.س"'
+    styleBodyRow(oweRow)
+    const owedRow = summarySheet.addRow(['مستحق لك (سلف أشخاص)', data.extras.debts.totalOwedToMe])
+    owedRow.getCell(2).numFmt = '#,##0.00 "ر.س"'
+    styleBodyRow(owedRow)
+  }
+
+  if (data.extras?.vehicleCostPerKm != null) {
+    summarySheet.addRow([])
+    const vehHeaderRow = summarySheet.addRow(['تكلفة السيارة', ''])
+    styleHeaderRow(vehHeaderRow)
+    const costRow = summarySheet.addRow(['التكلفة لكل كيلومتر', data.extras.vehicleCostPerKm])
+    costRow.getCell(2).numFmt = '#,##0.00 "ر.س/كم"'
+    styleBodyRow(costRow)
+  }
+
   const txSheet = workbook.addWorksheet('الحركات', { views: [{ rightToLeft: true }] })
   txSheet.columns = [
     { header: 'التاريخ', key: 'date', width: 14 },

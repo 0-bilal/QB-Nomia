@@ -4,7 +4,8 @@ import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { formatMoney } from '../lib/format'
-import { buildReportData } from '../lib/reportData'
+import { buildReportData, type ReportExtras } from '../lib/reportData'
+import { computeVehicleCostStats } from '../lib/fuelConsumption'
 
 function currentMonthValue(): string {
   const d = new Date()
@@ -32,14 +33,40 @@ function ExcelIcon() {
 
 export function ExportReportScreen() {
   const navigate = useNavigate()
-  const { transactions, categories, incomeSources, accounts } = useData()
+  const { transactions, categories, incomeSources, accounts, subscriptions, commitments, totalIOwe, totalOwedToMe, fuelLogs, oilChanges } = useData()
   const [monthValue, setMonthValue] = useState(currentMonthValue())
   const [busy, setBusy] = useState<'pdf' | 'excel' | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [includeSubscriptions, setIncludeSubscriptions] = useState(false)
+  const [includeCommitments, setIncludeCommitments] = useState(false)
+  const [includeDebts, setIncludeDebts] = useState(false)
+  const [includeVehicle, setIncludeVehicle] = useState(false)
+
+  const extras = useMemo<ReportExtras>(() => {
+    const result: ReportExtras = {}
+    if (includeSubscriptions) {
+      result.subscriptions = subscriptions
+        .filter((s) => s.status === 'active')
+        .map((s) => ({ name: s.name, cost: s.cost, billingCycleLabel: s.billingCycle === 'monthly' ? 'شهري' : 'سنوي' }))
+    }
+    if (includeCommitments) {
+      result.commitments = commitments
+        .filter((c) => c.status === 'active')
+        .map((c) => ({ name: c.name, cost: c.cost ?? 0 }))
+    }
+    if (includeDebts) {
+      result.debts = { totalIOwe, totalOwedToMe }
+    }
+    if (includeVehicle) {
+      const stats = computeVehicleCostStats(fuelLogs, oilChanges)
+      result.vehicleCostPerKm = stats.costPerKm
+    }
+    return result
+  }, [includeSubscriptions, includeCommitments, includeDebts, includeVehicle, subscriptions, commitments, totalIOwe, totalOwedToMe, fuelLogs, oilChanges])
 
   const data = useMemo(
-    () => buildReportData(monthValue, transactions, categories, incomeSources, accounts),
-    [monthValue, transactions, categories, incomeSources, accounts],
+    () => buildReportData(monthValue, transactions, categories, incomeSources, accounts, extras),
+    [monthValue, transactions, categories, incomeSources, accounts, extras],
   )
 
   async function handleExportPdf() {
@@ -96,6 +123,16 @@ export function ExportReportScreen() {
         <div className="mt-3 text-[11.5px] text-[var(--color-text-3)]">{data.transactionRows.length} حركة مسجّلة في هذه الفترة</div>
       </div>
 
+      <div className="qb-card mb-5 p-4">
+        <div className="qb-section-label mb-3">بيانات إضافية (اختياري)</div>
+        <div className="flex flex-col gap-3">
+          <ExtraToggle label="الاشتراكات النشطة" checked={includeSubscriptions} onChange={setIncludeSubscriptions} />
+          <ExtraToggle label="الالتزامات النشطة" checked={includeCommitments} onChange={setIncludeCommitments} />
+          <ExtraToggle label="ملخص الديون" checked={includeDebts} onChange={setIncludeDebts} />
+          <ExtraToggle label="تكلفة السيارة لكل كيلومتر" checked={includeVehicle} onChange={setIncludeVehicle} />
+        </div>
+      </div>
+
       {errorMsg && (
         <div className="mb-4 rounded-2xl border px-4 py-3 text-[12px] font-semibold" style={{ borderColor: 'rgba(255,92,92,0.3)', background: 'rgba(255,92,92,0.08)', color: 'var(--color-expense)' }}>
           {errorMsg}
@@ -132,5 +169,19 @@ export function ExportReportScreen() {
         </div>
       </button>
     </ScreenScroll>
+  )
+}
+
+function ExtraToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3">
+      <span className="text-[13px] font-semibold">{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-5 w-5 flex-shrink-0 accent-[var(--color-income)]"
+      />
+    </label>
   )
 }

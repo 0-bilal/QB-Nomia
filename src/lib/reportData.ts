@@ -20,6 +20,30 @@ export interface ReportCategoryRow {
   pct: number
 }
 
+export interface ReportExtraSubscription {
+  name: string
+  cost: number
+  billingCycleLabel: string
+}
+
+export interface ReportExtraCommitment {
+  name: string
+  cost: number
+}
+
+export interface ReportExtraDebts {
+  totalIOwe: number
+  totalOwedToMe: number
+}
+
+/** أقسام اختيارية إضافية للتقرير المُصدَّر (PDF/Excel) — يجمّعها المستخدم بنفسه بشاشة التصدير حسب اختياره، بمعزل عن الحسابات الشهرية الأساسية. */
+export interface ReportExtras {
+  subscriptions?: ReportExtraSubscription[]
+  commitments?: ReportExtraCommitment[]
+  debts?: ReportExtraDebts
+  vehicleCostPerKm?: number | null
+}
+
 export interface ReportData {
   periodLabel: string
   generatedAtLabel: string
@@ -29,6 +53,7 @@ export interface ReportData {
   savingsRate: number | null
   categoryRows: ReportCategoryRow[]
   transactionRows: ReportTransactionRow[]
+  extras?: ReportExtras
 }
 
 export function monthRange(monthValue: string): { startISO: string; endISO: string; label: string } {
@@ -45,6 +70,7 @@ export function buildReportData(
   categories: Category[],
   incomeSources: IncomeSource[],
   accounts: Account[],
+  extras?: ReportExtras,
 ): ReportData {
   const { startISO, endISO, label } = monthRange(monthValue)
   const inRange = transactions.filter((t) => t.date >= startISO && t.date < endISO).sort((a, b) => (a.date < b.date ? 1 : -1))
@@ -93,6 +119,7 @@ export function buildReportData(
     savingsRate,
     categoryRows,
     transactionRows,
+    extras,
   }
 }
 
