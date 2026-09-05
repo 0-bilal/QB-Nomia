@@ -1,10 +1,22 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { forceAppUpdate } from '../lib/cache'
 import { recordMoreVisit, topUsedRoutes } from '../lib/moreUsage'
+import { getLastSyncedAt, isSheetsSyncConfigured } from '../lib/sheetsSync'
+import { formatDate } from '../lib/format'
+import { APP_VERSION } from '../lib/version'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { AppLogo } from '../components/AppLogo'
+import { AppLogo, AppLogoMark } from '../components/AppLogo'
+
+/** خلفية متدرّجة خفيفة + حد شفاف بلون العنصر — بدل تعبئة مسطّحة موحّدة لكل شارات الأيقونات، يعطي إحساس "بنكي فاخر" بدل flat design. يعمل مع أي قيمة لون CSS (متغيّر أو حرفي) عبر color-mix. */
+function iconBadgeStyle(color: string): CSSProperties {
+  return {
+    background: `linear-gradient(135deg, color-mix(in srgb, ${color} 18%, transparent), color-mix(in srgb, ${color} 5%, transparent))`,
+    border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
+    color,
+  }
+}
 
 function SearchIcon() {
   return (
@@ -180,7 +192,7 @@ function ChevronIcon() {
 function ListRow({ item, onClick, showDesc = true }: { item: MoreItem; onClick: () => void; showDesc?: boolean }) {
   return (
     <button onClick={onClick} className="qb-press flex w-full items-center gap-3 px-4 py-3 text-right">
-      <div className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ width: 38, height: 38, background: item.bg, color: item.color }}>
+      <div className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]" style={{ width: 38, height: 38, ...iconBadgeStyle(item.color) }}>
         {item.icon}
       </div>
       <div className="min-w-0 flex-1">
@@ -194,13 +206,31 @@ function ListRow({ item, onClick, showDesc = true }: { item: MoreItem; onClick: 
   )
 }
 
-function GridTile({ item, onClick }: { item: MoreItem; onClick: () => void }) {
+function GridTile({ item, onClick, elevated = false }: { item: MoreItem; onClick: () => void; elevated?: boolean }) {
   return (
-    <button onClick={onClick} className="qb-card qb-press flex flex-col items-center gap-2 p-3.5 text-center">
-      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: item.bg, color: item.color }}>
+    <button onClick={onClick} className={`${elevated ? 'qb-card-elevated' : 'qb-card'} qb-press flex flex-col items-center gap-2 p-3.5 text-center`}>
+      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, ...iconBadgeStyle(item.color) }}>
         {item.icon}
       </div>
       <div className="text-[11.5px] font-semibold leading-tight">{item.label}</div>
+    </button>
+  )
+}
+
+function FeatureCard({ item, onClick }: { item: MoreItem; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="qb-press flex flex-col items-start gap-5 rounded-[20px] border border-[var(--color-border)] p-4 text-right"
+      style={{ background: `radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, ${item.color} 14%, transparent), transparent 60%), var(--color-surface)` }}
+    >
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[13px]" style={{ width: 40, height: 40, ...iconBadgeStyle(item.color) }}>
+        {item.icon}
+      </div>
+      <div>
+        <div className="mb-0.5 text-[13px] font-bold">{item.label}</div>
+        <div className="text-[10.5px] leading-snug text-[var(--color-text-3)]">{item.desc}</div>
+      </div>
     </button>
   )
 }
@@ -224,55 +254,50 @@ interface MoreItem {
   to: string
   icon: React.ReactElement
   color: string
-  bg: string
 }
 
-const SECTIONS: { title: string; layout?: 'grid'; items: MoreItem[] }[] = [
+const SECTIONS: { title: string; layout?: 'grid' | 'feature'; items: MoreItem[] }[] = [
   {
     title: 'البيانات المالية',
     layout: 'grid',
     items: [
-      { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)', bg: 'rgba(255,255,255,0.12)' },
-      { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)', bg: 'rgba(255,92,92,0.12)' },
-      { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
-      { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
+      { label: 'كل الحركات', desc: 'بحث وتعديل بكل حركاتك المسجّلة', to: '/transactions', icon: <SearchIcon />, color: 'var(--color-accent)' },
+      { label: 'فئات المصاريف', desc: 'إدارة فئات المصروفات والميزانيات', to: '/categories', icon: <TagIcon />, color: 'var(--color-expense)' },
+      { label: 'مصادر الدخل', desc: 'إدارة مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon />, color: 'var(--color-income)' },
+      { label: 'الآلة الحاسبة', desc: 'عمليات حسابية عادية، أو تقسيم حساب على أشخاص', to: '/calculator', icon: <CalculatorIcon />, color: 'var(--color-transfer)' },
     ],
   },
   {
     title: 'الدوري والمتكرر',
     items: [
-      { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
-      { label: 'الالتزامات', desc: 'تجديد الهوية، عقود، رخص، والتزامات دورية أخرى', to: '/commitments', icon: <CommitmentIcon />, color: 'var(--color-commitment)', bg: 'rgba(96,165,250,0.12)' },
-      { label: 'الحركات المتكررة', desc: 'راتب أو أي حركة بمبلغ متغيّر تحتاج تأكيد قبل تسجيلها', to: '/recurring', icon: <RecurringIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
+      { label: 'الاشتراكات', desc: 'يوتيوب، Google Play، وغيرها', to: '/subscriptions', icon: <SubscriptionIcon />, color: 'var(--color-subscription)' },
+      { label: 'الالتزامات', desc: 'تجديد الهوية، عقود، رخص، والتزامات دورية أخرى', to: '/commitments', icon: <CommitmentIcon />, color: 'var(--color-commitment)' },
+      { label: 'الحركات المتكررة', desc: 'راتب أو أي حركة بمبلغ متغيّر تحتاج تأكيد قبل تسجيلها', to: '/recurring', icon: <RecurringIcon />, color: 'var(--color-transfer)' },
     ],
   },
   {
-    title: 'الادخار',
+    title: 'الادخار والسيارة',
+    layout: 'feature',
     items: [
-      { label: 'الأهداف', desc: 'تتبّع أهداف الادخار وموعد تحقيقها', to: '/goals', icon: <GoalIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
-    ],
-  },
-  {
-    title: 'السيارة',
-    items: [
-      { label: 'صيانة السيارة', desc: 'تتبّع العداد، تغيير الزيت، واستهلاك الوقود', to: '/vehicle', icon: <CarIcon />, color: 'var(--color-vehicle)', bg: 'rgba(56,189,248,0.12)' },
+      { label: 'الأهداف', desc: 'تتبّع أهداف الادخار وموعد تحقيقها', to: '/goals', icon: <GoalIcon />, color: 'var(--color-subscription)' },
+      { label: 'صيانة السيارة', desc: 'العداد، الزيت، والوقود', to: '/vehicle', icon: <CarIcon />, color: 'var(--color-vehicle)' },
     ],
   },
   {
     title: 'التقارير والتحليلات',
     layout: 'grid',
     items: [
-      { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)', bg: 'rgba(124,108,255,0.12)' },
-      { label: 'المقارنة الشخصية', desc: 'قارن دخلك ومصاريفك شهريًا، ربع سنويًا، أو سنويًا', to: '/comparisons', icon: <CompareIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
-      { label: 'تصدير التقرير', desc: 'ملف PDF جاهز للطباعة A4 أو ملف Excel منسّق', to: '/export-report', icon: <ExportIcon />, color: 'var(--color-subscription)', bg: 'rgba(245,185,66,0.12)' },
+      { label: 'التقارير', desc: 'مؤشر الصحة المالية، اتجاه 6 أشهر، وتوزيع الفئات', to: '/reports', icon: <ChartIcon />, color: 'var(--color-transfer)' },
+      { label: 'المقارنة الشخصية', desc: 'قارن دخلك ومصاريفك شهريًا، ربع سنويًا، أو سنويًا', to: '/comparisons', icon: <CompareIcon />, color: 'var(--color-income)' },
+      { label: 'تصدير التقرير', desc: 'ملف PDF جاهز للطباعة A4 أو ملف Excel منسّق', to: '/export-report', icon: <ExportIcon />, color: 'var(--color-subscription)' },
     ],
   },
   {
     title: 'الحساب والنظام',
     items: [
-      { label: 'الأمان والخصوصية', desc: 'الرقم السري، البصمة، وإخفاء الأرصدة', to: '/security', icon: <ShieldIcon />, color: 'var(--color-income)', bg: 'rgba(34,197,94,0.12)' },
-      { label: 'مزامنة Google Sheets', desc: 'نسخة احتياطية تلقائية لجدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)', bg: 'rgba(45,212,191,0.12)' },
-      { label: 'حول التطبيق', desc: 'الإصدار، المطوّر، ومعلومات عن QB-Nomia', to: '/about', icon: <InfoIcon />, color: 'var(--color-text-2)', bg: 'rgba(255,255,255,0.06)' },
+      { label: 'الأمان والخصوصية', desc: 'الرقم السري، البصمة، وإخفاء الأرصدة', to: '/security', icon: <ShieldIcon />, color: 'var(--color-income)' },
+      { label: 'مزامنة Google Sheets', desc: 'نسخة احتياطية تلقائية لجدولك', to: '/sync-settings', icon: <CloudSyncIcon />, color: 'var(--color-owed-to)' },
+      { label: 'حول التطبيق', desc: 'الإصدار، المطوّر، ومعلومات عن QB-Nomia', to: '/about', icon: <InfoIcon />, color: 'var(--color-text-2)' },
     ],
   },
 ]
@@ -310,6 +335,9 @@ export function MoreScreen() {
   const trimmedQuery = query.trim()
   const searchResults = trimmedQuery ? ALL_ITEMS.filter((i) => i.label.includes(trimmedQuery)) : null
 
+  const lastSynced = isSheetsSyncConfigured() ? getLastSyncedAt() : null
+  const statusLine = lastSynced ? `آخر مزامنة: ${formatDate(lastSynced)}` : `الإصدار ${APP_VERSION}`
+
   return (
     <div dir="rtl" className="px-5 pb-4">
       {busy && <UpdatingOverlay />}
@@ -323,8 +351,12 @@ export function MoreScreen() {
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <div className="safe-top qb-sticky-header-row mb-5 pt-15">
-        <div className="qb-glass-circle flex h-9.5 w-fit items-center rounded-full border px-4 text-[15px] font-bold">المزيد</div>
+      <div className="safe-top qb-sticky-header-row mb-6 flex items-center gap-3 pt-15">
+        <AppLogoMark size={46} />
+        <div className="min-w-0">
+          <div className="mb-0.5 text-[11.5px] font-bold text-[var(--color-text-3)]">المزيد</div>
+          <div className="truncate text-[12px] font-semibold text-[var(--color-text-2)]">{statusLine}</div>
+        </div>
       </div>
 
       {!searchResults && topItems.length > 0 && (
@@ -332,7 +364,7 @@ export function MoreScreen() {
           <div className="qb-section-label mb-2 px-1">الأكثر استخدامًا</div>
           <div className="grid grid-cols-3 gap-2.5">
             {topItems.map((item) => (
-              <GridTile key={item.label} item={item} onClick={() => goTo(item)} />
+              <GridTile key={item.label} item={item} onClick={() => goTo(item)} elevated />
             ))}
           </div>
         </div>
@@ -365,6 +397,12 @@ export function MoreScreen() {
               <div className="grid grid-cols-3 gap-2.5">
                 {section.items.map((item) => (
                   <GridTile key={item.label} item={item} onClick={() => goTo(item)} />
+                ))}
+              </div>
+            ) : section.layout === 'feature' ? (
+              <div className="grid grid-cols-2 gap-2.5">
+                {section.items.map((item) => (
+                  <FeatureCard key={item.label} item={item} onClick={() => goTo(item)} />
                 ))}
               </div>
             ) : (
