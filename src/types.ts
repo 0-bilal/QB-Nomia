@@ -65,6 +65,26 @@ export interface SalaryViolationDeduction {
   transactionId: string
 }
 
+/** دَين لمتجر/محل — أخذت سلعة أو خدمة ولسه ما دفعت قيمتها بالكامل. أخذ الدَين نفسه لا يؤثر على أي رصيد؛ فقط سداده لاحقًا (StoreDebtPayment) يُنشئ حركة مصروف فعلية. */
+export interface StoreDebt {
+  id: string
+  storeName: string
+  amount: number
+  date: string
+  dueDate?: string
+  note?: string
+}
+
+/** سداد (كامل أو جزئي) لدَين متجر — كل سداد له حركة مصروف حقيقية مرتبطة به (transactionId)، تُحدَّث أو تُحذف معه لو عُدِّل السداد أو حُذف. */
+export interface StoreDebtPayment {
+  id: string
+  debtId: string
+  amount: number
+  date: string
+  accountId: string
+  transactionId: string
+}
+
 export interface Person {
   id: string
   name: string
