@@ -10,6 +10,8 @@ export interface Account {
   goalTargetDate?: string
   /** تاريخ بداية حول الزكاة لهذا الهدف — يُفترض تلقائيًا تاريخ إنشاء الهدف، وقابل للتعديل. */
   zakatHawlStartDate?: string
+  /** يتحكم بظهور الحساب برزمة الكروت بالشاشة الرئيسية — undefined تُعامَل كـ true (الحسابات القديمة قبل هذه الميزة تبقى ظاهرة). */
+  showOnHome?: boolean
 }
 
 /** سجل دفعة زكاة مسجَّلة لهدف ادخار — كل دفعة تنهي حول وتبدأ حول جديد (account.zakatHawlStartDate يُصفَّر لتاريخ الدفعة). */

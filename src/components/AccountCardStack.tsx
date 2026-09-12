@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { BankCardFace } from './BankCardFace'
 import type { Account } from '../types'
 
-const CARD_HEIGHT = 176
+export const CARD_HEIGHT = 176
 const PEEK = 13
 const SWIPE_THRESHOLD = 56
 const DRAG_TAP_SLOP = 6

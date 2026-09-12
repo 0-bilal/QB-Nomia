@@ -355,6 +355,7 @@ interface DataContextValue {
   addAccount: (input: AddAccountInput) => Account
   updateAccount: (id: string, input: AddAccountInput) => void
   deleteAccount: (id: string) => void
+  setAccountShowOnHome: (id: string, showOnHome: boolean) => void
   addPerson: (input: AddPersonInput) => Person
   updatePerson: (id: string, input: AddPersonInput) => void
   deletePerson: (id: string) => void
@@ -1667,6 +1668,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           goalLabel: input.goalLabel,
           goalTargetDate: input.goalTargetDate,
           zakatHawlStartDate: input.zakatHawlStartDate,
+          showOnHome: true,
         }
         persistAccounts([...accounts, account])
         return account
@@ -1691,6 +1693,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       deleteAccount(id: string) {
         persistAccounts(accounts.filter((a) => a.id !== id))
+      },
+      setAccountShowOnHome(id: string, showOnHome: boolean) {
+        persistAccounts(accounts.map((a) => (a.id === id ? { ...a, showOnHome } : a)))
       },
       exportSnapshot(): DataSnapshot {
         return {

@@ -17,6 +17,15 @@ function EditIcon() {
     </svg>
   )
 }
+/** أيقونة "الشاشة الرئيسية" — تُملأ لما الحساب مفعّل الظهور بها، وتبقى بخط فاتح لما يكون مخفيًا عنها. */
+function HomeVisibilityIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11 12 4l8 7" />
+      <path d="M6 9.5V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.5" />
+    </svg>
+  )
+}
 function ChevronIcon() {
   return (
     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 200ms ease' }}>
@@ -26,7 +35,7 @@ function ChevronIcon() {
 }
 
 export function AccountsScreen() {
-  const { accounts, totalBalance, accountActivity } = useData()
+  const { accounts, totalBalance, accountActivity, setAccountShowOnHome } = useData()
   const navigate = useNavigate()
   const [openId, setOpenId] = useState<string | null>(null)
   const [hidden, setHidden] = useState(getHideBalancesDefault)
@@ -88,17 +97,31 @@ export function AccountsScreen() {
             className="mb-3.5"
             onClick={() => setOpenId(open ? null : a.id)}
             topRight={
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  navigate(`/accounts/${a.id}/edit`)
-                }}
-                aria-label="تعديل الحساب"
-                className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-2)]"
-                style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.1)' }}
-              >
-                <EditIcon />
-              </button>
+              <div className="flex flex-shrink-0 items-center gap-1.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setAccountShowOnHome(a.id, a.showOnHome === false)
+                  }}
+                  aria-label={a.showOnHome === false ? 'إظهار الحساب في الشاشة الرئيسية' : 'إخفاء الحساب من الشاشة الرئيسية'}
+                  title={a.showOnHome === false ? 'إظهار في الرئيسية' : 'إخفاء من الرئيسية'}
+                  className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
+                  style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.1)', color: a.showOnHome === false ? 'var(--color-text-3)' : 'var(--color-accent)' }}
+                >
+                  <HomeVisibilityIcon active={a.showOnHome !== false} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/accounts/${a.id}/edit`)
+                  }}
+                  aria-label="تعديل الحساب"
+                  className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-2)]"
+                  style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.1)' }}
+                >
+                  <EditIcon />
+                </button>
+              </div>
             }
           >
             <div className="mt-3.5 flex justify-center">
