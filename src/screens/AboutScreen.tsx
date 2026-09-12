@@ -100,8 +100,6 @@ export function AboutScreen() {
 
       <a
         href="https://github.com/0-bilal/QB-Nomia/releases/latest/download/app-debug.apk"
-        target="_blank"
-        rel="noopener noreferrer"
         className="qb-press mb-2 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-[13px] font-bold"
         style={{ borderColor: 'rgba(34,197,94,0.35)', background: 'rgba(34,197,94,0.1)', color: 'var(--color-income)' }}
       >
