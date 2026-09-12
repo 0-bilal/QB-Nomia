@@ -1,0 +1,74 @@
+name: Build Android APK
+
+# يبني تطبيق أندرويد حقيقي (APK) من مشروع Capacitor بمجلد android/ على كل
+# دفعة (push) للفرع الرئيسي، وينشره كملف قابل للتحميل مباشرة عبر GitHub
+# Release ثابت الرابط (android-latest) — بدون أي نشر على Google Play.
+#
+# هذا يشتغل على خوادم GitHub نفسها (إنترنت كامل بدون قيود)، عكس بيئة
+# التطوير السحابية اللي ما تقدر توصل لخوادم Android SDK مباشرة.
+
+on:
+  push:
+    branches:
+      - claude/qb-nomia-wallet-app-knw4u4
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app (Capacitor mode)
+        run: npm run build:capacitor
+
+      - name: Sync Capacitor native project
+        run: npx cap sync android
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk app-debug.apk
+
+      - name: Publish rolling release with APK
+        uses: ncipollo/release-action@v1
+        with:
+          tag: android-latest
+          name: "QB-Nomia (أحدث بناء أندرويد)"
+          body: |
+            آخر بناء تلقائي لتطبيق أندرويد (APK) من الفرع الرئيسي — بناء تجريبي (debug) للتثبيت اليدوي المباشر على الجهاز، غير منشور على Google Play.
+
+            الالتزام: ${{ github.sha }}
+          artifacts: app-debug.apk
+          allowUpdates: true
+          replacesArtifacts: true
+          removeArtifacts: true
+          makeLatest: true
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
