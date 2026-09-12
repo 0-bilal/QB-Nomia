@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">QB-Nomia</string>
+    <string name="title_activity_main">QB-Nomia</string>
+    <string name="package_name">com.qbsoftware.qbnomia</string>
+    <string name="custom_url_scheme">com.qbsoftware.qbnomia</string>
+</resources>

@@ -98,6 +98,24 @@ export function AboutScreen() {
         <InfoRow label="بصمة البناء" value={BUILD_ID} />
       </div>
 
+      <a
+        href="https://github.com/0-bilal/QB-Nomia/releases/latest/download/app-debug.apk"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="qb-press mb-2 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-[13px] font-bold"
+        style={{ borderColor: 'rgba(34,197,94,0.35)', background: 'rgba(34,197,94,0.1)', color: 'var(--color-income)' }}
+      >
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v13" />
+          <path d="M7 11l5 5 5-5" />
+          <path d="M4 20h16" />
+        </svg>
+        تثبيت التطبيق كتطبيق أندرويد (APK)
+      </a>
+      <div className="mb-4 px-1 text-[11px] leading-relaxed text-[var(--color-text-3)]">
+        بناء تجريبي مباشر، غير منشور على Google Play — عند فتح الملف بالهاتف بيطلب منك تفعيل "تثبيت من مصادر غير معروفة" أول مرة فقط
+      </div>
+
       <div className="pb-2 text-center text-[11px] text-[var(--color-text-3)]">
         © {new Date().getFullYear()} {BRAND_NAME} — جميع الحقوق محفوظة
       </div>
