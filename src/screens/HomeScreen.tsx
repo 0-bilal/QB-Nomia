@@ -5,7 +5,7 @@ import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
-import { AccountCardStack } from '../components/AccountCardStack'
+import { AccountCardStack, CARD_HEIGHT } from '../components/AccountCardStack'
 import { EyeToggleButton } from '../components/EyeToggleButton'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
@@ -50,6 +50,8 @@ export function HomeScreen() {
   const [hidden, setHidden] = useState(getHideBalancesDefault)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
+
+  const homeAccounts = accounts.filter((a) => a.showOnHome !== false)
 
   const activity = recentActivity(6)
   const { income: monthIncome, expense: monthExpense } = monthTotals()
@@ -98,7 +100,18 @@ export function HomeScreen() {
 
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
 
-      <AccountCardStack accounts={accounts} hidden={hidden} />
+      {accounts.length > 0 && homeAccounts.length === 0 ? (
+        <button
+          onClick={() => navigate('/accounts')}
+          className="qb-card-elevated qb-press mb-4 flex w-full flex-col items-center justify-center gap-2 p-8 text-center"
+          style={{ height: CARD_HEIGHT }}
+        >
+          <div className="text-[13px] font-bold">كل حساباتك مخفية من الشاشة الرئيسية</div>
+          <div className="text-[11.5px] text-[var(--color-text-3)]">فعّل الظهور لأي حساب من شاشة الحسابات</div>
+        </button>
+      ) : (
+        <AccountCardStack accounts={homeAccounts} hidden={hidden} />
+      )}
 
       {budgetAlerts.length > 0 && (
         <button
