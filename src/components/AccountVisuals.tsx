@@ -6,6 +6,7 @@ export const ACCOUNT_ICON_COLOR: Record<Account['type'], string> = {
   savings: 'var(--color-subscription)',
   wallet: 'var(--color-accent)',
   emergency: 'var(--color-emergency)',
+  coins: 'var(--color-coins)',
 }
 export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.14)',
@@ -13,6 +14,7 @@ export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   savings: 'rgba(245,185,66,0.14)',
   wallet: 'rgba(255,255,255,0.12)',
   emergency: 'rgba(225,29,72,0.14)',
+  coins: 'rgba(18,182,103,0.14)',
 }
 export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   cash: 'نقدي',
@@ -20,6 +22,7 @@ export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   savings: 'ادخار',
   wallet: 'محفظة رقمية',
   emergency: 'طوارئ',
+  coins: 'عملات معدنية',
 }
 
 /**
@@ -33,6 +36,8 @@ export const ACCOUNT_CARD_BG: Record<Account['type'], string> = {
   savings: 'radial-gradient(120% 90% at 8% 0%, rgba(192,142,119,0.38) 0%, transparent 58%), linear-gradient(155deg, #221714 0%, #6e4a3f 42%, #c08e77 68%, #221714 100%)',
   wallet: 'radial-gradient(120% 90% at 8% 0%, rgba(140,140,152,0.3) 0%, transparent 58%), linear-gradient(155deg, #131316 0%, #313138 42%, #62626c 68%, #131316 100%)',
   emergency: 'radial-gradient(120% 90% at 8% 0%, rgba(216,27,74,0.4) 0%, transparent 58%), linear-gradient(155deg, #1f0508 0%, #6b0f22 42%, #d81b4a 68%, #1f0508 100%)',
+  /** أخضر السعودية كامل الخلفية مع لمسة ذهبية أعلى يسار البطاقة — هوية وطنية واضحة لحساب تجميع الريال المعدني، متمايزة تمامًا عن باقي المعادن. */
+  coins: 'radial-gradient(120% 90% at 8% 0%, rgba(230,190,90,0.22) 0%, transparent 58%), linear-gradient(155deg, #01150b 0%, #0b4a2b 42%, #159e5c 68%, #01150b 100%)',
 }
 
 /** لون التمييز (Accent) الخاص بسطح كل بطاقة — يُستخدم لأيقونة نوع الحساب وشارة الدفع اللاتلامسي فوق سطح البطاقة نفسه. منفصل عن ACCOUNT_ICON_COLOR المستخدم بباقي شاشات التطبيق (منتقيات الحساب، النماذج...) عشان ما يتأثر أي مكان ثاني بهذا التغيير. */
@@ -42,6 +47,7 @@ export const ACCOUNT_CARD_ACCENT: Record<Account['type'], string> = {
   savings: '#e8b7a0',
   wallet: '#b6b6c0',
   emergency: '#ff96ae',
+  coins: '#f0d68f',
 }
 
 /** خلفية شارة أيقونة الدفع اللاتلامسي فوق البطاقة — نسخة شفافة من ACCOUNT_CARD_ACCENT. */
@@ -51,6 +57,7 @@ export const ACCOUNT_CARD_ACCENT_BG: Record<Account['type'], string> = {
   savings: 'rgba(192,142,119,0.16)',
   wallet: 'rgba(140,140,152,0.14)',
   emergency: 'rgba(216,27,74,0.2)',
+  coins: 'rgba(230,190,90,0.2)',
 }
 
 /**
@@ -68,6 +75,7 @@ export const ACCOUNT_CARD_TEXT_MUTED: Record<Account['type'], string> = {
   savings: '#3a2118',
   wallet: '#e4e4ea',
   emergency: '#3d0a17',
+  coins: '#bfe6cf',
 }
 export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   cash: 'var(--color-text-3)',
@@ -75,6 +83,7 @@ export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   savings: '#4d2e22',
   wallet: '#c4c4cd',
   emergency: '#520f20',
+  coins: '#9fd6b7',
 }
 
 export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; size?: number }) {
@@ -109,6 +118,15 @@ export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; si
       <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 3.5 4.5 6.3v5.4c0 5 3.2 8.4 7.5 9.8 4.3-1.4 7.5-4.8 7.5-9.8V6.3L12 3.5Z" />
         <path d="M12 8.2v4M12 15.2h.01" />
+      </svg>
+    )
+  }
+  if (type === 'coins') {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="16.3" rx="7" ry="2.6" />
+        <ellipse cx="12" cy="12.3" rx="7" ry="2.6" />
+        <ellipse cx="12" cy="8.3" rx="7" ry="2.6" />
       </svg>
     )
   }

@@ -14,6 +14,7 @@ const TYPE_OPTIONS: [AccountType, string][] = [
   ['savings', 'ادخار'],
   ['wallet', 'محفظة رقمية'],
   ['emergency', 'طوارئ'],
+  ['coins', 'عملات معدنية'],
 ]
 
 export function AddAccountScreen() {
@@ -198,6 +199,12 @@ export function AddAccountScreen() {
       {type === 'emergency' && (
         <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(225,29,72,0.4)', color: 'var(--color-text-2)' }}>
           حساب مخصص للطوارئ فقط — المبلغ اللي تحطه هنا يبقى جانبًا بعيد عن مصاريفك اليومية، لأي ظرف مفاجئ تحتاج تغطيته بسرعة.
+        </div>
+      )}
+
+      {type === 'coins' && (
+        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(18,182,103,0.4)', color: 'var(--color-text-2)' }}>
+          حساب مخصص لتجميع فئة الريال المعدني اللي تجمعها في البيت أو السيارة — الرصيد هنا يمثّل قيمة القطع المعدنية اللي عندك، منفصل تمامًا عن باقي حساباتك.
         </div>
       )}
     </ScreenScroll>
