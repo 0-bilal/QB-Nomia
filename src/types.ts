@@ -1,4 +1,4 @@
-export type AccountType = 'cash' | 'bank' | 'savings' | 'wallet' | 'emergency'
+export type AccountType = 'cash' | 'bank' | 'savings' | 'wallet' | 'emergency' | 'coins'
 
 export interface Account {
   id: string

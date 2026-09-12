@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.36.0'
+export const APP_VERSION = '1.37.0'
 export const DEVELOPER_NAME = 'بلال الخواجة'
 export const BRAND_NAME = 'برمجيات QB'
 

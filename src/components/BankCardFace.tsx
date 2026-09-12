@@ -30,6 +30,17 @@ function ContactlessIcon({ size = 15 }: { size?: number }) {
   )
 }
 
+/** علامة مائية مستوحاة من الشعار الوطني (نخلة وسيفان متقاطعان) — بأسلوب خطوط مجرّد يشبه AppLogoWatermark، خاصة ببطاقة حساب "عملات معدنية" بدل شعار التطبيق. */
+function SaudiEmblemWatermark({ size = 148, style }: { size?: number; style?: CSSProperties }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M50 8c0 10-8 15-8 24 0-6-9-9-16-6 5 4 6 11 13 12-9 2-14 9-16 17 7-5 14-6 19-3-3 9-1 18 8 24 9-6 11-15 8-24 5-3 12-2 19 3-2-8-7-15-16-17 7-1 8-8 13-12-7-3-16 0-16 6 0-9-8-14-8-24Z" />
+      <path d="M50 44v40" />
+      <path d="M28 60 L72 92M72 60 L28 92" />
+    </svg>
+  )
+}
+
 interface BankCardFaceProps {
   account: Account
   hidden?: boolean
@@ -55,10 +66,17 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
       onClick={onClick}
     >
       {account.type === 'cash' && <div className="qb-gloss-sweep" />}
-      <AppLogoWatermark
-        size={148}
-        style={{ position: 'absolute', right: -26, bottom: -30, color: '#fff', opacity: 0.16, transform: 'rotate(-8deg)', pointerEvents: 'none' }}
-      />
+      {account.type === 'coins' ? (
+        <SaudiEmblemWatermark
+          size={150}
+          style={{ position: 'absolute', right: -30, bottom: -26, color: '#fff', opacity: 0.16, transform: 'rotate(6deg)', pointerEvents: 'none' }}
+        />
+      ) : (
+        <AppLogoWatermark
+          size={148}
+          style={{ position: 'absolute', right: -26, bottom: -30, color: '#fff', opacity: 0.16, transform: 'rotate(-8deg)', pointerEvents: 'none' }}
+        />
+      )}
 
       <div className="relative flex h-full flex-col" style={{ zIndex: 2 }}>
         <div className="flex h-full flex-col justify-between gap-4">
