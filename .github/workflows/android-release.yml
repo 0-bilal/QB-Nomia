@@ -46,6 +46,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # الافتراضي "tools platform-tools"، وحزمة "tools" القديمة لم تعد موجودة بأدوات SDK الحديثة فيفشل sdkmanager.
+          packages: platform-tools
 
       - name: Build debug APK
         working-directory: android
