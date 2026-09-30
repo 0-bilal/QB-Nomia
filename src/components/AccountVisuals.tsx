@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { Account } from '../types'
 
 export const ACCOUNT_ICON_COLOR: Record<Account['type'], string> = {
@@ -7,6 +8,7 @@ export const ACCOUNT_ICON_COLOR: Record<Account['type'], string> = {
   wallet: 'var(--color-accent)',
   emergency: 'var(--color-emergency)',
   coins: 'var(--color-coins)',
+  fuel: 'var(--color-fuel)',
 }
 export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.14)',
@@ -15,6 +17,7 @@ export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   wallet: 'rgba(255,255,255,0.12)',
   emergency: 'rgba(225,29,72,0.14)',
   coins: 'rgba(18,182,103,0.14)',
+  fuel: 'rgba(255,138,26,0.14)',
 }
 export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   cash: 'نقدي',
@@ -23,6 +26,7 @@ export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   wallet: 'محفظة رقمية',
   emergency: 'طوارئ',
   coins: 'عملات معدنية',
+  fuel: 'بطاقة وقود',
 }
 
 /**
@@ -38,6 +42,8 @@ export const ACCOUNT_CARD_BG: Record<Account['type'], string> = {
   emergency: 'radial-gradient(120% 90% at 8% 0%, rgba(216,27,74,0.4) 0%, transparent 58%), linear-gradient(155deg, #1f0508 0%, #6b0f22 42%, #d81b4a 68%, #1f0508 100%)',
   /** أخضر السعودية كامل الخلفية مع لمسة ذهبية أعلى يسار البطاقة — هوية وطنية واضحة لحساب تجميع الريال المعدني، متمايزة تمامًا عن باقي المعادن. */
   coins: 'radial-gradient(120% 90% at 8% 0%, rgba(230,190,90,0.22) 0%, transparent 58%), linear-gradient(155deg, #01150b 0%, #0b4a2b 42%, #159e5c 68%, #01150b 100%)',
+  /** برتقالي نحاسي بلون اللهب — بطاقة وقود مسبقة الدفع، متمايزة عن كل المعادن الأخرى. */
+  fuel: 'radial-gradient(120% 90% at 8% 0%, rgba(255,138,40,0.34) 0%, transparent 58%), linear-gradient(155deg, #140903 0%, #4a1d06 42%, #e0661a 70%, #140903 100%)',
 }
 
 /** لون التمييز (Accent) الخاص بسطح كل بطاقة — يُستخدم لأيقونة نوع الحساب وشارة الدفع اللاتلامسي فوق سطح البطاقة نفسه. منفصل عن ACCOUNT_ICON_COLOR المستخدم بباقي شاشات التطبيق (منتقيات الحساب، النماذج...) عشان ما يتأثر أي مكان ثاني بهذا التغيير. */
@@ -48,6 +54,7 @@ export const ACCOUNT_CARD_ACCENT: Record<Account['type'], string> = {
   wallet: '#b6b6c0',
   emergency: '#ff96ae',
   coins: '#f0d68f',
+  fuel: '#ffc27a',
 }
 
 /** خلفية شارة أيقونة الدفع اللاتلامسي فوق البطاقة — نسخة شفافة من ACCOUNT_CARD_ACCENT. */
@@ -58,6 +65,7 @@ export const ACCOUNT_CARD_ACCENT_BG: Record<Account['type'], string> = {
   wallet: 'rgba(140,140,152,0.14)',
   emergency: 'rgba(216,27,74,0.2)',
   coins: 'rgba(230,190,90,0.2)',
+  fuel: 'rgba(255,160,60,0.2)',
 }
 
 /**
@@ -76,6 +84,7 @@ export const ACCOUNT_CARD_TEXT_MUTED: Record<Account['type'], string> = {
   wallet: '#e4e4ea',
   emergency: '#3d0a17',
   coins: '#bfe6cf',
+  fuel: '#ffd6b0',
 }
 export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   cash: 'var(--color-text-3)',
@@ -84,6 +93,7 @@ export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   wallet: '#c4c4cd',
   emergency: '#520f20',
   coins: '#9fd6b7',
+  fuel: '#f5c49a',
 }
 
 export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; size?: number }) {
@@ -121,6 +131,9 @@ export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; si
       </svg>
     )
   }
+  if (type === 'fuel') {
+    return <FuelPumpIcon size={size} />
+  }
   if (type === 'coins') {
     return (
       <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -135,6 +148,18 @@ export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; si
       <path d="M4 12a8 8 0 1 1 8 8" />
       <path d="M4 12v5h5" />
       <path d="M12 8v4l3 2" />
+    </svg>
+  )
+}
+
+/** مضخة وقود — أيقونة نوع حساب "بطاقة وقود"، وتُستخدم بحجم كبير كعلامة مائية فوق بطاقته. */
+export function FuelPumpIcon({ size = 18, strokeWidth = 1.9, style }: { size?: number; strokeWidth?: number; style?: CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M4 20V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v15" />
+      <path d="M3 20h13" />
+      <path d="M6.5 7h5v4h-5z" />
+      <path d="M15 9h2a2 2 0 0 1 2 2v5.5a1.5 1.5 0 0 0 3 0V8l-3-3" />
     </svg>
   )
 }
