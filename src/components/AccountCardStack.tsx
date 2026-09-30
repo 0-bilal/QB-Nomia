@@ -54,7 +54,7 @@ function PositionedCard({ account, hidden, style, transition, interactive, onPoi
       onPointerCancel={onPointerCancel}
       onClick={onClick}
     >
-      <BankCardFace account={account} hidden={hidden} className="h-full" />
+      <BankCardFace account={account} hidden={hidden} className="h-full" compact />
     </div>
   )
 }

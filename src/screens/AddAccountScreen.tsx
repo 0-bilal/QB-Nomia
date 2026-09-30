@@ -15,6 +15,7 @@ const TYPE_OPTIONS: [AccountType, string][] = [
   ['wallet', 'محفظة رقمية'],
   ['emergency', 'طوارئ'],
   ['coins', 'عملات معدنية'],
+  ['fuel', 'بطاقة وقود'],
 ]
 
 export function AddAccountScreen() {
@@ -205,6 +206,12 @@ export function AddAccountScreen() {
       {type === 'coins' && (
         <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(18,182,103,0.4)', color: 'var(--color-text-2)' }}>
           حساب مخصص لتجميع فئة الريال المعدني اللي تجمعها في البيت أو السيارة — الرصيد هنا يمثّل قيمة القطع المعدنية اللي عندك، منفصل تمامًا عن باقي حساباتك.
+        </div>
+      )}
+
+      {type === 'fuel' && (
+        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,138,26,0.4)', color: 'var(--color-text-2)' }}>
+          بطاقة وقود مسبقة الدفع لتعبئة السيارة — اشحنها بتحويل من الكاش أو البنكي، وسجّل تعبئاتك كمصروف عليها عشان تتابع الرصيد المتبقي ومستوى التعبئة.
         </div>
       )}
     </ScreenScroll>

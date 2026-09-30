@@ -4,7 +4,7 @@ import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
-import { BankCardFace } from '../components/BankCardFace'
+import { BankCardFace, FuelDropIcon } from '../components/BankCardFace'
 import { ACCOUNT_CARD_TEXT_FAINT } from '../components/AccountVisuals'
 import { EyeToggleButton } from '../components/EyeToggleButton'
 import { getHideBalancesDefault } from '../lib/privacy'
@@ -157,6 +157,20 @@ export function AccountsScreen() {
                 style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
               >
                 شحن المحفظة
+              </button>
+            )}
+
+            {a.type === 'fuel' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/add/transaction?type=transfer&to=${a.id}`)
+                }}
+                className="qb-press mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.25 text-[12.5px] font-bold"
+                style={{ background: 'linear-gradient(90deg, #ffb347, #ff7a1a)', color: '#1a0a02', boxShadow: '0 6px 16px -6px rgba(255,122,26,0.7)' }}
+              >
+                <FuelDropIcon size={14} />
+                شحن البطاقة
               </button>
             )}
 

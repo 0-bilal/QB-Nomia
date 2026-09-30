@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
+import { fuelLevel, fuelLevelColor, lastFuelTopUp } from '../lib/fuelCard'
+import { useData } from '../state/DataContext'
 import { AppLogoMark, AppLogoWatermark } from './AppLogo'
 import {
   ACCOUNT_CARD_ACCENT,
@@ -9,6 +11,7 @@ import {
   ACCOUNT_CARD_TEXT_MUTED,
   ACCOUNT_TYPE_LABELS,
   AccountTypeIcon,
+  FuelPumpIcon,
 } from './AccountVisuals'
 import type { Account } from '../types'
 
@@ -41,6 +44,49 @@ function SaudiEmblemWatermark({ size = 148, style }: { size?: number; style?: CS
   )
 }
 
+/** قطرة وقود — شارة بطاقة الوقود بدل أيقونة الدفع اللاتلامسي، وأيقونة زر "شحن البطاقة". */
+export function FuelDropIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z" />
+    </svg>
+  )
+}
+
+/** مؤشر تعبئة بطاقة الوقود (E → F) — نسبة الرصيد من آخر شحنة. النسخة المختصرة شريط رفيع لبطاقة رزمة الرئيسية (ارتفاعها ثابت). */
+function FuelGauge({ level, lastTopUp, hidden, compact, textFaint }: { level: number; lastTopUp?: number; hidden: boolean; compact: boolean; textFaint: string }) {
+  const pct = Math.round(level * 100)
+  const bar = (
+    <div className="overflow-hidden rounded-full" style={{ height: compact ? 6 : 8, background: 'rgba(0,0,0,0.35)' }}>
+      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: fuelLevelColor(level), transition: 'width 300ms ease' }} />
+    </div>
+  )
+  if (compact) {
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="text-[10px] font-bold" style={{ color: textFaint }}>E</span>
+        <div className="min-w-0 flex-1">{bar}</div>
+        <span className="text-[10px] font-bold" style={{ color: textFaint }}>F</span>
+        <span className="num text-[11px] font-bold">{hidden ? '•••' : `${pct}%`}</span>
+      </div>
+    )
+  }
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-[10.5px] font-bold">
+        <span style={{ color: textFaint }}>مستوى التعبئة</span>
+        <span className="num">{hidden ? '•••' : `${pct}%`}</span>
+      </div>
+      {bar}
+      <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold" style={{ color: textFaint }}>
+        <span>E</span>
+        <span className="font-semibold">{lastTopUp && !hidden ? `آخر شحن: ${formatMoney(lastTopUp)}` : ''}</span>
+        <span>F</span>
+      </div>
+    </div>
+  )
+}
+
 interface BankCardFaceProps {
   account: Account
   hidden?: boolean
@@ -51,11 +97,17 @@ interface BankCardFaceProps {
   className?: string
   style?: CSSProperties
   onClick?: () => void
+  /** بطاقة بارتفاع ثابت (رزمة الرئيسية) — بطاقة الوقود تعرض مؤشر تعبئة مختصر مكان الرقم المموّه. */
+  compact?: boolean
 }
 
 /** واجهة "الكرت البنكي" المشتركة لهوية الحسابات بالتطبيق — نفس التصميم يُستخدم برزمة كروت الرئيسية وبقائمة شاشة الحسابات. */
-export function BankCardFace({ account, hidden = false, topRight, children, className = '', style, onClick }: BankCardFaceProps) {
+export function BankCardFace({ account, hidden = false, topRight, children, className = '', style, onClick, compact = false }: BankCardFaceProps) {
+  const { transactions } = useData()
   const mask = (s: string) => (hidden ? '•••••' : s)
+  const isFuel = account.type === 'fuel'
+  const lastTopUp = isFuel ? lastFuelTopUp(account.id, transactions) : undefined
+  const level = isFuel ? fuelLevel(account.balance, lastTopUp) : 0
   const accent = ACCOUNT_CARD_ACCENT[account.type]
   const textMuted = ACCOUNT_CARD_TEXT_MUTED[account.type]
   const textFaint = ACCOUNT_CARD_TEXT_FAINT[account.type]
@@ -66,7 +118,21 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
       onClick={onClick}
     >
       {account.type === 'cash' && <div className="qb-gloss-sweep" />}
-      {account.type === 'coins' ? (
+      {isFuel && (
+        <div
+          style={{
+            position: 'absolute', left: -40, top: 0, bottom: 0, width: 120, transform: 'skewX(-8deg)', pointerEvents: 'none',
+            background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 10px, transparent 10px 22px)',
+          }}
+        />
+      )}
+      {isFuel ? (
+        <FuelPumpIcon
+          size={150}
+          strokeWidth={1.1}
+          style={{ position: 'absolute', right: -18, bottom: -22, color: '#fff', opacity: 0.15, transform: 'rotate(-8deg)', pointerEvents: 'none' }}
+        />
+      ) : account.type === 'coins' ? (
         <SaudiEmblemWatermark
           size={150}
           style={{ position: 'absolute', right: -30, bottom: -26, color: '#fff', opacity: 0.16, transform: 'rotate(6deg)', pointerEvents: 'none' }}
@@ -86,7 +152,7 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
                 className="flex h-7.5 w-7.5 items-center justify-center rounded-[10px]"
                 style={{ width: 30, height: 30, background: ACCOUNT_CARD_ACCENT_BG[account.type], color: accent }}
               >
-                <ContactlessIcon size={15} />
+                {isFuel ? <FuelDropIcon size={15} /> : <ContactlessIcon size={15} />}
               </div>
               <div>
                 <div className="text-[11.5px] font-bold">{account.name}</div>
@@ -104,17 +170,23 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
 
           <div>
             <div className="mb-1 text-[11.5px] font-semibold" style={{ color: textMuted }}>
-              الرصيد
+              {isFuel ? 'الرصيد المتبقي' : 'الرصيد'}
             </div>
             <div className="num text-[30px] font-bold tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}>
               {mask(formatMoney(account.balance))}
             </div>
           </div>
 
-          <div className="flex items-end justify-between">
-            <div dir="ltr" className="num text-[12px] font-semibold" style={{ letterSpacing: 1.5, color: textFaint }}>
-              {mask(pseudoCardNumber(account.id))}
-            </div>
+          {isFuel && !compact && <FuelGauge level={level} lastTopUp={lastTopUp} hidden={hidden} compact={false} textFaint={textFaint} />}
+
+          <div className="flex items-end justify-between gap-3">
+            {isFuel && compact ? (
+              <FuelGauge level={level} hidden={hidden} compact textFaint={textFaint} />
+            ) : (
+              <div dir="ltr" className="num text-[12px] font-semibold" style={{ letterSpacing: 1.5, color: textFaint }}>
+                {mask(pseudoCardNumber(account.id))}
+              </div>
+            )}
             <AppLogoMark size={22} />
           </div>
         </div>
