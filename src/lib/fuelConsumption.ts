@@ -47,6 +47,34 @@ export function computeFuelSegments(logs: FuelLog[]): FuelSegment[] {
   return segments
 }
 
+export interface FuelGap {
+  /** المسافة من التعبئة السابقة مباشرة (كاملة أو جزئية) — فرق قراءتي العداد. */
+  drivenKm: number
+  /** استهلاك هذه الفترة بالذات — فقط لما تكون التعبئتان (السابقة والحالية) كاملتين، وإلا null. */
+  kmPerLiter: number | null
+}
+
+/**
+ * المسافة المقطوعة بين كل تعبئة والتعبئة اللي قبلها (بترتيب العداد)، مفهرسة بمعرّف التعبئة.
+ * أول تعبئة مسجَّلة ما لها مسافة، وأي قراءة عداد غير منطقية (نفس القراءة أو أقل) تُتجاهل.
+ */
+export function computeFuelGaps(logs: FuelLog[]): Map<string, FuelGap> {
+  const sorted = [...logs].sort((a, b) => a.odometerKm - b.odometerKm)
+  const fullToFull = new Map(computeFuelSegments(logs).map((seg) => [seg.toLogId, seg]))
+  const gaps = new Map<string, FuelGap>()
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1]
+    const cur = sorted[i]
+    const drivenKm = cur.odometerKm - prev.odometerKm
+    if (drivenKm <= 0) continue
+    const seg = fullToFull.get(cur.id)
+    gaps.set(cur.id, { drivenKm, kmPerLiter: seg && seg.fromLogId === prev.id ? seg.kmPerLiter : null })
+  }
+
+  return gaps
+}
+
 /** معدل الاستهلاك والمدى التقديري، بمتوسط متحرك لآخر SEGMENT_WINDOW فترة. */
 export function computeFuelStats(logs: FuelLog[], tankCapacityL: number | null): FuelStats {
   const allSegments = computeFuelSegments(logs)

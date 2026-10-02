@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeFuelSegments, computeFuelStats, computeVehicleCostStats } from './fuelConsumption'
+import { computeFuelGaps, computeFuelSegments, computeFuelStats, computeVehicleCostStats } from './fuelConsumption'
 import type { FuelLog, OilChangeLog } from '../types'
 
 function log(id: string, odometerKm: number, liters: number, isFullTank: boolean): FuelLog {
@@ -128,5 +128,27 @@ describe('computeVehicleCostStats', () => {
     expect(stats.totalCost).toBe(0)
     expect(stats.drivenKm).toBe(500)
     expect(stats.costPerKm).toBeNull()
+  })
+})
+
+describe('computeFuelGaps', () => {
+  it('gives each fill the distance since the previous fill, regardless of entry order', () => {
+    const gaps = computeFuelGaps([log('c', 101000, 30, false), log('a', 100000, 40, true), log('b', 100450, 20, false)])
+    expect(gaps.has('a')).toBe(false)
+    expect(gaps.get('b')?.drivenKm).toBe(450)
+    expect(gaps.get('c')?.drivenKm).toBe(550)
+  })
+
+  it('adds per-period consumption only when both the previous and current fills are full', () => {
+    const gaps = computeFuelGaps([log('a', 100000, 40, true), log('b', 100500, 40, true), log('c', 100800, 20, false), log('d', 101200, 30, true)])
+    expect(gaps.get('b')).toEqual({ drivenKm: 500, kmPerLiter: 12.5 })
+    expect(gaps.get('c')).toEqual({ drivenKm: 300, kmPerLiter: null })
+    // d كاملة لكن السابقة لها (c) جزئية — الاستهلاك هنا يمتد من b وليس من التعبئة السابقة مباشرة
+    expect(gaps.get('d')).toEqual({ drivenKm: 400, kmPerLiter: null })
+  })
+
+  it('skips a gap when the odometer reading did not increase', () => {
+    const gaps = computeFuelGaps([log('a', 100000, 40, true), log('b', 100000, 10, false)])
+    expect(gaps.size).toBe(0)
   })
 })
