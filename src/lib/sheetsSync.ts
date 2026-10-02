@@ -63,6 +63,12 @@ export async function pushToSheets(snapshot: DataSnapshot): Promise<void> {
   if (!res.ok) throw new Error(`فشل الاتصال (HTTP ${res.status})`)
 
   const json = (await res.json()) as ApiResult<null>
-  if (!json.ok) throw new Error(json.error ?? 'استجابة غير متوقعة من الخادم')
+  if (!json.ok) {
+    // سكربت قديم يخزّن كل شيء بخلية واحدة، وجوجل شيت يرفض الخلية فوق 50,000 حرف
+    if (json.error?.includes('50000')) {
+      throw new Error('حجم بياناتك تجاوز حد الخلية الواحدة في Google Sheets — حدّث كود Apps Script لآخر نسخة (google-apps-script/Code.gs) وانشره كنسخة جديدة')
+    }
+    throw new Error(json.error ?? 'استجابة غير متوقعة من الخادم')
+  }
   markSynced()
 }
