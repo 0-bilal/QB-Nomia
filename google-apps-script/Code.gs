@@ -34,6 +34,9 @@ var SECRET_TOKEN = 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET'
 
 var SHEET_NAME = 'sync_data'
 var ROW_KEY = 'snapshot'
+// Google Sheets يرفض أي خلية فوق 50,000 حرف — النص المشفّر يُقسَّم على عدة صفوف
+// (snapshot، snapshot#1، snapshot#2 ...) بحد أقصى أقل من الحد الرسمي بهامش أمان.
+var CHUNK_SIZE = 45000
 
 /** شغّلها يدويًا مرة واحدة فقط من محرر Apps Script لإنشاء ورقة التخزين. */
 function setup() {
@@ -96,25 +99,51 @@ function getSheet() {
   return sheet
 }
 
+/** مفتاح الجزء رقم i — الجزء الأول يبقى "snapshot" عشان يتوافق مع البيانات المخزّنة قبل التقسيم. */
+function chunkKey(i) {
+  return i === 0 ? ROW_KEY : ROW_KEY + '#' + i
+}
+
 function readValue() {
   var sheet = getSheet()
   var values = sheet.getDataRange().getValues()
-  for (var i = 1; i < values.length; i++) {
-    if (values[i][0] === ROW_KEY) return values[i][1]
-  }
-  return '' // ما فيه بيانات محفوظة بعد (أول مرة قبل أي رفع)
+  var chunks = {}
+  for (var i = 1; i < values.length; i++) chunks[values[i][0]] = values[i][1]
+
+  var result = ''
+  for (var n = 0; chunks[chunkKey(n)] !== undefined; n++) result += String(chunks[chunkKey(n)])
+  return result // فارغ لو ما فيه بيانات محفوظة بعد (أول مرة قبل أي رفع)
 }
 
 function writeValue(encryptedValue) {
-  var sheet = getSheet()
-  var values = sheet.getDataRange().getValues()
-  for (var i = 1; i < values.length; i++) {
-    if (values[i][0] === ROW_KEY) {
-      sheet.getRange(i + 1, 2, 1, 2).setValues([[encryptedValue, new Date()]])
-      return
+  var lock = LockService.getScriptLock()
+  lock.waitLock(20000)
+  try {
+    var sheet = getSheet()
+    // نص صريح — بعض الأجزاء قد تبدأ بـ "+" أو أرقام، فما نبي جوجل شيت يحاول يفسّرها كرقم أو معادلة
+    sheet.getRange('B:B').setNumberFormat('@')
+    var value = String(encryptedValue)
+    var count = Math.max(1, Math.ceil(value.length / CHUNK_SIZE))
+    var now = new Date()
+
+    var values = sheet.getDataRange().getValues()
+    var rowOf = {}
+    for (var i = 1; i < values.length; i++) rowOf[values[i][0]] = i + 1
+
+    for (var n = 0; n < count; n++) {
+      var part = value.substr(n * CHUNK_SIZE, CHUNK_SIZE)
+      var key = chunkKey(n)
+      if (rowOf[key]) sheet.getRange(rowOf[key], 2, 1, 2).setValues([[part, now]])
+      else sheet.appendRow([key, part, now])
     }
+
+    // حذف أجزاء زائدة من رفعة سابقة أكبر — من الأسفل للأعلى عشان أرقام الصفوف ما تتزحزح
+    var stale = []
+    for (var m = count; rowOf[chunkKey(m)]; m++) stale.push(rowOf[chunkKey(m)])
+    stale.sort(function (a, b) { return b - a }).forEach(function (row) { sheet.deleteRow(row) })
+  } finally {
+    lock.releaseLock()
   }
-  sheet.appendRow([ROW_KEY, encryptedValue, new Date()])
 }
 
 function jsonResponse(obj) {
