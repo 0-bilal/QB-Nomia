@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney, formatDate } from '../lib/format'
 import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
-import { computeFuelStats, computeVehicleCostStats } from '../lib/fuelConsumption'
+import { computeFuelGaps, computeFuelStats, computeVehicleCostStats } from '../lib/fuelConsumption'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
@@ -119,6 +119,7 @@ export function VehicleScreen() {
 
   const fuelStats = computeFuelStats(fuelLogs, fuelTankCapacityL)
   const costStats = computeVehicleCostStats(fuelLogs, oilChanges)
+  const fuelGaps = computeFuelGaps(fuelLogs)
 
   const combinedLogs: CombinedLogEntry[] = [
     ...oilChanges.map((log): CombinedLogEntry => ({ kind: 'oil', log })),
@@ -344,6 +345,7 @@ export function VehicleScreen() {
         <div className="flex flex-col gap-2.5">
           {combinedLogs.map((entry) => {
             const account = entry.log.accountId ? accounts.find((a) => a.id === entry.log.accountId) : undefined
+            const gap = entry.kind === 'fuel' ? fuelGaps.get(entry.log.id) : undefined
             return (
               <div key={`${entry.kind}-${entry.log.id}`} className="qb-card p-3.5">
                 <div className="flex items-center justify-between">
@@ -367,6 +369,20 @@ export function VehicleScreen() {
                     {entry.log.odometerKm.toLocaleString('en-US')} كم
                   </div>
                 </div>
+                {gap && (
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+                    <span>قطعت</span>
+                    <span className="num font-bold" style={{ color: 'var(--color-vehicle)' }}>
+                      {Math.round(gap.drivenKm).toLocaleString('en-US')} كم
+                    </span>
+                    <span>منذ التعبئة السابقة</span>
+                    {gap.kmPerLiter !== null && (
+                      <span className="num mr-auto font-semibold text-[var(--color-text-2)]">
+                        {gap.kmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })} كم/لتر
+                      </span>
+                    )}
+                  </div>
+                )}
                 {entry.log.cost && account && (
                   <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
                     <AccountTypeIcon type={account.type} size={13} />
