@@ -106,6 +106,8 @@ export interface LoanTransaction {
   date: string
   dueDate?: string
   note?: string
+  /** وقت إنشاء حركة السلفة (ISO) — يرتّبها مع باقي حركات نفس اليوم بقائمة "آخر الحركات". غائب بالحركات القديمة. */
+  createdAt?: string
 }
 
 export type CategoryKind = 'expense' | 'income'
@@ -136,6 +138,8 @@ export interface Transaction {
   categoryId?: string
   incomeSourceId?: string
   transferToAccountId?: string
+  /** وقت إنشاء الحركة (ISO) — يرتّب حركات نفس اليوم مع حركات السلف بقائمة "آخر الحركات". غائب بالحركات القديمة. */
+  createdAt?: string
 }
 
 export type BillingCycle = 'monthly' | 'yearly'

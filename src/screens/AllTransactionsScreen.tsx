@@ -35,12 +35,18 @@ function CloseIcon() {
   )
 }
 
-type TypeFilter = 'expense' | 'income' | 'transfer'
+type TypeFilter = 'expense' | 'income' | 'transfer' | 'loan'
 const TYPE_OPTIONS: [TypeFilter, string][] = [
   ['expense', 'مصروف'],
   ['income', 'دخل'],
   ['transfer', 'تحويل'],
+  ['loan', 'سلف'],
 ]
+
+/** فلتر "سلف" يجمع حركتي السلفة (أعطيته / استلمت منه) تحت خيار واحد. */
+function typeFilterOf(kind: ActivityItem['kind']): TypeFilter {
+  return kind === 'loan-given' || kind === 'loan-received' ? 'loan' : kind
+}
 
 interface Filters {
   types: TypeFilter[]
@@ -222,10 +228,7 @@ export function AllTransactionsScreen() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
-  const all = useMemo(
-    () => recentActivity(1000000).filter((item) => item.kind === 'expense' || item.kind === 'income' || item.kind === 'transfer'),
-    [recentActivity],
-  )
+  const all = useMemo(() => recentActivity(1000000), [recentActivity])
 
   // كل الفلاتر عدا فلتر الفئة — الأساس اللي تُحسب عليه مربعات "حسب الفئة"
   // نفسها، عشان كل المربعات تفضل ظاهرة وقابلة للاختيار حتى بعد اختيار فئة.
@@ -233,7 +236,7 @@ export function AllTransactionsScreen() {
     const q = query.trim()
     return all.filter((item: ActivityItem) => {
       if (q && !item.title.includes(q) && !item.subtitle.includes(q) && !(item.note ?? '').includes(q)) return false
-      if (filters.types.length > 0 && !filters.types.includes(item.kind as TypeFilter)) return false
+      if (filters.types.length > 0 && !filters.types.includes(typeFilterOf(item.kind))) return false
       if (filters.accountId && !item.accountIds.includes(filters.accountId)) return false
       if (filters.from && item.date < filters.from) return false
       if (filters.to && item.date > filters.to) return false

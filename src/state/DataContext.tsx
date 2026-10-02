@@ -280,6 +280,22 @@ export interface ActivityItem {
   accountIds: string[]
   personId?: string
   note?: string
+  createdAt?: string
+}
+
+/** يختم وقت الإنشاء على العناصر الجديدة فقط (اللي ما كانت بالقائمة السابقة) — مصدر واحد بدل تكراره بكل دالة إضافة. */
+function stampNew<T extends { id: string; createdAt?: string }>(prev: T[], next: T[]): T[] {
+  const prevIds = new Set(prev.map((x) => x.id))
+  const now = new Date().toISOString()
+  return next.map((x) => (x.createdAt || prevIds.has(x.id) ? x : { ...x, createdAt: now }))
+}
+
+/** الأحدث أولًا: بالتاريخ، ثم بوقت الإنشاء بين حركات نفس اليوم (الحركات القديمة بلا وقت تنزل تحت). التساوي يرجّع 0 فيحافظ الفرز المستقر على ترتيب الإدخال. */
+export function compareActivityDesc(a: Pick<ActivityItem, 'date' | 'createdAt'>, b: Pick<ActivityItem, 'date' | 'createdAt'>): number {
+  if (a.date !== b.date) return a.date < b.date ? 1 : -1
+  const ca = a.createdAt ?? ''
+  const cb = b.createdAt ?? ''
+  return ca === cb ? 0 : ca < cb ? 1 : -1
 }
 
 export interface AppNotification {
@@ -529,6 +545,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     saveJSON(PEOPLE_KEY, next)
   }
   function persistLoans(next: LoanTransaction[]) {
+    next = stampNew(loanTransactions, next)
     setLoanTransactions(next)
     saveJSON(LOANS_KEY, next)
   }
@@ -541,6 +558,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     saveJSON(INCOME_SOURCES_KEY, next)
   }
   function persistTransactions(next: Transaction[]) {
+    next = stampNew(transactions, next)
     setTransactions(next)
     saveJSON(TRANSACTIONS_KEY, next)
   }
@@ -739,6 +757,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             color: 'var(--color-expense)',
             accountIds: [t.accountId],
             note: t.note,
+            createdAt: t.createdAt,
           }
         }
         if (t.type === 'income') {
@@ -752,6 +771,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             color: 'var(--color-income)',
             accountIds: [t.accountId],
             note: t.note,
+            createdAt: t.createdAt,
           }
         }
         return {
@@ -764,6 +784,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           color: 'var(--color-transfer)',
           accountIds: [t.accountId, t.transferToAccountId].filter((x): x is string => Boolean(x)),
           note: t.note,
+          createdAt: t.createdAt,
         }
       })
 
@@ -772,17 +793,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         date: t.date,
         kind: t.direction === 'given' ? 'loan-given' : 'loan-received',
         title: personName(t.personId),
-        subtitle: t.direction === 'given' ? 'أعطيته' : 'استلمت منه',
+        subtitle: `${t.direction === 'given' ? 'سلفة أعطيته' : 'سلفة استلمت منه'} · ${accountName(t.accountId)}`,
         amount: t.direction === 'given' ? -t.amount : t.amount,
         color: t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)',
         accountIds: [t.accountId],
         personId: t.personId,
+        note: t.note,
+        createdAt: t.createdAt,
       }))
 
-      // مقارن صحيح (يرجّع 0 عند تساوي التاريخ) — الفرز مضمون الاستقرار بجافاسكربت، فيحافظ على
-      // ترتيب الإدخال الأصلي (الأحدث أولًا، لأن كل حركة جديدة تُضاف بأول المصفوفة) بين حركات نفس
-      // اليوم، بدل مقارن قديم كان يرجّع -1 دائمًا عند التساوي فيكسر شرط الفرز ويعطي ترتيب عشوائي.
-      return [...fromTxns, ...fromLoans].sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1))
+      // حركات السلف بمصفوفة منفصلة، فبدون وقت الإنشاء كانت تنزل دائمًا تحت كل حركات نفس اليوم
+      // وتختفي من "آخر الحركات" — compareActivityDesc يرتّب بالتاريخ ثم بوقت الإنشاء.
+      return [...fromTxns, ...fromLoans].sort(compareActivityDesc)
     }
 
     function recentActivity(limit = 5): ActivityItem[] {
