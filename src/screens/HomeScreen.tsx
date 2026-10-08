@@ -12,7 +12,7 @@ import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
 import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { QuickSyncButton } from '../components/QuickSyncButton'
-import { GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
+import { BalanceCapsule, GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
 import { localIso, upcomingItems } from '../lib/homeFeed'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
@@ -168,6 +168,8 @@ export function HomeScreen() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [totalSheetOpen, setTotalSheetOpen] = useState(false)
   const [greetingRef, greetingPast] = useScrolledPast<HTMLDivElement>(FLOATING_ROW_OFFSET)
+  // نهاية قسم الرصيد — بعد تمريره تظهر كبسولة الرصيد تحت صف الأزرار.
+  const [balanceEndRef, balancePast] = useScrolledPast<HTMLDivElement>(100)
   const mask = (s: string) => (hidden ? '•••••' : s)
 
   const homeAccounts = accounts.filter((a) => a.showOnHome !== false)
@@ -306,6 +308,13 @@ export function HomeScreen() {
           </>
         }
       />
+      <BalanceCapsule
+        visible={balancePast}
+        balance={homeTotalBalance}
+        net={flowTotal > 0 ? monthNet : 0}
+        hidden={hidden}
+        onTap={() => greetingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+      />
       <div ref={greetingRef} className="safe-top mb-4 flex items-center gap-2.5 pt-[60px]">
         <AppLogoMark size={38} round />
         <div className="leading-tight">
@@ -348,6 +357,8 @@ export function HomeScreen() {
           </div>
         )}
       </section>
+
+      <div ref={balanceEndRef} aria-hidden="true" />
 
       {/* اختصارات سريعة */}
       <section className="qb-rise mb-6 flex items-start justify-between gap-2" style={rise(1)}>

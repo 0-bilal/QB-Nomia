@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الرئيسية — الكبسولة والشريط وزر الإضافة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c; --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --owed:#2ee6c8; --sub:#ffbf47;
+    --sans:'Readex Pro',system-ui,sans-serif; --num:'Inter',system-ui,sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 0 40px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .press{transition:transform .15s var(--ease)}.press:active{transform:scale(.95)}
+
+  /* لوحة الاختيار */
+  .panel{width:390px;max-width:100%;padding:0 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+  .grp{background:#0e0e11;border:1px solid #1f1f24;border-radius:18px;padding:10px}
+  .grp h4{font-size:12px;color:#8a8a95;font-weight:600;margin-bottom:7px;display:flex;justify-content:space-between}
+  .grp h4 span{color:#5d5d68;font-weight:500}
+  .opts{display:flex;gap:6px}
+  .opts button{flex:1;padding:8px 4px;border-radius:12px;font-size:11.5px;font-weight:600;color:#9a9aa5;background:#16161a;border:1px solid #222228;line-height:1.35}
+  .opts button b{display:block;font-size:13px;color:#d6d6dc}
+  .opts button.on{background:#f4f4f6;color:#3a3a42;border-color:transparent}
+  .opts button.on b{color:#0a0a0c}
+  .desc{font-size:11.5px;color:#8f8f99;line-height:1.75;margin-top:8px;padding:0 2px}
+
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:0;border:0}}
+  .scroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:0 20px 150px}
+  .scroll::-webkit-scrollbar{display:none}
+  .aurora{position:absolute;top:-120px;left:-60px;right:-60px;height:360px;background:radial-gradient(50% 60% at 70% 40%,rgba(139,123,255,.14),transparent 70%);pointer-events:none}
+
+  /* صف الرأس العائم */
+  .hrow{position:absolute;top:0;left:0;right:0;height:64px;padding:12px 16px 0;display:flex;align-items:center;gap:8px;z-index:20;pointer-events:none}
+  .hrow>*{pointer-events:auto}
+  .gb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(24,24,28,.62);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(20px);flex-shrink:0;color:var(--text)}
+  .sp{flex:1}
+
+  /* الكبسولة الذكية */
+  .cap{position:absolute;top:62px;left:50%;z-index:21;transform:translate(-50%,-8px) scale(.6);opacity:0;pointer-events:none;transition:opacity .22s ease,transform .42s var(--spring)}
+  .cap.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .cap .halo{position:absolute;inset:-12px -16px;z-index:-1;border-radius:99px;background:rgba(5,5,6,.35);backdrop-filter:blur(10px);-webkit-mask-image:radial-gradient(closest-side,#000 60%,transparent);mask-image:radial-gradient(closest-side,#000 60%,transparent)}
+  .cap .body{height:40px;display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;border-radius:99px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 12px 30px -12px rgba(0,0,0,.8);white-space:nowrap;font-size:13px;font-weight:700}
+  .cap small{font-size:11px;color:var(--text-3);font-weight:600}
+  .chipnet{font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px}
+  .ring{width:28px;height:28px;flex-shrink:0}
+  .capbtn{width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+
+  /* المحتوى */
+  .greet{display:flex;align-items:center;gap:10px;padding-top:72px;margin-bottom:16px}
+  .logo{width:38px;height:38px;border-radius:50%;background:linear-gradient(150deg,#fff,#c9c9d1);display:grid;place-items:center;color:#0a0a0c;font-weight:800;font-size:14px}
+  .greet b{font-size:17px;display:block}.greet small{font-size:11px;color:var(--text-3)}
+  .lbl{font-size:13px;color:var(--text-2);font-weight:500;margin:0 4px 6px;display:flex;gap:8px;align-items:center}
+  .lbl span{font-size:11.5px;background:rgba(255,255,255,.07);padding:4px 10px;border-radius:99px}
+  .big{font-size:46px;font-weight:800;margin:0 4px;letter-spacing:-.03em}
+  .big small{font-size:16px;color:var(--text-3);font-weight:600;margin-inline-start:6px}
+  .net{margin:12px 4px 22px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-3)}
+  .net b{font-size:11.5px;color:var(--income);background:rgba(62,224,143,.12);padding:4px 10px;border-radius:99px}
+  .qa{display:flex;justify-content:space-between;margin-bottom:24px}
+  .qa div{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;color:var(--text-2);width:72px}
+  .qa i{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border)}
+  .qa div:first-child i{background:var(--accent);color:var(--on-accent);border:0}
+  .sec{font-size:15px;font-weight:700;margin:0 4px 12px;display:flex;justify-content:space-between}
+  .sec span{font-size:12px;color:var(--text-2);font-weight:500}
+  .cardstack{height:190px;border-radius:26px;background:linear-gradient(140deg,#2a2346,#121218 70%);border:1px solid var(--border-strong);padding:18px;margin-bottom:24px;position:relative}
+  .cardstack:before{content:'';position:absolute;inset:-8px 14px auto;height:20px;border-radius:20px 20px 0 0;background:#17171c;z-index:-1}
+  .cardstack b{font-size:14px}.cardstack .amt{font-size:28px;font-weight:800;position:absolute;bottom:18px;right:18px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:16px;margin-bottom:16px}
+  .flow{display:flex;height:10px;gap:4px;border-radius:99px;overflow:hidden;margin:12px 0}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 0}
+  .row+.row{border-top:1px solid var(--border)}
+  .row i{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex-shrink:0}
+  .row .m{flex:1}.row .m b{font-size:13.5px;display:block}.row .m small{font-size:11px;color:var(--text-3)}
+  .row .a{font-size:14px;font-weight:700}
+
+  /* ===== الشريط السفلي ===== */
+  .navwrap{position:absolute;left:0;right:0;bottom:0;z-index:30;padding:0 16px 22px;pointer-events:none}
+  .navwrap>*{pointer-events:auto}
+  .nav{height:66px;border-radius:99px;display:flex;align-items:center;padding:0 8px;background:rgba(18,18,22,.78);border:1px solid var(--border-strong);backdrop-filter:blur(24px) saturate(1.6);box-shadow:0 24px 50px -16px rgba(0,0,0,.95);transition:all .45s var(--spring)}
+  .ni{flex:1;display:flex;justify-content:center}
+  .ni span{height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:99px;color:var(--text-3);font-size:12px;font-weight:600;transition:all .32s var(--spring);white-space:nowrap;overflow:hidden}
+  .ni.on span{background:rgba(255,255,255,.1);color:var(--accent);padding:0 14px 0 12px}
+  .ni span em{font-style:normal;max-width:0;opacity:0;transition:all .32s var(--spring)}
+  .ni.on span em{max-width:64px;opacity:1}
+  .fabslot{width:64px;display:flex;justify-content:center;flex-shrink:0;position:relative}
+  .fab{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;color:var(--on-accent);background:linear-gradient(150deg,#fff,var(--accent) 50%,#cfcfd6);box-shadow:0 0 0 5px var(--bg),0 16px 34px -8px rgba(255,255,255,.3),inset 0 1px 0 rgba(255,255,255,.6);transition:transform .32s var(--spring);touch-action:none;position:relative;z-index:2}
+  .fab.open{transform:rotate(45deg)}
+  /* 1: الحالي المحسّن */
+  .b1 .fab{margin-top:-28px}
+  /* 2: جزيرة منفصلة */
+  .b2{display:flex;gap:10px;align-items:center}
+  .b2 .nav{flex:1;height:60px}
+  .b2 .fab{width:60px;height:60px;box-shadow:0 16px 34px -8px rgba(255,255,255,.3),inset 0 1px 0 rgba(255,255,255,.6)}
+  /* 3: يتقلّص عند التمرير */
+  .b3 .nav.mini{height:52px;width:200px;margin:0 auto;padding:0 6px}
+  .b3 .nav.mini .ni:not(.on){flex:0;width:0;opacity:0;pointer-events:none}
+  .b3 .nav.mini .ni.on{flex:1}
+  .b3 .nav .ni{transition:all .4s var(--spring)}
+  .b3 .nav.mini .fabslot{width:48px}
+  .b3 .nav.mini .fab{width:44px;height:44px;margin-top:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+  .b3 .fab{margin-top:-28px;transition:all .45s var(--spring)}
+  .b3 .nav.mini .peek{display:flex}
+  .peek{display:none;gap:4px;align-items:center}
+  .peek button{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--text-3)}
+
+  /* ===== قوائم زر الإضافة ===== */
+  .scrim{position:absolute;inset:0;z-index:28;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .hint{position:absolute;left:0;right:0;text-align:center;font-size:12px;color:var(--text-3);z-index:29;opacity:0;transition:opacity .25s;pointer-events:none}
+  .hint.on{opacity:1}
+  /* د: القوس */
+  .arc{position:absolute;z-index:31;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;font-weight:600;opacity:0;pointer-events:none;transition:all .38s var(--spring)}
+  .arc i{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:var(--surface-el);border:1px solid;box-shadow:0 12px 26px -10px rgba(0,0,0,.8);transition:all .2s var(--spring)}
+  .arc.on{opacity:1;pointer-events:auto}
+  .arc.hot i{transform:scale(1.14)}
+  /* هـ: الكبسولة المتمددة */
+  .morph{position:absolute;left:50%;z-index:31;transform:translate(-50%,30px) scale(.4);opacity:0;pointer-events:none;transition:all .45s var(--spring);transform-origin:50% 100%}
+  .morph.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+  .morph .body{display:flex;gap:4px;padding:6px;border-radius:99px;background:rgba(28,28,33,.94);border:1px solid var(--border-strong);backdrop-filter:blur(20px);box-shadow:0 20px 40px -12px rgba(0,0,0,.9)}
+  .morph button{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;padding:8px 0 7px;border-radius:26px;font-size:11px;font-weight:600;transition:background .2s}
+  .morph button i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center}
+  .morph button.hot{background:rgba(255,255,255,.1)}
+  .morph .recent{margin-top:8px;display:flex;gap:6px;justify-content:center}
+  .morph .recent button{width:auto;flex-direction:row;padding:7px 12px 7px 10px;border-radius:99px;background:rgba(28,28,33,.94);border:1px solid var(--border-strong);font-size:11.5px;gap:6px}
+  /* و: الورقة السريعة */
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:31;background:var(--surface-el);border-top:1px solid var(--border-strong);border-radius:30px 30px 0 0;padding:10px 16px 26px;transform:translateY(105%);transition:transform .42s var(--ease)}
+  .sheet.on{transform:none}
+  .handle{width:38px;height:4.5px;border-radius:99px;background:rgba(255,255,255,.18);margin:0 auto 14px}
+  .sheet h3{font-size:16px;margin:0 4px 12px}
+  .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tgrid button{display:flex;align-items:center;gap:10px;padding:12px;border-radius:18px;background:var(--surface);border:1px solid var(--border);text-align:right}
+  .tgrid button i{width:40px;height:40px;border-radius:13px;display:grid;place-items:center}
+  .tgrid button b{font-size:13.5px;display:block}.tgrid button small{font-size:10.5px;color:var(--text-3)}
+  .sheet h5{font-size:12px;color:var(--text-3);font-weight:600;margin:16px 4px 8px}
+  .rep{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);margin-bottom:6px;width:100%;text-align:right}
+  .rep i{width:34px;height:34px;border-radius:11px;display:grid;place-items:center}
+  .rep .m{flex:1}.rep .m b{font-size:12.5px;display:block}.rep .m small{font-size:10.5px;color:var(--text-3)}
+  .rep em{font-style:normal;font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px;background:var(--accent);color:var(--on-accent)}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="grp"><h4>١ — الكبسولة الذكية عند التمرير <span>مرّر داخل الجوال</span></h4>
+    <div class="opts" id="o-cap">
+      <button data-v="A" class="on"><b>أ</b>الرصيد</button>
+      <button data-v="B"><b>ب</b>ميزانية اليوم</button>
+      <button data-v="C"><b>ج</b>اختصارات</button>
+    </div><div class="desc" id="d-cap"></div></div>
+  <div class="grp"><h4>٢ — الشريط السفلي</h4>
+    <div class="opts" id="o-bar">
+      <button data-v="1" class="on"><b>1</b>الحالي محسّن</button>
+      <button data-v="2"><b>2</b>جزيرة + زر منفصل</button>
+      <button data-v="3"><b>3</b>يتقلّص بالتمرير</button>
+    </div><div class="desc" id="d-bar"></div></div>
+  <div class="grp"><h4>٣ — زر الإضافة + <span>اضغطه أو اسحب منه</span></h4>
+    <div class="opts" id="o-fab">
+      <button data-v="D" class="on"><b>د</b>القوس الحالي</button>
+      <button data-v="E"><b>هـ</b>يتحوّل لكبسولة</button>
+      <button data-v="F"><b>و</b>ورقة سريعة</button>
+    </div><div class="desc" id="d-fab"></div></div>
+</div>
+
+<div class="phone" id="phone">
+  <div class="aurora"></div>
+  <div class="scroll" id="scroll">
+    <div class="greet"><div class="logo">QB</div><div><b>مساء الخير</b><small class="num">2026/10/08 · v2.11.3</small></div></div>
+    <div class="lbl">إجمالي رصيدك <span class="num">كل الحسابات (3)</span></div>
+    <div class="big num">24,380<small>ر.س</small></div>
+    <div class="net"><b class="num">+6,440 ر.س</b>صافي هذا الشهر</div>
+    <div class="qa" id="qa"></div>
+    <div class="sec">بطاقاتك <span>الكل</span></div>
+    <div class="cardstack"><b>الراجحي</b><div class="amt num">18,920</div></div>
+    <div class="card"><div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2)">تدفّق هذا الشهر<small style="color:var(--text-3)">دخل مقابل مصروف</small></div>
+      <div class="flow"><span style="flex:9500;background:var(--income);border-radius:99px"></span><span style="flex:3060;background:var(--expense);border-radius:99px"></span></div>
+      <div style="display:flex;justify-content:space-between"><div><small style="color:var(--text-3);font-size:11.5px">الدخل</small><div class="num" style="font-size:18px;font-weight:700;color:var(--income)">9,500</div></div><div><small style="color:var(--text-3);font-size:11.5px">المصروف</small><div class="num" style="font-size:18px;font-weight:700;color:var(--expense)">3,060</div></div></div></div>
+    <div class="sec" style="margin-top:20px">آخر الحركات <span>عرض الكل</span></div>
+    <div class="card" style="padding:4px 14px" id="acts"></div>
+    <div class="card" style="padding:4px 14px" id="acts2"></div>
+  </div>
+
+  <div class="hrow" id="hrow">
+    <span class="sp"></span>
+    <button class="gb" aria-label="مزامنة"></button>
+    <button class="gb" aria-label="التنبيهات"></button>
+    <button class="gb" aria-label="إخفاء"></button>
+  </div>
+  <div class="cap" id="cap"><span class="halo"></span><div class="body" id="capbody"></div></div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="hint" id="hint"></div>
+  <div id="arcs"></div>
+  <div class="morph" id="morph"></div>
+  <div class="sheet" id="sheet"></div>
+  <div class="navwrap" id="navwrap"></div>
+</div>
+
+<script>
+const S=(p,s=20,w=2)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const I={home:'<path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19v-8.5Z"/>',wallet:'<rect x="3" y="6" width="18" height="13" rx="3.5"/><path d="M3 10.5h18"/>',
+ people:'<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.3 14.2c2.5.4 4.2 1.9 4.2 4.8"/>',more:'<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="3.25"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="3.25"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',exp:'<path d="M7 7l10 10M17 9v8H9"/>',inc:'<path d="M17 17 7 7M7 15V7h8"/>',tr:'<path d="M16 3l4 4-4 4M20 7H8M8 21l-4-4 4-4M4 17h12"/>',list:'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+ sync:'<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+ up:'<path d="m6 15 6-6 6 6"/>',food:'<path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8M15 3c-1.5 2-2 4-2 6s1 3 2 3v9"/>',cart:'<path d="M3 4h2l2.5 11h11L21 8H7"/><circle cx="10" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',coffee:'<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/>',car:'<path d="M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2M19 16v2"/><circle cx="8" cy="13" r=".8"/><circle cx="16" cy="13" r=".8"/>'};
+const TYPES=[['exp','مصروف','var(--expense)'],['inc','دخل','var(--income)'],['tr','تحويل','var(--transfer)'],['loan','سلفة','var(--owed)']];
+const TICON={exp:I.exp,inc:I.inc,tr:I.tr,loan:I.people};
+const soft=(c,p=16)=>`color-mix(in srgb, ${c} ${p}%, transparent)`;
+const $=id=>document.getElementById(id);
+let st={cap:'A',bar:'1',fab:'D',scrolled:false,dir:0,lastY:0,open:false,hot:null,tab:0};
+
+document.querySelectorAll('#hrow .gb').forEach((b,i)=>b.innerHTML=S([I.sync,I.bell,I.eye][i],18,1.9));
+$('qa').innerHTML=[['مصروف',I.exp],['دخل',I.inc],['تحويل',I.tr],['الحركات',I.list]].map(([l,ic],i)=>`<div><i style="${i===1?'color:var(--income)':i===2?'color:var(--transfer)':''}">${S(ic,20)}</i>${l}</div>`).join('');
+const ACT=[['مطاعم','البيك · الكاش',-42,'#FF9A4D',I.food],['بقالة','بنده · الراجحي',-180,'#2EE6C8',I.cart],['قهوة','الراجحي',-18,'#FFBF47',I.coffee],['دخل','الراتب · الراجحي',9500,'var(--income)',I.inc],['مواصلات','أوبر · الراجحي',-46,'#45C8FF',I.car],['بقالة','الدانوب · الراجحي',-240,'#2EE6C8',I.cart]];
+const rows=a=>a.map(([t,s,v,c,ic])=>`<div class="row"><i style="background:${soft(c)};color:${c}">${S(ic,19,1.8)}</i><div class="m"><b>${t}</b><small>${s}</small></div><div class="a num" dir="ltr" style="color:${v>0?'var(--income)':'var(--text)'}">${v>0?'+':'−'}${Math.abs(v).toLocaleString('en-US')}</div></div>`).join('');
+$('acts').innerHTML=rows(ACT);$('acts2').innerHTML=rows(ACT.slice().reverse());
+
+const DESC={
+ cap:{A:'بعد تمرير الرصيد يظهر في المنتصف: إجمالي رصيدك + صافي الشهر بلون. الضغط عليها يرجعك لأعلى الشاشة، وتحترم زر الإخفاء (•••).',
+      B:'ميزانية اليوم: حلقة تقدّم لمصروف الشهر مقابل الميزانية + «متبقي لك اليوم» (الميزانية المتبقية ÷ الأيام الباقية). تتلون أحمر لو تجاوزت.',
+      C:'أزرار الاختصارات (مصروف/دخل/تحويل) تختفي مع التمرير، فتظهر الكبسولة فيها نفسها كأيقونات — تضيف حركة من أي مكان بالرئيسية بدون الرجوع للأعلى.'},
+ bar:{'1':'نفس الشريط الحالي بزر + بارز في المنتصف، مع تحسينات: التبويب النشط يتمدد باسمه، وخلفية زجاجية أوضح.',
+      '2':'الشريط يصير جزيرة بأربعة تبويبات، وزر + دائرة مستقلة بجانبه (أسلوب iOS الحديث). أنظف وأسهل للإبهام.',
+      '3':'كامل عند التوقف، وعند التمرير لتحت يتقلّص لكبسولة صغيرة فيها التبويب الحالي وزر + فقط ليكشف المحتوى، ويرجع كامل عند التمرير لفوق.'},
+ fab:{D:'الحالي: الضغط يفتح 4 فقاعات بقوس فوق الزر، أو اسحب من الزر مباشرة وأفلت على النوع.',
+      E:'الزر يتمدد لكبسولة أفقية فوق الشريط (نفس هوية الكبسولة الذكية) فيها الأنواع الأربعة، وتحتها «كرّر» لآخر حركتين. السحب الأفقي على الزر يختار النوع ويفلت.',
+      F:'ورقة سريعة من الأسفل: 4 بطاقات للأنواع بوصف، و«كرّر حركة حديثة» بآخر 3 حركات (نفس المبلغ والفئة بضغطة).'}};
+
+function ring(p,c){const r=11,C=2*Math.PI*r;return `<svg class="ring" viewBox="0 0 28 28"><circle cx="14" cy="14" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3.5"/><circle cx="14" cy="14" r="${r}" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${C*p} ${C}" transform="rotate(-90 14 14)"/></svg>`}
+function renderCap(){
+  let h='';
+  if(st.cap==='A')h=`<span class="num">24,380 <small>ر.س</small></span><span class="chipnet num" style="background:rgba(62,224,143,.14);color:var(--income)">+6,440</span><span class="capbtn" style="color:var(--text-3)">${S(I.up,15,2.4)}</span>`;
+  if(st.cap==='B')h=`${ring(.61,'var(--sub)')}<span>متبقي اليوم <span class="num">86</span> <small>ر.س</small></span><small class="num" style="padding-inline-end:8px">3,060 / 5,000</small>`;
+  if(st.cap==='C')h=`<small style="padding-inline-end:2px">أضف</small>${TYPES.slice(0,3).map(([k,l,c])=>`<span class="capbtn" style="background:${soft(c,18)};color:${c}">${S(TICON[k],16,2.2)}</span>`).join('')}<span class="capbtn" style="background:rgba(255,255,255,.08)">${S(I.list,15,2.2)}</span>`;
+  $('capbody').innerHTML=h;$('capbody').style.paddingInlineStart=st.cap==='B'?'6px':'14px';
+  $('cap').classList.toggle('on',st.scrolled&&!st.open);
+}
+function renderBar(){
+  const tabs=[['الرئيسية',I.home],['الحسابات',I.wallet],['السلف',I.people],['المزيد',I.more]];
+  const ni=(t,i)=>`<div class="ni ${i===st.tab?'on':''}"><span>${S(t[1],22,1.8)}<em>${t[0]}</em></span></div>`;
+  const fab=`<button class="fab ${st.open?'open':''}" id="fab" aria-label="إضافة">${S(I.plus,26,2.4)}</button>`;
+  if(st.bar==='1')$('navwrap').innerHTML=`<div class="b1"><div class="nav">${ni(tabs[0],0)}${ni(tabs[1],1)}<div class="fabslot">${fab}</div>${ni(tabs[2],2)}${ni(tabs[3],3)}</div></div>`;
+  if(st.bar==='2')$('navwrap').innerHTML=`<div class="b2"><div class="nav">${tabs.map(ni).join('')}</div>${fab}</div>`;
+  if(st.bar==='3'){const mini=st.scrolled&&st.dir>0&&!st.open;$('navwrap').innerHTML=`<div class="b3"><div class="nav ${mini?'mini':''}">${ni(tabs[0],0)}${ni(tabs[1],1)}<div class="fabslot">${fab}</div>${ni(tabs[2],2)}${ni(tabs[3],3)}</div></div>`;}
+  bindFab();
+}
+function fabCenter(){const f=$('fab').getBoundingClientRect(),p=$('phone').getBoundingClientRect();return {x:f.left-p.left+f.width/2,y:f.top-p.top+f.height/2}}
+const ARC=[[122,-92],[46,-150],[-46,-150],[-122,-92]];
+function renderMenus(){
+  const c=fabCenter();
+  $('scrim').classList.toggle('on',st.open);
+  // د
+  $('arcs').innerHTML=st.fab==='D'?TYPES.map(([k,l,col],i)=>{const [dx,dy]=ARC[i];const hot=st.hot===k;return `<button class="arc ${st.open?'on':''} ${hot?'hot':''}" data-type="${k}" style="left:${c.x+dx}px;top:${c.y+dy}px;color:${hot?col:'var(--text)'};transition-delay:${st.open?i*40:0}ms"><i style="border-color:${soft(col,40)};color:${hot?'#0a0a0c':col};background:${hot?col:'var(--surface-el)'}">${S(TICON[k],20)}</i>${l}</button>`}).join(''):'';
+  // هـ
+  const m=$('morph');m.style.bottom=($('phone').clientHeight-c.y+44)+'px';
+  m.innerHTML=st.fab==='E'?`<div class="body">${TYPES.map(([k,l,col])=>`<button class="${st.hot===k?'hot':''}" data-type="${k}" style="color:${col}"><i style="background:${soft(col,18)}">${S(TICON[k],18,2.2)}</i><span style="color:var(--text)">${l}</span></button>`).join('')}</div><div class="recent"><button data-type="exp">${S('<path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4"/>',13,2.2)}كرّر: البيك <b class="num">42</b></button><button data-type="exp">${S('<path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4"/>',13,2.2)}بنده <b class="num">180</b></button></div>`:'';
+  m.classList.toggle('on',st.open&&st.fab==='E');
+  // و
+  $('sheet').innerHTML=st.fab==='F'?`<div class="handle"></div><h3>إضافة حركة</h3><div class="tgrid">${TYPES.map(([k,l,col],i)=>`<button class="press" data-type="${k}"><i style="background:${soft(col,16)};color:${col}">${S(TICON[k],20)}</i><span><b>${l}</b><small>${['شراء أو فاتورة','راتب أو تحويل وارد','بين حساباتك','أعطيت أو استلمت'][i]}</small></span></button>`).join('')}</div>
+    <h5>كرّر حركة حديثة</h5>${ACT.filter(a=>a[2]<0).slice(0,3).map(([t,s,v,c,ic])=>`<button class="rep press"><i style="background:${soft(c)};color:${c}">${S(ic,17,1.8)}</i><span class="m"><b>${t}</b><small>${s}</small></span><span class="num" style="font-size:13px;font-weight:700;margin-inline-end:8px">${Math.abs(v)}</span><em>كرّر</em></button>`).join('')}`:'';
+  $('sheet').classList.toggle('on',st.open&&st.fab==='F');
+  $('hint').classList.toggle('on',st.open&&st.fab!=='F');
+  $('hint').style.bottom=(st.fab==='E'?($('phone').clientHeight-c.y+175):($('phone').clientHeight-c.y+205))+'px';
+  $('hint').textContent=st.fab==='D'?'اختر نوع الحركة — أو اسحب من زر + مباشرة':'اسحب أفقيًا على الكبسولة أو اضغط النوع';
+  renderCap();
+}
+function bindFab(){
+  const f=$('fab');let d=null;
+  f.onpointerdown=e=>{d={x:e.clientX,y:e.clientY,moved:false};f.setPointerCapture(e.pointerId)};
+  f.onpointermove=e=>{if(!d)return;if(!d.moved&&Math.hypot(e.clientX-d.x,e.clientY-d.y)<8)return;if(!d.moved){d.moved=true;st.open=true;renderBar();renderMenus();}
+    const els=[...document.querySelectorAll('.arc.on,.morph.on .body button')];let best=null,bd=60;
+    els.forEach(el=>{const r=el.getBoundingClientRect();const dd=Math.hypot(e.clientX-(r.left+r.width/2),e.clientY-(r.top+r.height/2));if(dd<bd){bd=dd;best=el.dataset.type}});
+    if(best!==st.hot){st.hot=best;renderMenus();}};
+  f.onpointerup=()=>{if(!d)return;const moved=d.moved;d=null;if(moved){st.open=false;st.hot=null;renderBar();renderMenus();return;}st.open=!st.open;renderBar();renderMenus();};
+}
+$('scrim').onclick=()=>{st.open=false;st.hot=null;renderBar();renderMenus();};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-type]');if(t&&!e.target.closest('.panel')){st.open=false;st.hot=null;renderBar();renderMenus();}});
+$('scroll').addEventListener('scroll',()=>{const y=$('scroll').scrollTop;const sc=y>150;const dir=y>st.lastY+4?1:y<st.lastY-4?-1:st.dir;st.lastY=y;
+  if(sc!==st.scrolled||dir!==st.dir){st.scrolled=sc;st.dir=dir;renderCap();if(st.bar==='3')renderBar();}});
+for(const [id,key] of [['o-cap','cap'],['o-bar','bar'],['o-fab','fab']]){
+  $(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;st[key]=b.dataset.v;st.open=false;$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+    $('d-'+key).textContent=DESC[key][st[key]];renderBar();renderMenus();};
+  $('d-'+key).textContent=DESC[key][st[key]];
+}
+renderBar();renderMenus();
+</script>
+</body>
+</html>

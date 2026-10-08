@@ -179,3 +179,68 @@ export function GroupedActivity({
     </>
   )
 }
+
+/**
+ * كبسولة الرصيد (أسلوب الكبسولة الذكية): تظهر لاصقة تحت صف الأزرار بعد تمرير الرصيد الإجمالي —
+ * الرصيد + صافي الشهر، والضغط عليها يرجع لأعلى الشاشة. تحترم زر الإخفاء.
+ */
+export function BalanceCapsule({ visible, balance, net, hidden, onTap }: { visible: boolean; balance: number; net: number; hidden: boolean; onTap: () => void }) {
+  return (
+    <div className="pointer-events-none sticky z-20 -mx-5 h-0" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}>
+      <div
+        className="absolute inset-x-0 top-0 flex justify-center"
+        aria-hidden={!visible}
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(-8px) scale(0.6)',
+          transition: 'opacity 220ms ease, transform 420ms cubic-bezier(0.34,1.56,0.64,1)',
+        }}
+      >
+        <button
+          onClick={onTap}
+          tabIndex={visible ? 0 : -1}
+          aria-label="الرجوع لأعلى الشاشة"
+          className="qb-press relative flex h-10 items-center gap-2 whitespace-nowrap rounded-full border pe-1.5 ps-3.5"
+          style={{
+            pointerEvents: visible ? 'auto' : 'none',
+            background: 'rgba(28,28,33,0.9)',
+            borderColor: 'var(--color-border-strong)',
+            backdropFilter: 'blur(20px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+            boxShadow: '0 12px 30px -12px rgba(0,0,0,0.8)',
+          }}
+        >
+          <span
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              inset: '-12px -16px',
+              zIndex: -1,
+              background: 'rgba(5,5,6,0.35)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              maskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+              WebkitMaskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+            }}
+          />
+          <span dir="ltr" className="num text-[13.5px] font-bold">
+            {hidden ? '••••••' : formatAmount(balance)} <small className="text-[11px] font-semibold text-[var(--color-text-3)]">ر.س</small>
+          </span>
+          {net !== 0 && (
+            <span
+              dir="ltr"
+              className="num rounded-full px-2 py-0.5 text-[11px] font-bold"
+              style={{ background: soft(net > 0 ? 'var(--color-income)' : 'var(--color-expense)', 14), color: net > 0 ? 'var(--color-income)' : 'var(--color-expense)' }}
+            >
+              {hidden ? '•••' : `${net > 0 ? '+' : '−'}${formatAmount(Math.abs(net))}`}
+            </span>
+          )}
+          <span className="flex h-[30px] w-[30px] items-center justify-center text-[var(--color-text-3)]">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 15 6-6 6 6" />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}

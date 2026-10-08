@@ -1,7 +1,9 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../lib/haptics'
 import { TAB_LABELS } from '../lib/tabs'
+import { useData } from '../state/DataContext'
+import { formatAmount } from '../lib/format'
 
 
 function HomeIcon({ active }: { active: boolean }) {
@@ -81,21 +83,27 @@ interface QuickAction {
   color: string
   icon: ReactNode
   to: string
-  /** موضع الهدف بالنسبة لمركز زر الإضافة (px) — قوس فوق الزر. */
-  dx: number
-  dy: number
 }
 
-/** أهداف إيماءة "اسحب من زر +" مرتّبة بقوس من اليمين لليسار (اتجاه القراءة). */
+/** أنواع الإضافة بكبسولة زر + (من اليمين لليسار). */
 const QUICK_ACTIONS: QuickAction[] = [
-  { key: 'expense', label: 'مصروف', color: 'var(--color-expense)', icon: <ArrowDownIcon />, to: '/add/transaction?type=expense', dx: 122, dy: -92 },
-  { key: 'income', label: 'دخل', color: 'var(--color-income)', icon: <ArrowUpIcon />, to: '/add/transaction?type=income', dx: 46, dy: -150 },
-  { key: 'transfer', label: 'تحويل', color: 'var(--color-transfer)', icon: <SwapIcon />, to: '/add/transaction?type=transfer', dx: -46, dy: -150 },
-  { key: 'loan', label: 'سلفة', color: 'var(--color-owed-to)', icon: <PeopleIcon size={20} />, to: '/loans', dx: -122, dy: -92 },
+  { key: 'expense', label: 'مصروف', color: 'var(--color-expense)', icon: <ArrowDownIcon />, to: '/add/transaction?type=expense' },
+  { key: 'income', label: 'دخل', color: 'var(--color-income)', icon: <ArrowUpIcon />, to: '/add/transaction?type=income' },
+  { key: 'transfer', label: 'تحويل', color: 'var(--color-transfer)', icon: <SwapIcon />, to: '/add/transaction?type=transfer' },
+  { key: 'loan', label: 'سلفة', color: 'var(--color-owed-to)', icon: <PeopleIcon size={20} />, to: '/loans' },
 ]
 
+function RepeatGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 12a8 8 0 0 1 14-5.3M20 4v4h-4" />
+      <path d="M20 12a8 8 0 0 1-14 5.3M4 20v-4h4" />
+    </svg>
+  )
+}
+
 const DRAG_SLOP = 8
-const SNAP_RADIUS = 58
+const SNAP_RADIUS = 52
 
 function NavItem({ to, label, icon }: { to: string; label: string; icon: (active: boolean) => ReactNode }) {
   return (
@@ -135,6 +143,8 @@ export function BottomNav() {
   const [hot, setHot] = useState<string | null>(null)
   const [openedForPath, setOpenedForPath] = useState(location.pathname)
   const fabRef = useRef<HTMLButtonElement>(null)
+  const actionRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const { recentActivity, transactions } = useData()
   // refs لا state للتتبّع أثناء الإيماءة: أحداث المؤشر السريعة تصل قبل إعادة الرسم فكانت تقرأ قيمًا قديمة.
   const drag = useRef({ x: 0, y: 0, moved: false, cx: 0, cy: 0, active: false, hot: null as string | null })
 
@@ -142,6 +152,24 @@ export function BottomNav() {
     setOpenedForPath(location.pathname)
     if (open) setOpen(false)
   }
+
+  // "كرّر": آخر مصروفين بأسماء مختلفة — نفس المبلغ والحساب والفئة بضغطة.
+  const repeats = useMemo(() => {
+    if (!open) return []
+    const seen = new Set<string>()
+    const out: { id: string; title: string; amount: number; to: string }[] = []
+    for (const item of recentActivity(30)) {
+      if (item.kind !== 'expense' || seen.has(item.title)) continue
+      const txn = transactions.find((x) => x.id === item.id)
+      if (!txn) continue
+      seen.add(item.title)
+      const params = new URLSearchParams({ type: 'expense', amount: String(txn.amount), from: txn.accountId })
+      if (txn.categoryId) params.set('category', txn.categoryId)
+      out.push({ id: txn.id, title: item.title, amount: txn.amount, to: `/add/transaction?${params.toString()}` })
+      if (out.length === 2) break
+    }
+    return out
+  }, [open, recentActivity, transactions])
 
   function goTo(action: QuickAction) {
     haptic('success')
@@ -154,7 +182,9 @@ export function BottomNav() {
     let best: QuickAction | null = null
     let bestDist = SNAP_RADIUS
     for (const a of QUICK_ACTIONS) {
-      const d = Math.hypot(x - (drag.current.cx + a.dx), y - (drag.current.cy + a.dy))
+      const r = actionRefs.current[a.key]?.getBoundingClientRect()
+      if (!r) continue
+      const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2))
       if (d < bestDist) {
         bestDist = d
         best = a
@@ -214,89 +244,119 @@ export function BottomNav() {
           style={{ animation: 'fade-in 200ms ease-out both' }}
           onClick={() => setOpen(false)}
           aria-hidden="true"
-        >
-          <div className="absolute inset-x-0 bottom-[290px] text-center text-[12px] font-medium text-[var(--color-text-3)]">
-            {dragging ? 'أفلت على الاختصار' : 'اختر نوع الحركة — أو اسحب من زر + مباشرة'}
-          </div>
-        </div>
+        />
       )}
 
       <div className="safe-bottom pointer-events-none relative z-50 px-4 pb-3 pt-1">
+        {/* كبسولة الإضافة: الزر يتمدد لكبسولة أفقية فوق الشريط (هوية الكبسولة الذكية) + "كرّر" لآخر مصروفين. */}
+        <div
+          className="absolute inset-x-0 flex flex-col items-center gap-2 px-4"
+          style={{
+            bottom: 'calc(100% - 4px)',
+            opacity: open ? 1 : 0,
+            transform: open ? 'none' : 'translateY(30px) scale(0.4)',
+            transformOrigin: '50% 100%',
+            transition: 'opacity 220ms ease, transform 450ms var(--ease-spring)',
+          }}
+          aria-hidden={!open}
+        >
+          <div className="text-[12px] font-medium text-[var(--color-text-3)]">{dragging ? 'أفلت على النوع' : 'اختر نوع الحركة — أو اسحب من زر +'}</div>
+          <div
+            role="menu"
+            className="flex gap-1 rounded-full border border-[var(--color-border-strong)] p-1.5"
+            style={{
+              pointerEvents: open ? 'auto' : 'none',
+              background: 'rgba(28,28,33,0.94)',
+              backdropFilter: 'blur(20px) saturate(1.6)',
+              WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+              boxShadow: '0 20px 40px -12px rgba(0,0,0,0.9)',
+            }}
+          >
+            {QUICK_ACTIONS.map((action) => {
+              const isHot = hot === action.key
+              return (
+                <button
+                  key={action.key}
+                  ref={(el) => {
+                    actionRefs.current[action.key] = el
+                  }}
+                  role="menuitem"
+                  tabIndex={open ? 0 : -1}
+                  onClick={() => goTo(action)}
+                  className="qb-press flex w-16 flex-col items-center gap-1 rounded-[26px] pb-[7px] pt-2"
+                  style={{ background: isHot ? 'rgba(255,255,255,0.1)' : 'transparent', transition: 'background 160ms ease' }}
+                >
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-full"
+                    style={{
+                      background: isHot ? action.color : `color-mix(in srgb, ${action.color} 18%, transparent)`,
+                      color: isHot ? '#0a0a0c' : action.color,
+                      transform: `scale(${isHot ? 1.12 : 1})`,
+                      transition: 'background 160ms ease, color 160ms ease, transform 220ms var(--ease-spring)',
+                    }}
+                  >
+                    {action.icon}
+                  </span>
+                  <span className="text-[11px] font-semibold">{action.label}</span>
+                </button>
+              )
+            })}
+          </div>
+          {repeats.length > 0 && (
+            <div className="flex max-w-full gap-1.5" style={{ pointerEvents: open ? 'auto' : 'none' }}>
+              {repeats.map((r) => (
+                <button
+                  key={r.id}
+                  tabIndex={open ? 0 : -1}
+                  onClick={() => {
+                    haptic('success')
+                    setOpen(false)
+                    navigate(r.to)
+                  }}
+                  className="qb-press flex min-w-0 items-center gap-1.5 rounded-full border border-[var(--color-border-strong)] py-[7px] pe-3 ps-2.5 text-[11.5px] font-semibold"
+                  style={{ background: 'rgba(28,28,33,0.94)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+                >
+                  <span className="flex-shrink-0 text-[var(--color-text-3)]">
+                    <RepeatGlyph />
+                  </span>
+                  <span className="truncate">كرّر: {r.title}</span>
+                  <b className="num flex-shrink-0">{formatAmount(r.amount)}</b>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div
           className="pointer-events-auto relative mx-auto flex h-[66px] max-w-[420px] items-center rounded-full border border-[var(--color-border-strong)] px-2 shadow-[0_24px_50px_-16px_rgba(0,0,0,0.95)]"
-          style={{ background: 'rgba(18,18,22,0.78)', backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)' }}
+          style={{ background: 'rgba(18,18,22,0.82)', backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)' }}
         >
           <NavItem to="/" label={TAB_LABELS[0]} icon={(a) => <HomeIcon active={a} />} />
           <NavItem to="/accounts" label={TAB_LABELS[1]} icon={(a) => <WalletIcon active={a} />} />
 
-          <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center">
-            {open &&
-              QUICK_ACTIONS.map((action, i) => {
-                const isHot = hot === action.key
-                return (
-                  <button
-                    key={action.key}
-                    onClick={() => goTo(action)}
-                    className="absolute"
-                    style={{ left: `calc(50% + ${action.dx}px)`, top: `calc(50% + ${action.dy}px)`, transform: 'translate(-50%, -50%)' }}
-                    aria-label={action.label}
-                  >
-                    {/* الطبقات منفصلة عمدًا: أنيميشن الظهور (qb-pop) يكتب transform فكان يلغي إزاحة الموضع لو اجتمعا بنفس العنصر. */}
-                    <span className="flex flex-col items-center gap-1.5" style={{ animation: `qb-pop 380ms var(--ease-spring) ${i * 45}ms both` }}>
-                      <span
-                        className="flex h-[54px] w-[54px] items-center justify-center rounded-full border"
-                        style={{
-                          background: isHot ? action.color : 'var(--color-surface-elevated)',
-                          borderColor: isHot ? 'transparent' : `color-mix(in srgb, ${action.color} 40%, transparent)`,
-                          color: isHot ? '#0a0a0c' : action.color,
-                          boxShadow: isHot ? `0 0 0 8px color-mix(in srgb, ${action.color} 18%, transparent)` : '0 12px 26px -10px rgba(0,0,0,0.8)',
-                          transform: `scale(${isHot ? 1.14 : 1})`,
-                          transition: 'background 160ms ease, color 160ms ease, box-shadow 200ms ease, transform 220ms var(--ease-spring)',
-                        }}
-                      >
-                        {action.icon}
-                      </span>
-                      <span className="whitespace-nowrap text-[11.5px] font-semibold" style={{ color: isHot ? action.color : 'var(--color-text)' }}>
-                        {action.label}
-                      </span>
-                    </span>
-                  </button>
-                )
-              })}
-
-            {!open && (
-              <span
-                className="pointer-events-none absolute -top-[22px] text-[var(--color-accent)]"
-                style={{ animation: 'qb-hint-up 2.8s ease-in-out infinite' }}
-                aria-hidden="true"
-              >
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6,15 12,9 18,15" />
-                </svg>
-              </span>
-            )}
-
-            <button
-              ref={fabRef}
-              onPointerDown={onFabDown}
-              onPointerMove={onFabMove}
-              onPointerUp={onFabUp}
-              onPointerCancel={onFabUp}
-              className="-mt-7 flex h-[60px] w-[60px] flex-shrink-0 items-center justify-center rounded-full"
-              style={{
-                background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent) 50%, var(--color-accent-b))',
-                color: 'var(--color-on-accent)',
-                boxShadow: '0 0 0 5px var(--color-bg), 0 16px 34px -8px rgba(255,255,255,0.3), inset 0 1px 0 rgba(255,255,255,0.6)',
-                transform: `rotate(${open ? 45 : 0}deg) scale(${dragging ? 0.92 : 1})`,
-                transition: 'transform 320ms var(--ease-spring)',
-                touchAction: 'none',
-              }}
-              aria-expanded={open}
-              aria-label={open ? 'إغلاق' : 'إضافة حركة — اسحب للأعلى للاختصارات'}
-            >
+          {/* زر + داخل الشريط (بدون الدائرة البارزة) — ضغطة تفتح الكبسولة، وسحب منه يختار النوع مباشرة. */}
+          <button
+            ref={fabRef}
+            onPointerDown={onFabDown}
+            onPointerMove={onFabMove}
+            onPointerUp={onFabUp}
+            onPointerCancel={onFabUp}
+            className="mx-1 flex h-[46px] w-[58px] flex-shrink-0 items-center justify-center rounded-full"
+            style={{
+              background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent) 50%, var(--color-accent-b))',
+              color: 'var(--color-on-accent)',
+              boxShadow: '0 10px 24px -10px rgba(255,255,255,0.35), inset 0 1px 0 rgba(255,255,255,0.6)',
+              transform: `scale(${dragging ? 0.92 : 1})`,
+              transition: 'transform 320ms var(--ease-spring)',
+              touchAction: 'none',
+            }}
+            aria-expanded={open}
+            aria-label={open ? 'إغلاق' : 'إضافة حركة — اسحب للأعلى للاختيار'}
+          >
+            <span className="flex" style={{ transform: `rotate(${open ? 45 : 0}deg)`, transition: 'transform 320ms var(--ease-spring)' }}>
               <PlusIcon />
-            </button>
-          </div>
+            </span>
+          </button>
 
           <NavItem to="/loans" label={TAB_LABELS[2]} icon={(a) => <PeopleIcon active={a} />} />
           <NavItem to="/more" label={TAB_LABELS[3]} icon={(a) => <MoreIcon active={a} />} />
