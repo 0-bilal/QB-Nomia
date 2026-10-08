@@ -45,8 +45,9 @@ function TypeSwitcher({ tab, onSelect, alerts }: { tab: DebtTab; onSelect: (t: D
   return (
     <div
       data-own-gesture
-      className="sticky top-0 z-[3] -mx-5 mb-4 px-5 pb-2.5 pt-2"
-      style={{ background: 'linear-gradient(180deg, var(--color-bg) 75%, transparent)' }}
+      className="sticky z-[3] -mx-5 mb-4 px-5 pb-2.5 pt-2"
+      // تحت صف الأزرار العائمة (FloatingHeaderRow) حتى لا يختفي تحتها.
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)', background: 'linear-gradient(180deg, var(--color-bg) 75%, transparent)' }}
     >
       <div className="grid grid-cols-5 gap-1.5" role="tablist">
         {TABS.map((t) => {

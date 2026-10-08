@@ -9,6 +9,8 @@ import { EyeToggleButton } from '../components/EyeToggleButton'
 import { AppLogoMark } from '../components/AppLogo'
 import { BigAmount } from '../components/BigAmount'
 import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
+import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
+import { useScrolledPast } from '../hooks/useScrolledPast'
 import { GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
 import { localIso, upcomingItems } from '../lib/homeFeed'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
@@ -164,6 +166,7 @@ export function HomeScreen() {
   const [hidden, setHidden] = useState(getHideBalancesDefault)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [totalSheetOpen, setTotalSheetOpen] = useState(false)
+  const [greetingRef, greetingPast] = useScrolledPast<HTMLDivElement>(FLOATING_ROW_OFFSET)
   const mask = (s: string) => (hidden ? '•••••' : s)
 
   const homeAccounts = accounts.filter((a) => a.showOnHome !== false)
@@ -291,19 +294,21 @@ export function HomeScreen() {
 
   return (
     <div dir="rtl" className="px-5 pb-6">
-      <div className="safe-top qb-sticky-header-row -mx-5 mb-4 flex items-center justify-between px-5 pb-2 pt-12">
-        <div className="qb-glass-circle flex items-center gap-2.5 rounded-full border py-1.5 pe-4 ps-1.5">
-          <AppLogoMark size={32} round />
-          <div className="leading-tight">
-            <div className="text-[13px] font-semibold">{greeting()}</div>
-            <div className="num text-[10px] text-[var(--color-text-3)]">
-              {formatDate(new Date().toISOString().slice(0, 10))} · v{APP_VERSION}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <NotificationBellButton notifications={notifications} onClick={() => setNotificationsOpen(true)} />
-          <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
+      <FloatingHeaderRow
+        title="الرئيسية"
+        visible={greetingPast}
+        end={
+          <>
+            <NotificationBellButton notifications={notifications} onClick={() => setNotificationsOpen(true)} />
+            <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
+          </>
+        }
+      />
+      <div ref={greetingRef} className="safe-top mb-4 flex items-center gap-2.5 pt-[60px]">
+        <AppLogoMark size={38} round />
+        <div className="leading-tight">
+          <div className="text-[17px] font-bold">{greeting()}</div>
+          <div className="num mt-0.5 text-[11px] text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))} · v{APP_VERSION}</div>
         </div>
       </div>
 
