@@ -27,3 +27,14 @@ export function topUsedRoutes(limit: number): string[] {
     .slice(0, limit)
     .map((r) => r.route)
 }
+
+/** آخر المسارات المفتوحة من "المزيد" (بدون تكرار) — الأحدث أولًا، لكبسولة "آخر الشاشات" عند التمرير. */
+export function recentMoreRoutes(limit: number): string[] {
+  const map = load()
+  return Object.entries(map)
+    .filter(([, visits]) => visits.length > 0)
+    .map(([route, visits]) => ({ route, last: visits[visits.length - 1] }))
+    .sort((a, b) => (a.last < b.last ? 1 : a.last > b.last ? -1 : 0))
+    .slice(0, limit)
+    .map((r) => r.route)
+}

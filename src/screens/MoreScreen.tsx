@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { backgroundUpdateCheck, dismissUpdateDone, peekUpdateDone } from '../lib/appUpdate'
-import { recordMoreVisit, topUsedRoutes } from '../lib/moreUsage'
+import { recentMoreRoutes, recordMoreVisit, topUsedRoutes } from '../lib/moreUsage'
 import { getLastSyncedAt, isSheetsSyncConfigured } from '../lib/sheetsSync'
 import { formatDate } from '../lib/format'
 import { APP_VERSION } from '../lib/version'
 import { AppUpdateSheet } from '../components/AppUpdateSheet'
-import { TabHeader, HeaderIconButton } from '../components/TabHeader'
+import { TabHeader, HeaderIconButton, FLOATING_ROW_OFFSET } from '../components/TabHeader'
+import { useScrolledPast } from '../hooks/useScrolledPast'
 import { ListGroup, ListItem, SearchField } from '../components/ui'
 import { rise } from '../lib/motion'
 
@@ -249,6 +250,79 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
 
 const ALL_ITEMS: MoreItem[] = SECTIONS.flatMap((s) => s.items)
 
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  )
+}
+
+/**
+ * كبسولة "آخر الشاشات" (أسلوب الكبسولة الذكية): تظهر لاصقة تحت صف الأزرار بعد تمرير البحث،
+ * وفيها آخر الشاشات المفتوحة من "المزيد" للرجوع لها بضغطة.
+ */
+function RecentCapsule({ visible, items, onOpen }: { visible: boolean; items: MoreItem[]; onOpen: (item: MoreItem) => void }) {
+  return (
+    <div className="pointer-events-none sticky z-[3] h-0" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}>
+      <div
+        className="absolute inset-x-0 top-0 flex justify-center"
+        aria-hidden={!visible}
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(-8px) scale(0.6)',
+          transition: 'opacity 220ms ease, transform 420ms cubic-bezier(0.34,1.56,0.64,1)',
+        }}
+      >
+        <div
+          className="relative flex max-w-full items-center gap-1 rounded-full border p-1"
+          style={{
+            pointerEvents: visible ? 'auto' : 'none',
+            background: 'rgba(28,28,33,0.9)',
+            borderColor: 'var(--color-border-strong)',
+            backdropFilter: 'blur(20px) saturate(1.6)',
+            WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+            boxShadow: '0 12px 30px -12px rgba(0,0,0,0.8)',
+          }}
+        >
+          <span
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              inset: '-12px -16px',
+              zIndex: -1,
+              background: 'rgba(5,5,6,0.35)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              maskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+              WebkitMaskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+            }}
+          />
+          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-[var(--color-text-3)]" aria-label="آخر الشاشات">
+            <ClockIcon />
+          </span>
+          {items.map((item, i) => (
+            <button
+              key={item.to}
+              onClick={() => onOpen(item)}
+              tabIndex={visible ? 0 : -1}
+              className="qb-press flex h-8 min-w-0 items-center gap-1.5 rounded-full pe-3 ps-2 text-[12px] font-semibold"
+              style={
+                i === 0
+                  ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
+                  : { background: 'rgba(255,255,255,0.07)', color: 'var(--color-text)' }
+              }
+            >
+              <span className="flex flex-shrink-0 scale-[0.8] items-center">{item.icon}</span>
+              <span className="truncate whitespace-nowrap">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function MoreScreen() {
   const navigate = useNavigate()
   const auth = useAuth()
@@ -284,6 +358,13 @@ export function MoreScreen() {
     return routes.map((r) => ALL_ITEMS.find((i) => i.to === r)).filter((i): i is MoreItem => Boolean(i))
   }, [])
 
+  // آخر 3 شاشات مفتوحة — تُحسب عند فتح "المزيد" (الرجوع من أي شاشة يعيد تركيبها فتتحدّث).
+  const recentItems = useMemo(
+    () => recentMoreRoutes(3).map((r) => ALL_ITEMS.find((i) => i.to === r)).filter((i): i is MoreItem => Boolean(i)),
+    [],
+  )
+  const [searchEndRef, pastSearch] = useScrolledPast<HTMLDivElement>(FLOATING_ROW_OFFSET)
+
   const trimmedQuery = query.trim()
   const searchResults = trimmedQuery ? ALL_ITEMS.filter((i) => i.full.includes(trimmedQuery) || i.desc.includes(trimmedQuery)) : null
 
@@ -312,6 +393,8 @@ export function MoreScreen() {
       />
 
       <SearchField value={query} onChange={setQuery} placeholder="ابحث عن أداة أو إعداد..." className="mb-6" />
+      <div ref={searchEndRef} aria-hidden="true" />
+      {recentItems.length > 0 && <RecentCapsule visible={pastSearch && !trimmedQuery} items={recentItems} onOpen={goTo} />}
 
       {searchResults ? (
         searchResults.length === 0 ? (
