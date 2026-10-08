@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
-import { fuelLevel, fuelLevelColor, lastFuelTopUp } from '../lib/fuelCard'
+import { fuelLevel, fuelLevelColor, lastFuelTopUp, monthSpending } from '../lib/fuelCard'
 import { useData } from '../state/DataContext'
 import { AppLogoMark, AppLogoWatermark } from './AppLogo'
 import {
@@ -12,6 +12,7 @@ import {
   ACCOUNT_TYPE_LABELS,
   AccountTypeIcon,
   FuelPumpIcon,
+  GamepadIcon,
 } from './AccountVisuals'
 import type { Account } from '../types'
 
@@ -87,6 +88,18 @@ function FuelGauge({ level, lastTopUp, hidden, compact, textFaint }: { level: nu
   )
 }
 
+/** شريحة معلومة صغيرة فوق بطاقة Steam (آخر شحن، مشتريات الشهر). */
+function SteamChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.25 py-0.75 text-[10.5px] font-bold"
+      style={{ background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(102,192,244,0.25)', color: '#cfe7f6' }}
+    >
+      {label}: <span className="num">{value}</span>
+    </span>
+  )
+}
+
 interface BankCardFaceProps {
   account: Account
   hidden?: boolean
@@ -106,7 +119,13 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
   const { transactions } = useData()
   const mask = (s: string) => (hidden ? '•••••' : s)
   const isFuel = account.type === 'fuel'
-  const lastTopUp = isFuel ? lastFuelTopUp(account.id, transactions) : undefined
+  const isSteam = account.type === 'steam'
+  const isPrepaid = isFuel || isSteam
+  const lastTopUp = isPrepaid ? lastFuelTopUp(account.id, transactions) : undefined
+  const now = new Date()
+  const steamMonthSpent = isSteam
+    ? monthSpending(account.id, transactions, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+    : 0
   const level = isFuel ? fuelLevel(account.balance, lastTopUp) : 0
   const accent = ACCOUNT_CARD_ACCENT[account.type]
   const textMuted = ACCOUNT_CARD_TEXT_MUTED[account.type]
@@ -132,6 +151,12 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
           strokeWidth={1.1}
           style={{ position: 'absolute', right: -18, bottom: -22, color: '#fff', opacity: 0.15, transform: 'rotate(-8deg)', pointerEvents: 'none' }}
         />
+      ) : isSteam ? (
+        <GamepadIcon
+          size={170}
+          strokeWidth={1}
+          style={{ position: 'absolute', right: -22, bottom: -30, color: '#66c0f4', opacity: 0.14, transform: 'rotate(-10deg)', pointerEvents: 'none' }}
+        />
       ) : account.type === 'coins' ? (
         <SaudiEmblemWatermark
           size={150}
@@ -152,7 +177,7 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
                 className="flex h-7.5 w-7.5 items-center justify-center rounded-[10px]"
                 style={{ width: 30, height: 30, background: ACCOUNT_CARD_ACCENT_BG[account.type], color: accent }}
               >
-                {isFuel ? <FuelDropIcon size={15} /> : <ContactlessIcon size={15} />}
+                {isFuel ? <FuelDropIcon size={15} /> : isSteam ? <GamepadIcon size={16} /> : <ContactlessIcon size={15} />}
               </div>
               <div>
                 <div className="text-[11.5px] font-bold">{account.name}</div>
@@ -170,12 +195,19 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
 
           <div>
             <div className="mb-1 text-[11.5px] font-semibold" style={{ color: textMuted }}>
-              {isFuel ? 'الرصيد المتبقي' : 'الرصيد'}
+              {isPrepaid ? 'الرصيد المتبقي' : 'الرصيد'}
             </div>
             <div className="num text-[30px] font-bold tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}>
               {mask(formatMoney(account.balance))}
             </div>
           </div>
+
+          {isSteam && !compact && (
+            <div className="flex flex-wrap gap-1.5">
+              <SteamChip label="آخر شحن" value={lastTopUp && !hidden ? formatMoney(lastTopUp) : '—'} />
+              <SteamChip label="مشتريات الشهر" value={hidden ? '•••' : formatMoney(steamMonthSpent)} />
+            </div>
+          )}
 
           {isFuel && !compact && <FuelGauge level={level} lastTopUp={lastTopUp} hidden={hidden} compact={false} textFaint={textFaint} />}
 

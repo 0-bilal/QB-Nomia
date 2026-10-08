@@ -11,6 +11,13 @@ export function lastFuelTopUp(accountId: string, transactions: Transaction[]): n
   return latest?.amount
 }
 
+/** مجموع المصروفات المسجَّلة على الحساب خلال شهر معيّن (prefix بصيغة YYYY-MM) — "مشتريات الشهر" لبطاقة Steam. */
+export function monthSpending(accountId: string, transactions: Transaction[], monthPrefix: string): number {
+  return transactions
+    .filter((t) => t.type === 'expense' && t.accountId === accountId && t.date.startsWith(monthPrefix))
+    .reduce((sum, t) => sum + t.amount, 0)
+}
+
 /** نسبة التعبئة (0..1) = الرصيد ÷ آخر شحنة — بدون شحنة سابقة تُعتبر البطاقة ممتلئة لو فيها رصيد. */
 export function fuelLevel(balance: number, lastTopUp: number | undefined): number {
   if (balance <= 0) return 0

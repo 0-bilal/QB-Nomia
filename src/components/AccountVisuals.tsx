@@ -9,6 +9,7 @@ export const ACCOUNT_ICON_COLOR: Record<Account['type'], string> = {
   emergency: 'var(--color-emergency)',
   coins: 'var(--color-coins)',
   fuel: 'var(--color-fuel)',
+  steam: 'var(--color-steam)',
 }
 export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.14)',
@@ -18,6 +19,7 @@ export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   emergency: 'rgba(225,29,72,0.14)',
   coins: 'rgba(18,182,103,0.14)',
   fuel: 'rgba(255,138,26,0.14)',
+  steam: 'rgba(102,192,244,0.14)',
 }
 export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   cash: 'نقدي',
@@ -27,6 +29,7 @@ export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
   emergency: 'طوارئ',
   coins: 'عملات معدنية',
   fuel: 'بطاقة وقود',
+  steam: 'بطاقة Steam',
 }
 
 /**
@@ -44,6 +47,8 @@ export const ACCOUNT_CARD_BG: Record<Account['type'], string> = {
   coins: 'radial-gradient(120% 90% at 8% 0%, rgba(230,190,90,0.22) 0%, transparent 58%), linear-gradient(155deg, #01150b 0%, #0b4a2b 42%, #159e5c 68%, #01150b 100%)',
   /** برتقالي نحاسي بلون اللهب — بطاقة وقود مسبقة الدفع، متمايزة عن كل المعادن الأخرى. */
   fuel: 'radial-gradient(120% 90% at 8% 0%, rgba(255,138,40,0.34) 0%, transparent 58%), linear-gradient(155deg, #140903 0%, #4a1d06 42%, #e0661a 70%, #140903 100%)',
+  /** كحلي Steam الغامق يتدرّج للأزرق — ألوان مستوحاة من المنصّة (بدون شعارها الرسمي). */
+  steam: 'radial-gradient(120% 90% at 8% 0%, rgba(102,192,244,0.30) 0%, transparent 58%), linear-gradient(155deg, #0b0e14 0%, #171a21 30%, #1b2838 55%, #2a475e 78%, #0b0e14 100%)',
 }
 
 /** لون التمييز (Accent) الخاص بسطح كل بطاقة — يُستخدم لأيقونة نوع الحساب وشارة الدفع اللاتلامسي فوق سطح البطاقة نفسه. منفصل عن ACCOUNT_ICON_COLOR المستخدم بباقي شاشات التطبيق (منتقيات الحساب، النماذج...) عشان ما يتأثر أي مكان ثاني بهذا التغيير. */
@@ -55,6 +60,7 @@ export const ACCOUNT_CARD_ACCENT: Record<Account['type'], string> = {
   emergency: '#ff96ae',
   coins: '#f0d68f',
   fuel: '#ffc27a',
+  steam: '#66c0f4',
 }
 
 /** خلفية شارة أيقونة الدفع اللاتلامسي فوق البطاقة — نسخة شفافة من ACCOUNT_CARD_ACCENT. */
@@ -66,6 +72,7 @@ export const ACCOUNT_CARD_ACCENT_BG: Record<Account['type'], string> = {
   emergency: 'rgba(216,27,74,0.2)',
   coins: 'rgba(230,190,90,0.2)',
   fuel: 'rgba(255,160,60,0.2)',
+  steam: 'rgba(102,192,244,0.18)',
 }
 
 /**
@@ -85,6 +92,7 @@ export const ACCOUNT_CARD_TEXT_MUTED: Record<Account['type'], string> = {
   emergency: '#3d0a17',
   coins: '#bfe6cf',
   fuel: '#ffd6b0',
+  steam: '#a9cbe0',
 }
 export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   cash: 'var(--color-text-3)',
@@ -94,6 +102,7 @@ export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   emergency: '#520f20',
   coins: '#9fd6b7',
   fuel: '#f5c49a',
+  steam: '#8fb4cc',
 }
 
 export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; size?: number }) {
@@ -134,6 +143,9 @@ export function AccountTypeIcon({ type, size = 18 }: { type: Account['type']; si
   if (type === 'fuel') {
     return <FuelPumpIcon size={size} />
   }
+  if (type === 'steam') {
+    return <GamepadIcon size={size} />
+  }
   if (type === 'coins') {
     return (
       <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -160,6 +172,18 @@ export function FuelPumpIcon({ size = 18, strokeWidth = 1.9, style }: { size?: n
       <path d="M3 20h13" />
       <path d="M6.5 7h5v4h-5z" />
       <path d="M15 9h2a2 2 0 0 1 2 2v5.5a1.5 1.5 0 0 0 3 0V8l-3-3" />
+    </svg>
+  )
+}
+
+/** يد تحكّم عامة — أيقونة نوع حساب "بطاقة Steam" وعلامتها المائية (بدل شعار المنصّة الرسمي). */
+export function GamepadIcon({ size = 18, strokeWidth = 1.9, style }: { size?: number; strokeWidth?: number; style?: CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={style}>
+      <path d="M6.5 8h11a4 4 0 0 1 3.9 4.9l-1 4.3a2.4 2.4 0 0 1-4.2 1L14.6 16H9.4l-1.6 2.2a2.4 2.4 0 0 1-4.2-1l-1-4.3A4 4 0 0 1 6.5 8Z" />
+      <path d="M7.5 11v3M6 12.5h3" />
+      <circle cx="15.5" cy="11.6" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="13.4" r="0.9" fill="currentColor" stroke="none" />
     </svg>
   )
 }

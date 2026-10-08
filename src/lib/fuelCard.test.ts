@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fuelLevel, lastFuelTopUp } from './fuelCard'
+import { fuelLevel, lastFuelTopUp, monthSpending } from './fuelCard'
 import type { Transaction } from '../types'
 
 const tx = (p: Partial<Transaction>): Transaction => ({ id: Math.random().toString(), type: 'expense', amount: 0, date: '2026-01-01', accountId: 'x', ...p })
@@ -24,5 +24,19 @@ describe('fuelLevel', () => {
     expect(fuelLevel(0, 500)).toBe(0)
     expect(fuelLevel(-5, 500)).toBe(0)
     expect(fuelLevel(100, undefined)).toBe(1)
+  })
+})
+
+describe('monthSpending', () => {
+  it('sums only this account\'s expenses within the given month', () => {
+    const txs = [
+      tx({ type: 'expense', accountId: 'steam', amount: 74.99, date: '2026-10-03' }),
+      tx({ type: 'expense', accountId: 'steam', amount: 25, date: '2026-10-07' }),
+      tx({ type: 'expense', accountId: 'steam', amount: 60, date: '2026-09-30' }),
+      tx({ type: 'expense', accountId: 'bank', amount: 999, date: '2026-10-05' }),
+      tx({ type: 'transfer', accountId: 'bank', transferToAccountId: 'steam', amount: 100, date: '2026-10-01' }),
+    ]
+    expect(monthSpending('steam', txs, '2026-10')).toBeCloseTo(99.99)
+    expect(monthSpending('steam', txs, '2026-08')).toBe(0)
   })
 })
