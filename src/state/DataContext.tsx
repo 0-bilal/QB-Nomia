@@ -278,6 +278,8 @@ export interface ActivityItem {
   amount: number
   color: string
   accountIds: string[]
+  /** فئة المصروف — لعرض أيقونة الفئة ولونها بقوائم الحركات. */
+  categoryId?: string
   personId?: string
   note?: string
   createdAt?: string
@@ -760,6 +762,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             amount: -t.amount,
             color: 'var(--color-expense)',
             accountIds: [t.accountId],
+            categoryId: t.categoryId,
             note: t.note,
             createdAt: t.createdAt,
           }
