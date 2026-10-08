@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { Avatar } from '../../components/Avatar'
-import { formatMoney } from '../../lib/format'
-import { ChipRow, EmptyState, ListGroup, ListItem, SearchField, StatTile } from '../../components/ui'
+import { formatAmount, formatMoney } from '../../lib/format'
+import { ChipRow, EmptyState, ListGroup, ListItem, SearchField } from '../../components/ui'
+import { DEBT_META } from './debtTypes'
+import { DebtHero, SectionHead } from './DebtVisuals'
 
 type Filter = 'all' | 'owedToMe' | 'iOwe'
 
@@ -27,18 +29,39 @@ export function PeoplePanel() {
 
   return (
     <>
-      <div className="mb-4 grid grid-cols-2 gap-3">
-        <StatTile label="مستحق لك" value={formatMoney(totalOwedToMe)} color="var(--color-owed-to)" icon={<ArrowIn />} />
-        <StatTile label="عليك للغير" value={formatMoney(totalIOwe)} color="var(--color-owed-by)" icon={<ArrowOut />} />
-      </div>
+      <DebtHero color={DEBT_META.people.color}>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'لك عند الآخرين', value: totalOwedToMe, color: 'var(--color-owed-to)', icon: <ArrowIn /> },
+            { label: 'عليك للآخرين', value: totalIOwe, color: 'var(--color-owed-by)', icon: <ArrowOut /> },
+          ].map((x) => (
+            <div key={x.label}>
+              <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+                <span style={{ color: x.color }}>{x.icon}</span>
+                {x.label}
+              </div>
+              <div className="num mt-1 text-[24px] font-bold" style={{ color: x.color }}>
+                {formatAmount(x.value)}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => navigate('/loans/new')} className="qb-btn-primary mt-4 flex w-full items-center justify-center gap-2 py-3 text-[13.5px]">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          إضافة شخص
+        </button>
+      </DebtHero>
 
+      <SectionHead title="الأشخاص" hint="اضغط لفتح دفتر الحساب" />
       <SearchField value={query} onChange={setQuery} placeholder="ابحث بالاسم..." className="mb-3" />
 
       <ChipRow
         options={[
           ['all', 'الكل'],
-          ['owedToMe', 'مدينون لي'],
-          ['iOwe', 'أنا مدين لهم'],
+          ['owedToMe', 'لك عندهم'],
+          ['iOwe', 'عليك لهم'],
         ]}
         value={filter}
         onChange={setFilter}
