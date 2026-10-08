@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useData } from '../../state/DataContext'
-import { formatMoney, formatDate } from '../../lib/format'
+import { formatAmount, formatMoney, formatDate } from '../../lib/format'
 import { AmountPad } from '../../components/AmountPad'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { ACCOUNT_TYPE_LABELS } from '../../components/AccountVisuals'
-import { BigAmount } from '../../components/BigAmount'
-import { Badge, EmptyState, IconBubble, ListGroup, ListItem, SectionTitle } from '../../components/ui'
+import { EmptyState } from '../../components/ui'
+import { softBg } from './debtTypes'
+import { DebtHero, SectionHead } from './DebtVisuals'
 
 const color = 'var(--color-expense)'
 
@@ -80,13 +80,33 @@ function EditViolationForm({
   )
 }
 
-/** محتوى تبويب "خصومات مخالفات" داخل شاشة الديون والسلف. */
+const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+
+/** مجموع الخصومات لآخر 6 أشهر (الأقدم أولًا) — للرسم البياني بالبطاقة. */
+function lastSixMonths(violations: { date: string; amount: number }[]): { label: string; total: number; current: boolean }[] {
+  const now = new Date()
+  return Array.from({ length: 6 }, (_, k) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - k), 1)
+    const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return {
+      label: MONTHS_AR[d.getMonth()],
+      total: violations.filter((v) => v.date.startsWith(prefix)).reduce((s, v) => s + v.amount, 0),
+      current: k === 5,
+    }
+  })
+}
+
+/** محتوى تبويب "خصومات المخالفات" داخل شاشة الديون والسلف. */
 export function SalaryViolationsPanel() {
-  const { salaryViolations, updateSalaryViolation, deleteSalaryViolation, accounts } = useData()
+  const { salaryViolations, updateSalaryViolation, deleteSalaryViolation } = useData()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
-  const total = salaryViolations.reduce((sum, v) => sum + v.amount, 0)
+  const year = String(new Date().getFullYear())
+  const sorted = [...salaryViolations].sort((a, b) => b.date.localeCompare(a.date))
+  const yearTotal = salaryViolations.filter((v) => v.date.startsWith(year)).reduce((sum, v) => sum + v.amount, 0)
+  const months = lastSixMonths(salaryViolations)
+  const maxMonth = Math.max(1, ...months.map((m) => m.total))
   const editingViolation = editingId ? salaryViolations.find((v) => v.id === editingId) : undefined
 
   return (
@@ -105,17 +125,7 @@ export function SalaryViolationsPanel() {
         onCancel={() => setConfirmDeleteId(null)}
       />
 
-      <div className="qb-card-elevated qb-rise mb-6 p-5">
-        <div className="mb-5 flex items-center gap-3">
-          <IconBubble color={color} size={46}>
-            <SalaryViolationIcon />
-          </IconBubble>
-          <div className="min-w-0 flex-1">
-            <div className="text-[16px] font-semibold">خصومات المخالفات</div>
-            <div className="truncate text-[11px] text-[var(--color-text-3)]">تُسجَّل مباشرة عند إضافة حركة راتب فيها خصم مخالفة</div>
-          </div>
-        </div>
-
+      <DebtHero color={color}>
         {editingViolation ? (
           <EditViolationForm
             initial={{ amount: editingViolation.amount, note: editingViolation.note }}
@@ -126,49 +136,81 @@ export function SalaryViolationsPanel() {
             onDelete={() => setConfirmDeleteId(editingViolation.id)}
             onCancel={() => setEditingId(null)}
           />
-        ) : total === 0 ? (
-          <div className="rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
-            لا توجد خصومات مسجَّلة بعد. تقدر تضيف خصم مخالفة عند تسجيل حركة راتب جديدة.
-          </div>
         ) : (
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">إجمالي الخصومات</div>
-              <BigAmount value={total} size={36} color={color} />
+          <>
+            <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">خصومات هذه السنة</div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <span className="num text-[34px] font-bold" style={{ color: yearTotal > 0 ? color : 'var(--color-text-2)' }}>
+                {formatAmount(yearTotal)}
+              </span>
+              <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
             </div>
-            <Badge color={color}>{salaryViolations.length} خصم</Badge>
-          </div>
+            <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">
+              {sorted.length === 0 ? (
+                'لا توجد خصومات مسجَّلة بعد'
+              ) : (
+                <>
+                  {salaryViolations.length} خصومات · آخرها <span className="num">{formatDate(sorted[0].date)}</span>
+                </>
+              )}
+            </div>
+            <div className="mt-4 flex items-end gap-2.5 px-1" style={{ height: 90 }} aria-label="الخصومات لآخر 6 أشهر">
+              {months.map((m) => (
+                <div key={m.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                  <span
+                    className="w-full"
+                    title={formatMoney(m.total)}
+                    style={{
+                      height: Math.max(3, (m.total / maxMonth) * 66),
+                      borderRadius: '8px 8px 4px 4px',
+                      background: m.current ? color : softBg(color, 35),
+                      opacity: m.total === 0 ? 0.5 : 1,
+                    }}
+                  />
+                  <span className="text-[10px] text-[var(--color-text-3)]">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
+      </DebtHero>
+
+      <div className="mx-1 mt-3 flex items-center gap-2.5 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[11.5px] text-[var(--color-text-2)]">
+        <span className="flex-shrink-0 text-[var(--color-text-3)]">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v6M12 7.5h.01" />
+          </svg>
+        </span>
+        تُسجَّل الخصومات عند إضافة حركة راتب فيها خصم مخالفة
       </div>
 
-      <SectionTitle title="سجل الخصومات" hint="اضغط أي خصم لتعديل مبلغه أو حذفه" />
-      {salaryViolations.length === 0 ? (
+      <SectionHead title="سجل الخصومات" hint={sorted.length ? 'اضغط للتعديل' : undefined} />
+      {sorted.length === 0 ? (
         <EmptyState title="لا يوجد سجل بعد" />
       ) : (
-        <ListGroup>
-          {salaryViolations.map((v, i) => {
-            const account = accounts.find((acc) => acc.id === v.accountId)
-            return (
-              <ListItem
-                key={v.id}
-                divider={i > 0}
-                onClick={() => setEditingId(v.id)}
-                leading={
-                  <IconBubble color={color}>
-                    <SalaryViolationIcon size={18} />
-                  </IconBubble>
-                }
-                title={<span className="num">{formatDate(v.date)}</span>}
-                subtitle={[account ? `${account.name} · ${ACCOUNT_TYPE_LABELS[account.type]}` : '', v.note ?? ''].filter(Boolean).join(' — ') || undefined}
-                trailing={
-                  <span className="num text-[14px] font-bold" style={{ color }}>
-                    −{formatMoney(v.amount)}
-                  </span>
-                }
-              />
-            )
-          })}
-        </ListGroup>
+        <div className="qb-card px-3.5 py-1">
+          {sorted.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setEditingId(v.id)}
+              className="flex w-full items-center gap-3 border-t border-[var(--color-border)] py-2.5 text-right first:border-t-0"
+            >
+              <span className="flex flex-shrink-0 items-center justify-center" style={{ width: 40, height: 40, borderRadius: 14, background: softBg(color), color }}>
+                <SalaryViolationIcon size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-semibold">{v.note?.trim() || 'خصم مخالفة'}</div>
+                <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">
+                  <span className="num">{formatDate(v.date)}</span> · من راتب الشهر
+                </div>
+              </div>
+              <span dir="ltr" className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color }}>
+                −{formatMoney(v.amount)}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </>
   )

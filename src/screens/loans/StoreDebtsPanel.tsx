@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
-import { formatMoney, formatDate } from '../../lib/format'
+import { formatAmount, formatMoney, formatDate } from '../../lib/format'
 import { AmountPad } from '../../components/AmountPad'
 import { DatePicker } from '../../components/DatePicker'
 import { PickerField } from '../../components/PickerField'
@@ -9,10 +9,11 @@ import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 import type { Account, StoreDebt, StoreDebtPayment } from '../../types'
-import { BigAmount } from '../../components/BigAmount'
-import { EmptyState, IconBubble, ProgressBar, SectionTitle, TintButton } from '../../components/ui'
+import { EmptyState, IconBubble, TintButton } from '../../components/ui'
+import { DEBT_META, softBg } from './debtTypes'
+import { DebtHero, SectionHead } from './DebtVisuals'
 
-const color = 'var(--color-expense)'
+const color = DEBT_META.stores.color
 
 function StoreDebtIcon({ size = 20 }: { size?: number }) {
   return (
@@ -227,9 +228,9 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
   const overdue = !settled && !!debt.dueDate && debt.dueDate < today
   const statusLabel = settled ? 'مسدَّد' : overdue ? 'متأخر' : 'قائم'
   const statusStyle = settled
-    ? { background: 'rgba(255,255,255,0.08)', color: 'var(--color-text-3)' }
+    ? { background: 'rgba(62,224,143,0.12)', color: 'var(--color-income)' }
     : overdue
-      ? { background: 'rgba(255,92,92,0.16)', color: color }
+      ? { background: 'rgba(255,95,109,0.14)', color: 'var(--color-expense)' }
       : { background: 'rgba(255,255,255,0.08)', color: 'var(--color-text-2)' }
 
   function closeForms() {
@@ -237,7 +238,7 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
   }
 
   return (
-    <div className="qb-card overflow-hidden">
+    <div className="qb-card overflow-hidden" style={{ opacity: settled && !expanded ? 0.65 : 1 }}>
       <ConfirmDialog
         open={confirmDeleteDebt}
         title="حذف الدَين"
@@ -282,16 +283,49 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
             </div>
           </div>
           <div className="flex flex-shrink-0 flex-col items-end">
-            <span className="num text-[14px] font-bold" style={{ color: settled ? 'var(--color-text-2)' : color }}>
-              {formatMoney(Math.max(0, remaining))}
+            <span className="num text-[15px] font-bold" style={{ color: settled ? 'var(--color-text-2)' : 'var(--color-text)' }}>
+              {settled ? '—' : formatAmount(remaining)}
             </span>
-            <span className="text-[10.5px] text-[var(--color-text-3)]">من {formatMoney(debt.amount)}</span>
+            <span className="text-[10px] text-[var(--color-text-3)]">{settled ? '' : 'متبقي'}</span>
           </div>
         </div>
-        <div className="mt-3">
-          <ProgressBar pct={(paidTotal / debt.amount) * 100} color={settled ? 'var(--color-income)' : color} height={5} />
+        <div className="mb-1.5 mt-3 overflow-hidden rounded-full bg-white/[0.07]" style={{ height: 7 }}>
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${Math.min(100, (paidTotal / debt.amount) * 100)}%`, background: settled ? 'var(--color-income)' : color, transition: 'width 300ms ease' }}
+          />
+        </div>
+        <div className="flex justify-between text-[11px] text-[var(--color-text-3)]">
+          <span>
+            سُدد <b className="num font-semibold text-[var(--color-text-2)]">{formatAmount(paidTotal)}</b> من <span className="num">{formatAmount(debt.amount)}</span>
+          </span>
+          <span className="num">{Math.round(Math.min(100, (paidTotal / debt.amount) * 100))}%</span>
         </div>
       </button>
+
+      {!expanded && !settled && (
+        <div className="flex gap-2 px-4 pb-4">
+          <button
+            onClick={() => {
+              setExpanded(true)
+              setMode('pay')
+            }}
+            className="qb-press flex-1 rounded-full border py-2.5 text-[12.5px] font-semibold"
+            style={{ background: softBg(color), color, borderColor: softBg(color, 30) }}
+          >
+            سداد
+          </button>
+          <button
+            onClick={() => {
+              setExpanded(true)
+              setMode('edit')
+            }}
+            className="qb-press flex-1 rounded-full bg-[var(--color-surface-high)] py-2.5 text-[12.5px] font-semibold"
+          >
+            تعديل
+          </button>
+        </div>
+      )}
 
       {expanded && (
         <div className="border-t qb-divider p-4">
@@ -366,26 +400,22 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
 }
 
 /** محتوى تبويب "ديون متاجر" داخل شاشة الديون والسلف. */
-export function StoreDebtsPanel() {
+export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean }) {
   const { storeDebts, storeDebtPayments, addStoreDebt, accounts } = useData()
-  const [addingNew, setAddingNew] = useState(false)
+  const [addingNew, setAddingNew] = useState(startAdding)
 
+  const today = new Date().toISOString().slice(0, 10)
   const remainingOf = (debt: StoreDebt) => debt.amount - storeDebtPayments.filter((p) => p.debtId === debt.id).reduce((s, p) => s + p.amount, 0)
-  const totalOutstanding = storeDebts.reduce((sum, d) => sum + Math.max(0, remainingOf(d)), 0)
+  const open = storeDebts.filter((d) => remainingOf(d) > 0)
+  const overdueCount = open.filter((d) => d.dueDate && d.dueDate < today).length
+  const totalOutstanding = open.reduce((sum, d) => sum + remainingOf(d), 0)
+  // المتأخر أولًا، ثم الأقرب استحقاقًا، ثم بدون تاريخ استحقاق، والمسدَّد بالأخير.
+  const rank = (d: StoreDebt) => (remainingOf(d) <= 0 ? 3 : d.dueDate ? (d.dueDate < today ? 0 : 1) : 2)
+  const sorted = [...storeDebts].sort((a, b) => rank(a) - rank(b) || (a.dueDate ?? '').localeCompare(b.dueDate ?? '') || b.date.localeCompare(a.date))
 
   return (
     <>
-      <div className="qb-card-elevated qb-rise mb-6 p-5">
-        <div className="mb-5 flex items-center gap-3">
-          <IconBubble color={color} size={46}>
-            <StoreDebtIcon />
-          </IconBubble>
-          <div className="min-w-0 flex-1">
-            <div className="text-[16px] font-semibold">ديون المتاجر</div>
-            <div className="truncate text-[11px] text-[var(--color-text-3)]">سلع أو خدمات أخذتها ولسه ما دفعت قيمتها بالكامل</div>
-          </div>
-        </div>
-
+      <DebtHero color={color}>
         {addingNew ? (
           <DebtForm
             onSave={(input) => {
@@ -396,29 +426,43 @@ export function StoreDebtsPanel() {
           />
         ) : (
           <>
-            {totalOutstanding === 0 ? (
-              <div className="mb-3 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
-                لا توجد ديون قائمة حاليًا.
-              </div>
-            ) : (
-              <div className="mb-5">
-                <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">إجمالي المتبقي</div>
-                <BigAmount value={totalOutstanding} size={36} color={color} />
-              </div>
-            )}
-            <button onClick={() => setAddingNew(true)} className="qb-btn-primary flex w-full items-center justify-center py-3 text-[13.5px]">
+            <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">المتبقي لكل المتاجر</div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <span className="num text-[34px] font-bold" style={{ color: totalOutstanding > 0 ? color : 'var(--color-text-2)' }}>
+                {formatAmount(totalOutstanding)}
+              </span>
+              <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
+            </div>
+            <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">
+              {open.length === 0 ? (
+                'لا توجد ديون قائمة حاليًا'
+              ) : (
+                <>
+                  {open.length} ديون قائمة
+                  {overdueCount > 0 && <b className="font-semibold" style={{ color: 'var(--color-expense)' }}> · {overdueCount} متأخر عن موعده</b>}
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => setAddingNew(true)}
+              className="qb-press mt-4 flex w-full items-center justify-center gap-2 rounded-full border py-3 text-[13.5px] font-semibold"
+              style={{ background: softBg(color), color, borderColor: softBg(color, 30) }}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               تسجيل دَين جديد
             </button>
           </>
         )}
-      </div>
+      </DebtHero>
 
-      <SectionTitle title="سجل الديون" hint="اضغط أي دَين لسداده أو تعديله" />
+      <SectionHead title="الديون" hint={storeDebts.length ? 'المتأخر ثم الأقرب استحقاقًا' : undefined} />
       {storeDebts.length === 0 ? (
         <EmptyState title="لا يوجد سجل بعد" />
       ) : (
         <div className="flex flex-col gap-2.5">
-          {storeDebts.map((debt) => (
+          {sorted.map((debt) => (
             <DebtRow key={debt.id} debt={debt} payments={storeDebtPayments.filter((p) => p.debtId === debt.id)} accounts={accounts} />
           ))}
         </div>
