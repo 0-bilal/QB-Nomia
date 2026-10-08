@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { DatePicker } from './DatePicker'
+import { WheelDatePicker } from './WheelDatePicker'
 import { PROFILE_COLORS, ageLabel, ageOf, type Gender } from '../lib/profile'
 
 export function FieldLabel({ children, hint }: { children: ReactNode; hint?: string }) {
@@ -64,14 +64,9 @@ export function BirthDateField({ value, onChange }: { value: string; onChange: (
   return (
     <div className="flex items-center gap-2">
       <div className="min-w-0 flex-1">
-        <DatePicker value={value} onChange={onChange} placeholder="تاريخ الميلاد" />
+        <WheelDatePicker value={value} onChange={onChange} />
       </div>
       {age !== null && <span className="num flex-shrink-0 rounded-full bg-white/[0.07] px-3 py-1.5 text-[12px] font-bold text-[var(--color-text-2)]">{ageLabel(age)}</span>}
-      {value && (
-        <button onClick={() => onChange('')} className="qb-press flex-shrink-0 px-1 text-[12px] font-semibold text-[var(--color-text-3)]">
-          مسح
-        </button>
-      )}
     </div>
   )
 }
