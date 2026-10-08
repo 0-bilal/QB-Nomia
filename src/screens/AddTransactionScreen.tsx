@@ -77,6 +77,7 @@ export function AddTransactionScreen() {
   const toParam = searchParams.get('to') ?? undefined
   const fromParam = searchParams.get('from') ?? undefined
   const amountParam = searchParams.get('amount') ?? undefined
+  const categoryParam = searchParams.get('category') ?? undefined
 
   const [type, setType] = useState<TransactionType>(initialType)
   const [amount, setAmount] = useState(existing ? String(existing.amount) : (amountParam ?? ''))
@@ -92,7 +93,9 @@ export function AddTransactionScreen() {
       accounts[0]?.id ??
       '',
   )
-  const [categoryId, setCategoryId] = useState(existing?.categoryId ?? categories.find((c) => c.kind === 'expense')?.id ?? '')
+  const [categoryId, setCategoryId] = useState(
+    existing?.categoryId ?? (categoryParam && categories.some((c) => c.id === categoryParam) ? categoryParam : categories.find((c) => c.kind === 'expense')?.id) ?? '',
+  )
   const [incomeSourceId, setIncomeSourceId] = useState(existing?.incomeSourceId ?? incomeSources[0]?.id ?? '')
   const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(existing?.note ?? '')
