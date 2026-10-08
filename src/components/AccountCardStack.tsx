@@ -1,14 +1,15 @@
-import { useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BankCardFace } from './BankCardFace'
 import type { Account } from '../types'
 
 export const CARD_HEIGHT = 176
 const PEEK = 13
-const SWIPE_THRESHOLD = 56
-const DRAG_TAP_SLOP = 6
+const SWIPE_THRESHOLD = 48
+const DRAG_TAP_SLOP = 8
 const EXIT_DISTANCE = 260
 const SETTLE_MS = 260
+const DOWN_RESIST = 0.35
 const EASING = 'cubic-bezier(0.22,1,0.36,1)'
 
 function lerp(from: number, to: number, t: number): number {
@@ -25,40 +26,37 @@ function orderAccounts(accounts: Account[]): Account[] {
 interface PositionedCardProps {
   account: Account
   hidden: boolean
+  slot: number
   style: CSSProperties
   transition: boolean
-  interactive: boolean
-  onPointerDown?: (e: ReactPointerEvent<HTMLDivElement>) => void
-  onPointerMove?: (e: ReactPointerEvent<HTMLDivElement>) => void
-  onPointerUp?: (e: ReactPointerEvent<HTMLDivElement>) => void
-  onPointerCancel?: (e: ReactPointerEvent<HTMLDivElement>) => void
-  onClick?: () => void
+  entering: boolean
 }
 
-function PositionedCard({ account, hidden, style, transition, interactive, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClick }: PositionedCardProps) {
+function PositionedCard({ account, hidden, slot, style, transition, entering }: PositionedCardProps) {
   return (
     <div
+      data-slot={slot}
       className="inset-x-0 top-0"
       style={{
         position: 'absolute',
         height: CARD_HEIGHT,
         transition: transition ? `transform ${SETTLE_MS}ms ${EASING}, opacity ${SETTLE_MS}ms ease` : 'none',
-        touchAction: interactive ? 'none' : undefined,
+        animation: entering ? `qb-card-drop-in ${SETTLE_MS}ms ${EASING}` : undefined,
         willChange: 'transform, opacity',
-        cursor: interactive ? 'grab' : 'default',
         ...style,
       }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-      onClick={onClick}
     >
       <BankCardFace account={account} hidden={hidden} className="h-full" compact />
     </div>
   )
 }
 
+/**
+ * رزمة كروت الحسابات بالرئيسية — للعرض والتنقل فقط (التعديل من شاشة الحسابات بزر القلم).
+ * الإيماءة يملكها الحاوي بالكامل (touch-action: none على الرزمة كلها، مو الكرت الأمامي بس)
+ * حتى ما تتحول أي لمسة على الرزمة لتمرير للصفحة:
+ *   سحب لأعلى ← الكرت التالي، سحب لأسفل ← الكرت السابق، نقرة ← الكرت التالي (أو الكرت الخلفي المنقور).
+ */
 export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hidden: boolean }) {
   const navigate = useNavigate()
   const ordered = useMemo(() => orderAccounts(accounts), [accounts])
@@ -67,14 +65,19 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
   const [dragging, setDragging] = useState(false)
   const [committing, setCommitting] = useState(false)
   const [snapId, setSnapId] = useState<string | null>(null)
-  const startYRef = useRef(0)
-  const maxDragRef = useRef(0)
+  const [enteringId, setEnteringId] = useState<string | null>(null)
+  const gesture = useRef({ active: false, pointerId: -1, startY: 0, startX: 0, maxDist: 0, lastY: 0 })
+  const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const count = ordered.length
   const visibleCount = Math.min(count, 3)
   const stackHeight = CARD_HEIGHT + (visibleCount - 1) * PEEK
   const dotsSpace = count > 1 ? 22 : 0
   const safeIndex = activeIndex % Math.max(count, 1)
+
+  useEffect(() => () => {
+    if (commitTimer.current) clearTimeout(commitTimer.current)
+  }, [])
 
   if (count === 0) {
     return (
@@ -91,48 +94,85 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
 
   const progress = dragging ? Math.min(1, Math.max(0, -dragY) / SWIPE_THRESHOLD) : committing ? 1 : 0
 
-  function commitSwipe() {
+  /** ينهي حركة "التالي" الجارية فورًا — يُستدعى عند انتهاء المؤقت، أو لو بدأ المستخدم سحبة جديدة قبل انتهاء الحركة (بدل تجاهلها). */
+  function finishCommit() {
+    if (commitTimer.current) clearTimeout(commitTimer.current)
+    commitTimer.current = null
+    setSnapId(ordered[safeIndex].id)
+    setActiveIndex((i) => (i + 1) % count)
+    setDragY(0)
+    setCommitting(false)
+    requestAnimationFrame(() => requestAnimationFrame(() => setSnapId(null)))
+  }
+
+  function goNext() {
+    if (count < 2) return
     setCommitting(true)
-    setTimeout(() => {
-      const exitingId = ordered[safeIndex].id
-      setSnapId(exitingId)
-      setActiveIndex((i) => (i + 1) % count)
-      setDragY(0)
-      setCommitting(false)
-      requestAnimationFrame(() => requestAnimationFrame(() => setSnapId(null)))
-    }, SETTLE_MS)
+    commitTimer.current = setTimeout(finishCommit, SETTLE_MS)
+  }
+
+  function goPrev() {
+    if (count < 2) return
+    const prev = (safeIndex - 1 + count) % count
+    setEnteringId(ordered[prev].id)
+    setActiveIndex(prev)
+    setDragY(0)
+    setTimeout(() => setEnteringId(null), SETTLE_MS)
   }
 
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    if (committing) return
+    if (e.button !== 0 || (e.target as Element).closest('button')) return
+    if (committing) finishCommit()
     e.currentTarget.setPointerCapture?.(e.pointerId)
-    startYRef.current = e.clientY
-    maxDragRef.current = 0
+    gesture.current = { active: true, pointerId: e.pointerId, startY: e.clientY, startX: e.clientX, maxDist: 0, lastY: 0 }
     setDragging(true)
   }
 
   function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    if (!dragging) return
-    const delta = Math.min(0, e.clientY - startYRef.current)
-    maxDragRef.current = Math.min(maxDragRef.current, delta)
-    setDragY(Math.max(delta, -140))
+    const g = gesture.current
+    if (!g.active || e.pointerId !== g.pointerId) return
+    const dy = e.clientY - g.startY
+    g.maxDist = Math.max(g.maxDist, Math.hypot(dy, e.clientX - g.startX))
+    g.lastY = dy
+    setDragY(dy < 0 ? Math.max(dy, -140) : Math.min(dy * DOWN_RESIST, 50))
   }
 
-  function handlePointerUp() {
-    if (!dragging) return
+  function handlePointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+    const g = gesture.current
+    if (!g.active || e.pointerId !== g.pointerId) return
+    g.active = false
     setDragging(false)
-    if (maxDragRef.current <= -SWIPE_THRESHOLD) {
-      commitSwipe()
+
+    if (e.type === 'pointercancel') {
+      setDragY(0)
       return
     }
-    if (Math.abs(maxDragRef.current) < DRAG_TAP_SLOP) {
-      navigate(`/accounts/${ordered[safeIndex].id}/edit`)
+    if (g.lastY <= -SWIPE_THRESHOLD) {
+      goNext()
+      return
+    }
+    if (g.lastY >= SWIPE_THRESHOLD) {
+      goPrev()
+      return
     }
     setDragY(0)
+    if (g.maxDist < DRAG_TAP_SLOP) {
+      const slot = Number((e.target as Element).closest('[data-slot]')?.getAttribute('data-slot') ?? 0)
+      if (slot > 0) setActiveIndex((safeIndex + slot) % count)
+      else goNext()
+    }
   }
 
   return (
-    <div data-own-gesture className="relative mb-4" style={{ height: stackHeight + dotsSpace }}>
+    <div
+      data-own-gesture
+      className="relative mb-4 select-none"
+      style={{ height: stackHeight + dotsSpace, touchAction: 'none', cursor: count > 1 ? 'grab' : 'default' }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
       {Array.from({ length: visibleCount }, (_, slot) => {
         const idx = (safeIndex + slot) % count
         const account = ordered[idx]
@@ -157,18 +197,14 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
             key={account.id}
             account={account}
             hidden={hidden}
+            slot={slot}
             transition={transitionEnabled}
-            interactive={isFront}
+            entering={account.id === enteringId}
             style={{
               transform: `translateY(${translateY}px) scale(${scale})`,
               opacity,
               zIndex: visibleCount - slot,
             }}
-            onPointerDown={isFront ? handlePointerDown : undefined}
-            onPointerMove={isFront ? handlePointerMove : undefined}
-            onPointerUp={isFront ? handlePointerUp : undefined}
-            onPointerCancel={isFront ? handlePointerUp : undefined}
-            onClick={!isFront ? () => setActiveIndex(idx) : undefined}
           />
         )
       })}
