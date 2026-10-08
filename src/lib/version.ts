@@ -1,13 +1,12 @@
-export const APP_VERSION = '2.3.1'
+import release from '../release.json'
+
+/** رقم الإصدار وملاحظاته مصدرهما src/release.json — نفس الملف يُنشر كـ version.json مع كل بناء (vite.config.ts) لفحص التحديثات. */
+export const APP_VERSION: string = release.version
 export const DEVELOPER_NAME = 'بلال الخواجة'
 export const BRAND_NAME = 'برمجيات QB'
 
-/** أبرز تغييرات الإصدار الحالي — تُعرض بقسم "ما الجديد" بشاشة حول التطبيق، وتُحدَّث مع كل رفع لـ APP_VERSION. */
-export const RELEASE_NOTES: string[] = [
-  'رزمة البطاقات بالرئيسية: السحب لأعلى يعرض البطاقة التالية ولأسفل السابقة، بدون أن تتحرك الصفحة.',
-  'النقر على البطاقة بالرئيسية يعرض التالية بدل فتح التعديل — التعديل صار من شاشة الحسابات بزر القلم فقط.',
-  'السحب السريع المتتالي على البطاقات لم يعد يضيع.',
-]
+/** أبرز تغييرات الإصدار الحالي — تُعرض بشاشة حول التطبيق وبورقة التحديث، وتُحدَّث مع كل رفع للإصدار في release.json. */
+export const RELEASE_NOTES: string[] = release.notes
 
 /** بصمة فريدة لكل بناء (git commit) — تتغيّر تلقائيًا مع كل نشر حتى لو نسينا رفع APP_VERSION يدويًا. حقنها vite.config.ts وقت البناء. */
 export const BUILD_ID = __BUILD_ID__

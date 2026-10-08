@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  // نفس الثابت الذي يحقنه vite.config.ts وقت البناء — حتى تعمل الوحدات التي تستورد lib/version في الاختبارات.
+  define: { __BUILD_ID__: JSON.stringify('test') },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
