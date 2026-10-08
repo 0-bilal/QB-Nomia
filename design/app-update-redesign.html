@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تحديث التطبيق — تصميم مقترح</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --accent-soft:rgba(255,255,255,.09); --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 0 40px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+  .preview-bar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;padding:0 16px;max-width:560px}
+  .pill{padding:7px 12px;border-radius:99px;background:#16161a;border:1px solid #26262c;font-size:12px;font-weight:600;color:var(--text-2)}
+  .pill.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  .preview-note{font-size:11.5px;color:#6b6b75;margin-bottom:14px;text-align:center;padding:0 16px}
+
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:0;border:0;height:100vh}}
+
+  /* خلفية: شاشة المزيد */
+  .more{padding:30px 20px}
+  .more h1{font-size:26px;font-weight:700}
+  .more .sub{font-size:12px;color:var(--text-3);margin-top:3px}
+  .search{margin:18px 0 22px;height:44px;border-radius:99px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;padding:0 16px;font-size:13px;color:var(--text-3);gap:8px}
+  .sec-t{font-size:12px;font-weight:600;color:var(--text-3);margin:0 4px 12px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;margin-bottom:24px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;color:var(--text-2);position:relative}
+  .tile span.i{width:56px;height:56px;border-radius:20px;background:var(--surface-el);border:1px solid var(--border);display:grid;place-items:center;color:var(--text)}
+  .tile .badge{position:absolute;top:-3px;left:calc(50% - 34px);width:12px;height:12px;border-radius:50%;background:var(--income);border:2.5px solid var(--bg)}
+
+  /* الطبقة والورقة السفلية */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,#17171b,#0f0f12);border-top:1px solid var(--border-strong);border-radius:32px 32px 0 0;padding:10px 20px 26px;transform:translateY(105%);transition:transform .4s var(--ease);z-index:5}
+  .sheet.on{transform:none}
+  .handle{width:38px;height:4.5px;border-radius:99px;background:rgba(255,255,255,.18);margin:0 auto 18px}
+  .state{display:none;animation:fade .35s var(--ease)}
+  .state.on{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .hero-ic{width:64px;height:64px;border-radius:22px;margin:4px auto 14px;display:grid;place-items:center;position:relative}
+  .hero-ic.neutral{background:var(--surface-hi);color:var(--text)}
+  .hero-ic.good{background:rgba(62,224,143,.12);color:var(--income)}
+  .hero-ic.new{background:var(--accent);color:var(--on-accent);box-shadow:0 14px 34px -14px rgba(255,255,255,.4)}
+  .hero-ic.bad{background:rgba(255,95,109,.12);color:var(--expense)}
+  .spin{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ttl{font-size:19px;font-weight:700;text-align:center}
+  .desc{font-size:12.5px;color:var(--text-2);text-align:center;margin-top:5px;line-height:1.6}
+
+  .vers{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0 4px}
+  .ver{padding:7px 13px;border-radius:14px;background:var(--surface-el);border:1px solid var(--border);text-align:center}
+  .ver .k{font-size:10px;color:var(--text-3);font-weight:500}
+  .ver .v{font-size:15px;font-weight:700}
+  .ver.new{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  .ver.new .k{color:rgba(10,10,12,.55)}
+  .vers .arr{color:var(--text-3)}
+
+  .box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:12px 14px;margin-top:16px}
+  .box-t{font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:4px;display:flex;justify-content:space-between}
+  .note{display:flex;gap:10px;padding:6px 0;font-size:12.5px;color:var(--text-2);line-height:1.55}
+  .note i{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:8px;flex-shrink:0}
+  .reassure{display:flex;align-items:center;gap:8px;justify-content:center;font-size:11.5px;color:var(--text-3);margin-top:14px}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:99px;font-size:14px;font-weight:600;margin-top:16px}
+  .btn.primary{background:var(--accent);color:var(--on-accent)}
+  .btn.ghost{background:transparent;color:var(--text-2);margin-top:6px;padding:10px}
+
+  /* خطوات التقدم */
+  .steps{margin-top:18px}
+  .step{display:flex;align-items:center;gap:12px;padding:10px 2px}
+  .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;border:1.5px solid var(--border-strong);color:var(--text-3)}
+  .step.done .dot{background:var(--income);border-color:transparent;color:#05120b}
+  .step .dot svg{display:none}.step.done .dot svg{display:block}
+  .step.run .dot{border-color:var(--border-strong);border-top-color:var(--accent);animation:spin .8s linear infinite}
+  .step .l{font-size:13px;font-weight:600;color:var(--text-3)}
+  .step.done .l,.step.run .l{color:var(--text)}
+  .step .s{font-size:11px;color:var(--text-3)}
+  .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:14px}
+  .bar span{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s var(--ease)}
+  .pct{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:7px}
+
+  /* شاشة إعادة التشغيل */
+  .restart{position:absolute;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10}
+  .restart.on{display:flex;animation:fade .3s}
+  .logo{width:68px;height:68px;border-radius:22px;display:grid;place-items:center;background:linear-gradient(150deg,#fff,var(--accent) 55%,#a9a9b3);box-shadow:0 14px 36px -14px rgba(255,255,255,.35)}
+  .restart .t{font-size:13px;font-weight:600;color:var(--text-2)}
+  .restart .v{font-size:12px;color:var(--text-3)}
+
+  /* بانر بعد التحديث */
+  .toast{position:absolute;top:14px;left:14px;right:14px;z-index:4;background:#1c1c21;border:1px solid var(--border-strong);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 20px 40px -12px rgba(0,0,0,.8);transform:translateY(-140%);transition:transform .45s var(--ease)}
+  .toast.on{transform:none}
+  .toast .ic{width:34px;height:34px;border-radius:50%;background:rgba(62,224,143,.14);color:var(--income);display:grid;place-items:center;flex-shrink:0}
+  .toast .a{font-size:13px;font-weight:600}
+  .toast .b{font-size:11px;color:var(--text-3)}
+  .toast button{margin-inline-start:auto;font-size:11.5px;font-weight:600;color:var(--text-2);background:var(--surface-hi);padding:6px 11px;border-radius:99px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="preview-bar" id="pb">
+  <button class="pill on" data-go="flow">التجربة الكاملة</button>
+  <button class="pill" data-go="latest">لا يوجد تحديث</button>
+  <button class="pill" data-go="available">يوجد تحديث</button>
+  <button class="pill" data-go="progress">جاري التحديث</button>
+  <button class="pill" data-go="done">بعد التحديث</button>
+  <button class="pill" data-go="error">فشل التحديث</button>
+</div>
+<div class="preview-note">في «التجربة الكاملة» اضغط زر «تحديث» في شاشة المزيد</div>
+
+<div class="phone" id="phone">
+  <!-- خلفية: شاشة المزيد -->
+  <div class="more">
+    <h1>المزيد</h1>
+    <div class="sub num" id="moreSub">الإصدار 2.3.1</div>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      ابحث عن أداة أو إعداد...
+    </div>
+    <div class="sec-t">النظام</div>
+    <div class="grid">
+      <div class="tile"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg></span>الأمان</div>
+      <div class="tile"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.8A4 4 0 0 0 6.5 16"/></svg></span>مزامنة</div>
+      <div class="tile"><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg></span>حول</div>
+      <button class="tile" id="updTile"><span class="badge" id="badge"></span><span class="i"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/></svg></span>تحديث</button>
+    </div>
+  </div>
+
+  <!-- بانر "تم التحديث" بعد إعادة التشغيل -->
+  <div class="toast" id="toast">
+    <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div>
+    <div><div class="a">تم التحديث إلى <span class="num">2.4.0</span></div><div class="b">بدون الحاجة لإعادة إدخال الرمز</div></div>
+    <button id="toastMore">ما الجديد</button>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+
+  <div class="sheet" id="sheet">
+    <div class="handle"></div>
+
+    <!-- ١: جاري التحقق -->
+    <div class="state" data-s="checking">
+      <div class="hero-ic neutral"><svg class="spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg></div>
+      <div class="ttl">جارٍ البحث عن تحديث</div>
+      <div class="desc">نقارن نسختك الحالية <span class="num">2.3.1</span> بأحدث نسخة منشورة</div>
+      <div style="height:40px"></div>
+    </div>
+
+    <!-- ٢أ: لا يوجد تحديث -->
+    <div class="state" data-s="latest">
+      <div class="hero-ic good"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div>
+      <div class="ttl">تطبيقك محدّث</div>
+      <div class="desc">أنت على أحدث إصدار — لا حاجة لإعادة التشغيل</div>
+      <div class="vers"><div class="ver"><div class="k">الإصدار الحالي</div><div class="v num">2.3.1</div></div></div>
+      <div class="box">
+        <div class="box-t"><span>آخر التغييرات</span><span class="num">2.3.1</span></div>
+        <div class="note"><i></i>السحب على بطاقات الرئيسية لا يحرّك الصفحة.</div>
+        <div class="note"><i></i>التعديل من شاشة الحسابات بزر القلم فقط.</div>
+      </div>
+      <button class="btn primary" data-close>تم</button>
+      <button class="btn ghost" id="forceBtn">إعادة تحميل التطبيق على أي حال</button>
+    </div>
+
+    <!-- ٢ب: يوجد تحديث -->
+    <div class="state" data-s="available">
+      <div class="hero-ic new"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 20h14"/></svg></div>
+      <div class="ttl">يتوفر إصدار جديد</div>
+      <div class="vers">
+        <div class="ver"><div class="k">الحالي</div><div class="v num">2.3.1</div></div>
+        <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+        <div class="ver new"><div class="k">الجديد</div><div class="v num">2.4.0</div></div>
+      </div>
+      <div class="box">
+        <div class="box-t"><span>ما الجديد</span><span class="num">2.4.0</span></div>
+        <div class="note"><i></i>طريقة تحديث جديدة تعرض الإصدار قبل وبعد التحديث.</div>
+        <div class="note"><i></i>لا يُطلب الرمز السري بعد التحديث مباشرة.</div>
+        <div class="note"><i></i>تنبيه بنقطة خضراء عند توفر إصدار جديد.</div>
+      </div>
+      <div class="reassure">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        بياناتك المالية تبقى كما هي على جهازك
+      </div>
+      <button class="btn primary" id="startBtn">تحديث الآن</button>
+      <button class="btn ghost" data-close>لاحقًا</button>
+    </div>
+
+    <!-- ٣: جاري التحديث -->
+    <div class="state" data-s="progress">
+      <div class="ttl" style="margin-top:4px">جارٍ التحديث إلى <span class="num">2.4.0</span></div>
+      <div class="desc">لا تغلق التطبيق — يستغرق بضع ثوانٍ</div>
+      <div class="steps" id="steps">
+        <div class="step"><div class="dot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div><div><div class="l">تنزيل النسخة الجديدة</div><div class="s">ملفات التطبيق</div></div></div>
+        <div class="step"><div class="dot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div><div><div class="l">تجهيز النسخة</div><div class="s">استبدال الملفات المخزّنة</div></div></div>
+        <div class="step"><div class="dot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div><div><div class="l">إعادة التشغيل</div><div class="s">ستعود لنفس الشاشة مباشرة</div></div></div>
+      </div>
+      <div class="bar"><span id="barFill" style="width:0"></span></div>
+      <div class="pct"><span id="pctLabel">0%</span><span class="num" dir="ltr">2.3.1 → 2.4.0</span></div>
+    </div>
+
+    <!-- ٤: بعد التحديث -->
+    <div class="state" data-s="done">
+      <div class="hero-ic good"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div>
+      <div class="ttl">تم التحديث بنجاح</div>
+      <div class="desc">تعمل الآن على الإصدار الجديد</div>
+      <div class="vers">
+        <div class="ver" style="opacity:.55"><div class="k">السابق</div><div class="v num" style="text-decoration:line-through">2.3.1</div></div>
+        <svg class="arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+        <div class="ver new"><div class="k">الحالي</div><div class="v num">2.4.0</div></div>
+      </div>
+      <div class="box">
+        <div class="box-t"><span>ما الجديد</span><span class="num">2.4.0</span></div>
+        <div class="note"><i></i>طريقة تحديث جديدة تعرض الإصدار قبل وبعد التحديث.</div>
+        <div class="note"><i></i>لا يُطلب الرمز السري بعد التحديث مباشرة.</div>
+        <div class="note"><i></i>تنبيه بنقطة خضراء عند توفر إصدار جديد.</div>
+      </div>
+      <button class="btn primary" data-close>متابعة</button>
+    </div>
+
+    <!-- خطأ -->
+    <div class="state" data-s="error">
+      <div class="hero-ic bad"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.6a10 10 0 0 1 9.5-2.6M3 3l18 18"/><path d="M12 19.5h.01"/></svg></div>
+      <div class="ttl">تعذّر التحقق من التحديث</div>
+      <div class="desc">تأكد من اتصالك بالإنترنت وحاول مرة أخرى.<br>نسختك الحالية <span class="num">2.3.1</span> تعمل بشكل طبيعي.</div>
+      <button class="btn primary" id="retryBtn">إعادة المحاولة</button>
+      <button class="btn ghost" data-close>إغلاق</button>
+    </div>
+  </div>
+
+  <!-- شاشة إعادة التشغيل القصيرة -->
+  <div class="restart" id="restart">
+    <div class="logo"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#0a0a0c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 L10 9 L14 13 L20 5"/><path d="M15 5 H20 V10"/></svg></div>
+    <div class="t">جارٍ تشغيل الإصدار الجديد</div>
+    <div class="v num">2.4.0</div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+let timers=[];
+const clear=()=>{timers.forEach(clearTimeout);timers=[];};
+const later=(fn,ms)=>timers.push(setTimeout(fn,ms));
+let updated=false, scenario='flow';
+
+function show(state){
+  document.querySelectorAll('.state').forEach(s=>s.classList.toggle('on',s.dataset.s===state));
+  $('#sheet').classList.toggle('on',!!state);$('#scrim').classList.toggle('on',!!state);
+}
+function closeSheet(){clear();show(null);}
+function setVersionUI(){
+  $('#moreSub').textContent='الإصدار '+(updated?'2.4.0':'2.3.1');
+  $('#badge').style.display = updated||scenario==='latest'||scenario==='error' ? 'none':'block';
+}
+function runProgress(){
+  show('progress');
+  const steps=[...document.querySelectorAll('#steps .step')];
+  steps.forEach(s=>s.className='step');
+  const set=(i,p)=>{steps.forEach((s,k)=>s.className='step'+(k<i?' done':k===i?' run':''));$('#barFill').style.width=p+'%';$('#pctLabel').textContent=p+'%';};
+  set(0,8);later(()=>set(0,38),600);later(()=>set(1,64),1200);later(()=>set(1,82),1700);later(()=>set(2,100),2200);
+  later(()=>{show(null);$('#restart').classList.add('on');},2700);
+  later(()=>{$('#restart').classList.remove('on');updated=true;setVersionUI();show('done');},4000);
+}
+function check(){
+  show('checking');
+  later(()=>show(scenario==='latest'?'latest':scenario==='error'?'error':'available'),1100);
+}
+function go(s){
+  clear();scenario=s;updated=false;$('#toast').classList.remove('on');$('#restart').classList.remove('on');
+  document.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===s));
+  setVersionUI();
+  if(s==='flow'){show(null);return;}
+  if(s==='progress'){runProgress();return;}
+  if(s==='done'){updated=true;setVersionUI();show('done');return;}
+  show(s);
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return;}
+  if(e.target.closest('[data-close]')){closeSheet();if(updated){$('#toast').classList.add('on');later(()=>$('#toast').classList.remove('on'),3500);}return;}
+});
+$('#scrim').onclick=()=>{ if(!$('[data-s=progress]').classList.contains('on')) closeSheet(); };
+$('#updTile').onclick=()=>{ if(updated){show('latest');return;} check(); };
+$('#startBtn').onclick=runProgress;
+$('#forceBtn').onclick=runProgress;
+$('#retryBtn').onclick=()=>{scenario='flow';check();};
+$('#toastMore').onclick=()=>{$('#toast').classList.remove('on');show('done');};
+setVersionUI();
+</script>
+</body>
+</html>
