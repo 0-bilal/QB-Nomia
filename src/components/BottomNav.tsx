@@ -68,9 +68,9 @@ function SwapIcon() {
   )
 }
 
-function PlusIcon() {
+function PlusIcon({ size = 26 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={size < 20 ? 2.8 : 2.4} strokeLinecap="round">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
@@ -334,27 +334,33 @@ export function BottomNav() {
           <NavItem to="/" label={TAB_LABELS[0]} icon={(a) => <HomeIcon active={a} />} />
           <NavItem to="/accounts" label={TAB_LABELS[1]} icon={(a) => <WalletIcon active={a} />} />
 
-          {/* زر + داخل الشريط (بدون الدائرة البارزة) — ضغطة تفتح الكبسولة، وسحب منه يختار النوع مباشرة. */}
+          {/* زر + غائر داخل الشريط: تجويف داكن كأنه محفور في الكبسولة وفي وسطه زر أبيض صغير — ضغطة تفتح كبسولة الأنواع، وسحب منه يختار مباشرة. */}
           <button
             ref={fabRef}
             onPointerDown={onFabDown}
             onPointerMove={onFabMove}
             onPointerUp={onFabUp}
             onPointerCancel={onFabUp}
-            className="mx-1 flex h-[46px] w-[58px] flex-shrink-0 items-center justify-center rounded-full"
+            className="mx-1 flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full"
             style={{
-              background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent) 50%, var(--color-accent-b))',
-              color: 'var(--color-on-accent)',
-              boxShadow: '0 10px 24px -10px rgba(255,255,255,0.35), inset 0 1px 0 rgba(255,255,255,0.6)',
-              transform: `scale(${dragging ? 0.92 : 1})`,
-              transition: 'transform 320ms var(--ease-spring)',
+              background: 'radial-gradient(circle at 50% 30%, #2a2a31, #121216)',
+              boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.8), inset 0 -1px 0 rgba(255,255,255,0.08), 0 0 0 1px rgba(255,255,255,0.08)',
               touchAction: 'none',
             }}
             aria-expanded={open}
             aria-label={open ? 'إغلاق' : 'إضافة حركة — اسحب للأعلى للاختيار'}
           >
-            <span className="flex" style={{ transform: `rotate(${open ? 45 : 0}deg)`, transition: 'transform 320ms var(--ease-spring)' }}>
-              <PlusIcon />
+            <span
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-full"
+              style={{
+                background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent) 50%, var(--color-accent-b))',
+                color: 'var(--color-on-accent)',
+                boxShadow: '0 4px 12px -4px rgba(255,255,255,0.5), inset 0 1px 0 rgba(255,255,255,0.6)',
+                transform: `rotate(${open ? 45 : 0}deg) scale(${dragging ? 0.86 : 1})`,
+                transition: 'transform 320ms var(--ease-spring)',
+              }}
+            >
+              <PlusIcon size={17} />
             </span>
           </button>
 
