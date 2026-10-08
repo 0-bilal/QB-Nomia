@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { hasPinConfigured, resetPin, setupPin, verifyPin } from '../lib/auth'
+import { resumedFromUpdate } from '../lib/appUpdate'
 
 interface AuthContextValue {
   hasPin: boolean
@@ -21,7 +22,8 @@ const LOCK_AFTER_HIDDEN_MS = 5 * 60 * 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasPin, setHasPin] = useState(hasPinConfigured)
-  const [unlocked, setUnlocked] = useState(false)
+  // بعد تحديث بدأه المستخدم من داخل التطبيق، إعادة التشغيل لا تطلب الرمز مرة ثانية (تصريح لمرة واحدة صالح لدقيقة).
+  const [unlocked, setUnlocked] = useState(() => hasPinConfigured() && resumedFromUpdate())
 
   useEffect(() => {
     let hiddenAt: number | null = null

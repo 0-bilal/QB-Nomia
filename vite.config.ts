@@ -1,8 +1,9 @@
 import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 
 // بصمة بناء فريدة (git commit) تُعرض بشاشة "حول التطبيق" — تتغيّر تلقائيًا
 // مع كل نشر بدون الحاجة لتذكّر رفع رقم الإصدار يدويًا في كل مرة.
@@ -14,6 +15,21 @@ function buildId(): string {
   }
 }
 
+/** يُنشر version.json بجذر البناء — تقرأه شاشة "تحديث التطبيق" لمقارنة النسخة المثبّتة بأحدث نسخة منشورة. */
+function versionJsonPlugin(build: string): Plugin {
+  return {
+    name: 'qb-version-json',
+    generateBundle() {
+      const release = JSON.parse(readFileSync(new URL('./src/release.json', import.meta.url), 'utf8')) as { version: string; notes: string[] }
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify({ version: release.version, buildId: build, notes: release.notes }, null, 2),
+      })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   // نُشر التطبيق على GitHub Pages كموقع مشروع (project site) على
   // https://0-bilal.github.io/QB-Nomia/ — لذلك لازم base يطابق اسم المستودع
@@ -21,14 +37,16 @@ export default defineConfig(({ mode }) => {
   // Capacitor (تطبيق أندرويد) فيُخدَّم من جذر WebView محلي، فيحتاج base
   // بجذر "/" وإلا كل الأصول تحاول تتحمّل من مسار غير موجود جوا التطبيق.
   const base = mode === 'capacitor' ? '/' : '/QB-Nomia/'
+  const build = buildId()
 
   return {
     base,
     define: {
-      __BUILD_ID__: JSON.stringify(buildId()),
+      __BUILD_ID__: JSON.stringify(build),
     },
     plugins: [
       react(),
+      versionJsonPlugin(build),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',

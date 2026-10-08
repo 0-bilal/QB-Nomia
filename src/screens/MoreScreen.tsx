@@ -1,13 +1,12 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
-import { forceAppUpdate } from '../lib/cache'
+import { backgroundUpdateCheck, dismissUpdateDone, peekUpdateDone } from '../lib/appUpdate'
 import { recordMoreVisit, topUsedRoutes } from '../lib/moreUsage'
 import { getLastSyncedAt, isSheetsSyncConfigured } from '../lib/sheetsSync'
 import { formatDate } from '../lib/format'
 import { APP_VERSION } from '../lib/version'
-import { ConfirmDialog } from '../components/ConfirmDialog'
-import { AppLogo } from '../components/AppLogo'
+import { AppUpdateSheet } from '../components/AppUpdateSheet'
 import { TabHeader, HeaderIconButton } from '../components/TabHeader'
 import { ListGroup, ListItem, SearchField } from '../components/ui'
 import { rise } from '../lib/motion'
@@ -110,7 +109,7 @@ function InfoIcon() {
     </svg>
   )
 }
-function RefreshIcon({ spinning }: { spinning: boolean }) {
+function RefreshIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -121,7 +120,6 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
       strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={spinning ? { animation: 'spin 900ms linear infinite' } : undefined}
     >
       <path d="M20 11A8 8 0 0 0 6.3 6.3L4 8.6" />
       <path d="M4 4v4.6h4.6" />
@@ -171,17 +169,13 @@ function LockIcon() {
   )
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 
 /** أيقونة تطبيق بشبكة "المزيد" — دائرة/مربع ناعم أحادي اللون بنمط شاشة تطبيقات الهاتف، والتسمية تحتها بسطرين كحد أقصى. */
-function AppTile({ label, icon, onClick, highlight = false }: { label: string; icon: ReactElement; onClick: () => void; highlight?: boolean }) {
+function AppTile({ label, icon, onClick, highlight = false, badge = false }: { label: string; icon: ReactElement; onClick: () => void; highlight?: boolean; badge?: boolean }) {
   return (
     <button onClick={onClick} className="qb-press flex flex-col items-center gap-2 text-center">
       <span
-        className="flex items-center justify-center rounded-[20px] border"
+        className="relative flex items-center justify-center rounded-[20px] border"
         style={{
           width: 60,
           height: 60,
@@ -192,22 +186,16 @@ function AppTile({ label, icon, onClick, highlight = false }: { label: string; i
         }}
       >
         {icon}
+        {badge && (
+          <span
+            aria-label="يتوفر تحديث"
+            className="absolute rounded-full"
+            style={{ top: -3, left: -3, width: 13, height: 13, background: 'var(--color-income)', border: '2.5px solid var(--color-bg)' }}
+          />
+        )}
       </span>
       <span className="line-clamp-2 min-h-[30px] text-[11.5px] font-medium leading-tight text-[var(--color-text-2)]">{label}</span>
     </button>
-  )
-}
-
-function UpdatingOverlay() {
-  return (
-    <div dir="rtl" className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-5 bg-[var(--color-bg)]">
-      <AppLogo tagline="" />
-      <div
-        className="h-8 w-8 rounded-full border-2"
-        style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)', animation: 'spin 700ms linear infinite' }}
-      />
-      <div className="text-[13px] font-semibold text-[var(--color-text-2)]">جارٍ تحديث التطبيق...</div>
-    </div>
   )
 }
 
@@ -264,19 +252,26 @@ const ALL_ITEMS: MoreItem[] = SECTIONS.flatMap((s) => s.items)
 export function MoreScreen() {
   const navigate = useNavigate()
   const auth = useAuth()
-  const [busy, setBusy] = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  // بعد إعادة تشغيل ناتجة عن التحديث، تفتح الورقة مباشرة على "تم التحديث" بالإصدار السابق والحالي.
+  const [updateDone, setUpdateDone] = useState(peekUpdateDone)
+  const [updateOpen, setUpdateOpen] = useState(updateDone !== null)
+  const [updateAvailable, setUpdateAvailable] = useState(false)
   const [query, setQuery] = useState('')
 
-  async function confirmUpdateApp() {
-    setConfirmOpen(false)
-    setBusy(true)
-    try {
-      await Promise.all([forceAppUpdate(), delay(500)])
-      window.location.reload()
-    } catch {
-      setBusy(false)
+  useEffect(() => {
+    let alive = true
+    backgroundUpdateCheck().then((res) => {
+      if (alive && res?.available) setUpdateAvailable(true)
+    })
+    return () => {
+      alive = false
     }
+  }, [])
+
+  function closeUpdateSheet() {
+    setUpdateOpen(false)
+    setUpdateDone(null)
+    dismissUpdateDone()
   }
 
   function goTo(item: MoreItem) {
@@ -297,16 +292,8 @@ export function MoreScreen() {
 
   return (
     <div dir="rtl" className="px-5 pb-6">
-      {busy && <UpdatingOverlay />}
 
-      <ConfirmDialog
-        open={confirmOpen}
-        title="تحديث التطبيق"
-        message="سيتم تحديث التطبيق لأحدث نسخة وإعادة تحميله. بياناتك المالية لن تتأثر."
-        confirmLabel="تحديث الآن"
-        onConfirm={confirmUpdateApp}
-        onCancel={() => setConfirmOpen(false)}
-      />
+      {updateOpen && <AppUpdateSheet open done={updateDone} onClose={closeUpdateSheet} />}
 
       <TabHeader
         title="المزيد"
@@ -366,7 +353,7 @@ export function MoreScreen() {
                 {section.items.map((item) => (
                   <AppTile key={item.to} label={item.label} icon={item.icon} onClick={() => goTo(item)} />
                 ))}
-                {section.title === 'النظام' && <AppTile label={busy ? 'جارٍ...' : 'تحديث'} icon={<RefreshIcon spinning={busy} />} onClick={() => setConfirmOpen(true)} />}
+                {section.title === 'النظام' && <AppTile label="تحديث" icon={<RefreshIcon />} badge={updateAvailable} onClick={() => setUpdateOpen(true)} />}
               </div>
             </section>
           ))}
