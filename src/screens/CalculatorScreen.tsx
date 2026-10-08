@@ -83,7 +83,7 @@ function UseNumberButton({ onClick, disabled }: { onClick: () => void; disabled?
       dir="rtl"
       onClick={onClick}
       disabled={disabled}
-      className="qb-press flex w-full items-center justify-center gap-1.5 rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
+      className="qb-press flex w-full items-center justify-center gap-1.5 rounded-full py-3 text-[13px] font-semibold disabled:opacity-35"
       style={{ background: 'rgba(52,199,89,0.14)', color: 'var(--color-income)' }}
     >
       <UseNumberIcon />
@@ -96,11 +96,11 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
   return (
     <button
       onClick={onClick}
-      className="qb-press flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 text-[12.5px] font-bold"
+      className="qb-press flex flex-1 items-center justify-center gap-1.5 rounded-full py-3 text-[13px] font-semibold"
       style={{
-        background: active ? 'var(--color-accent)' : 'var(--color-surface)',
+        background: active ? 'var(--color-accent)' : 'transparent',
         color: active ? '#0A0A0C' : 'var(--color-text-2)',
-        border: active ? 'none' : '1px solid var(--color-border)',
+        transition: 'background 240ms ease, color 200ms ease',
       }}
     >
       {icon}
@@ -121,17 +121,17 @@ function CalcButton({
   wide?: boolean
 }) {
   const styles: Record<string, { background: string; color: string }> = {
-    digit: { background: 'linear-gradient(165deg, var(--color-surface-elevated) 0%, var(--color-surface) 100%)', color: 'var(--color-text)' },
-    op: { background: 'rgba(124,108,255,0.14)', color: 'var(--color-transfer)' },
-    'op-active': { background: 'var(--color-transfer)', color: '#fff' },
+    digit: { background: 'rgba(255,255,255,0.045)', color: 'var(--color-text)' },
+    op: { background: 'var(--color-iris-soft)', color: 'var(--color-iris)' },
+    'op-active': { background: 'var(--color-iris)', color: '#fff' },
     func: { background: 'rgba(255,255,255,0.08)', color: 'var(--color-text-2)' },
     equals: { background: 'var(--color-accent)', color: '#0A0A0C' },
   }
   return (
     <button
       onClick={onClick}
-      className={`num qb-press flex items-center justify-center rounded-2xl text-xl font-bold ${wide ? 'col-span-2' : ''}`}
-      style={{ height: 58, ...styles[variant] }}
+      className={`num qb-press flex items-center justify-center rounded-[24px] text-[22px] font-medium ${wide ? 'col-span-2' : ''}`}
+      style={{ height: 62, ...styles[variant], boxShadow: variant === 'equals' ? '0 14px 30px -14px rgba(255,255,255,0.35)' : undefined }}
     >
       {label}
     </button>
@@ -219,13 +219,13 @@ function StandardCalculator({ onUse }: { onUse: (n: number) => void }) {
     // dir="ltr": لوحة أرقام الآلة الحاسبة تحافظ على نفس ترتيبها المكاني المعتاد (كأي رقّاعة أرقام)
     // بغض النظر عن لغة الواجهة، بدل ما ينعكس ترتيب الأعمدة تلقائيًا مع RTL.
     <div dir="ltr" className="flex h-full flex-col gap-4">
-      <div className="qb-card-elevated flex flex-col justify-end p-5" style={{ height: 128 }}>
+      <div className="qb-card-elevated flex flex-col justify-end p-5" style={{ height: 150 }}>
         {op && prev !== null && (
           <div dir="ltr" className="num mb-1 text-left text-[13px] text-[var(--color-text-3)]">
             {formatResult(prev)} {op}
           </div>
         )}
-        <div dir="ltr" className="num overflow-hidden text-left text-[38px] font-bold text-ellipsis whitespace-nowrap">
+        <div dir="ltr" className="num overflow-hidden text-left text-[48px] font-bold tracking-tight text-ellipsis whitespace-nowrap">
           {display}
         </div>
       </div>
@@ -283,15 +283,15 @@ function SplitBill({ onUse }: { onUse: (n: number) => void }) {
   return (
     <div className="flex h-full flex-col gap-4">
       <div>
-        <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">المبلغ الإجمالي</label>
+        <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">المبلغ الإجمالي</label>
         <div dir="ltr" className="qb-card-elevated flex items-center justify-between p-5" style={{ height: 78 }}>
-          <div className="num overflow-hidden text-[30px] font-bold text-ellipsis whitespace-nowrap">{amount || '0'}</div>
+          <div className="num overflow-hidden text-[36px] font-bold tracking-tight text-ellipsis whitespace-nowrap">{amount || '0'}</div>
           <div className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</div>
         </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">عدد الأشخاص</label>
+        <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">عدد الأشخاص</label>
         <div dir="ltr" className="qb-card flex items-center justify-between px-3 py-2">
           <button
             onClick={() => setPeople((p) => Math.max(1, p - 1))}
@@ -318,7 +318,7 @@ function SplitBill({ onUse }: { onUse: (n: number) => void }) {
 
       <div className="qb-card-elevated flex flex-col items-center py-5">
         <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">نصيب كل شخص</div>
-        <div className="num text-[30px] font-bold" style={{ color: 'var(--color-accent)' }}>
+        <div className="num text-[40px] font-bold tracking-tight" style={{ color: 'var(--color-accent)' }}>
           {formatMoney(perPerson)}
         </div>
         {total > 0 && (
@@ -352,7 +352,7 @@ export function CalculatorScreen() {
       header={<ScreenHeader title="الآلة الحاسبة" onBack={() => navigate(-1)} className="pt-8 pb-4" />}
       contentClassName="flex flex-1 flex-col px-5 pb-4"
     >
-      <div className="mb-4 flex gap-2.5">
+      <div className="mb-4 flex gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
         <TabButton active={tab === 'calc'} onClick={() => setTab('calc')} icon={<CalcIcon />} label="عادية" />
         <TabButton active={tab === 'split'} onClick={() => setTab('split')} icon={<PeopleIcon />} label="تقسيم الحساب" />
       </div>

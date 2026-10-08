@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
-import { formatMoney } from '../lib/format'
+import { formatDate, formatMoney } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import type { Commitment, CommitmentIntervalUnit } from '../types'
+import { SwipeableRow } from '../components/SwipeableRow'
+import { Badge, EmptyState, HeaderAddButton, HeroCard, HeroLabel, ListGroup, RingProgress, SectionTitle, TintButton } from '../components/ui'
+import { haptic } from '../lib/haptics'
 
 function daysUntil(dateStr: string): number {
   const today = new Date()
@@ -59,135 +62,150 @@ export function CommitmentsScreen() {
   const accountName = (id?: string) => accounts.find((a) => a.id === id)?.name ?? ''
   const activeCount = commitments.filter((c) => c.status === 'active').length
 
+  const sorted = [...commitments].sort((x, y) => {
+    const rank = (c: Commitment) => (c.status === 'active' ? 0 : c.status === 'paused' ? 1 : 2)
+    return rank(x) - rank(y) || x.nextDueDate.localeCompare(y.nextDueDate)
+  })
+  const next = sorted.find((c) => c.status === 'active')
+  const nextDays = next ? daysUntil(next.nextDueDate) : null
+  const color = 'var(--color-commitment)'
+
   return (
-    <ScreenScroll
-      header={
-        <ScreenHeader
-          title="الالتزامات"
-          onBack={() => navigate(-1)}
-          right={
-            <button
-              onClick={() => navigate('/commitments/new')}
-              className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-              style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-              aria-label="إضافة التزام"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          }
-        />
-      }
-    >
-      <div className="qb-card-elevated mb-4 p-4.5">
-        <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">الالتزامات النشطة</div>
-        <div className="num text-[26px] font-bold" style={{ color: 'var(--color-commitment)' }}>
-          {activeCount}
+    <ScreenScroll header={<ScreenHeader title="الالتزامات" onBack={() => navigate(-1)} right={<HeaderAddButton label="إضافة التزام" onClick={() => navigate('/commitments/new')} />} />}>
+      <HeroCard className="mb-6">
+        <div className="flex items-center gap-5">
+          <RingProgress pct={nextDays === null ? 0 : Math.max(4, 100 - Math.min(100, (nextDays / 30) * 100))} size={100} color={nextDays !== null && nextDays <= 7 ? 'var(--color-subscription)' : color}>
+            <span className="num text-[26px] font-bold leading-none">{nextDays === null ? '—' : Math.max(0, nextDays)}</span>
+            <span className="mt-1 text-[10px] text-[var(--color-text-3)]">{nextDays === null ? '' : 'يوم متبقي'}</span>
+          </RingProgress>
+          <div className="min-w-0 flex-1">
+            <HeroLabel>الاستحقاق القادم</HeroLabel>
+            <div className="truncate text-[18px] font-semibold">{next ? next.name : 'لا يوجد'}</div>
+            {next && <div className="num mt-0.5 text-[12px] text-[var(--color-text-3)]">{formatDate(next.nextDueDate)}</div>}
+            <div className="mt-3 flex gap-2">
+              <Badge color={color}>{activeCount} نشط</Badge>
+              {commitments.length - activeCount > 0 && <Badge>{commitments.length - activeCount} غير نشط</Badge>}
+            </div>
+          </div>
         </div>
-      </div>
+      </HeroCard>
+
+      <SectionTitle title="الجدول الزمني" hint="اسحب يمينًا لتسجيل التجديد · يسارًا للإيقاف أو الاستئناف" />
 
       {commitments.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">
-          لا توجد التزامات بعد — أضف تجديد هوية، عقد، رخصة، أو أي التزام دوري
-        </div>
+        <EmptyState title="لا توجد التزامات بعد" desc="أضف تجديد هوية، عقد، رخصة، أو أي التزام دوري." actionLabel="إضافة التزام" onAction={() => navigate('/commitments/new')} />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {commitments.map((c) => {
+        <ListGroup className="qb-rise">
+          {sorted.map((c, i) => {
             const badge = dueBadge(c)
             const open = openId === c.id
+            const d = new Date(c.nextDueDate)
             return (
-              <div key={c.id} className="qb-card p-4">
-                <button onClick={() => setOpenId(open ? null : c.id)} className="flex w-full items-center gap-3 text-right">
-                  <div
-                    className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
-                    style={{ width: 46, height: 46, background: 'rgba(96,165,250,0.12)', color: 'var(--color-commitment)' }}
-                  >
-                    <CommitmentIcon />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="text-[14px] font-bold">{c.name}</div>
-                      {c.status !== 'active' && (
-                        <div className="rounded-full bg-white/6 px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-text-2)]">
-                          {STATUS_LABEL[c.status]}
+              <SwipeableRow
+                key={c.id}
+                className={i > 0 ? 'border-t qb-divider' : ''}
+                rightSwipe={
+                  c.status === 'active'
+                    ? { label: 'تجديد', icon: <RenewIcon />, color, textColor: '#0a0a0c', onTrigger: () => {
+                        logCommitmentRenewal(c.id)
+                        haptic('success')
+                      } }
+                    : undefined
+                }
+                leftSwipe={
+                  c.status === 'cancelled'
+                    ? undefined
+                    : {
+                        label: c.status === 'active' ? 'إيقاف' : 'استئناف',
+                        icon: <CommitmentIcon />,
+                        color: 'var(--color-subscription)',
+                        textColor: '#0a0a0c',
+                        onTrigger: () => setCommitmentStatus(c.id, c.status === 'active' ? 'paused' : 'active'),
+                      }
+                }
+              >
+                <div className={c.status === 'cancelled' ? 'opacity-55' : ''}>
+                  <button onClick={() => setOpenId(open ? null : c.id)} className="flex w-full items-center gap-3 px-4 py-3.5 text-right active:bg-white/[0.03]">
+                    <div
+                      className="flex flex-shrink-0 flex-col items-center justify-center rounded-[16px]"
+                      style={{ width: 48, height: 52, background: `color-mix(in srgb, ${badge?.color === 'var(--color-text-3)' || !badge ? color : badge.color} 14%, transparent)`, color: badge && badge.color !== 'var(--color-text-3)' ? badge.color : color }}
+                    >
+                      <span className="num text-[18px] font-bold leading-none">{d.getDate()}</span>
+                      <span className="mt-0.5 text-[9.5px] font-semibold">{MONTHS_AR[d.getMonth()]}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[14px] font-medium">{c.name}</span>
+                        {c.status !== 'active' && <Badge>{STATUS_LABEL[c.status]}</Badge>}
+                      </div>
+                      <div className="truncate text-[11.5px]" style={{ color: badge?.color ?? 'var(--color-text-3)' }}>
+                        {badge ? badge.text : intervalLabel(c.intervalUnit, c.intervalCount)}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 text-left">
+                      {c.cost ? <div className="num text-[14px] font-bold">{formatMoney(c.cost)}</div> : null}
+                      <div className="text-[10.5px] text-[var(--color-text-3)]">{intervalLabel(c.intervalUnit, c.intervalCount)}</div>
+                    </div>
+                  </button>
+
+                  {open && (
+                    <div className="grid grid-cols-2 gap-2 px-4 pb-4" style={{ animation: 'fade-in 200ms ease-out both' }}>
+                      {(c.note || (c.cost && c.accountId)) && (
+                        <div className="col-span-2 rounded-[16px] bg-white/[0.04] px-3.5 py-2.5 text-[12px] leading-relaxed text-[var(--color-text-2)]">
+                          {c.note}
+                          {c.note && c.cost && c.accountId ? ' — ' : ''}
+                          {c.cost && c.accountId ? `يُخصم من: ${accountName(c.accountId)}` : ''}
                         </div>
                       )}
-                    </div>
-                    <div className="text-[11.5px] text-[var(--color-text-3)]">{intervalLabel(c.intervalUnit, c.intervalCount)}</div>
-                  </div>
-                  <div className="text-left">
-                    {c.cost ? (
-                      <div className="num text-[14px] font-bold">{formatMoney(c.cost)}</div>
-                    ) : null}
-                    {badge && (
-                      <div className="mt-1 text-[11px] font-semibold" style={{ color: badge.color }}>
-                        {badge.text}
-                      </div>
-                    )}
-                  </div>
-                </button>
-
-                {open && (
-                  <div className="mt-3.5 flex flex-col gap-2 border-t border-white/6 pt-3.5">
-                    {c.note && <div className="mb-1 text-[12px] leading-relaxed text-[var(--color-text-2)]">{c.note}</div>}
-                    {c.cost && c.accountId && (
-                      <div className="mb-1 text-[11.5px] text-[var(--color-text-3)]">يُخصم من: {accountName(c.accountId)}</div>
-                    )}
-                    <button
-                      onClick={() => navigate(`/commitments/${c.id}/edit`)}
-                      className="qb-press rounded-xl py-2.5 text-[12.5px] font-semibold"
-                      style={{ background: 'var(--color-void)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
-                    >
-                      تعديل بيانات الالتزام
-                    </button>
-                    {c.status === 'active' && (
-                      <button
-                        onClick={() => logCommitmentRenewal(c.id)}
-                        className="qb-press rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: 'rgba(96,165,250,0.14)', color: 'var(--color-commitment)' }}
-                      >
-                        {c.cost && c.accountId
-                          ? `تسجيل التجديد الآن (يخصم ${formatMoney(c.cost)} من ${accountName(c.accountId)})`
-                          : 'تسجيل التجديد الآن'}
-                      </button>
-                    )}
-                    <div className="flex gap-2">
-                      {c.status === 'active' ? (
+                      {c.status === 'active' && (
                         <button
-                          onClick={() => setCommitmentStatus(c.id, 'paused')}
-                          className="qb-press flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
+                          onClick={() => logCommitmentRenewal(c.id)}
+                          className="qb-press col-span-2 rounded-full py-3 text-[13px] font-semibold text-[#0a0a0c]"
+                          style={{ background: color }}
                         >
-                          إيقاف مؤقت
-                        </button>
-                      ) : c.status === 'paused' ? (
-                        <button
-                          onClick={() => setCommitmentStatus(c.id, 'active')}
-                          className="qb-press flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
-                        >
-                          استئناف
-                        </button>
-                      ) : null}
-                      {c.status !== 'cancelled' && (
-                        <button
-                          onClick={() => setCommitmentStatus(c.id, 'cancelled')}
-                          className="qb-press flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }}
-                        >
-                          إلغاء الالتزام
+                          {c.cost && c.accountId ? `تسجيل التجديد (${formatMoney(c.cost)})` : 'تسجيل التجديد الآن'}
                         </button>
                       )}
+                      <button onClick={() => navigate(`/commitments/${c.id}/edit`)} className="qb-press rounded-full bg-white/[0.06] py-2.5 text-[12.5px] font-medium">
+                        تعديل
+                      </button>
+                      {c.status === 'active' ? (
+                        <TintButton color="var(--color-subscription)" className="!py-2.5 text-[12.5px]" onClick={() => setCommitmentStatus(c.id, 'paused')}>
+                          إيقاف مؤقت
+                        </TintButton>
+                      ) : c.status === 'paused' ? (
+                        <TintButton color="var(--color-accent)" className="!py-2.5 text-[12.5px]" onClick={() => setCommitmentStatus(c.id, 'active')}>
+                          استئناف
+                        </TintButton>
+                      ) : (
+                        <div />
+                      )}
+                      {c.status !== 'cancelled' && (
+                        <TintButton color="var(--color-expense)" className="col-span-2 !py-2.5 text-[12.5px]" onClick={() => setCommitmentStatus(c.id, 'cancelled')}>
+                          إلغاء الالتزام
+                        </TintButton>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </SwipeableRow>
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </ScreenScroll>
+  )
+}
+
+const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+
+function RenewIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 11A8 8 0 0 0 6.3 6.3L4 8.6" />
+      <path d="M4 4v4.6h4.6" />
+      <path d="M4 13a8 8 0 0 0 13.7 4.7L20 15.4" />
+      <path d="M20 20v-4.6h-4.6" />
+    </svg>
   )
 }

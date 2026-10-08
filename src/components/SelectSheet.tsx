@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { SheetHandle } from './SheetHandle'
 
 function CheckIcon() {
   return (
@@ -44,24 +45,24 @@ export function SelectSheet({ open, title, items, selectedId, onSelect, onClose,
   return (
     <div dir="rtl" className="fixed inset-0 z-[60] flex items-end justify-center">
       <div
-        className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/70 backdrop-blur-[6px]"
         style={{ animation: 'fade-in 180ms ease-out both' }}
         onClick={onClose}
         aria-hidden="true"
       />
       <div
         data-testid="select-sheet"
-        className="relative flex max-h-[75vh] w-full max-w-[480px] flex-col rounded-t-[28px] border-x border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
-        style={{ animation: 'sheet-in 260ms cubic-bezier(0.16,1,0.3,1) both' }}
+        className="relative flex max-h-[75vh] w-full max-w-[480px] flex-col rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
       >
-        <div className="mx-auto mb-1 mt-2.5 h-1 w-9 flex-shrink-0 rounded-full bg-white/15" />
+        <SheetHandle onDismiss={onClose} />
 
         <div className="flex flex-shrink-0 items-center justify-between px-5 py-3">
-          <div className="text-[15px] font-bold">{title}</div>
+          <div className="text-[17px] font-semibold">{title}</div>
           <button
             onClick={onClose}
             aria-label="إغلاق"
-            className="qb-press flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text-2)]"
+            className="qb-press flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-2)]"
             style={{ background: 'rgba(255,255,255,0.08)' }}
           >
             <CloseIcon />
@@ -79,7 +80,7 @@ export function SelectSheet({ open, title, items, selectedId, onSelect, onClose,
                   <button
                     key={item.id}
                     onClick={() => onSelect(item.id)}
-                    className="qb-press flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-right"
+                    className="qb-press flex w-full items-center gap-3 rounded-[20px] border px-3.5 py-3.5 text-right"
                     style={
                       selected
                         ? { borderColor: item.iconColor, background: `${item.iconColor}14` }
@@ -87,13 +88,13 @@ export function SelectSheet({ open, title, items, selectedId, onSelect, onClose,
                     }
                   >
                     <div
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]"
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
                       style={{ width: 40, height: 40, background: item.iconBg, color: item.iconColor }}
                     >
                       {item.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-bold">{item.title}</div>
+                      <div className="truncate text-[13.5px] font-semibold">{item.title}</div>
                       {item.subtitle && <div className="truncate text-[11px] text-[var(--color-text-3)]">{item.subtitle}</div>}
                     </div>
                     {item.trailing && <div className="flex-shrink-0 text-[12.5px]">{item.trailing}</div>}

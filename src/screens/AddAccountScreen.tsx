@@ -7,6 +7,9 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DatePicker } from '../components/DatePicker'
 import { showUndoToast } from '../lib/undoToast'
 import type { AccountType } from '../types'
+import { BankCardFace } from '../components/BankCardFace'
+import { ACCOUNT_ICON_COLOR, AccountTypeIcon } from '../components/AccountVisuals'
+import { haptic } from '../lib/haptics'
 
 const TYPE_OPTIONS: [AccountType, string][] = [
   ['cash', 'كاش'],
@@ -71,7 +74,7 @@ export function AddAccountScreen() {
     const { name, type, balance, goalAmount, goalLabel, goalTargetDate, zakatHawlStartDate } = existing
     deleteAccount(id)
     navigate('/accounts', { replace: true })
-    showUndoToast('تم حذف الحساب', () => addAccount({ name, type, balance, goalAmount, goalLabel, goalTargetDate, zakatHawlStartDate }))
+    showUndoToast('تم حذف الحساب', (data) => data.addAccount({ name, type, balance, goalAmount, goalLabel, goalTargetDate, zakatHawlStartDate }))
   }
 
   return (
@@ -84,7 +87,7 @@ export function AddAccountScreen() {
           className="pt-8 pb-6"
           right={
             isEditing ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -98,7 +101,7 @@ export function AddAccountScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: 'var(--color-accent)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحساب'}
@@ -120,59 +123,78 @@ export function AddAccountScreen() {
         onCancel={() => setConfirmDeleteOpen(false)}
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الحساب</label>
+      <div className="qb-rise mb-6">
+        <BankCardFace
+          account={{ id: id ?? 'preview', name: name.trim() || 'اسم الحساب', type, balance: Number(balance) || 0, goalLabel: goalLabel.trim() || undefined }}
+          style={{ height: 196, transition: 'background 400ms ease' }}
+        />
+        <div className="mt-2 text-center text-[11px] text-[var(--color-text-3)]">معاينة مباشرة لبطاقة الحساب</div>
+      </div>
+
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الحساب</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: محفظة Google Play"
-        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">نوع الحساب</label>
-      <div className="mb-5 flex flex-wrap gap-2">
-        {TYPE_OPTIONS.map(([t, label]) => (
-          <button
-            key={t}
-            onClick={() => setType(t)}
-            className="rounded-full px-4 py-2 text-[12.5px] font-semibold"
-            style={
-              type === t
-                ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)' }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
-          >
-            {label}
-          </button>
-        ))}
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">نوع الحساب</label>
+      <div className="mb-5 grid grid-cols-4 gap-2">
+        {TYPE_OPTIONS.map(([t, label]) => {
+          const active = type === t
+          return (
+            <button
+              key={t}
+              onClick={() => {
+                if (t !== type) haptic('select')
+                setType(t)
+              }}
+              className="qb-press flex flex-col items-center gap-1.5 rounded-[20px] border px-1 py-3"
+              style={
+                active
+                  ? { background: `color-mix(in srgb, ${ACCOUNT_ICON_COLOR[t]} 16%, transparent)`, borderColor: ACCOUNT_ICON_COLOR[t] }
+                  : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }
+              }
+            >
+              <span style={{ color: active ? ACCOUNT_ICON_COLOR[t] : 'var(--color-text-3)' }}>
+                <AccountTypeIcon type={t} size={20} />
+              </span>
+              <span className="text-[10.5px] font-medium leading-tight" style={{ color: active ? 'var(--color-text)' : 'var(--color-text-2)' }}>
+                {label}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الرصيد الحالي (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">الرصيد الحالي (اختياري)</label>
       <input
         dir="ltr"
         inputMode="decimal"
         value={balance}
         onChange={(e) => setBalance(e.target.value.replace(/[^0-9.]/g, ''))}
         placeholder="0"
-        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="num mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
       {type === 'savings' && (
         <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الهدف (اختياري)</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الهدف (اختياري)</label>
           <input
             value={goalLabel}
             onChange={(e) => setGoalLabel(e.target.value)}
             placeholder="مثال: رحلة عمرة"
-            className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+            className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
           />
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">مبلغ الهدف (اختياري)</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">مبلغ الهدف (اختياري)</label>
           <input
             dir="ltr"
             inputMode="decimal"
             value={goalAmount}
             onChange={(e) => setGoalAmount(e.target.value.replace(/[^0-9.]/g, ''))}
             placeholder="0"
-            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+            className="num mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
           />
           <div className="mb-5">
             <DatePicker value={goalTargetDate} onChange={setGoalTargetDate} color="var(--color-subscription)" placeholder="بدون تاريخ مستهدف" fieldLabel="تاريخ تحقيق الهدف (اختياري)" />
@@ -193,31 +215,31 @@ export function AddAccountScreen() {
       )}
 
       {type === 'wallet' && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           محفظة رقمية زي "Google Play" — عبّيها بتحويل من الكاش أو البنكي، واربط اشتراكاتك فيها عشان تعرف الرصيد المتبقي بها في أي وقت.
         </div>
       )}
 
       {type === 'emergency' && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(225,29,72,0.4)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           حساب مخصص للطوارئ فقط — المبلغ اللي تحطه هنا يبقى جانبًا بعيد عن مصاريفك اليومية، لأي ظرف مفاجئ تحتاج تغطيته بسرعة.
         </div>
       )}
 
       {type === 'coins' && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(18,182,103,0.4)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           حساب مخصص لتجميع فئة الريال المعدني اللي تجمعها في البيت أو السيارة — الرصيد هنا يمثّل قيمة القطع المعدنية اللي عندك، منفصل تمامًا عن باقي حساباتك.
         </div>
       )}
 
       {type === 'fuel' && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,138,26,0.4)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           بطاقة وقود مسبقة الدفع لتعبئة السيارة — اشحنها بتحويل من الكاش أو البنكي، وسجّل تعبئاتك كمصروف عليها عشان تتابع الرصيد المتبقي ومستوى التعبئة.
         </div>
       )}
 
       {type === 'steam' && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(102,192,244,0.4)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           رصيد محفظة Steam للألعاب — اشحنها بتحويل من الكاش أو البنكي، وسجّل مشترياتك من المتجر كمصروف عليها عشان تتابع الرصيد المتبقي ومشتريات الشهر.
         </div>
       )}

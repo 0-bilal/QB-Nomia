@@ -12,6 +12,7 @@ import { intervalLabel } from './CommitmentsScreen'
 import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import type { CommitmentIntervalUnit } from '../types'
+import { Segmented } from '../components/ui'
 
 function defaultDueDate(): string {
   const d = new Date()
@@ -70,8 +71,8 @@ export function AddCommitmentScreen() {
     const { name, note, cost, accountId, intervalUnit, intervalCount, nextDueDate } = existing
     deleteCommitment(id)
     navigate('/commitments', { replace: true })
-    showUndoToast('تم حذف الالتزام', () =>
-      addCommitment({ name, note, cost, accountId, intervalUnit, intervalCount, nextDueDate }),
+    showUndoToast('تم حذف الالتزام', (data) =>
+      data.addCommitment({ name, note, cost, accountId, intervalUnit, intervalCount, nextDueDate }),
     )
   }
 
@@ -85,7 +86,7 @@ export function AddCommitmentScreen() {
           className="pt-8 pb-6"
           right={
             isEditing ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -99,7 +100,7 @@ export function AddCommitmentScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: 'var(--color-commitment)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الالتزام'}
@@ -117,56 +118,59 @@ export function AddCommitmentScreen() {
         onCancel={() => setConfirmDeleteOpen(false)}
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الالتزام</label>
+      <div className="qb-card-elevated qb-rise mb-6 flex items-center gap-4 p-5">
+        <div
+          className="flex flex-shrink-0 flex-col items-center justify-center rounded-[18px]"
+          style={{ width: 60, height: 64, background: 'rgba(95,179,255,0.16)', color: 'var(--color-commitment)' }}
+        >
+          <span className="num text-[22px] font-bold leading-none">{nextDueDate ? new Date(nextDueDate).getDate() : '—'}</span>
+          <span className="mt-1 text-[10px] font-semibold">{nextDueDate ? new Date(nextDueDate).toLocaleDateString('ar', { month: 'short' }) : ''}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[17px] font-semibold">{name.trim() || 'التزام جديد'}</div>
+          <div className="text-[12px] text-[var(--color-text-3)]">{intervalLabel(intervalUnit, intervalCount)}</div>
+          {hasCost && Number(cost) > 0 && <div className="num mt-1 text-[14px] font-bold text-[var(--color-commitment)]">{formatMoney(Number(cost))}</div>}
+        </div>
+      </div>
+
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الالتزام</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: تجديد الهوية الوطنية"
-        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: عن طريق أبشر"
-        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">يتكرر</label>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {UNIT_OPTIONS.map(([u, label]) => (
-          <button
-            key={u}
-            onClick={() => setIntervalUnit(u)}
-            className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
-            style={
-              intervalUnit === u
-                ? { background: 'rgba(96,165,250,0.2)', color: 'var(--color-commitment)' }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">يتكرر</label>
+      <Segmented options={UNIT_OPTIONS} value={intervalUnit} onChange={setIntervalUnit} color="var(--color-commitment)" className="mb-3" />
       <div className="mb-5 flex items-center gap-3">
         <button
           type="button"
           onClick={() => setIntervalCount((n) => Math.max(1, n - 1))}
-          className="qb-press flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[18px] font-bold"
+          className="qb-press flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-[22px] font-medium"
           aria-label="إنقاص"
         >
           −
         </button>
-        <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] py-2.5 text-center">
-          <div className="num text-[15px] font-bold">{intervalCount}</div>
+        <div className="flex-1 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 text-center">
+          <div key={intervalCount} className="num text-[22px] font-bold" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+            {intervalCount}
+          </div>
           <div className="text-[11px] text-[var(--color-text-3)]">{intervalLabel(intervalUnit, intervalCount)}</div>
         </div>
         <button
           type="button"
           onClick={() => setIntervalCount((n) => Math.min(99, n + 1))}
-          className="qb-press flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[18px] font-bold"
+          className="qb-press flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full text-[22px] font-medium text-[#0a0a0c]"
+          style={{ background: 'var(--color-commitment)' }}
           aria-label="زيادة"
         >
           +
@@ -183,30 +187,30 @@ export function AddCommitmentScreen() {
         className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
       >
         <div>
-          <div className="text-[13.5px] font-bold">له تكلفة مالية</div>
+          <div className="text-[13.5px] font-semibold">له تكلفة مالية</div>
           <div className="text-[11.5px] text-[var(--color-text-3)]">فعّلها لو الالتزام يتطلب رسوم تُخصم من أحد حساباتك</div>
         </div>
         <div
-          className="flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
+          className="flex h-[30px] w-[52px] flex-shrink-0 items-center rounded-full p-[3px] transition-colors duration-300"
           style={{ background: hasCost ? 'var(--color-commitment)' : 'rgba(255,255,255,0.14)' }}
         >
           <div
-            className="h-5 w-5 rounded-full bg-white transition-transform"
-            style={{ transform: hasCost ? 'translateX(-20px)' : 'translateX(0)' }}
+            className="h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-transform duration-300"
+            style={{ transform: hasCost ? 'translateX(-22px)' : 'translateX(0)' }}
           />
         </div>
       </button>
 
       {hasCost && (
         <>
-          <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التكلفة</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">التكلفة</label>
           <input
             dir="ltr"
             inputMode="decimal"
             value={cost}
             onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))}
             placeholder="0"
-            className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+            className="num mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
           />
 
           <SelectSheet
@@ -240,8 +244,8 @@ export function AddCommitmentScreen() {
                   setAccountSheetOpen(false)
                   navigate('/accounts/new')
                 }}
-                className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-                style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+                className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+                style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
               >
                 + إضافة حساب جديد
               </button>

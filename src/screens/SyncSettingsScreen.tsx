@@ -8,6 +8,7 @@ import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets }
 import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
 import { markBackupExported } from '../lib/backup'
+import { Badge, HeroCard, IconBubble, TintButton } from '../components/ui'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -198,21 +199,42 @@ export function SyncSettingsScreen() {
         }}
       />
 
-      <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
+      <HeroCard className="mb-5">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-shrink-0">
+            <IconBubble color={configured ? 'var(--color-accent)' : 'var(--color-text-3)'} size={56} solid={configured}>
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.8A4 4 0 0 0 6.5 16" />
+                <path d="M12 12v6M9.5 15.5 12 18l2.5-2.5" />
+              </svg>
+            </IconBubble>
+            {status.kind === 'busy' && <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-[var(--color-accent)]" style={{ animation: 'spin 800ms linear infinite' }} />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[17px] font-semibold">{configured ? 'المزامنة مفعّلة' : 'المزامنة غير مربوطة'}</div>
+            <div className="text-[12px] text-[var(--color-text-3)]">{lastSynced ? `آخر مزامنة: ${formatDate(lastSynced)}` : 'Google Sheets مشفّر من الطرفين'}</div>
+            <div className="mt-2">
+              <Badge color={configured ? 'var(--color-accent)' : 'var(--color-text-3)'}>{configured ? 'متصل' : 'غير متصل'}</Badge>
+            </div>
+          </div>
+        </div>
+      </HeroCard>
+
+      <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
         الرابط والرمز السري يُحفظان على هذا الجهاز فقط (مو بكود التطبيق) — بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets نفسه لا يخزّن أي بيانات مالية مقروءة.
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">رابط Web App</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">رابط Web App</label>
       <input
         dir="ltr"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         placeholder="https://script.google.com/macros/s/.../exec"
-        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الرمز السري</label>
-      <div className="mb-4 flex items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1">
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">الرمز السري</label>
+      <div className="mb-4 flex items-center gap-2 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1">
         <input
           dir="ltr"
           type={showToken ? 'text' : 'password'}
@@ -229,8 +251,7 @@ export function SyncSettingsScreen() {
       <button
         onClick={handleSaveCredentials}
         disabled={!canSave}
-        className="mb-5 w-full rounded-2xl py-3 text-center text-[13.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
-        style={{ background: 'var(--color-accent)' }}
+        className="qb-btn-primary mb-5 w-full py-3.5 text-center text-[14px]"
       >
         حفظ إعدادات الربط
       </button>
@@ -238,20 +259,14 @@ export function SyncSettingsScreen() {
       {configured && (
         <>
           <div className="mb-3 flex gap-3">
-            <button
-              onClick={handlePush}
-              className="flex-1 rounded-2xl py-3 text-[13px] font-bold"
-              style={{ background: 'rgba(124,108,255,0.14)', color: 'var(--color-transfer)', border: '1px solid rgba(124,108,255,0.3)' }}
-            >
-              رفع البيانات ↑
-            </button>
-            <button
-              onClick={() => setConfirmPullOpen(true)}
-              className="flex-1 rounded-2xl py-3 text-[13px] font-bold"
-              style={{ background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)', border: '1px solid rgba(45,212,191,0.3)' }}
-            >
-              سحب البيانات ↓
-            </button>
+            <TintButton color="var(--color-transfer)" className="flex-1" onClick={handlePush} disabled={status.kind === 'busy'}>
+              <ExportIcon />
+              رفع البيانات
+            </TintButton>
+            <TintButton color="var(--color-owed-to)" className="flex-1" onClick={() => setConfirmPullOpen(true)} disabled={status.kind === 'busy'}>
+              <ImportIcon />
+              سحب البيانات
+            </TintButton>
           </div>
 
           <div className="mb-1.5 text-center text-[11px] text-[var(--color-text-3)]">
@@ -270,17 +285,17 @@ export function SyncSettingsScreen() {
         </>
       )}
 
-      <div className="qb-section-label mb-2 mt-6 px-1">نسخة احتياطية محلية</div>
+      <div className="qb-section-title mb-3 mt-6 px-1">نسخة احتياطية محلية</div>
 
       <div className="qb-card mb-3.5 flex items-center gap-3 p-4">
         <div
-          className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-[12px]"
-          style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
+          className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full"
+          style={{ width: 38, height: 38, background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
         >
           <DatabaseIcon />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[13.5px] font-bold">{formatBytes(backupSizeBytes)}</div>
+          <div className="text-[14px] font-medium">{formatBytes(backupSizeBytes)}</div>
           <div className="text-[11px] text-[var(--color-text-3)]">{recordsCount} سجل مخزَّن على هذا الجهاز</div>
         </div>
       </div>
@@ -289,47 +304,48 @@ export function SyncSettingsScreen() {
 
       <button
         onClick={handleExportBackup}
-        className="qb-press mb-3 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right"
-        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'var(--color-surface)' }}
+        className="qb-press mb-3 flex w-full items-center gap-3.5 rounded-[24px] border px-4 py-4 text-right"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
       >
         <div
-          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
+          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-full"
           style={{ width: 42, height: 42, background: 'rgba(124,108,255,0.14)', color: 'var(--color-transfer)' }}
         >
           <ExportIcon />
         </div>
         <div className="flex-1">
-          <div className="text-[13.5px] font-bold">تصدير نسخة احتياطية</div>
+          <div className="text-[14px] font-medium">تصدير نسخة احتياطية</div>
           <div className="text-[11.5px] text-[var(--color-text-3)]">يحفظ كل بياناتك بملف JSON على جهازك</div>
         </div>
       </button>
 
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="qb-press mb-5 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right"
-        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'var(--color-surface)' }}
+        className="qb-press mb-5 flex w-full items-center gap-3.5 rounded-[24px] border px-4 py-4 text-right"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
       >
         <div
-          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
+          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-full"
           style={{ width: 42, height: 42, background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)' }}
         >
           <ImportIcon />
         </div>
         <div className="flex-1">
-          <div className="text-[13.5px] font-bold">استعادة من نسخة احتياطية</div>
+          <div className="text-[14px] font-medium">استعادة من نسخة احتياطية</div>
           <div className="text-[11.5px] text-[var(--color-text-3)]">يختار ملف JSON صادر من هذا التطبيق ويستبدل بياناتك الحالية</div>
         </div>
       </button>
 
       {status.kind !== 'idle' && (
         <div
-          className="mt-2 rounded-2xl p-3.5 text-center text-[12.5px] font-semibold"
+          className="mt-2 rounded-full px-4 py-3 text-center text-[12.5px] font-semibold"
+          role="status"
           style={
             status.kind === 'error'
               ? { background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }
               : status.kind === 'busy'
                 ? { background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }
-                : { background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }
+                : { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
           }
         >
           {status.label}

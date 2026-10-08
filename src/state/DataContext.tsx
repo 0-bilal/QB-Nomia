@@ -351,6 +351,8 @@ interface DataContextValue {
   monthlyBudgetLimit: number | null
   setMonthlyBudgetLimit: (limit: number | null) => void
   totalBalance: number
+  /** مجموع أرصدة الحسابات المختارة فقط لـ"إجمالي رصيدك" بالرئيسية (includeInTotal). */
+  homeTotalBalance: number
   availableBalance: number
   totalMonthlySubscriptions: number
   addSubscription: (input: AddSubscriptionInput) => Subscription
@@ -372,6 +374,8 @@ interface DataContextValue {
   updateAccount: (id: string, input: AddAccountInput) => void
   deleteAccount: (id: string) => void
   setAccountShowOnHome: (id: string, showOnHome: boolean) => void
+  /** يحدد دفعة واحدة أي الحسابات تدخل بإجمالي الرئيسية — كل حساب خارج القائمة يُستثنى. */
+  setAccountsIncludedInTotal: (ids: string[]) => void
   addPerson: (input: AddPersonInput) => Person
   updatePerson: (id: string, input: AddPersonInput) => void
   deletePerson: (id: string) => void
@@ -1292,6 +1296,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       monthlyBudgetLimit,
       setMonthlyBudgetLimit: persistMonthlyBudgetLimit,
       totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
+      homeTotalBalance: accounts.filter((a) => a.includeInTotal !== false).reduce((s, a) => s + a.balance, 0),
       // ادخار ومحفظة رقمية مو رصيد جاهز للصرف فورًا — تُستثنى من "الرصيد
       // المتاح" بالرئيسية (بخلاف totalBalance اللي يبقى مجموع كل الحسابات
       // فعليًا لشاشة الحسابات نفسها).
@@ -1718,6 +1723,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       setAccountShowOnHome(id: string, showOnHome: boolean) {
         persistAccounts(accounts.map((a) => (a.id === id ? { ...a, showOnHome } : a)))
+      },
+      setAccountsIncludedInTotal(ids: string[]) {
+        const included = new Set(ids)
+        persistAccounts(accounts.map((a) => ({ ...a, includeInTotal: included.has(a.id) })))
       },
       exportSnapshot(): DataSnapshot {
         return {

@@ -1,36 +1,60 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 
+/*
+  ═══════════════════════════════════════════════════════════════════════
+  هوية QB-Nomia 2026 — "Nomia Mono"
+  ═══════════════════════════════════════════════════════════════════════
+  أحادية اللون: أسود عميق (Obsidian) كخلفية بطلة، أبيض ناصع لعناصر الفعل
+  والأرقام المهمة فقط، ودرجات رمادية للأسطح والنصوص الثانوية، مع هالة
+  ضوئية فضية خافتة (aurora) خلف رؤوس الشاشات. الألوان الوحيدة بالتطبيق
+  دلالية (أخضر دخل، أحمر مصروف...) داخل البيانات فقط. أسطح بلاطات Bento بحواف كبيرة
+  ناعمة، شريط تنقل "جزيرة" عائم، وحركة نابضية (spring) لكل تفاعل.
+  مستوحاة من هويات البنوك الرقمية لعام 2026 (Revolut/Monzo/Wise/Nubank).
+*/
 @theme {
-  --font-sans: 'Cairo', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Readex Pro', ui-sans-serif, system-ui, sans-serif;
   --font-num: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  --color-bg: #000000;
-  --color-void: #0a0a0c;
-  --color-surface: #141417;
-  --color-surface-elevated: #1c1c20;
-  --color-border: rgba(255, 255, 255, 0.08);
+  --color-bg: #050506;
+  --color-void: #0b0b0d;
+  --color-surface: #121215;
+  --color-surface-elevated: #1a1a1f;
+  --color-surface-high: #24242a;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
 
-  --color-accent: #f2f2f5;
+  /* لون العلامة — أبيض. النص فوقه دايمًا --color-on-accent (أسود). */
+  --color-accent: #f4f4f6;
   --color-accent-a: #ffffff;
-  --color-accent-b: #c9c9cf;
+  --color-accent-b: #a9a9b3;
+  --color-on-accent: #0a0a0c;
+  --color-accent-soft: rgba(255, 255, 255, 0.09);
+  --color-accent-line: rgba(255, 255, 255, 0.28);
 
-  --color-income: #22c55e;
-  --color-expense: #ff5c5c;
-  --color-transfer: #7c6cff;
-  --color-subscription: #f5b942;
-  --color-commitment: #60a5fa;
-  --color-owed-to: #2dd4bf;
-  --color-owed-by: #fb923c;
-  --color-emergency: #e11d48;
-  --color-vehicle: #38bdf8;
-  --color-coins: #12b667;
+  /* رمادي فضي ثانوي — للهالات والتدرجات والرسوم فقط (مو للأزرار). */
+  --color-iris: #b4b4be;
+  --color-iris-soft: rgba(255, 255, 255, 0.08);
+
+  --color-income: #3ee08f;
+  --color-expense: #ff5f6d;
+  --color-transfer: #8b7bff;
+  --color-subscription: #ffbf47;
+  --color-commitment: #5fb3ff;
+  --color-owed-to: #2ee6c8;
+  --color-owed-by: #ff9a4d;
+  --color-emergency: #ff3d6e;
+  --color-vehicle: #45c8ff;
+  --color-coins: #19c27a;
   --color-fuel: #ff8a1a;
   --color-steam: #66c0f4;
 
-  --color-text: #f5f5f7;
-  --color-text-2: #9a9aa5;
-  --color-text-3: #5c5c63;
+  --color-text: #f4f4f6;
+  --color-text-2: #a1a1ad;
+  --color-text-3: #62626d;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /*
@@ -42,6 +66,7 @@
 html {
   height: 100%;
   overflow: hidden;
+  background: var(--color-bg);
 }
 
 body {
@@ -57,6 +82,9 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   /* يمنع إيماءة الزوم بالنقر المزدوج — التطبيق مقفول بحجم الشاشة أصلًا فما فيه داعي له. */
   touch-action: manipulation;
@@ -73,6 +101,14 @@ input,
 select,
 textarea {
   font-size: 16px !important;
+  font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-accent-line) !important;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.04);
 }
 
 #root {
@@ -91,22 +127,22 @@ textarea {
 .num {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 ::-webkit-scrollbar {
   display: none;
 }
 
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
 /*
   margin لا padding عمدًا: كل استخدام لهاتين الفئتين مقرون بفئة pt-*/pb-* من Tailwind
-  على نفس العنصر (مثلًا "safe-top pt-14"). لو استخدمنا padding-top هنا بالذات، فهو
-  يستهدف نفس الخاصية اللي يستهدفها pt-14 على نفس العنصر — والفئة اللي تظهر مؤخرًا
-  بملف CSS النهائي (هذه الفئة، بعد أدوات Tailwind) تفوز بالكامل بدل ما تُضاف، فتُلغى
-  مسافة pt-14 كليًا كل مرة يكون فيها env(safe-area-inset-top) صفرًا (الحالة الشائعة
-  بمعظم الأجهزة والمتصفحات) — وهذا كان يخلي العناوين والأزرار تلامس حافة الشاشة
-  فعليًا رغم وجود pt-14/pb-2.5 بالكود. margin خاصية مختلفة عن padding فتُضاف فوقها
-  بدل ما تحل محلها، فنحصل دائمًا على: مسافة الأمان الفعلية للجهاز + المسافة الأساسية
-  المصمَّمة، مو أحدهما فقط.
+  على نفس العنصر. padding هنا كان يلغي pt-* بالكامل بدل ما يُضاف فوقها، فنستخدم margin
+  حتى نحصل دائمًا على: مسافة الأمان الفعلية للجهاز + المسافة الأساسية المصمَّمة.
 */
 .safe-top {
   margin-top: env(safe-area-inset-top, 0px);
@@ -116,63 +152,112 @@ textarea {
   margin-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ─────────────────────────── الخلفية الشفقية (Aurora) ─────────────────────────── */
+
 /*
-  دوائر/كبسولات زجاجية (glassmorphism) لعناصر رأس الشاشة (رجوع، إضافة، الجرس،
-  العين، اسم الشاشة...) — خلفية شبه شفافة + ضبابية بدل خلفية صلبة، حتى تبقى
-  واضحة ومقروءة فوق أي محتوى يتحرك تحتها أو خلفها أثناء التمرير بدل ما تندمج
-  فيه. الـ::before يضيف انعكاس ضوء خفيف بالحافة العلوية (كأي سطح زجاجي حقيقي)
-  بدل سطح ضبابي مسطّح بلا عمق.
+  هالة ضوئية ناعمة أعلى كل شاشة: بقعة Volt وبقعة Iris تتحركان ببطء شديد خلف
+  المحتوى — توقيع بصري للهوية بدل خلفية سوداء مسطّحة. pointer-events:none
+  وz-index سالب داخل حاوية isolate، فما تأثر على أي تفاعل أو قراءة.
+*/
+.qb-aurora {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 420px;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+}
+.qb-aurora::before,
+.qb-aurora::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+.qb-aurora::before {
+  width: 300px;
+  height: 260px;
+  top: -140px;
+  right: -60px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+  animation: qb-aurora-a 16s ease-in-out infinite alternate;
+}
+.qb-aurora::after {
+  width: 340px;
+  height: 300px;
+  top: -150px;
+  left: -110px;
+  background: radial-gradient(circle, rgba(170, 170, 185, 0.22), transparent 70%);
+  animation: qb-aurora-b 19s ease-in-out infinite alternate;
+}
+
+@keyframes qb-aurora-a {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-60px, 40px) scale(1.15); }
+}
+@keyframes qb-aurora-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to { transform: translate(70px, 30px) scale(0.95); }
+}
+
+/* ─────────────────────────── الأسطح والزجاج ─────────────────────────── */
+
+/*
+  دوائر/كبسولات زجاجية لعناصر رأس الشاشة (رجوع، الجرس، العين...) — خلفية شبه
+  شفافة + ضبابية حتى تبقى مقروءة فوق أي محتوى يتحرك تحتها أثناء التمرير.
 */
 .qb-glass-circle {
   position: relative;
-  background: rgba(30, 30, 35, 0.55);
-  border-color: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  background: rgba(24, 24, 28, 0.62);
+  border-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
   overflow: hidden;
   isolation: isolate;
-}
-.qb-glass-circle::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.06) 30%, transparent 55%);
-  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/*
-  صف رأس عائم يلتصق بأعلى الشاشة أثناء التمرير (position: sticky) بدل ما يتمرر مع
-  باقي المحتوى ويختفي — يُستخدم بالشاشات اللي عنوانها وأزرارها جزء من نفس حاوية
-  التمرير (الرئيسية، الحسابات، السلف، المزيد). الصف نفسه بلا خلفية عمدًا — كل عنصر
-  بداخله (كبسولة الاسم، دوائر الأزرار) له خلفيته الزجاجية الخاصة (qb-glass-circle)
-  بدل صندوق واحد كبير يجمعهم، حتى يبين المحتوى المتمرر بالفراغات الشفافة بينهم.
-*/
+/* صف رأس عائم يلتصق بأعلى الشاشة أثناء التمرير (position: sticky). */
 .qb-sticky-header-row {
   position: sticky;
   top: 0;
   z-index: 30;
+  isolation: isolate;
+}
+/* خلفية متلاشية خلف الصف العائم حتى ما يتداخل المحتوى المتمرر مع الأزرار بصريًا. */
+.qb-sticky-header-row::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * env(safe-area-inset-top, 0px)) -20px -18px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(5, 5, 6, 0.94) 0%, rgba(5, 5, 6, 0.8) 60%, transparent 100%);
 }
 
-/*
-  نظام تصميم مصغّر لهوية "تطبيق بنكي متقدم": بطاقات بعمق حقيقي (تدرّج +
-  خطوط نسيج خفيفة تحاكي الميتال المصقول) بدل الخلفية المسطحة الموحّدة،
-  زر رجوع دائري بدل نص، وتسميات أقسام موحّدة. الأدوات هنا تُستخدم عبر كل
-  الشاشات بدل تكرار نفس الـ inline styles في كل ملف.
-*/
+/* بلاطة Bento الأساسية — سطح غير لامع بحافة ضوء علوية رفيعة بدل حد صلب. */
 .qb-card {
-  border-radius: 22px;
+  position: relative;
+  border-radius: 24px;
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%), var(--color-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+/* بلاطة بطل — توهج Iris/Volt خافت بالزاوية + شبكة نقطية دقيقة كنسيج هوية. */
 .qb-card-elevated {
   position: relative;
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   background:
-    radial-gradient(130% 100% at 100% 0%, rgba(255, 255, 255, 0.09) 0%, transparent 55%),
-    linear-gradient(160deg, var(--color-surface-elevated) 0%, var(--color-void) 65%, #000000 100%);
-  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.85);
+    radial-gradient(120% 90% at 100% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 55%),
+    radial-gradient(90% 80% at 0% 100%, rgba(255, 255, 255, 0.025) 0%, transparent 55%),
+    linear-gradient(165deg, var(--color-surface-elevated) 0%, var(--color-void) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 24px 48px -28px rgba(0, 0, 0, 0.9);
   overflow: hidden;
 }
 
@@ -181,46 +266,99 @@ textarea {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: repeating-linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.028) 0px,
-    rgba(255, 255, 255, 0.028) 1px,
-    transparent 1px,
-    transparent 9px
-  );
-  mix-blend-mode: overlay;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(135deg, #000 0%, transparent 60%);
+  -webkit-mask-image: linear-gradient(135deg, #000 0%, transparent 60%);
+}
+
+/* المحتوى المباشر فوق طبقة النسيج (::before) — إلا العناصر المطلقة اللي تحدد موضعها بنفسها. */
+.qb-card-elevated > :not(.absolute) {
+  position: relative;
+}
+
+/* بلاطة بيضاء — اللون الكامل للعلامة، للبطاقة البطلة الوحيدة بأي شاشة. */
+.qb-card-light {
+  position: relative;
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(255, 255, 255, 0.5) 0%, transparent 45%),
+    linear-gradient(150deg, var(--color-accent-a) 0%, var(--color-accent) 45%, var(--color-accent-b) 100%);
+  color: var(--color-on-accent);
+  box-shadow: 0 22px 50px -24px rgba(255,255,255,0.28);
+  overflow: hidden;
 }
 
 .qb-section-label {
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-text-3);
+  letter-spacing: 0.01em;
+}
+
+/* عنوان قسم كبير بنمط تطبيقات 2026: عنوان + رابط "عرض الكل" على نفس السطر. */
+.qb-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .qb-divider {
-  border-color: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* شريحة/Chip موحّدة — الحالة المختارة تأخذ لون العلامة الكامل. */
+.qb-chip {
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  transition: background 200ms ease, color 200ms ease, transform 200ms var(--ease-spring);
+}
+.qb-chip[data-active='true'] {
+  background: var(--color-accent);
+  border-color: transparent;
+  color: var(--color-on-accent);
+}
+
+/* زر أساسي بلون العلامة — كبسولة كاملة. */
+.qb-btn-primary {
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+  box-shadow: 0 14px 30px -14px rgba(255,255,255,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 180ms var(--ease-spring), opacity 150ms ease, filter 150ms ease;
+}
+.qb-btn-primary:active {
+  transform: scale(0.96);
+}
+.qb-btn-primary:disabled {
+  opacity: 0.35;
+  box-shadow: none;
 }
 
 .qb-press {
-  transition: transform 150ms ease, opacity 150ms ease;
+  transition: transform 220ms var(--ease-spring), opacity 150ms ease;
 }
 .qb-press:active {
-  transform: scale(0.965);
+  transform: scale(0.955);
 }
 
+/* ─────────────────────────── بطاقات الحسابات ─────────────────────────── */
+
 /*
-  بطاقة الحساب البنكية — سطح "معدن مصقول" مستقل عن qb-card-elevated (المُستخدم بأماكن
-  ثانية كثيرة بالتطبيق فما نقدر نغيّره): حافة منحوتة (bevel) بدل الحد الخفيف الموحّد،
-  وخطوط تفريش معدني أوضح فوق تدرّج اللون الخاص بكل نوع حساب (مُعرَّف بـ ACCOUNT_CARD_BG).
+  بطاقة الحساب البنكية — حافة منحوتة (bevel) + ملمس "حبيبات" دقيق بدل خطوط التفريش
+  القديمة، فوق تدرّج اللون الخاص بكل نوع حساب (ACCOUNT_CARD_BG).
 */
 .qb-bank-card {
   position: relative;
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -16px 28px -18px rgba(0, 0, 0, 0.65),
-    0 24px 46px -26px rgba(0, 0, 0, 0.8);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -18px 30px -20px rgba(0, 0, 0, 0.6),
+    0 26px 50px -26px rgba(0, 0, 0, 0.9);
   overflow: hidden;
 }
 
@@ -229,28 +367,19 @@ textarea {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: repeating-linear-gradient(
-    4deg,
-    rgba(255, 255, 255, 0.05) 0px,
-    rgba(255, 255, 255, 0.05) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  opacity: 0.22;
   mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
 }
 
-/*
-  لمعان أسود فاخر متحرك — خاص ببطاقة الكاش، يحاكي انعكاس الضوء على سطح مصقول لامع.
-  تمريرة واحدة بلمسة خفيفة (تلاشي دخول/خروج) ثم توقف حقيقي طويل قبل التكرار،
-  بدل الذهاب والإياب اللانهائي بلا توقف.
-*/
+/* لمعان متحرك — خاص ببطاقة الكاش: تمريرة واحدة ثم توقف طويل قبل التكرار. */
 .qb-gloss-sweep {
   position: absolute;
   inset: -60% -20%;
   pointer-events: none;
-  background: linear-gradient(112deg, transparent 42%, rgba(255, 255, 255, 0.18) 50%, transparent 58%);
+  background: linear-gradient(112deg, transparent 42%, rgba(255, 255, 255, 0.16) 50%, transparent 58%);
   opacity: 0;
-  animation: qb-gloss-sweep 6.5s ease-in-out infinite;
+  animation: qb-gloss-sweep 7s ease-in-out infinite;
 }
 
 @keyframes qb-gloss-sweep {
@@ -260,10 +389,77 @@ textarea {
   48%, 100% { transform: translateX(65%); opacity: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .qb-gloss-sweep {
-    animation: none;
-  }
+/* ─────────────────────────── الحركة (Motion) ─────────────────────────── */
+
+/* دخول الشاشة: ظهور + انزلاق خفيف من جهة البداية (RTL) — يُطبَّق على كل شاشة تلقائيًا. */
+/*
+  fill-mode "backwards" لا "both" عمدًا: "both" يُبقي transform مُحتسبًا (matrix) على العنصر بعد
+  انتهاء الأنيميشن، وأي transform غير none يجعل العنصر حاويًا لكل عناصر position:fixed بداخله —
+  فكانت الـ Sheets والنوافذ المنبثقة تتموضع بأسفل محتوى الشاشة المتمرر بدل أسفل الشاشة نفسها.
+*/
+.qb-screen-enter {
+  animation: qb-screen-in 380ms var(--ease-out-expo) backwards;
+}
+.qb-screen-enter[data-dir='back'] {
+  animation-name: qb-screen-in-back;
+}
+.qb-screen-enter[data-dir='tab-next'] {
+  animation-name: qb-tab-in-next;
+}
+.qb-screen-enter[data-dir='tab-prev'] {
+  animation-name: qb-tab-in-prev;
+}
+
+@keyframes qb-screen-in {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes qb-screen-in-back {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes qb-tab-in-next {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes qb-tab-in-prev {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ظهور متتابع لعناصر القوائم والبلاطات (stagger) — يكفي إضافة الفئة + --i على كل عنصر. */
+.qb-rise {
+  animation: qb-rise 520ms var(--ease-out-expo) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@keyframes qb-rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* نبضة تلميح لإيماءات السحب (مثلًا تحت زر الإضافة) — تتكرر بهدوء. */
+@keyframes qb-hint-up {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+@keyframes qb-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes qb-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(9px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes qb-ring {
+  from { transform: scale(0.8); opacity: 0.7; }
+  to { transform: scale(2.2); opacity: 0; }
 }
 
 @keyframes fade-in {
@@ -277,7 +473,7 @@ textarea {
 }
 
 @keyframes speed-dial-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.94); }
+  from { opacity: 0; transform: translateY(12px) scale(0.92); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -291,6 +487,18 @@ textarea {
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  from { opacity: 0; transform: translateY(18px) scale(0.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-gloss-sweep,
+  .qb-aurora::before,
+  .qb-aurora::after {
+    animation: none;
+  }
+  .qb-screen-enter,
+  .qb-rise {
+    animation-duration: 1ms;
+  }
 }

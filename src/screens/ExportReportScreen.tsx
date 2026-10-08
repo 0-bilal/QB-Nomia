@@ -6,6 +6,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { formatMoney } from '../lib/format'
 import { buildReportData, type ReportExtras } from '../lib/reportData'
 import { computeVehicleCostStats } from '../lib/fuelConsumption'
+import type { ReactNode } from 'react'
+import { ListGroup, SectionTitle } from '../components/ui'
 
 function currentMonthValue(): string {
   const d = new Date()
@@ -98,90 +100,118 @@ export function ExportReportScreen() {
   }
 
   return (
-    <ScreenScroll header={<ScreenHeader title="تصدير التقرير" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">الشهر</label>
-      <input
-        type="month"
-        value={monthValue}
-        onChange={(e) => setMonthValue(e.target.value)}
-        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none"
-        style={{ colorScheme: 'dark' }}
-      />
+    <ScreenScroll header={<ScreenHeader title="تصدير التقرير" onBack={() => navigate(-1)} />}>
+      <label className="mb-5 flex items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text-3)]">
+        <span className="flex-shrink-0 text-[12.5px] font-medium">الشهر</span>
+        <input
+          type="month"
+          value={monthValue}
+          onChange={(e) => setMonthValue(e.target.value)}
+          className="num min-w-0 flex-1 bg-transparent py-3 text-[var(--color-text)] outline-none"
+          style={{ colorScheme: 'dark', boxShadow: 'none' }}
+        />
+      </label>
 
-      <div className="qb-card mb-5 p-4">
-        <div className="qb-section-label mb-3">معاينة سريعة — {data.periodLabel}</div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <div>
-            <div className="mb-1 text-[11px] text-[var(--color-text-3)]">الدخل</div>
-            <div className="num text-[15px] font-bold" style={{ color: 'var(--color-income)' }}>{formatMoney(data.income)}</div>
+      {/* معاينة بشكل ورقة تقرير مصغّرة */}
+      <div className="qb-rise mb-6 flex justify-center">
+        <div
+          className="relative w-[78%] rounded-[22px] bg-[#f4f4f6] p-5 text-[#0a0a0c]"
+          style={{ transform: 'rotate(-2deg)', boxShadow: '0 30px 60px -24px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.08)' }}
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <span className="num text-[12px] font-bold">QB·Nomia</span>
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--color-accent-b)' }} />
           </div>
-          <div>
-            <div className="mb-1 text-[11px] text-[var(--color-text-3)]">المصروف</div>
-            <div className="num text-[15px] font-bold" style={{ color: 'var(--color-expense)' }}>{formatMoney(data.expense)}</div>
+          <div className="mb-3 text-[14px] font-semibold">{data.periodLabel}</div>
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <div className="rounded-[12px] bg-black/[0.05] p-2">
+              <div className="text-[9px] opacity-60">الدخل</div>
+              <div className="num text-[12px] font-bold text-[#0f9a57]">{formatMoney(data.income)}</div>
+            </div>
+            <div className="rounded-[12px] bg-black/[0.05] p-2">
+              <div className="text-[9px] opacity-60">المصروف</div>
+              <div className="num text-[12px] font-bold text-[#d6303f]">{formatMoney(data.expense)}</div>
+            </div>
           </div>
+          <div className="flex flex-col gap-1.5">
+            {[90, 72, 84, 60].map((w, i) => (
+              <div key={i} className="h-1.5 rounded-full bg-black/[0.08]" style={{ width: `${w}%` }} />
+            ))}
+          </div>
+          <div className="mt-3 text-[9.5px] opacity-60">{data.transactionRows.length} حركة مسجّلة</div>
         </div>
-        <div className="mt-3 text-[11.5px] text-[var(--color-text-3)]">{data.transactionRows.length} حركة مسجّلة في هذه الفترة</div>
       </div>
 
-      <div className="qb-card mb-5 p-4">
-        <div className="qb-section-label mb-3">بيانات إضافية (اختياري)</div>
-        <div className="flex flex-col gap-3">
-          <ExtraToggle label="الاشتراكات النشطة" checked={includeSubscriptions} onChange={setIncludeSubscriptions} />
-          <ExtraToggle label="الالتزامات النشطة" checked={includeCommitments} onChange={setIncludeCommitments} />
-          <ExtraToggle label="ملخص الديون" checked={includeDebts} onChange={setIncludeDebts} />
-          <ExtraToggle label="تكلفة السيارة لكل كيلومتر" checked={includeVehicle} onChange={setIncludeVehicle} />
-        </div>
-      </div>
+      <SectionTitle title="أقسام إضافية" hint="اختر ما يُضاف للتقرير بجانب الملخص والحركات" />
+      <ListGroup className="mb-6">
+        <ExtraToggle label="الاشتراكات النشطة" checked={includeSubscriptions} onChange={setIncludeSubscriptions} />
+        <ExtraToggle label="الالتزامات النشطة" checked={includeCommitments} onChange={setIncludeCommitments} divider />
+        <ExtraToggle label="ملخص الديون" checked={includeDebts} onChange={setIncludeDebts} divider />
+        <ExtraToggle label="تكلفة السيارة لكل كيلومتر" checked={includeVehicle} onChange={setIncludeVehicle} divider />
+      </ListGroup>
 
       {errorMsg && (
-        <div className="mb-4 rounded-2xl border px-4 py-3 text-[12px] font-semibold" style={{ borderColor: 'rgba(255,92,92,0.3)', background: 'rgba(255,92,92,0.08)', color: 'var(--color-expense)' }}>
+        <div className="mb-4 rounded-[20px] px-4 py-3 text-[12.5px] font-semibold" style={{ background: 'rgba(255,95,109,0.1)', color: 'var(--color-expense)' }}>
           {errorMsg}
         </div>
       )}
 
-      <button
-        onClick={handleExportPdf}
-        disabled={busy !== null}
-        className="qb-press mb-3 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right disabled:opacity-60"
-        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'var(--color-surface)' }}
-      >
-        <div className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]" style={{ width: 42, height: 42, background: 'rgba(255,92,92,0.14)', color: 'var(--color-expense)' }}>
-          <PdfIcon />
-        </div>
-        <div className="flex-1">
-          <div className="text-[13.5px] font-bold">{busy === 'pdf' ? 'جارٍ إنشاء PDF...' : 'تنزيل PDF (A4)'}</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">جاهز للطباعة مباشرة على ورق A4</div>
-        </div>
-      </button>
-
-      <button
-        onClick={handleExportExcel}
-        disabled={busy !== null}
-        className="qb-press mb-5 flex w-full items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-right disabled:opacity-60"
-        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'var(--color-surface)' }}
-      >
-        <div className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]" style={{ width: 42, height: 42, background: 'rgba(34,197,94,0.14)', color: 'var(--color-income)' }}>
-          <ExcelIcon />
-        </div>
-        <div className="flex-1">
-          <div className="text-[13.5px] font-bold">{busy === 'excel' ? 'جارٍ إنشاء Excel...' : 'تنزيل Excel'}</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">ملف منسّق بورقتين: ملخص وكل الحركات</div>
-        </div>
-      </button>
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <ExportTile
+          onClick={handleExportPdf}
+          disabled={busy !== null}
+          busy={busy === 'pdf'}
+          color="var(--color-expense)"
+          icon={<PdfIcon />}
+          title="PDF"
+          sub="A4 جاهز للطباعة"
+        />
+        <ExportTile
+          onClick={handleExportExcel}
+          disabled={busy !== null}
+          busy={busy === 'excel'}
+          color="var(--color-income)"
+          icon={<ExcelIcon />}
+          title="Excel"
+          sub="ملخص + كل الحركات"
+        />
+      </div>
     </ScreenScroll>
   )
 }
 
-function ExtraToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function ExportTile({ onClick, disabled, busy, color, icon, title, sub }: { onClick: () => void; disabled: boolean; busy: boolean; color: string; icon: ReactNode; title: string; sub: string }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3">
-      <span className="text-[13px] font-semibold">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-5 flex-shrink-0 accent-[var(--color-income)]"
-      />
-    </label>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="qb-press flex aspect-square flex-col justify-between rounded-[28px] border p-4 text-right disabled:opacity-60"
+      style={{ borderColor: `color-mix(in srgb, ${color} 28%, transparent)`, background: `radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, ${color} 22%, transparent), transparent 60%), var(--color-surface)` }}
+    >
+      <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: color, color: '#0a0a0c' }}>
+        {busy ? <span className="h-5 w-5 rounded-full border-2 border-black/30 border-t-black" style={{ animation: 'spin 700ms linear infinite' }} /> : icon}
+      </span>
+      <span>
+        <span className="block text-[18px] font-semibold">{busy ? 'جارٍ الإنشاء...' : `تنزيل ${title}`}</span>
+        <span className="block text-[11.5px] text-[var(--color-text-3)]">{sub}</span>
+      </span>
+    </button>
+  )
+}
+
+function ExtraToggle({ label, checked, onChange, divider = false }: { label: string; checked: boolean; onChange: (v: boolean) => void; divider?: boolean }) {
+  return (
+    <button type="button" onClick={() => onChange(!checked)} className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-right ${divider ? 'border-t qb-divider' : ''}`} role="switch" aria-checked={checked}>
+      <span className="text-[14px] font-medium">{label}</span>
+      <span
+        className="flex h-[30px] w-[52px] flex-shrink-0 items-center rounded-full p-[3px] transition-colors duration-300"
+        style={{ background: checked ? 'var(--color-accent)' : 'rgba(255,255,255,0.14)' }}
+      >
+        <span
+          className="h-6 w-6 rounded-full shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-transform duration-300"
+          style={{ background: checked ? '#0a0a0c' : '#fff', transform: checked ? 'translateX(-22px)' : 'translateX(0)' }}
+        />
+      </span>
+    </button>
   )
 }

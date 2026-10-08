@@ -10,21 +10,36 @@ function ArrowGlyphPaths() {
   )
 }
 
-/** شعار التطبيق (الأيقونة فقط، بدون الاسم) — مصدر واحد يُعاد استخدامه بأي حجم بأي مكان يحتاج علامة QB-Nomia. */
-export function AppLogoMark({ size = 34 }: { size?: number }) {
+/**
+ * شعار التطبيق (الأيقونة فقط) — مربع أبيض لؤلؤي بزوايا ناعمة (أو دائرة بـ round) وسهم
+ * صاعد أسود، مع نقطة رمادية صغيرة كتوقيع للهوية.
+ */
+export function AppLogoMark({ size = 34, round = false }: { size?: number; round?: boolean }) {
   return (
     <div
-      className="flex flex-shrink-0 items-center justify-center shadow-[0_6px_16px_-4px_rgba(255,255,255,0.55)]"
+      className="relative flex flex-shrink-0 items-center justify-center"
       style={{
-        background: 'linear-gradient(150deg, var(--color-accent), var(--color-accent-b))',
+        background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent) 55%, var(--color-accent-b))',
         width: size,
         height: size,
-        borderRadius: size * 0.29,
+        borderRadius: round ? size : size * 0.32,
+        boxShadow: `0 ${size * 0.18}px ${size * 0.5}px -${size * 0.2}px rgba(255,255,255,0.28), inset 0 1px 0 rgba(255,255,255,0.55)`,
       }}
     >
-      <svg viewBox="0 0 24 24" width={size * 0.53} height={size * 0.53} fill="none" stroke="#0A0A0C" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" width={size * 0.56} height={size * 0.56} fill="none" stroke="var(--color-on-accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
         <ArrowGlyphPaths />
       </svg>
+      <span
+        className="absolute rounded-full"
+        style={{
+          width: size * 0.2,
+          height: size * 0.2,
+          bottom: size * 0.12,
+          left: size * 0.12,
+          background: '#6b6b75',
+          boxShadow: '0 0 0 1.5px #ffffff',
+        }}
+      />
     </div>
   )
 }
@@ -48,14 +63,16 @@ export function AppLogoWatermark({ size = 148, style }: { size?: number; style?:
   )
 }
 
-export function AppLogo({ tagline = 'محفظتك المالية الشخصية' }: { tagline?: string }) {
+export function AppLogo({ tagline = 'محفظتك المالية الشخصية', size = 44 }: { tagline?: string; size?: number }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="mb-1.5 flex items-center gap-2.5">
-        <AppLogoMark />
-        <div className="num text-[19px] font-bold tracking-tight">QB-Nomia</div>
+      <AppLogoMark size={size} />
+      <div className="mt-3.5 text-[22px] font-semibold tracking-tight">
+        <span className="num">QB</span>
+        <span className="text-[var(--color-accent)]">·</span>
+        <span className="num">Nomia</span>
       </div>
-      {tagline && <div className="text-[13px] text-[var(--color-text-2)]">{tagline}</div>}
+      {tagline && <div className="mt-1 text-[13px] text-[var(--color-text-2)]">{tagline}</div>}
     </div>
   )
 }

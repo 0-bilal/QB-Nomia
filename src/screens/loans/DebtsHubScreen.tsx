@@ -6,6 +6,9 @@ import { PeoplePanel } from './PeoplePanel'
 import { SalaryAdvancePanel } from './SalaryAdvancePanel'
 import { SalaryViolationsPanel } from './SalaryViolationsPanel'
 import { StoreDebtsPanel } from './StoreDebtsPanel'
+import { TabHeader, HeaderIconButton, PlusGlyph } from '../../components/TabHeader'
+import { BigAmount } from '../../components/BigAmount'
+import { haptic } from '../../lib/haptics'
 
 type TabKey = 'overview' | 'people' | 'advance' | 'violations' | 'stores'
 
@@ -47,24 +50,45 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: TabKey) => void }) {
     { label: 'ديون المتاجر (متبقي)', value: outstandingStoreDebt, tab: 'stores' },
   ]
 
+  const net = totalOwedToMe - totalIOweAll
+  const totalBoth = totalOwedToMe + totalIOweAll
+
   return (
     <>
-      <div className="mb-4 grid grid-cols-2 gap-2.5">
-        <div className="qb-card-elevated p-4">
-          <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">إجمالي عليك</div>
-          <div className="num text-[19px] font-bold" style={{ color: 'var(--color-expense)' }}>
-            {formatMoney(totalIOweAll)}
+      <div className="qb-card-elevated qb-rise mb-5 p-5">
+        <div className="relative">
+          <div className="mb-2 text-[12.5px] font-medium text-[var(--color-text-2)]">صافي موقفك</div>
+          <BigAmount value={net} size={34} color={net >= 0 ? 'var(--color-income)' : 'var(--color-expense)'} />
+          <div className="mb-4 mt-1 text-[11.5px] text-[var(--color-text-3)]">{net >= 0 ? 'لك أكثر مما عليك' : 'عليك أكثر مما لك'}</div>
+
+          <div className="mb-3 flex h-2 gap-1 overflow-hidden rounded-full bg-white/[0.05]">
+            {totalBoth > 0 && (
+              <>
+                <div className="h-full rounded-full bg-[var(--color-income)]" style={{ width: `${(totalOwedToMe / totalBoth) * 100}%` }} />
+                <div className="h-full rounded-full bg-[var(--color-expense)]" style={{ width: `${(totalIOweAll / totalBoth) * 100}%` }} />
+              </>
+            )}
           </div>
-        </div>
-        <div className="qb-card-elevated p-4">
-          <div className="mb-1.5 text-[11.5px] text-[var(--color-text-2)]">مستحق لك (من أشخاص)</div>
-          <div className="num text-[19px] font-bold" style={{ color: 'var(--color-income)' }}>
-            {formatMoney(totalOwedToMe)}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-income)]" />
+                مستحق لك
+              </div>
+              <div className="num text-[16px] font-bold">{formatMoney(totalOwedToMe)}</div>
+            </div>
+            <div>
+              <div className="mb-0.5 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-expense)]" />
+                إجمالي عليك
+              </div>
+              <div className="num text-[16px] font-bold">{formatMoney(totalIOweAll)}</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="qb-section-label mb-2 px-1">تفصيل ما عليك</div>
+      <div className="qb-section-title mb-3 px-1">تفصيل ما عليك</div>
       <div className="qb-card mb-4 overflow-hidden">
         {rows.map((r, i) => (
           <button
@@ -86,7 +110,7 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: TabKey) => void }) {
       </div>
 
       {totalViolations > 0 && (
-        <button onClick={() => onOpenTab('violations')} className="qb-press flex w-full items-center justify-between rounded-2xl border border-[var(--color-border)] px-4 py-3.5 text-right">
+        <button onClick={() => onOpenTab('violations')} className="qb-card qb-press flex w-full items-center justify-between px-4 py-3.5 text-right">
           <span className="text-[12px] text-[var(--color-text-3)]">إجمالي خصومات المخالفات المسجَّلة</span>
           <span className="num text-[13px] font-bold" style={{ color: 'var(--color-expense)' }}>
             {formatMoney(totalViolations)}
@@ -115,47 +139,44 @@ export function DebtsHubScreen() {
 
   return (
     <div dir="rtl" className="px-5 pb-4">
-      <div className="safe-top qb-sticky-header-row mb-4 flex items-center justify-between pt-14">
-        <div className="qb-glass-circle flex h-9.5 items-center rounded-full border px-4 text-[15px] font-bold">السلف</div>
-        {tab === 'people' ? (
-          <button
-            onClick={() => navigate('/loans/new')}
-            className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-            style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-            aria-label="إضافة شخص"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        ) : (
-          <div style={{ width: 38, height: 38 }} />
-        )}
-      </div>
+      <TabHeader
+        title="السلف والديون"
+        subtitle="أشخاص، سلفة راتب، مخالفات، وديون متاجر"
+        actions={
+          tab === 'people' ? (
+            <HeaderIconButton accent label="إضافة شخص" onClick={() => navigate('/loans/new')}>
+              <PlusGlyph />
+            </HeaderIconButton>
+          ) : undefined
+        }
+      />
 
-      <div className="mb-5 flex gap-2 overflow-x-auto">
+      <div className="-mx-5 mb-5 flex gap-2 overflow-x-auto px-5">
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => selectTab(t.key)}
-            className="qb-press flex-shrink-0 whitespace-nowrap rounded-full px-4 py-1.75 text-[12.5px] font-semibold"
-            style={
-              tab === t.key
-                ? { background: 'rgba(255,255,255,0.15)', color: 'var(--color-accent)' }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
+            onClick={() => {
+              haptic('tick')
+              selectTab(t.key)
+            }}
+            data-active={tab === t.key}
+            ref={(el) => {
+              if (el && tab === t.key) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
+            }}
+            className="qb-chip qb-press flex-shrink-0 whitespace-nowrap px-4 py-2 text-[13px] font-medium"
           >
             {t.label}
           </button>
         ))}
       </div>
 
+      <div key={tab} className="qb-rise">
       {tab === 'overview' && <OverviewPanel onOpenTab={selectTab} />}
       {tab === 'people' && <PeoplePanel />}
       {tab === 'advance' && <SalaryAdvancePanel />}
       {tab === 'violations' && <SalaryViolationsPanel />}
       {tab === 'stores' && <StoreDebtsPanel />}
+      </div>
     </div>
   )
 }

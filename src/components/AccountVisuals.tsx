@@ -15,7 +15,7 @@ export const ACCOUNT_ICON_BG: Record<Account['type'], string> = {
   cash: 'rgba(34,197,94,0.14)',
   bank: 'rgba(124,108,255,0.14)',
   savings: 'rgba(245,185,66,0.14)',
-  wallet: 'rgba(255,255,255,0.12)',
+  wallet: 'rgba(255,255,255,0.1)',
   emergency: 'rgba(225,29,72,0.14)',
   coins: 'rgba(18,182,103,0.14)',
   fuel: 'rgba(255,138,26,0.14)',
@@ -33,75 +33,79 @@ export const ACCOUNT_TYPE_LABELS: Record<Account['type'], string> = {
 }
 
 /**
- * خلفية كل بطاقة حساب — سطح "معدن ثمين" ملوّن فعليًا بلون كل نوع حساب (مو رمادي بلمسة
- * لون خفيفة)، بدل التدرّج الأسود المسطح القديم: أسود لامع فاخر للكاش، ذهبي كلاسيكي
- * للبنكي، روز-غولد/شامبين للادخار، وغنميتال غامق للمحفظة — أربع معادن متمايزة عن بعض.
+ * خلفية كل بطاقة حساب بهوية "Nomia Mono" 2026: سطح غير لامع (matte) بتدرّج عميق
+ * وهالة ضوء بالزاوية، لكل نوع حساب شخصية مستقلة — Obsidian أسود للكاش، تيتانيوم رمادي
+ * للبنكي، لؤلؤي أبيض (بطاقة فاتحة بنص داكن) للادخار، وغرافيت للمحفظة — هوية أحادية اللون.
  */
 export const ACCOUNT_CARD_BG: Record<Account['type'], string> = {
-  cash: 'radial-gradient(120% 90% at 8% 0%, rgba(255,255,255,0.16) 0%, transparent 58%), linear-gradient(155deg, #030303 0%, #131315 42%, #232327 68%, #030303 100%)',
-  bank: 'radial-gradient(120% 90% at 8% 0%, rgba(212,161,58,0.4) 0%, transparent 58%), linear-gradient(155deg, #221a09 0%, #7a5a1c 42%, #d7a83e 68%, #221a09 100%)',
-  savings: 'radial-gradient(120% 90% at 8% 0%, rgba(192,142,119,0.38) 0%, transparent 58%), linear-gradient(155deg, #221714 0%, #6e4a3f 42%, #c08e77 68%, #221714 100%)',
-  wallet: 'radial-gradient(120% 90% at 8% 0%, rgba(140,140,152,0.3) 0%, transparent 58%), linear-gradient(155deg, #131316 0%, #313138 42%, #62626c 68%, #131316 100%)',
-  emergency: 'radial-gradient(120% 90% at 8% 0%, rgba(216,27,74,0.4) 0%, transparent 58%), linear-gradient(155deg, #1f0508 0%, #6b0f22 42%, #d81b4a 68%, #1f0508 100%)',
-  /** أخضر السعودية كامل الخلفية مع لمسة ذهبية أعلى يسار البطاقة — هوية وطنية واضحة لحساب تجميع الريال المعدني، متمايزة تمامًا عن باقي المعادن. */
-  coins: 'radial-gradient(120% 90% at 8% 0%, rgba(230,190,90,0.22) 0%, transparent 58%), linear-gradient(155deg, #01150b 0%, #0b4a2b 42%, #159e5c 68%, #01150b 100%)',
-  /** برتقالي نحاسي بلون اللهب — بطاقة وقود مسبقة الدفع، متمايزة عن كل المعادن الأخرى. */
-  fuel: 'radial-gradient(120% 90% at 8% 0%, rgba(255,138,40,0.34) 0%, transparent 58%), linear-gradient(155deg, #140903 0%, #4a1d06 42%, #e0661a 70%, #140903 100%)',
-  /** كحلي Steam الغامق يتدرّج للأزرق — ألوان مستوحاة من المنصّة (بدون شعارها الرسمي). */
-  steam: 'radial-gradient(120% 90% at 8% 0%, rgba(102,192,244,0.30) 0%, transparent 58%), linear-gradient(155deg, #0b0e14 0%, #171a21 30%, #1b2838 55%, #2a475e 78%, #0b0e14 100%)',
+  cash: 'radial-gradient(90% 120% at 100% 0%, rgba(255,255,255,0.16) 0%, transparent 50%), radial-gradient(80% 100% at 0% 100%, rgba(255,255,255,0.05) 0%, transparent 55%), linear-gradient(160deg, #1c1c21 0%, #0b0b0d 60%, #030304 100%)',
+  bank: 'radial-gradient(100% 120% at 100% 0%, rgba(255,255,255,0.34) 0%, transparent 45%), linear-gradient(150deg, #8d8d97 0%, #5a5a63 40%, #33333a 75%, #1c1c21 100%)',
+  savings: 'radial-gradient(100% 120% at 100% 0%, rgba(255,255,255,0.9) 0%, transparent 45%), linear-gradient(150deg, #ffffff 0%, #e6e6eb 45%, #b7b7c0 100%)',
+  wallet: 'radial-gradient(100% 120% at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 45%), linear-gradient(150deg, #44444c 0%, #2a2a30 45%, #141417 100%)',
+  emergency: 'radial-gradient(100% 120% at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 45%), linear-gradient(150deg, #ff6b8e 0%, #e0174d 45%, #6b0820 100%)',
+  /** أخضر السعودية كامل الخلفية مع لمسة ذهبية — هوية وطنية واضحة لحساب تجميع الريال المعدني. */
+  coins: 'radial-gradient(100% 120% at 100% 0%, rgba(240,214,143,0.3) 0%, transparent 45%), linear-gradient(150deg, #1fc77f 0%, #0d7a47 45%, #03301b 100%)',
+  /** برتقالي اللهب — بطاقة وقود مسبقة الدفع. */
+  fuel: 'radial-gradient(100% 120% at 100% 0%, rgba(255,230,180,0.32) 0%, transparent 45%), linear-gradient(150deg, #ffad4d 0%, #ff7a1a 40%, #8a3306 100%)',
+  /** كحلي Steam يتدرّج للأزرق — ألوان مستوحاة من المنصّة (بدون شعارها الرسمي). */
+  steam: 'radial-gradient(100% 120% at 100% 0%, rgba(102,192,244,0.35) 0%, transparent 50%), linear-gradient(150deg, #2a475e 0%, #1b2838 45%, #0b0e14 100%)',
 }
 
-/** لون التمييز (Accent) الخاص بسطح كل بطاقة — يُستخدم لأيقونة نوع الحساب وشارة الدفع اللاتلامسي فوق سطح البطاقة نفسه. منفصل عن ACCOUNT_ICON_COLOR المستخدم بباقي شاشات التطبيق (منتقيات الحساب، النماذج...) عشان ما يتأثر أي مكان ثاني بهذا التغيير. */
+/** لون النص الأساسي فوق سطح البطاقة — أبيض لكل البطاقات الداكنة، وداكن للبطاقة الفاتحة (الادخار). */
+export const ACCOUNT_CARD_TEXT: Record<Account['type'], string> = {
+  cash: '#f4f4f6',
+  bank: '#ffffff',
+  savings: '#0a0a0c',
+  wallet: '#ffffff',
+  emergency: '#ffffff',
+  coins: '#ffffff',
+  fuel: '#ffffff',
+  steam: '#ffffff',
+}
+
+/** لون التمييز (Accent) الخاص بسطح كل بطاقة — لأيقونة نوع الحساب وشارة الدفع اللاتلامسي فوق البطاقة نفسها. */
 export const ACCOUNT_CARD_ACCENT: Record<Account['type'], string> = {
-  cash: '#f2f2f5',
-  bank: '#ffce6e',
-  savings: '#e8b7a0',
-  wallet: '#b6b6c0',
-  emergency: '#ff96ae',
+  cash: '#ffffff',
+  bank: '#ffffff',
+  savings: '#0a0a0c',
+  wallet: '#ffffff',
+  emergency: '#ffd1dc',
   coins: '#f0d68f',
-  fuel: '#ffc27a',
+  fuel: '#ffffff',
   steam: '#66c0f4',
 }
 
-/** خلفية شارة أيقونة الدفع اللاتلامسي فوق البطاقة — نسخة شفافة من ACCOUNT_CARD_ACCENT. */
+/** خلفية شارة أيقونة الدفع اللاتلامسي فوق البطاقة. */
 export const ACCOUNT_CARD_ACCENT_BG: Record<Account['type'], string> = {
   cash: 'rgba(255,255,255,0.1)',
-  bank: 'rgba(212,161,58,0.18)',
-  savings: 'rgba(192,142,119,0.16)',
-  wallet: 'rgba(140,140,152,0.14)',
-  emergency: 'rgba(216,27,74,0.2)',
-  coins: 'rgba(230,190,90,0.2)',
-  fuel: 'rgba(255,160,60,0.2)',
+  bank: 'rgba(255,255,255,0.18)',
+  savings: 'rgba(10,10,12,0.08)',
+  wallet: 'rgba(255,255,255,0.16)',
+  emergency: 'rgba(255,255,255,0.18)',
+  coins: 'rgba(240,214,143,0.2)',
+  fuel: 'rgba(255,255,255,0.2)',
   steam: 'rgba(102,192,244,0.18)',
 }
 
-/**
- * ألوان النصوص الثانوية فوق سطح البطاقة (تسمية "الرصيد"، نوع الحساب/الهدف، تاريخ
- * الحركات، الرقم المموّه...) — الرمادي الموحّد بالتطبيق (var(--color-text-2/3))
- * مصمّم لخلفية سوداء تامة (الكاش فقط)، فيختفي فوق أي بطاقة أفتح منه:
- * الذهبي والروز-غولد فاتحين فعليًا فلهم لون غامق من أغمق درجة بمعدن كل بطاقة هي
- * نفسها، والغنميتال (المحفظة) رمادي متوسط — أفتح بكثير من الأسود التام رغم إنه
- * يبين غامق بالعين — فرمادي التطبيق الغامق (خصوصًا text-3) يختفي فوقه هو الثاني؛
- * لذا له درجة فضية فاتحة من نفس عائلة لونه بدل رمادي التطبيق العام.
- */
+/** ألوان النصوص الثانوية فوق سطح البطاقة — مشتقة من لون نص كل بطاقة حتى تبقى مقروءة فوق أي سطح. */
 export const ACCOUNT_CARD_TEXT_MUTED: Record<Account['type'], string> = {
   cash: 'var(--color-text-2)',
-  bank: '#3d2a10',
-  savings: '#3a2118',
-  wallet: '#e4e4ea',
-  emergency: '#3d0a17',
-  coins: '#bfe6cf',
-  fuel: '#ffd6b0',
+  bank: 'rgba(255,255,255,0.75)',
+  savings: 'rgba(10,10,12,0.6)',
+  wallet: 'rgba(255,255,255,0.75)',
+  emergency: 'rgba(255,255,255,0.75)',
+  coins: 'rgba(255,255,255,0.75)',
+  fuel: 'rgba(255,255,255,0.8)',
   steam: '#a9cbe0',
 }
 export const ACCOUNT_CARD_TEXT_FAINT: Record<Account['type'], string> = {
   cash: 'var(--color-text-3)',
-  bank: '#4d3714',
-  savings: '#4d2e22',
-  wallet: '#c4c4cd',
-  emergency: '#520f20',
-  coins: '#9fd6b7',
-  fuel: '#f5c49a',
+  bank: 'rgba(255,255,255,0.55)',
+  savings: 'rgba(10,10,12,0.45)',
+  wallet: 'rgba(255,255,255,0.55)',
+  emergency: 'rgba(255,255,255,0.55)',
+  coins: 'rgba(255,255,255,0.55)',
+  fuel: 'rgba(255,255,255,0.6)',
   steam: '#8fb4cc',
 }
 

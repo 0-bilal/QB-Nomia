@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { Avatar } from '../../components/Avatar'
 import { formatMoney } from '../../lib/format'
+import { ChipRow, EmptyState, ListGroup, ListItem, SearchField, StatTile } from '../../components/ui'
 
 type Filter = 'all' | 'owedToMe' | 'iOwe'
 
@@ -26,76 +27,86 @@ export function PeoplePanel() {
 
   return (
     <>
-      <div className="mb-4 flex gap-2.5">
-        <div className="qb-card flex-1 p-3.5">
-          <div className="mb-1 text-[11px] text-[var(--color-text-2)]">إجمالي مستحق لك</div>
-          <div className="num text-base font-bold" style={{ color: 'var(--color-owed-to)' }}>
-            {formatMoney(totalOwedToMe)}
-          </div>
-        </div>
-        <div className="qb-card flex-1 p-3.5">
-          <div className="mb-1 text-[11px] text-[var(--color-text-2)]">إجمالي عليك للغير</div>
-          <div className="num text-base font-bold" style={{ color: 'var(--color-owed-by)' }}>
-            {formatMoney(totalIOwe)}
-          </div>
-        </div>
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <StatTile label="مستحق لك" value={formatMoney(totalOwedToMe)} color="var(--color-owed-to)" icon={<ArrowIn />} />
+        <StatTile label="عليك للغير" value={formatMoney(totalIOwe)} color="var(--color-owed-by)" icon={<ArrowOut />} />
       </div>
 
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="ابحث بالاسم..."
-        className="mb-3.5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[13.5px] outline-none placeholder:text-[var(--color-text-3)]"
+      <SearchField value={query} onChange={setQuery} placeholder="ابحث بالاسم..." className="mb-3" />
+
+      <ChipRow
+        options={[
+          ['all', 'الكل'],
+          ['owedToMe', 'مدينون لي'],
+          ['iOwe', 'أنا مدين لهم'],
+        ]}
+        value={filter}
+        onChange={setFilter}
       />
 
-      <div className="mb-4 flex gap-2">
-        {(
-          [
-            ['all', 'الكل'],
-            ['owedToMe', 'مدينون لي'],
-            ['iOwe', 'أنا مدين لهم'],
-          ] as [Filter, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className="rounded-full px-4 py-1.75 text-[12.5px] font-semibold"
-            style={
-              filter === key
-                ? { background: 'rgba(255,255,255,0.15)', color: 'var(--color-accent)' }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {rows.length === 0 ? (
+      {people.length === 0 ? (
+        <EmptyState
+          icon={<PeopleGlyph />}
+          title="ما أضفت أي شخص بعد"
+          desc="أضف الأشخاص اللي تتبادل معهم سلفًا، وكل شخص يصير له دفتر حساب جارٍ مستقل."
+          actionLabel="إضافة شخص"
+          onAction={() => navigate('/loans/new')}
+        />
+      ) : rows.length === 0 ? (
         <div className="py-10 text-center text-[13px] text-[var(--color-text-3)]">لا يوجد أشخاص مطابقون</div>
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {rows.map(({ person, balance }) => (
-            <button
-              key={person.id}
-              onClick={() => navigate(`/loans/${person.id}`)}
-              className="qb-card qb-press flex items-center gap-3 p-3.5 text-right"
-            >
-              <Avatar name={person.name} />
-              <div className="flex-1">
-                <div className="text-[14px] font-bold">{person.name}</div>
-                <div className="text-[11.5px] text-[var(--color-text-3)]">{person.phone || 'بدون رقم جوال'}</div>
-              </div>
-              <div
-                className="num text-[13.5px] font-bold"
-                style={{ color: balance === 0 ? 'var(--color-text-3)' : balance > 0 ? 'var(--color-owed-to)' : 'var(--color-owed-by)' }}
-              >
-                {balance === 0 ? 'متعادل' : formatMoney(Math.abs(balance))}
-              </div>
-            </button>
-          ))}
-        </div>
+        <ListGroup>
+          {rows.map(({ person, balance }, i) => {
+            const color = balance === 0 ? 'var(--color-text-3)' : balance > 0 ? 'var(--color-owed-to)' : 'var(--color-owed-by)'
+            return (
+              <ListItem
+                key={person.id}
+                divider={i > 0}
+                onClick={() => navigate(`/loans/${person.id}`)}
+                leading={<Avatar name={person.name} size={44} />}
+                title={person.name}
+                subtitle={person.phone || 'بدون رقم جوال'}
+                chevron
+                trailing={
+                  <div className="flex flex-col items-end">
+                    <span className="num text-[14px] font-bold" style={{ color }}>
+                      {balance === 0 ? '—' : formatMoney(Math.abs(balance))}
+                    </span>
+                    <span className="text-[10.5px] font-medium" style={{ color }}>
+                      {balance === 0 ? 'متعادل' : balance > 0 ? 'لك عنده' : 'عليك له'}
+                    </span>
+                  </div>
+                }
+              />
+            )
+          })}
+        </ListGroup>
       )}
     </>
+  )
+}
+
+function ArrowIn() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 7 7 17M15 17H7V9" />
+    </svg>
+  )
+}
+function ArrowOut() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 17 17 7M9 7h8v8" />
+    </svg>
+  )
+}
+function PeopleGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5" />
+      <circle cx="17" cy="9" r="2.3" />
+      <path d="M15.3 14.2c2.5.4 4.2 1.9 4.2 4.8" />
+    </svg>
   )
 }

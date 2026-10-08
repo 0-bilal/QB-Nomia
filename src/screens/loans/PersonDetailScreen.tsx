@@ -2,15 +2,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { Avatar } from '../../components/Avatar'
 import { ScreenScroll } from '../../components/ScreenScroll'
-import { formatDate, formatMoney, formatSigned } from '../../lib/format'
-
-function ChevronBackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15,5 8,12 15,19" />
-    </svg>
-  )
-}
+import { formatDate, formatSigned } from '../../lib/format'
+import { ScreenHeader } from '../../components/ScreenHeader'
+import { BigAmount } from '../../components/BigAmount'
+import { Badge, EmptyState, HeroCard, IconBubble, ListGroup, ListItem, SectionTitle, TintButton } from '../../components/ui'
+import { rise } from '../../lib/motion'
 
 export function PersonDetailScreen() {
   const { personId } = useParams<{ personId: string }>()
@@ -36,105 +32,102 @@ export function PersonDetailScreen() {
 
   return (
     <ScreenScroll
-      contentClassName="px-5 pb-4"
       header={
-        <div className="safe-top px-5 pt-8">
-          <button
-            onClick={() => navigate(-1)}
-            aria-label="رجوع"
-            className="qb-glass-circle qb-press mb-5 flex h-9.5 w-9.5 items-center justify-center rounded-full border text-[var(--color-text)]"
-            style={{ width: 38, height: 38 }}
-          >
-            <ChevronBackIcon />
-          </button>
-
-          <div className="mb-6 flex flex-col items-center">
-            <Avatar name={person.name} size={64} />
-            <div className="mt-3 flex items-center gap-2">
-              <div className="text-lg font-bold">{person.name}</div>
-              <button
-                onClick={() => navigate(`/loans/${person.id}/edit`)}
-                aria-label="تعديل الشخص"
-                className="flex h-6 w-6 items-center justify-center rounded-full"
-                style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }}
-              >
-                <svg viewBox="0 0 24 24" width="12.5" height="12.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-              </button>
-            </div>
-            {person.phone && <div dir="ltr" className="mt-0.5 text-[12.5px] text-[var(--color-text-3)]">{person.phone}</div>}
-            <div className="num mt-4 text-[32px] font-bold" style={{ color }}>
-              {formatMoney(Math.abs(balance))}
-            </div>
-            <div className="text-[12.5px] font-semibold" style={{ color }}>
-              {label}
-            </div>
-          </div>
-
-          <div className="mb-4 flex gap-3">
+        <ScreenHeader
+          title="دفتر الحساب"
+          onBack={() => navigate(-1)}
+          right={
             <button
-              onClick={() => navigate(`/loans/${person.id}/add?direction=given`)}
-              className="qb-press flex-1 rounded-2xl py-3 text-[13.5px] font-bold"
-              style={{ background: 'rgba(251,146,60,0.14)', color: 'var(--color-owed-by)', border: '1px solid rgba(251,146,60,0.3)' }}
+              onClick={() => navigate(`/loans/${person.id}/edit`)}
+              aria-label="تعديل الشخص"
+              className="qb-glass-circle qb-press flex items-center justify-center rounded-full border text-[var(--color-text)]"
+              style={{ width: 40, height: 40 }}
             >
-              أعطه مبلغ
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 20h4L19 9l-4-4L4 16v4Z" />
+                <path d="M13.5 6.5l4 4" />
+              </svg>
             </button>
-            <button
-              onClick={() => navigate(`/loans/${person.id}/add?direction=received`)}
-              className="qb-press flex-1 rounded-2xl py-3 text-[13.5px] font-bold"
-              style={{ background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)', border: '1px solid rgba(45,212,191,0.3)' }}
-            >
-              استلم منه مبلغ
-            </button>
-          </div>
-
-          <div className="mb-2 text-[14.5px] font-bold">سجل الحركات</div>
-        </div>
+          }
+        />
       }
     >
+      <HeroCard className="mb-4">
+        <div className="flex items-center gap-3.5">
+          <Avatar name={person.name} size={56} />
+          <div className="min-w-0">
+            <div className="truncate text-[19px] font-semibold">{person.name}</div>
+            {person.phone ? (
+              <div dir="ltr" className="num text-right text-[12.5px] text-[var(--color-text-3)]">
+                {person.phone}
+              </div>
+            ) : (
+              <div className="text-[12px] text-[var(--color-text-3)]">بدون رقم جوال</div>
+            )}
+          </div>
+        </div>
+        <div className="mt-6 flex items-end justify-between gap-3">
+          <div>
+            <div className="mb-1.5 text-[12.5px] font-medium" style={{ color }}>
+              {label}
+            </div>
+            <BigAmount value={Math.abs(balance)} size={36} color={balance === 0 ? undefined : color} />
+          </div>
+          <Badge color={color}>{txns.length} حركة</Badge>
+        </div>
+      </HeroCard>
+
+      <div className="qb-rise mb-6 grid grid-cols-2 gap-3" style={rise(1)}>
+        <TintButton color="var(--color-owed-by)" onClick={() => navigate(`/loans/${person.id}/add?direction=given`)}>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17 17 7M9 7h8v8" />
+          </svg>
+          أعطه مبلغ
+        </TintButton>
+        <TintButton color="var(--color-owed-to)" onClick={() => navigate(`/loans/${person.id}/add?direction=received`)}>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 7 7 17M15 17H7V9" />
+          </svg>
+          استلم منه
+        </TintButton>
+      </div>
+
+      <SectionTitle title="سجل الحركات" />
       {txns.length === 0 ? (
-        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد مع {person.name}</div>
+        <EmptyState title={`لا توجد حركات مع ${person.name} بعد`} desc="سجّل أول مبلغ أعطيته أو استلمته من الأزرار بالأعلى." />
       ) : (
-        <div className="qb-card overflow-hidden">
+        <ListGroup className="qb-rise">
           {txns.map((t, i) => {
             const overdue = t.dueDate && t.dueDate < today
             const c = t.direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)'
             return (
-              <button
+              <ListItem
                 key={t.id}
+                divider={i > 0}
                 onClick={() => navigate(`/loans/${person.id}/edit/${t.id}`)}
-                className={`qb-press block w-full px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-[13.5px] font-semibold">{t.direction === 'given' ? 'أعطيته' : 'استلمت منه'}</div>
-                    <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">
-                      {formatDate(t.date)} · {accountName(t.accountId)}
-                      {t.note ? ` · ${t.note}` : ''}
-                    </div>
-                  </div>
-                  <div className="num text-[13.5px] font-bold" style={{ color: c }}>
+                leading={
+                  <IconBubble color={c}>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {t.direction === 'given' ? <path d="M7 17 17 7M9 7h8v8" /> : <path d="M17 7 7 17M15 17H7V9" />}
+                    </svg>
+                  </IconBubble>
+                }
+                title={t.direction === 'given' ? 'أعطيته' : 'استلمت منه'}
+                subtitle={`${formatDate(t.date)} · ${accountName(t.accountId)}${t.note ? ` · ${t.note}` : ''}`}
+                trailing={
+                  <span className="num text-[14px] font-bold" style={{ color: c }}>
                     {formatSigned(t.direction === 'given' ? t.amount : -t.amount)}
-                  </div>
-                </div>
-                {t.dueDate && (
-                  <div
-                    className="mt-2 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                    style={
-                      overdue
-                        ? { background: 'rgba(255,92,92,0.14)', color: 'var(--color-expense)' }
-                        : { background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }
-                    }
-                  >
-                    {overdue ? 'متأخر السداد' : `الاستحقاق: ${formatDate(t.dueDate)}`}
-                  </div>
-                )}
-              </button>
+                  </span>
+                }
+                footer={
+                  t.dueDate ? (
+                    <Badge color={overdue ? 'var(--color-expense)' : 'var(--color-text-2)'}>{overdue ? 'متأخر السداد' : `الاستحقاق: ${formatDate(t.dueDate)}`}</Badge>
+                  ) : undefined
+                }
+              />
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </ScreenScroll>
   )

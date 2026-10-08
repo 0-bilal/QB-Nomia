@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData, SALARY_INCOME_SOURCE_ID } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -13,6 +13,7 @@ import { colorFor } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcons'
 import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
+import { haptic } from '../lib/haptics'
 import type { TransactionType } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -129,6 +130,30 @@ export function AddTransactionScreen() {
   const isSalaryIncome = type === 'income' && incomeSourceId === SALARY_INCOME_SOURCE_ID
   const showViolationToggle = isSalaryIncome && !isEditing
 
+  const typeIndex = TYPE_OPTIONS.findIndex(([t]) => t === type)
+
+  function changeType(next: TransactionType) {
+    if (next === type) return
+    haptic('select')
+    setType(next)
+  }
+
+  // إيماءة سحب أفقية على المبلغ لتبديل نوع الحركة بسرعة (RTL: يسار = النوع التالي).
+  const amountSwipe = useRef({ x: 0, y: 0, active: false })
+  function onAmountPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    amountSwipe.current = { x: e.clientX, y: e.clientY, active: true }
+  }
+  function onAmountPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    const g = amountSwipe.current
+    if (!g.active || isEditing) return
+    g.active = false
+    const dx = e.clientX - g.x
+    const dy = e.clientY - g.y
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return
+    const next = typeIndex + (dx < 0 ? 1 : -1)
+    if (next >= 0 && next < TYPE_OPTIONS.length) changeType(TYPE_OPTIONS[next][0])
+  }
+
   const canSave =
     numericAmount > 0 &&
     accountId &&
@@ -155,6 +180,7 @@ export function AddTransactionScreen() {
       navigate(-1)
     } else {
       addTransaction(input)
+      haptic('success')
       navigate('/', { replace: true })
     }
   }
@@ -164,8 +190,8 @@ export function AddTransactionScreen() {
     const { type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note } = existing
     deleteTransaction(id)
     navigate('/', { replace: true })
-    showUndoToast('تم حذف الحركة', () =>
-      addTransaction({ type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note }),
+    showUndoToast('تم حذف الحركة', (data) =>
+      data.addTransaction({ type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note }),
     )
   }
 
@@ -225,7 +251,7 @@ export function AddTransactionScreen() {
           className="pt-8 pb-6"
           right={
             isEditing ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -239,8 +265,8 @@ export function AddTransactionScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
-            style={{ background: color }}
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
+            style={{ background: color, boxShadow: canSave ? `0 16px 34px -14px ${color}` : 'none', transition: 'background 240ms ease, box-shadow 240ms ease, opacity 200ms ease' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
           </button>
@@ -274,8 +300,8 @@ export function AddTransactionScreen() {
               setFromSheetOpen(false)
               navigate('/accounts/new')
             }}
-            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
           >
             + إضافة حساب جديد
           </button>
@@ -309,13 +335,23 @@ export function AddTransactionScreen() {
         emptyLabel={type === 'expense' ? 'لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"' : 'لا توجد مصادر دخل بعد'}
       />
 
-      <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
+      <div data-own-gesture className="relative mb-5 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+        <div
+          className="absolute bottom-1 top-1 rounded-full"
+          style={{
+            width: 'calc((100% - 8px) / 3)',
+            right: `calc(4px + ${typeIndex} * (100% - 8px) / 3)`,
+            background: color,
+            boxShadow: `0 8px 22px -10px ${color}`,
+            transition: 'right 380ms var(--ease-spring), background 240ms ease',
+          }}
+        />
         {TYPE_OPTIONS.map(([t, label, Icon]) => (
           <button
             key={t}
-            onClick={() => setType(t)}
-            className="qb-press flex flex-1 items-center justify-center gap-1.5 rounded-[14px] py-2.75 text-[13.5px] font-bold"
-            style={type === t ? { background: `${TYPE_COLOR[t]}26`, color: TYPE_COLOR[t] } : { color: 'var(--color-text-2)' }}
+            onClick={() => changeType(t)}
+            className="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13.5px] font-semibold"
+            style={{ color: type === t ? '#0a0a0c' : 'var(--color-text-2)', transition: 'color 200ms ease' }}
           >
             <Icon />
             {label}
@@ -348,7 +384,7 @@ export function AddTransactionScreen() {
               onClick={swapAccounts}
               aria-label="تبديل الحسابين"
               disabled={accounts.length < 2}
-              className="qb-press flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)] disabled:opacity-30"
+              className="qb-press -my-1 flex h-10 w-10 items-center justify-center rounded-full border-4 border-[var(--color-bg)] bg-[var(--color-surface-high)] text-[var(--color-accent)] disabled:opacity-30"
             >
               <SwapIcon />
             </button>
@@ -403,11 +439,22 @@ export function AddTransactionScreen() {
         </div>
       )}
 
-      <div className="mb-6 text-center">
-        <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ</div>
-        <div className="num text-[40px] font-bold" style={{ color }}>
-          {amount || '0'}
+      <div
+        data-own-gesture
+        className="mb-5 select-none text-center"
+        style={{ touchAction: 'pan-y' }}
+        onPointerDown={onAmountPointerDown}
+        onPointerUp={onAmountPointerUp}
+        onPointerCancel={() => (amountSwipe.current.active = false)}
+      >
+        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
+        <div dir="ltr" className="num inline-flex items-baseline justify-center gap-2 font-bold" style={{ color, transition: 'color 240ms ease' }}>
+          <span key={amount} className="text-[52px] leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+            {amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-US') + (amount.includes('.') ? '.' + (amount.split('.')[1] ?? '') : '') : '0'}
+          </span>
+          <span className="font-sans text-[18px] font-medium opacity-60">ر.س</span>
         </div>
+        {!isEditing && <div className="mt-1 text-[11px] text-[var(--color-text-3)]">‹ اسحب هنا يمينًا أو يسارًا لتغيير نوع الحركة ›</div>}
       </div>
 
       <div className="mb-6">
@@ -482,16 +529,16 @@ export function AddTransactionScreen() {
             className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
           >
             <div>
-              <div className="text-[13.5px] font-bold">خصم مخالفة (اختياري)</div>
+              <div className="text-[13.5px] font-semibold">خصم مخالفة (اختياري)</div>
               <div className="text-[11.5px] text-[var(--color-text-3)]">فعّله لو فيه مبلغ يُخصم من هذا الراتب بسبب مخالفة عمل</div>
             </div>
             <div
-              className="flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
+              className="flex h-[30px] w-[52px] flex-shrink-0 items-center rounded-full p-[3px] transition-colors duration-300"
               style={{ background: hasViolation ? 'var(--color-expense)' : 'rgba(255,255,255,0.14)' }}
             >
               <div
-                className="h-5 w-5 rounded-full bg-white transition-transform"
-                style={{ transform: hasViolation ? 'translateX(-20px)' : 'translateX(0)' }}
+                className="h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-transform duration-300"
+                style={{ transform: hasViolation ? 'translateX(-22px)' : 'translateX(0)' }}
               />
             </div>
           </button>
@@ -514,12 +561,12 @@ export function AddTransactionScreen() {
         <DatePicker value={date} onChange={setDate} color={color} fieldLabel="التاريخ" />
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: عشاء مع الأصدقاء"
-        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )

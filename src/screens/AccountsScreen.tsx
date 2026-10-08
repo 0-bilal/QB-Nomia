@@ -7,6 +7,8 @@ import { activityEditPath } from '../lib/activityNav'
 import { BankCardFace, FuelDropIcon } from '../components/BankCardFace'
 import { ACCOUNT_CARD_TEXT_FAINT, GamepadIcon } from '../components/AccountVisuals'
 import { EyeToggleButton } from '../components/EyeToggleButton'
+import { TabHeader, HeaderIconButton, PlusGlyph } from '../components/TabHeader'
+import { BigAmount } from '../components/BigAmount'
 import { getHideBalancesDefault } from '../lib/privacy'
 
 function EditIcon() {
@@ -39,51 +41,37 @@ export function AccountsScreen() {
   const navigate = useNavigate()
   const [openId, setOpenId] = useState<string | null>(null)
   const [hidden, setHidden] = useState(getHideBalancesDefault)
-  const mask = (s: string) => (hidden ? '•••••' : s)
 
   return (
     <div dir="rtl" className="px-5 pb-4">
-      <div className="safe-top qb-sticky-header-row mb-5 flex items-center justify-between pt-14">
-        <div className="qb-glass-circle flex h-9.5 items-center rounded-full border px-4 text-[15px] font-bold">الحسابات</div>
-        <div className="flex items-center gap-2.5">
-          <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
+      <TabHeader
+        title="حساباتك"
+        subtitle={`${accounts.length} حسابات نشطة · اضغط البطاقة لعرض آخر حركاتها`}
+        actions={
+          <>
+            <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
+            <HeaderIconButton accent label="إضافة حساب" onClick={() => navigate('/accounts/new')}>
+              <PlusGlyph />
+            </HeaderIconButton>
+          </>
+        }
+      />
+
+      <div className="qb-card-elevated qb-rise mb-5 p-5">
+        <div className="relative">
+          <div className="mb-2 text-[12.5px] font-medium text-[var(--color-text-2)]">إجمالي الأرصدة</div>
+          <BigAmount value={totalBalance} hidden={hidden} size={36} />
           <button
-            onClick={() => navigate('/accounts/new')}
-            className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-            style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-            aria-label="إضافة حساب"
+            onClick={() => navigate('/add/transaction?type=transfer')}
+            className="qb-btn-primary mt-5 flex w-full items-center justify-center gap-2 py-3 text-[13.5px]"
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 3l4 4-4 4M20 7H8M8 21l-4-4 4-4M4 17h12" />
             </svg>
+            تحويل بين الحسابات
           </button>
         </div>
       </div>
-
-      <div className="qb-card mb-3.5 flex items-center justify-between px-4.5 py-4">
-        <div>
-          <div className="qb-section-label mb-1">إجمالي الأرصدة</div>
-          <div className="num text-[22px] font-bold">{mask(formatMoney(totalBalance))}</div>
-        </div>
-        <div className="rounded-full border border-[var(--color-border)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-2)]">
-          {accounts.length} حسابات نشطة
-        </div>
-      </div>
-
-      <button
-        onClick={() => navigate('/add/transaction?type=transfer')}
-        className="qb-press mb-4.5 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-[13px] font-bold"
-        style={{ borderColor: 'rgba(124,108,255,0.35)', background: 'rgba(124,108,255,0.1)', color: 'var(--color-transfer)' }}
-      >
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="17,3 21,7 17,11" />
-          <path d="M3 7h18" />
-          <polyline points="7,21 3,17 7,13" />
-          <path d="M21 17H3" />
-        </svg>
-        تحويل بين الحسابات
-      </button>
 
       {accounts.map((a) => {
         const open = openId === a.id
@@ -106,7 +94,7 @@ export function AccountsScreen() {
                   aria-label={a.showOnHome === false ? 'إظهار الحساب في الشاشة الرئيسية' : 'إخفاء الحساب من الشاشة الرئيسية'}
                   title={a.showOnHome === false ? 'إظهار في الرئيسية' : 'إخفاء من الرئيسية'}
                   className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
-                  style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.1)', color: a.showOnHome === false ? 'var(--color-text-3)' : 'var(--color-accent)' }}
+                  style={{ width: 30, height: 30, background: 'rgba(0,0,0,0.22)', color: a.showOnHome === false ? textFaint : 'inherit' }}
                 >
                   <HomeVisibilityIcon active={a.showOnHome !== false} />
                 </button>
@@ -116,8 +104,8 @@ export function AccountsScreen() {
                     navigate(`/accounts/${a.id}/edit`)
                   }}
                   aria-label="تعديل الحساب"
-                  className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-text-2)]"
-                  style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.1)' }}
+                  className="qb-press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
+                  style={{ width: 30, height: 30, background: 'rgba(0,0,0,0.22)' }}
                 >
                   <EditIcon />
                 </button>
@@ -132,12 +120,12 @@ export function AccountsScreen() {
 
             {a.goalAmount ? (
               <>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/20">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/20">
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${Math.min(100, (a.balance / a.goalAmount) * 100)}%`,
-                      background: 'linear-gradient(90deg, #F5B942, #F59E0B)',
+                      background: 'currentColor',
                     }}
                   />
                 </div>
@@ -153,8 +141,8 @@ export function AccountsScreen() {
                   e.stopPropagation()
                   navigate(`/add/transaction?type=transfer&to=${a.id}`)
                 }}
-                className="qb-press mt-3.5 w-full rounded-xl py-2.25 text-[12px] font-semibold"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
+                className="qb-press mt-3.5 w-full rounded-full py-2.5 text-[12.5px] font-semibold"
+                style={{ background: 'rgba(0,0,0,0.25)' }}
               >
                 شحن المحفظة
               </button>
@@ -166,7 +154,7 @@ export function AccountsScreen() {
                   e.stopPropagation()
                   navigate(`/add/transaction?type=transfer&to=${a.id}`)
                 }}
-                className="qb-press mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.25 text-[12.5px] font-bold"
+                className="qb-press mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-semibold"
                 style={{ background: 'linear-gradient(90deg, #ffb347, #ff7a1a)', color: '#1a0a02', boxShadow: '0 6px 16px -6px rgba(255,122,26,0.7)' }}
               >
                 <FuelDropIcon size={14} />
@@ -180,7 +168,7 @@ export function AccountsScreen() {
                   e.stopPropagation()
                   navigate(`/add/transaction?type=transfer&to=${a.id}`)
                 }}
-                className="qb-press mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.25 text-[12.5px] font-bold"
+                className="qb-press mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-full py-2.5 text-[12.5px] font-semibold"
                 style={{ background: 'linear-gradient(90deg, #66c0f4, #2a8fd0)', color: '#08131c', boxShadow: '0 6px 16px -6px rgba(102,192,244,0.7)' }}
               >
                 <GamepadIcon size={15} />
@@ -189,7 +177,7 @@ export function AccountsScreen() {
             )}
 
             {open && (
-              <div className="mt-3.5 border-t border-white/8 pt-3">
+              <div className="mt-3.5 border-t border-current/15 pt-3">
                 {activity.length === 0 ? (
                   <div className="py-2 text-center text-[12px] font-semibold" style={{ color: textFaint }}>
                     لا توجد حركات على هذا الحساب بعد
@@ -205,8 +193,8 @@ export function AccountsScreen() {
                       className="flex w-full items-center gap-2.5 py-1.5 text-right"
                     >
                       <div
-                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
-                        style={{ width: 32, height: 32, background: `${item.color}1f`, color: item.color }}
+                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+                        style={{ width: 32, height: 32, background: 'rgba(0,0,0,0.22)' }}
                       >
                         <ActivityIcon kind={item.kind} />
                       </div>
@@ -214,7 +202,7 @@ export function AccountsScreen() {
                       <div className="flex-shrink-0 text-[10.5px] font-semibold" style={{ color: textFaint }}>
                         {formatDate(item.date)}
                       </div>
-                      <div className="num flex-shrink-0 text-[12px] font-bold" style={{ color: item.color }}>
+                      <div className="num flex-shrink-0 text-[12px] font-bold">
                         {formatSigned(item.amount)}
                       </div>
                     </button>

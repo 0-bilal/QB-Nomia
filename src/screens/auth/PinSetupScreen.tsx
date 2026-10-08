@@ -56,17 +56,21 @@ export function PinSetupScreen() {
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center bg-[var(--color-bg)] px-7 pt-20 pb-10">
-      <AppLogo />
-      <div className="mb-1 mt-10 text-base font-semibold">
-        {stage === 'enter' ? 'أنشئ رقمًا سريًا' : 'أكّد الرقم السري'}
-      </div>
-      <div className="mb-9 text-[12.5px] text-[var(--color-text-2)]">
-        {error ? 'الرقمان غير متطابقين، حاول مرة أخرى' : `اختر ${DIGITS} أرقام لحماية QB-Nomia`}
+    <div className="relative isolate flex h-full w-full flex-col items-center overflow-hidden bg-[var(--color-bg)] px-7 pb-10 pt-20">
+      <div className="qb-aurora" aria-hidden="true" />
+      <div className="qb-rise relative z-10 flex flex-col items-center">
+        <AppLogo />
+        <div className="mt-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[11.5px] font-medium text-[var(--color-text-2)]">
+          الخطوة {stage === 'enter' ? '1' : '2'} من 2
+        </div>
+        <div className="mb-1 mt-4 text-[19px] font-semibold">{stage === 'enter' ? 'أنشئ رقمًا سريًا' : 'أكّد الرقم السري'}</div>
+        <div className="text-[13px]" style={{ color: error ? 'var(--color-expense)' : 'var(--color-text-2)' }}>
+          {error ? 'الرقمان غير متطابقين، حاول مرة أخرى' : `اختر ${DIGITS} أرقام لحماية QB-Nomia`}
+        </div>
       </div>
 
-      <div className="mt-auto">
-        <PinPad digits={DIGITS} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} />
+      <div className="relative z-10 mt-auto">
+        <PinPad digits={DIGITS} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} error={error} />
       </div>
     </div>
   )

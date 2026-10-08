@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { HeroCard, SectionTitle, Segmented } from '../components/ui'
+import { rise } from '../lib/motion'
 import { formatMoney } from '../lib/format'
 import type { Account, IncomeSource, Transaction } from '../types'
 
@@ -99,9 +101,59 @@ function DeltaBadge({ current, previous, goodWhenUp }: { current: number; previo
   const good = flat ? null : up === goodWhenUp
   const color = flat ? 'var(--color-text-3)' : good ? 'var(--color-income)' : 'var(--color-expense)'
   return (
-    <span className="num inline-flex items-center gap-0.5 text-[11px] font-bold" style={{ color }}>
+    <span className="num inline-flex flex-shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10.5px] font-bold" style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
       {flat ? '=' : up ? '▲' : '▼'} {Math.abs(pct)}%
     </span>
+  )
+}
+
+function DualBars({ current: cur, previous: prev, color }: { current: number; previous: number; color: string }) {
+  const max = Math.max(Math.abs(cur), Math.abs(prev), 1)
+  return (
+    <div className="mt-2.5 flex flex-col gap-1">
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+        <div className="h-full rounded-full" style={{ width: `${(Math.abs(cur) / max) * 100}%`, background: color, transition: 'width 700ms var(--ease-out-expo)' }} />
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+        <div className="h-full rounded-full bg-white/25" style={{ width: `${(Math.abs(prev) / max) * 100}%`, transition: 'width 700ms var(--ease-out-expo)' }} />
+      </div>
+    </div>
+  )
+}
+
+function CompareTile({ label, cur, prev, color, goodWhenUp, format = formatMoney }: { label: string; cur: number | null; prev: number | null; color: string; goodWhenUp?: boolean; format?: (n: number) => string }) {
+  return (
+    <div className="qb-card p-4">
+      <div className="mb-1 flex items-center justify-between gap-1">
+        <span className="text-[11.5px] text-[var(--color-text-3)]">{label}</span>
+        {goodWhenUp !== undefined && cur !== null && prev !== null && <DeltaBadge current={cur} previous={prev} goodWhenUp={goodWhenUp} />}
+      </div>
+      <div className="num truncate text-[17px] font-bold" style={{ color }}>
+        {cur === null ? '—' : format(cur)}
+      </div>
+      <div className="num truncate text-[11px] text-[var(--color-text-3)]">سابقًا {prev === null ? '—' : format(prev)}</div>
+      {cur !== null && prev !== null && <DualBars current={cur} previous={prev} color={color} />}
+    </div>
+  )
+}
+
+function RowsCard({ rows, color, goodWhenUp }: { rows: { id: string; name: string; current: number; previous: number }[]; color: (v: number) => string; goodWhenUp: boolean }) {
+  return (
+    <div className="qb-card mb-6 flex flex-col p-4 [&>*+*]:mt-4">
+      {rows.map((r) => (
+        <div key={r.id}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{r.name}</span>
+            <DeltaBadge current={r.current} previous={r.previous} goodWhenUp={goodWhenUp} />
+            <span className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color: color(r.current) }}>
+              {formatMoney(r.current)}
+            </span>
+          </div>
+          <DualBars current={r.current} previous={r.previous} color={color(r.current)} />
+          <div className="num mt-1 text-[10.5px] text-[var(--color-text-3)]">سابقًا {formatMoney(r.previous)}</div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -160,139 +212,58 @@ export function ComparisonsScreen() {
   }, [accounts, transactions, current, previous])
 
   return (
-    <ScreenScroll header={<ScreenHeader title="المقارنة الشخصية" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
-      <div className="mb-5 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
-        {PERIOD_OPTIONS.map(([t, label]) => (
-          <button
-            key={t}
-            onClick={() => setPeriodType(t)}
-            className="qb-press flex-1 rounded-[14px] py-2.5 text-[12.5px] font-bold"
-            style={periodType === t ? { background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)' } : { color: 'var(--color-text-2)' }}
-          >
-            {label}
-          </button>
-        ))}
+    <ScreenScroll header={<ScreenHeader title="المقارنة الشخصية" onBack={() => navigate(-1)} />}>
+      <Segmented options={PERIOD_OPTIONS} value={periodType} onChange={setPeriodType} />
+
+      <HeroCard className="mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] text-[var(--color-text-3)]">الفترة الحالية</div>
+            <div className="truncate text-[16px] font-semibold text-[var(--color-accent)]">{current.label}</div>
+          </div>
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-[11px] font-semibold text-[var(--color-text-2)]">VS</div>
+          <div className="min-w-0 text-left">
+            <div className="text-[11px] text-[var(--color-text-3)]">الفترة السابقة</div>
+            <div className="truncate text-[16px] font-semibold text-[var(--color-text-2)]">{previous.label}</div>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-center gap-5 text-[11px] text-[var(--color-text-3)]">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-4 rounded-full bg-[var(--color-accent)]" />
+            الحالية
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-4 rounded-full bg-white/25" />
+            السابقة
+          </span>
+        </div>
+      </HeroCard>
+
+      <div className="qb-rise mb-6 grid grid-cols-2 gap-3" style={rise(1)}>
+        <CompareTile label="الدخل" cur={currentTotals.income} prev={previousTotals.income} color="var(--color-income)" goodWhenUp />
+        <CompareTile label="المصروف" cur={currentTotals.expense} prev={previousTotals.expense} color="var(--color-expense)" goodWhenUp={false} />
+        <CompareTile label="صافي التوفير" cur={currentNet} prev={previousNet} color={currentNet >= 0 ? 'var(--color-accent)' : 'var(--color-expense)'} goodWhenUp />
+        <CompareTile label="نسبة الادخار" cur={currentSavingsRate} prev={previousSavingsRate} color="var(--color-accent)" format={(n) => `${n}%`} />
       </div>
 
-      <div className="mb-4 flex items-center justify-between px-1 text-[11.5px]">
-        <div className="font-bold text-[var(--color-text)]">{current.label}</div>
-        <div className="text-[var(--color-text-3)]">مقابل {previous.label}</div>
-      </div>
-
-      <div className="mb-4 flex flex-col gap-2.5">
-        <div className="qb-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">الدخل</div>
-            <DeltaBadge current={currentTotals.income} previous={previousTotals.income} goodWhenUp={true} />
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="num text-[19px] font-bold" style={{ color: 'var(--color-income)' }}>
-              {formatMoney(currentTotals.income)}
-            </span>
-            <span className="num text-[12px] text-[var(--color-text-3)]">سابقًا {formatMoney(previousTotals.income)}</span>
-          </div>
-        </div>
-
-        <div className="qb-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">المصروف</div>
-            <DeltaBadge current={currentTotals.expense} previous={previousTotals.expense} goodWhenUp={false} />
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="num text-[19px] font-bold" style={{ color: 'var(--color-expense)' }}>
-              {formatMoney(currentTotals.expense)}
-            </span>
-            <span className="num text-[12px] text-[var(--color-text-3)]">سابقًا {formatMoney(previousTotals.expense)}</span>
-          </div>
-        </div>
-
-        <div className="qb-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">صافي التوفير</div>
-            <DeltaBadge current={currentNet} previous={previousNet} goodWhenUp={true} />
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="num text-[19px] font-bold" style={{ color: currentNet >= 0 ? 'var(--color-accent)' : 'var(--color-expense)' }}>
-              {formatMoney(currentNet)}
-            </span>
-            <span className="num text-[12px] text-[var(--color-text-3)]">سابقًا {formatMoney(previousNet)}</span>
-          </div>
-        </div>
-
-        <div className="qb-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">نسبة الادخار</div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <span className="num text-[19px] font-bold" style={{ color: 'var(--color-accent)' }}>
-              {currentSavingsRate === null ? '—' : `${currentSavingsRate}%`}
-            </span>
-            <span className="num text-[12px] text-[var(--color-text-3)]">
-              سابقًا {previousSavingsRate === null ? '—' : `${previousSavingsRate}%`}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="qb-section-label mb-2">المصاريف حسب الفئة</div>
+      <SectionTitle title="المصاريف حسب الفئة" />
       {categoryRows.length === 0 ? (
-        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد مصاريف في الفترتين</div>
+        <div className="qb-card mb-6 px-6 py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد مصاريف في الفترتين</div>
       ) : (
-        <div className="qb-card flex flex-col gap-3 p-4">
-          {categoryRows.map((c) => (
-            <div key={c.id} className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[12.5px] font-semibold">{c.name}</div>
-                <div className="num text-[11px] text-[var(--color-text-3)]">سابقًا {formatMoney(c.previous)}</div>
-              </div>
-              <div className="flex-shrink-0 text-left">
-                <div className="num text-[13px] font-bold">{formatMoney(c.current)}</div>
-                <DeltaBadge current={c.current} previous={c.previous} goodWhenUp={false} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <RowsCard rows={categoryRows} color={() => 'var(--color-expense)'} goodWhenUp={false} />
       )}
 
       {incomeSourceRows.length > 0 && (
         <>
-          <div className="qb-section-label mb-2 mt-4">الدخل حسب المصدر</div>
-          <div className="qb-card flex flex-col gap-3 p-4">
-            {incomeSourceRows.map((s) => (
-              <div key={s.id} className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12.5px] font-semibold">{s.name}</div>
-                  <div className="num text-[11px] text-[var(--color-text-3)]">سابقًا {formatMoney(s.previous)}</div>
-                </div>
-                <div className="flex-shrink-0 text-left">
-                  <div className="num text-[13px] font-bold" style={{ color: 'var(--color-income)' }}>{formatMoney(s.current)}</div>
-                  <DeltaBadge current={s.current} previous={s.previous} goodWhenUp={true} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <SectionTitle title="الدخل حسب المصدر" />
+          <RowsCard rows={incomeSourceRows} color={() => 'var(--color-income)'} goodWhenUp />
         </>
       )}
 
       {accountRows.length > 0 && (
         <>
-          <div className="qb-section-label mb-2 mt-4">نشاط الحسابات (صافي الحركة بالفترة)</div>
-          <div className="qb-card flex flex-col gap-3 p-4">
-            {accountRows.map((a) => (
-              <div key={a.id} className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12.5px] font-semibold">{a.name}</div>
-                  <div className="num text-[11px] text-[var(--color-text-3)]">سابقًا {formatMoney(a.previous)}</div>
-                </div>
-                <div className="flex-shrink-0 text-left">
-                  <div className="num text-[13px] font-bold" style={{ color: a.current >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
-                    {formatMoney(a.current)}
-                  </div>
-                  <DeltaBadge current={a.current} previous={a.previous} goodWhenUp={true} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <SectionTitle title="نشاط الحسابات" hint="صافي الحركة على كل حساب بالفترة" />
+          <RowsCard rows={accountRows} color={(v) => (v >= 0 ? 'var(--color-income)' : 'var(--color-expense)')} goodWhenUp />
         </>
       )}
     </ScreenScroll>

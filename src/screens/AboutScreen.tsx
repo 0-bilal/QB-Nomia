@@ -3,6 +3,7 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AppLogo } from '../components/AppLogo'
 import { APP_VERSION, BRAND_NAME, BUILD_ID, DEVELOPER_NAME } from '../lib/version'
+import { SectionTitle } from '../components/ui'
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -15,14 +16,11 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function FeatureRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="flex items-center gap-3 py-2">
-      <div
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
-        style={{ width: 32, height: 32, background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
-      >
+    <div className="flex flex-col gap-3 rounded-[18px] bg-white/[0.03] p-3.5">
+      <div className="flex flex-shrink-0 items-center justify-center rounded-full" style={{ width: 36, height: 36, background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}>
         {icon}
       </div>
-      <div className="text-[12.5px] font-semibold text-[var(--color-text-2)]">{text}</div>
+      <div className="text-[12.5px] font-medium leading-snug">{text}</div>
     </div>
   )
 }
@@ -34,26 +32,26 @@ export function AboutScreen() {
     <ScreenScroll
       header={<ScreenHeader title="حول التطبيق" onBack={() => navigate(-1)} className="pt-8 pb-6" />}
     >
-      <div className="qb-card-elevated mb-4 flex flex-col items-center py-7">
-        <AppLogo tagline="" />
+      <div className="qb-card-elevated qb-rise mb-4 flex flex-col items-center py-9">
+        <AppLogo tagline="محفظتك المالية الشخصية" size={64} />
         <div
           className="num mt-3 rounded-full px-3 py-1 text-[11.5px] font-bold"
-          style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
+          style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
         >
           الإصدار {APP_VERSION}
         </div>
       </div>
 
-      <div className="qb-card mb-4 p-4">
-        <div className="mb-1.5 text-[13px] font-bold">محفظتك المالية، بين يديك بالكامل</div>
+      <div className="qb-card mb-4 p-5">
+        <div className="mb-2 text-[16px] font-semibold">محفظتك المالية، بين يديك بالكامل</div>
         <div className="text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           QB-Nomia تطبيق ويب تقدمي (PWA) لإدارة أموالك الشخصية — يعمل بدون إنترنت، وكل بياناتك تُخزَّن محليًا على جهازك فقط،
           بدون أي خادم يجمعها أو يطّلع عليها.
         </div>
       </div>
 
-      <div className="qb-card mb-4 p-4">
-        <div className="mb-1 text-[13px] font-bold text-[var(--color-text-2)]">أبرز المزايا</div>
+      <SectionTitle title="أبرز المزايا" />
+      <div className="qb-card mb-4 grid grid-cols-2 gap-1 p-3">
         <FeatureRow
           text="حسابات وحركات وتقارير مالية"
           icon={
@@ -91,7 +89,8 @@ export function AboutScreen() {
         />
       </div>
 
-      <div className="qb-card mb-4 p-4">
+      <SectionTitle title="معلومات" />
+      <div className="qb-card mb-4 px-4 py-2">
         <InfoRow label="المطوّر" value={DEVELOPER_NAME} />
         <InfoRow label="بواسطة" value={BRAND_NAME} />
         <InfoRow label="الإصدار" value={APP_VERSION} />
@@ -100,8 +99,7 @@ export function AboutScreen() {
 
       <a
         href="https://github.com/0-bilal/QB-Nomia/releases/latest/download/app-debug.apk"
-        className="qb-press mb-2 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-[13px] font-bold"
-        style={{ borderColor: 'rgba(34,197,94,0.35)', background: 'rgba(34,197,94,0.1)', color: 'var(--color-income)' }}
+        className="qb-btn-primary mb-2 flex w-full items-center justify-center gap-2 py-3.5 text-[14px]"
       >
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 3v13" />

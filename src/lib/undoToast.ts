@@ -2,12 +2,19 @@
  * تراجع سريع بعد الحذف — toast عائم بزر "تراجع" لمدة محدودة بعد أي حذف،
  * بدل تأكيد الحذف النهائي فقط. بلا Context عشان يشتغل من أي شاشة بدون
  * تعقيد تمرير props، بنفس نمط autoSync.ts (pub/sub بسيط).
+ *
+ * onUndo يستلم بيانات التطبيق الحالية (من UndoToastHost وقت الضغط) بدل ما يعتمد على
+ * دوال مأخوذة وقت الحذف: دوال DataContext مغلقة على حالة لحظة رسمها، فاستدعاء نسخة
+ * قديمة منها كان يعيد بناء القائمة من لقطة ما قبل الحذف (تكرار العنصر + رصيد خاطئ).
  */
+import type { useData } from '../state/DataContext'
+
+export type UndoData = ReturnType<typeof useData>
 
 export interface UndoToastState {
   id: number
   message: string
-  onUndo: () => void
+  onUndo: (data: UndoData) => void
 }
 
 type Listener = (state: UndoToastState | null) => void
@@ -21,7 +28,7 @@ function notify() {
   listeners.forEach((l) => l(current))
 }
 
-export function showUndoToast(message: string, onUndo: () => void, durationMs = 6000): void {
+export function showUndoToast(message: string, onUndo: (data: UndoData) => void, durationMs = 6000): void {
   if (timer) clearTimeout(timer)
   const id = ++nextId
   current = { id, message, onUndo }
@@ -40,11 +47,11 @@ export function dismissUndoToast(): void {
   notify()
 }
 
-export function triggerUndo(): void {
+export function triggerUndo(data: UndoData): void {
   const state = current
   if (!state) return
   dismissUndoToast()
-  state.onUndo()
+  state.onUndo(data)
 }
 
 export function subscribeUndoToast(listener: Listener): () => void {

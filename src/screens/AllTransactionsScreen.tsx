@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -8,6 +8,9 @@ import { DatePicker } from '../components/DatePicker'
 import { activityEditPath } from '../lib/activityNav'
 import { formatDate, formatMoney, formatSigned } from '../lib/format'
 import type { ActivityItem } from '../state/DataContext'
+import { SwipeableRow } from '../components/SwipeableRow'
+import { useActivitySwipe } from '../hooks/useActivitySwipe'
+import { SheetHandle } from '../components/SheetHandle'
 
 function SearchIcon() {
   return (
@@ -94,21 +97,21 @@ function FiltersSheet({
 
   return (
     <div dir="rtl" className="fixed inset-0 z-[65] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
       <div
-        className="relative flex max-h-[85vh] w-full max-w-[480px] flex-col rounded-t-[28px] border-x border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
-        style={{ animation: 'sheet-in 260ms cubic-bezier(0.16,1,0.3,1) both' }}
+        className="relative flex max-h-[85vh] w-full max-w-[480px] flex-col rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
       >
-        <div className="mx-auto mb-1 mt-2.5 h-1 w-9 flex-shrink-0 rounded-full bg-white/15" />
+        <SheetHandle onDismiss={onClose} />
         <div className="flex flex-shrink-0 items-center justify-between px-5 py-3">
-          <div className="text-[15px] font-bold">فلترة الحركات</div>
-          <button onClick={onClose} aria-label="إغلاق" className="qb-press flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text-2)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="text-[17px] font-semibold">فلترة الحركات</div>
+          <button onClick={onClose} aria-label="إغلاق" className="qb-press flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-2)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <CloseIcon />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-2">
-          <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">نوع الحركة</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">نوع الحركة</label>
           <div className="mb-4 flex flex-wrap gap-2">
             {TYPE_OPTIONS.map(([t, label]) => (
               <button
@@ -117,7 +120,7 @@ function FiltersSheet({
                 className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
                 style={
                   draft.types.includes(t)
-                    ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)' }
+                    ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
                     : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
                 }
               >
@@ -126,14 +129,14 @@ function FiltersSheet({
             ))}
           </div>
 
-          <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">الحساب</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">الحساب</label>
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               onClick={() => setDraft((d) => ({ ...d, accountId: null }))}
               className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
               style={
                 draft.accountId === null
-                  ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)' }
+                  ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
                   : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
               }
             >
@@ -146,7 +149,7 @@ function FiltersSheet({
                 className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
                 style={
                   draft.accountId === a.id
-                    ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)' }
+                    ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
                     : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
                 }
               >
@@ -155,7 +158,7 @@ function FiltersSheet({
             ))}
           </div>
 
-          <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">الفترة</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">الفترة</label>
           <div className="mb-4 flex items-center gap-2">
             <div className="flex-1">
               <DatePicker value={draft.from} onChange={(v) => setDraft((d) => ({ ...d, from: v }))} placeholder="من تاريخ" />
@@ -170,7 +173,7 @@ function FiltersSheet({
             </div>
           </div>
 
-          <label className="mb-1.5 block text-[12px] font-semibold text-[var(--color-text-2)]">المبلغ</label>
+          <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">المبلغ</label>
           <div className="mb-2 flex flex-col gap-2">
             <div className="flex w-full items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5">
               <span className="flex-shrink-0 text-[11px] font-semibold text-[var(--color-text-3)]">أدنى</span>
@@ -209,7 +212,7 @@ function FiltersSheet({
           </button>
           <button
             onClick={() => onApply(draft)}
-            className="qb-press flex-1 rounded-2xl py-3 text-[13px] font-bold text-[#0A0A0C]"
+            className="qb-press flex-1 rounded-2xl py-3 text-[13px] font-semibold text-[#0A0A0C]"
             style={{ background: 'var(--color-accent)' }}
           >
             تطبيق
@@ -219,6 +222,27 @@ function FiltersSheet({
       </div>
     </div>
   )
+}
+
+/** يجمع الحركات (المرتّبة أصلًا من الأحدث) بمجموعات حسب اليوم — قائمة بعناوين أيام بنمط تطبيقات البنوك. */
+function groupByDay(items: ActivityItem[]): { date: string; items: ActivityItem[] }[] {
+  const groups: { date: string; items: ActivityItem[] }[] = []
+  for (const item of items) {
+    const last = groups[groups.length - 1]
+    if (last && last.date === item.date) last.items.push(item)
+    else groups.push({ date: item.date, items: [item] })
+  }
+  return groups
+}
+
+function dayLabel(iso: string): string {
+  const today = new Date()
+  const toIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  if (iso === toIso(today)) return 'اليوم'
+  const y = new Date(today)
+  y.setDate(y.getDate() - 1)
+  if (iso === toIso(y)) return 'أمس'
+  return formatDate(iso)
 }
 
 export function AllTransactionsScreen() {
@@ -268,6 +292,7 @@ export function AllTransactionsScreen() {
   }
 
   const activeCount = countActive(filters)
+  const swipeFor = useActivitySwipe()
 
   return (
     <ScreenScroll
@@ -285,7 +310,7 @@ export function AllTransactionsScreen() {
       />
 
       <div className="mb-4 flex items-center gap-2">
-        <div className="qb-card flex flex-1 items-center gap-2 px-4 py-3">
+        <label className="flex flex-1 items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 focus-within:border-[var(--color-accent-line)]">
           <span className="text-[var(--color-text-3)]">
             <SearchIcon />
           </span>
@@ -293,26 +318,27 @@ export function AllTransactionsScreen() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ابحث بالفئة، الحساب، أو الملاحظة..."
-            className="w-full bg-transparent text-[13.5px] outline-none placeholder:text-[var(--color-text-3)]"
+            className="w-full bg-transparent py-3 outline-none placeholder:text-[var(--color-text-3)]"
+            style={{ boxShadow: 'none' }}
           />
-        </div>
+        </label>
         <button
           onClick={() => setFiltersOpen(true)}
           aria-label="فلترة"
-          className="qb-press relative flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-2xl border"
+          className="qb-press relative flex flex-shrink-0 items-center justify-center rounded-full border"
           style={{
-            width: 46,
-            height: 46,
-            borderColor: activeCount > 0 ? 'var(--color-accent)' : 'var(--color-border)',
-            background: activeCount > 0 ? 'rgba(255,255,255,0.12)' : 'var(--color-surface)',
-            color: activeCount > 0 ? 'var(--color-accent)' : 'var(--color-text-2)',
+            width: 48,
+            height: 48,
+            borderColor: activeCount > 0 ? 'transparent' : 'var(--color-border)',
+            background: activeCount > 0 ? 'var(--color-accent)' : 'var(--color-surface)',
+            color: activeCount > 0 ? 'var(--color-on-accent)' : 'var(--color-text-2)',
           }}
         >
           <FilterIcon />
           {activeCount > 0 && (
             <span
-              className="num absolute flex h-4 w-4 items-center justify-center rounded-full text-[9.5px] font-bold"
-              style={{ top: -4, left: -4, background: 'var(--color-expense)', color: '#fff' }}
+              className="num absolute flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+              style={{ top: -3, left: -3, background: 'var(--color-expense)', color: '#fff', border: '2px solid var(--color-bg)' }}
             >
               {activeCount}
             </span>
@@ -321,17 +347,17 @@ export function AllTransactionsScreen() {
       </div>
 
       {categoryTiles.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="-mx-5 mb-5 flex gap-2 overflow-x-auto px-5">
           {categoryTiles.map((tile) => {
             const active = filters.categories.includes(tile.name)
             return (
               <button
                 key={tile.name}
                 onClick={() => toggleCategory(tile.name)}
-                className="qb-press flex min-w-[86px] flex-col items-center gap-0.5 rounded-2xl px-3 py-2.5 text-center"
+                className="qb-press flex min-w-[92px] flex-shrink-0 flex-col items-start gap-0.5 rounded-[20px] px-3.5 py-2.5 text-right"
                 style={
                   active
-                    ? { background: 'rgba(255,255,255,0.18)', color: 'var(--color-accent)', border: '1px solid var(--color-accent)' }
+                    ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
                     : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
                 }
               >
@@ -344,35 +370,44 @@ export function AllTransactionsScreen() {
       )}
 
       {all.length === 0 ? (
-        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
+        <div className="qb-card qb-rise px-6 py-12 text-center text-[13.5px] leading-relaxed text-[var(--color-text-3)]">لا توجد حركات بعد</div>
       ) : filtered.length === 0 ? (
-        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد نتائج مطابقة</div>
+        <div className="qb-card qb-rise px-6 py-12 text-center text-[13.5px] leading-relaxed text-[var(--color-text-3)]">لا توجد نتائج مطابقة</div>
       ) : (
-        <div className="qb-card overflow-hidden">
-          {filtered.map((item, i) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(activityEditPath(item))}
-              className={`qb-press flex w-full items-center gap-3 px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
-            >
-              <div
-                className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
-                style={{ width: 42, height: 42, background: `${item.color}1f`, color: item.color }}
-              >
-                <ActivityIcon kind={item.kind} />
+        <div className="flex flex-col gap-5">
+          {groupByDay(filtered).map((group, gi) => (
+            <section key={group.date} className="qb-rise" style={{ '--i': Math.min(gi, 8) } as CSSProperties}>
+              <div className="mb-2 flex items-center justify-between px-1">
+                <div className="text-[13px] font-semibold text-[var(--color-text-2)]">{dayLabel(group.date)}</div>
+                <div className="num text-[12px] font-medium text-[var(--color-text-3)]">{formatSigned(group.items.reduce((sum, x) => sum + x.amount, 0))}</div>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13.5px] font-semibold">{item.title}</div>
-                <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
-                  {item.subtitle} · {formatDate(item.date)}
-                  {item.note ? ` · ${item.note}` : ''}
-                </div>
+              <div className="qb-card overflow-hidden">
+                {group.items.map((item, i) => (
+                  <SwipeableRow key={item.id} {...swipeFor(item)} className={i > 0 ? 'border-t qb-divider' : ''}>
+                    <button onClick={() => navigate(activityEditPath(item))} className="flex w-full items-center gap-3 px-4 py-3.5 text-right active:bg-white/[0.03]">
+                      <div
+                        className="flex flex-shrink-0 items-center justify-center rounded-full"
+                        style={{ width: 44, height: 44, background: `color-mix(in srgb, ${item.color} 14%, transparent)`, color: item.color }}
+                      >
+                        <ActivityIcon kind={item.kind} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[14px] font-medium">{item.title}</div>
+                        <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
+                          {item.subtitle}
+                          {item.note ? ` · ${item.note}` : ''}
+                        </div>
+                      </div>
+                      <div className="num flex-shrink-0 text-[14px] font-bold" style={{ color: item.amount > 0 ? 'var(--color-income)' : 'var(--color-text)' }}>
+                        {formatSigned(item.amount)}
+                      </div>
+                    </button>
+                  </SwipeableRow>
+                ))}
               </div>
-              <div className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color: item.color }}>
-                {formatSigned(item.amount)}
-              </div>
-            </button>
+            </section>
           ))}
+          <div className="pb-2 text-center text-[11px] text-[var(--color-text-3)]">اسحب أي حركة يسارًا للحذف · يمينًا لتكرارها</div>
         </div>
       )}
     </ScreenScroll>

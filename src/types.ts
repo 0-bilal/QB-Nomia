@@ -12,6 +12,8 @@ export interface Account {
   zakatHawlStartDate?: string
   /** يتحكم بظهور الحساب برزمة الكروت بالشاشة الرئيسية — undefined تُعامَل كـ true (الحسابات القديمة قبل هذه الميزة تبقى ظاهرة). */
   showOnHome?: boolean
+  /** هل يدخل رصيد الحساب في "إجمالي رصيدك" بالرئيسية — undefined تُعامَل كـ true (الحسابات القديمة تبقى محسوبة). */
+  includeInTotal?: boolean
 }
 
 /** سجل دفعة زكاة مسجَّلة لهدف ادخار — كل دفعة تنهي حول وتبدأ حول جديد (account.zakatHawlStartDate يُصفَّر لتاريخ الدفعة). */

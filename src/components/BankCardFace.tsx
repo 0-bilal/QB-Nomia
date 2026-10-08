@@ -2,11 +2,13 @@ import type { CSSProperties, ReactNode } from 'react'
 import { formatMoney } from '../lib/format'
 import { fuelLevel, fuelLevelColor, lastFuelTopUp, monthSpending } from '../lib/fuelCard'
 import { useData } from '../state/DataContext'
-import { AppLogoMark, AppLogoWatermark } from './AppLogo'
+import { AppLogoWatermark } from './AppLogo'
+import { BigAmount } from './BigAmount'
 import {
   ACCOUNT_CARD_ACCENT,
   ACCOUNT_CARD_ACCENT_BG,
   ACCOUNT_CARD_BG,
+  ACCOUNT_CARD_TEXT,
   ACCOUNT_CARD_TEXT_FAINT,
   ACCOUNT_CARD_TEXT_MUTED,
   ACCOUNT_TYPE_LABELS,
@@ -130,10 +132,12 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
   const accent = ACCOUNT_CARD_ACCENT[account.type]
   const textMuted = ACCOUNT_CARD_TEXT_MUTED[account.type]
   const textFaint = ACCOUNT_CARD_TEXT_FAINT[account.type]
+  const textColor = ACCOUNT_CARD_TEXT[account.type]
+  const watermarkStyle = (extra: CSSProperties): CSSProperties => ({ position: 'absolute', color: textColor, opacity: 0.1, pointerEvents: 'none', ...extra })
   return (
     <div
       className={`qb-bank-card select-none p-5 ${className}`}
-      style={{ background: ACCOUNT_CARD_BG[account.type], ...style }}
+      style={{ background: ACCOUNT_CARD_BG[account.type], color: textColor, ...style }}
       onClick={onClick}
     >
       {account.type === 'cash' && <div className="qb-gloss-sweep" />}
@@ -141,65 +145,49 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
         <div
           style={{
             position: 'absolute', left: -40, top: 0, bottom: 0, width: 120, transform: 'skewX(-8deg)', pointerEvents: 'none',
-            background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.07) 0 10px, transparent 10px 22px)',
+            background: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.08) 0 10px, transparent 10px 22px)',
           }}
         />
       )}
       {isFuel ? (
-        <FuelPumpIcon
-          size={150}
-          strokeWidth={1.1}
-          style={{ position: 'absolute', right: -18, bottom: -22, color: '#fff', opacity: 0.15, transform: 'rotate(-8deg)', pointerEvents: 'none' }}
-        />
+        <FuelPumpIcon size={150} strokeWidth={1.1} style={watermarkStyle({ left: -18, bottom: -22, transform: 'rotate(8deg)' })} />
       ) : isSteam ? (
-        <GamepadIcon
-          size={170}
-          strokeWidth={1}
-          style={{ position: 'absolute', right: -22, bottom: -30, color: '#66c0f4', opacity: 0.14, transform: 'rotate(-10deg)', pointerEvents: 'none' }}
-        />
+        <GamepadIcon size={170} strokeWidth={1} style={watermarkStyle({ left: -22, bottom: -30, transform: 'rotate(10deg)' })} />
       ) : account.type === 'coins' ? (
-        <SaudiEmblemWatermark
-          size={150}
-          style={{ position: 'absolute', right: -30, bottom: -26, color: '#fff', opacity: 0.16, transform: 'rotate(6deg)', pointerEvents: 'none' }}
-        />
+        <SaudiEmblemWatermark size={150} style={watermarkStyle({ left: -30, bottom: -26, transform: 'rotate(-6deg)' })} />
       ) : (
-        <AppLogoWatermark
-          size={148}
-          style={{ position: 'absolute', right: -26, bottom: -30, color: '#fff', opacity: 0.16, transform: 'rotate(-8deg)', pointerEvents: 'none' }}
-        />
+        <AppLogoWatermark size={170} style={watermarkStyle({ left: -34, bottom: -46, transform: 'rotate(8deg)' })} />
       )}
 
       <div className="relative flex h-full flex-col" style={{ zIndex: 2 }}>
         <div className="flex h-full flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
               <div
-                className="flex h-7.5 w-7.5 items-center justify-center rounded-[10px]"
-                style={{ width: 30, height: 30, background: ACCOUNT_CARD_ACCENT_BG[account.type], color: accent }}
+                className="flex flex-shrink-0 items-center justify-center rounded-full"
+                style={{ width: 34, height: 34, background: ACCOUNT_CARD_ACCENT_BG[account.type], color: accent }}
               >
-                {isFuel ? <FuelDropIcon size={15} /> : isSteam ? <GamepadIcon size={16} /> : <ContactlessIcon size={15} />}
+                {isFuel ? <FuelDropIcon size={16} /> : isSteam ? <GamepadIcon size={17} /> : <AccountTypeIcon type={account.type} size={17} />}
               </div>
-              <div>
-                <div className="text-[11.5px] font-bold">{account.name}</div>
-                <div className="text-[10px] font-semibold" style={{ color: textFaint }}>
+              <div className="min-w-0">
+                <div className="truncate text-[14px] font-semibold">{account.name}</div>
+                <div className="truncate text-[11px] font-medium" style={{ color: textFaint }}>
                   {account.goalLabel ? `هدف: ${account.goalLabel}` : ACCOUNT_TYPE_LABELS[account.type]}
                 </div>
               </div>
             </div>
             {topRight ?? (
-              <div style={{ color: accent, opacity: 0.6 }}>
-                <AccountTypeIcon type={account.type} size={17} />
+              <div style={{ color: accent, opacity: 0.7 }}>
+                <ContactlessIcon size={20} />
               </div>
             )}
           </div>
 
           <div>
-            <div className="mb-1 text-[11.5px] font-semibold" style={{ color: textMuted }}>
-              {isPrepaid ? 'الرصيد المتبقي' : 'الرصيد'}
+            <div className="mb-1.5 text-[11.5px] font-medium" style={{ color: textMuted }}>
+              {isPrepaid ? 'الرصيد المتبقي' : 'الرصيد المتاح'}
             </div>
-            <div className="num text-[30px] font-bold tracking-tight" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}>
-              {mask(formatMoney(account.balance))}
-            </div>
+            <BigAmount value={account.balance} hidden={hidden} size={32} animate={false} />
           </div>
 
           {isSteam && !compact && (
@@ -215,11 +203,13 @@ export function BankCardFace({ account, hidden = false, topRight, children, clas
             {isFuel && compact ? (
               <FuelGauge level={level} hidden={hidden} compact textFaint={textFaint} />
             ) : (
-              <div dir="ltr" className="num text-[12px] font-semibold" style={{ letterSpacing: 1.5, color: textFaint }}>
+              <div dir="ltr" className="num text-[12.5px] font-semibold" style={{ letterSpacing: 2, color: textFaint }}>
                 {mask(pseudoCardNumber(account.id))}
               </div>
             )}
-            <AppLogoMark size={22} />
+            <div dir="ltr" className="num flex-shrink-0 text-[12px] font-bold tracking-tight" style={{ color: textMuted }}>
+              QB<span style={{ color: account.type === 'cash' ? 'var(--color-accent)' : 'inherit' }}>·</span>Nomia
+            </div>
           </div>
         </div>
 

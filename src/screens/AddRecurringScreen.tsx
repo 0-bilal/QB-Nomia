@@ -14,6 +14,7 @@ import { intervalLabel } from './CommitmentsScreen'
 import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import type { CommitmentIntervalUnit, TransactionType } from '../types'
+import { AmountHero } from '../components/AmountHero'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -169,8 +170,8 @@ export function AddRecurringScreen() {
     const { name, type, amount, accountId, categoryId, incomeSourceId, transferToAccountId, intervalUnit, intervalCount, nextDueDate, note } = existing
     deleteRecurringTransaction(id)
     navigate('/recurring', { replace: true })
-    showUndoToast('تم حذف الحركة المتكررة', () =>
-      addRecurringTransaction({ name, type, amount, accountId, categoryId, incomeSourceId, transferToAccountId, intervalUnit, intervalCount, nextDueDate, note }),
+    showUndoToast('تم حذف الحركة المتكررة', (data) =>
+      data.addRecurringTransaction({ name, type, amount, accountId, categoryId, incomeSourceId, transferToAccountId, intervalUnit, intervalCount, nextDueDate, note }),
     )
   }
 
@@ -229,7 +230,7 @@ export function AddRecurringScreen() {
           className="pt-8 pb-6"
           right={
             isEditing ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -243,7 +244,7 @@ export function AddRecurringScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: color }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة المتكررة'}
@@ -278,8 +279,8 @@ export function AddRecurringScreen() {
               setFromSheetOpen(false)
               navigate('/accounts/new')
             }}
-            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
           >
             + إضافة حساب جديد
           </button>
@@ -313,21 +314,30 @@ export function AddRecurringScreen() {
         emptyLabel={type === 'expense' ? 'لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"' : 'لا توجد مصادر دخل بعد'}
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الحركة</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الحركة</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: راتب الشهر"
-        className="mb-6 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-6 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
+      <div data-own-gesture className="relative mb-5 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+        <div
+          className="absolute bottom-1 top-1 rounded-full"
+          style={{
+            width: 'calc((100% - 8px) / 3)',
+            right: `calc(4px + ${TYPE_OPTIONS.findIndex(([t]) => t === type)} * (100% - 8px) / 3)`,
+            background: color,
+            transition: 'right 380ms var(--ease-spring), background 240ms ease',
+          }}
+        />
         {TYPE_OPTIONS.map(([t, label, Icon]) => (
           <button
             key={t}
             onClick={() => setType(t)}
-            className="qb-press flex flex-1 items-center justify-center gap-1.5 rounded-[14px] py-2.75 text-[13.5px] font-bold"
-            style={type === t ? { background: `${TYPE_COLOR[t]}26`, color: TYPE_COLOR[t] } : { color: 'var(--color-text-2)' }}
+            className="relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[13.5px] font-semibold"
+            style={{ color: type === t ? '#0a0a0c' : 'var(--color-text-2)', transition: 'color 200ms ease' }}
           >
             <Icon />
             {label}
@@ -390,12 +400,7 @@ export function AddRecurringScreen() {
         </div>
       )}
 
-      <div className="mb-6 text-center">
-        <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ التقديري (يمكن تعديله لاحقًا عند التأكيد)</div>
-        <div className="num text-[40px] font-bold" style={{ color }}>
-          {amount || '0'}
-        </div>
-      </div>
+      <AmountHero amount={amount} color={color} label="المبلغ التقديري — تقدر تعدّله عند التأكيد" />
 
       <div className="mb-6">
         <AmountPad value={amount} onChange={setAmount} color={color} />
@@ -457,7 +462,7 @@ export function AddRecurringScreen() {
         </div>
       )}
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">يتكرر</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">يتكرر</label>
       <div className="mb-3 flex flex-wrap gap-2">
         {UNIT_OPTIONS.map(([u, label]) => (
           <button
@@ -501,12 +506,12 @@ export function AddRecurringScreen() {
         <DatePicker value={nextDueDate} onChange={setNextDueDate} color={color} fieldLabel="موعد الاستحقاق القادم" />
       </div>
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: قد يختلف المبلغ بسبب الخصومات"
-        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )
