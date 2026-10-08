@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الملف الشخصي — تصميم مقترح</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#050506;--void:#0b0b0d;--surface:#121215;--surface-el:#1a1a1f;--surface-hi:#24242a;--border:rgba(255,255,255,.07);--border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6;--on-accent:#0a0a0c;--text:#f4f4f6;--text-2:#a1a1ad;--text-3:#62626d;--income:#3ee08f;--expense:#ff5f6d;--transfer:#8b7bff;--owed:#2ee6c8;--sub:#ffbf47;--commit:#5fb3ff;
+    --sans:'Readex Pro',system-ui,sans-serif;--num:'Inter',system-ui,sans-serif;--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 0 40px}
+  button,input{font:inherit;color:inherit;background:none;border:0}
+  button{cursor:pointer}
+  .num{font-family:var(--num);font-variant-numeric:tabular-nums}
+  .press{transition:transform .15s var(--ease)}.press:active{transform:scale(.96)}
+  .panel{width:390px;max-width:100%;padding:0 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+  .grp{background:#0e0e11;border:1px solid #1f1f24;border-radius:18px;padding:10px}
+  .grp h4{font-size:12px;color:#8a8a95;font-weight:600;margin-bottom:7px}
+  .opts{display:flex;gap:5px;flex-wrap:wrap}
+  .opts button{flex:1;min-width:60px;padding:8px 4px;border-radius:12px;font-size:11px;font-weight:600;color:#9a9aa5;background:#16161a;border:1px solid #222228}
+  .opts button.on{background:#f4f4f6;color:#0a0a0c;border-color:transparent}
+  .desc{font-size:11.5px;color:#8f8f99;line-height:1.85;margin-top:8px;padding:0 2px}
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative}
+  @media (max-width:440px){.phone{border-radius:0;border:0}}
+  .scr{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:0 20px 40px;display:none}
+  .scr.on{display:block}
+  .scr::-webkit-scrollbar{display:none}
+  .aurora{position:absolute;top:-120px;left:-60px;right:-60px;height:360px;background:radial-gradient(50% 60% at 70% 40%,rgba(139,123,255,.16),transparent 70%);pointer-events:none}
+  .gb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(24,24,28,.62);border:1px solid rgba(255,255,255,.1);flex-shrink:0;color:var(--text)}
+  .hrow{display:flex;align-items:center;gap:8px;padding-top:12px;height:64px}
+  .sp{flex:1}
+  .av{border-radius:50%;display:grid;place-items:center;font-weight:700;color:#0a0a0c;flex-shrink:0;position:relative}
+  .lbl{font-size:12.5px;color:var(--text-2);font-weight:500;margin:0 4px 7px;display:flex;justify-content:space-between}
+  .lbl small{color:var(--text-3);font-weight:400}
+  .field{display:flex;align-items:center;gap:10px;height:52px;border-radius:18px;background:var(--surface);border:1px solid var(--border);padding:0 14px;margin-bottom:14px}
+  .field:focus-within{border-color:rgba(255,255,255,.28)}
+  .field input{flex:1;min-width:0;outline:none;font-size:14.5px;font-weight:600}
+  .field input::placeholder{color:var(--text-3);font-weight:400}
+  .field .ic{color:var(--text-3);display:flex}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+  .seg button{height:46px;border-radius:15px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text-2)}
+  .seg button.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  .colors{display:flex;gap:10px;margin-bottom:18px;padding:0 2px}
+  .colors button{width:34px;height:34px;border-radius:50%;border:2px solid transparent}
+  .colors button.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+  .cta{width:100%;height:54px;border-radius:18px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:700;margin-top:6px}
+  .skip{width:100%;padding:14px;font-size:13px;color:var(--text-3);font-weight:600}
+  .note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:11.5px;color:var(--text-2);line-height:1.7;margin-top:10px}
+  .note .ic{color:var(--income);display:flex;margin-top:2px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px}
+  .preview{border-radius:22px;padding:14px;margin-bottom:18px;background:linear-gradient(160deg,var(--surface-el),var(--void));border:1px solid rgba(255,255,255,.09)}
+  .preview small{font-size:10.5px;color:var(--text-3);display:block;margin-bottom:8px}
+  .greet{display:flex;align-items:center;gap:11px}
+  .greet b{font-size:17px;display:block}.greet .sub{font-size:11.5px;color:var(--text-2);margin-top:2px;display:flex;align-items:center;gap:5px}
+  .occ{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:18px;margin:4px 0 18px;font-size:12.5px;font-weight:600}
+  .occ i{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+  .occ small{display:block;font-size:11px;font-weight:500;color:var(--text-2);margin-top:1px}
+  .big{font-size:44px;font-weight:800;margin:4px 4px 0;letter-spacing:-.03em}
+  .big small{font-size:16px;color:var(--text-3);font-weight:600;margin-inline-start:6px}
+  .ghost{height:120px;border-radius:22px;background:var(--surface);border:1px solid var(--border);margin-top:16px}
+  /* القفل */
+  .lock{display:flex;flex-direction:column;align-items:center;padding-top:110px;text-align:center}
+  .lock h2{font-size:21px;margin-top:16px}.lock p{font-size:12.5px;color:var(--text-3);margin-top:4px}
+  .dots{display:flex;gap:14px;margin:30px 0 34px}.dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--text-3)}.dots i.f{background:var(--accent);border-color:transparent}
+  .pad{display:grid;grid-template-columns:repeat(3,74px);gap:14px 22px}
+  .pad span{width:74px;height:74px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:600;background:var(--surface);border:1px solid var(--border)}
+  /* المزيد */
+  .pcard{display:flex;align-items:center;gap:13px;padding:14px;border-radius:24px;background:radial-gradient(120% 100% at 100% 0%,rgba(139,123,255,.16),transparent 60%),linear-gradient(160deg,var(--surface-el),var(--void));border:1px solid rgba(255,255,255,.1);margin-bottom:18px;width:100%;text-align:right}
+  .pcard b{font-size:16px;display:block}.pcard small{font-size:11.5px;color:var(--text-3)}
+  .pcard .ch{margin-inline-start:auto;color:var(--text-3);display:flex}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 8px;margin-top:6px}
+  .tiles div{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11px;color:var(--text-2)}
+  .tiles i{width:60px;height:60px;border-radius:20px;background:linear-gradient(160deg,var(--surface-hi),var(--surface));border:1px solid var(--border)}
+  /* الملف */
+  .phead{display:flex;flex-direction:column;align-items:center;text-align:center;margin:6px 0 20px}
+  .phead h2{font-size:22px;margin-top:12px}.phead p{font-size:12px;color:var(--text-3);margin-top:3px}
+  .camb{position:absolute;bottom:0;left:0;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;border:3px solid var(--bg)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+  .stats div{padding:11px 6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);text-align:center}
+  .stats b{font-size:16px;display:block}.stats small{font-size:10.5px;color:var(--text-3)}
+  .list{border-radius:22px;background:var(--surface);border:1px solid var(--border);overflow:hidden;margin-bottom:14px}
+  .li{display:flex;align-items:center;gap:12px;padding:13px 14px}.li+.li{border-top:1px solid var(--border)}
+  .li i{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:rgba(255,255,255,.06);color:var(--text-2)}
+  .li .m{flex:1}.li .m small{display:block;font-size:11px;color:var(--text-3)}.li .m b{font-size:13.5px;font-weight:600}
+  .li .v{font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+  .tog{width:44px;height:26px;border-radius:99px;background:var(--income);position:relative;flex-shrink:0}
+  .tog:after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+  .tog.off{background:var(--surface-hi)}.tog.off:after{left:auto;right:3px}
+  .sect{font-size:12px;color:var(--text-3);font-weight:600;margin:0 6px 8px}
+  .danger{color:var(--expense)!important}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="grp"><h4>الشاشة</h4>
+    <div class="opts" id="o-scr">
+      <button data-v="onb" class="on">١ تعريف أول مرة</button><button data-v="home">٢ الرئيسية</button><button data-v="lock">٣ شاشة القفل</button><button data-v="more">٤ المزيد</button><button data-v="prof">٥ الملف الشخصي</button>
+    </div><div class="desc" id="d-scr"></div></div>
+  <div class="grp"><h4>جرّب الترحيب (يتغيّر في كل الشاشات)</h4>
+    <div class="opts" id="o-time"><button data-v="5">فجر</button><button data-v="9" class="on">صباح</button><button data-v="14">ظهر</button><button data-v="19">مساء</button><button data-v="23">ليل</button></div>
+    <div class="opts" id="o-occ" style="margin-top:6px"><button data-v="none" class="on">يوم عادي</button><button data-v="bday">عيد ميلاد</button><button data-v="fri">جمعة</button><button data-v="salary">يوم الراتب</button><button data-v="away">رجوع بعد غياب</button></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="aurora"></div>
+
+  <!-- ١ التعريف -->
+  <div class="scr on" id="s-onb">
+    <div class="hrow"><span class="sp"></span><span style="font-size:12px;color:var(--text-3);font-weight:600">٢ من ٢</span></div>
+    <h1 style="font-size:27px;margin:4px 2px 4px">عرّفنا بنفسك</h1>
+    <p style="font-size:12.5px;color:var(--text-3);margin:0 2px 18px">حتى نرحّب بك باسمك ونخصّص التطبيق لك</p>
+    <div style="display:flex;justify-content:center;margin-bottom:18px"><span class="av" id="onbAv" style="width:84px;height:84px;font-size:30px"></span></div>
+    <div class="lbl">الاسم</div>
+    <label class="field"><span class="ic" data-i="user"></span><input id="name" value="بلال" placeholder="اسمك الأول"></label>
+    <div class="lbl">كيف نخاطبك؟ <small>لصياغة الرسائل</small></div>
+    <div class="seg" id="gender"><button data-v="m" class="on">أنتَ</button><button data-v="f">أنتِ</button></div>
+    <div class="lbl">تاريخ الميلاد <small>اختياري — للعمر وتهنئة عيد الميلاد</small></div>
+    <label class="field"><span class="ic" data-i="cal"></span><input id="bd" class="num" value="1996/10/08" placeholder="YYYY/MM/DD" dir="ltr" style="text-align:right"><span class="num" id="ageChip" style="font-size:12px;font-weight:700;color:var(--text-2);background:rgba(255,255,255,.07);padding:5px 10px;border-radius:99px;white-space:nowrap"></span></label>
+    <div class="lbl">لون الصورة</div>
+    <div class="colors" id="colors"></div>
+    <div class="preview"><small>معاينة الترحيب بالرئيسية</small><div class="greet" id="pvGreet"></div></div>
+    <button class="cta press">ابدأ</button>
+    <button class="skip">تخطي — أضيفها لاحقًا من المزيد</button>
+    <div class="note"><span class="ic" data-i="lock"></span>بياناتك تبقى على جهازك فقط، وتدخل ضمن النسخة الاحتياطية المشفّرة. لا يُرسل شيء لأي جهة.</div>
+  </div>
+
+  <!-- ٢ الرئيسية -->
+  <div class="scr" id="s-home">
+    <div class="hrow"><span class="sp"></span><span class="gb" data-i="sync"></span><span class="gb" data-i="bell"></span><span class="gb" data-i="eye"></span></div>
+    <div class="greet" id="homeGreet" style="margin:6px 0 14px"></div>
+    <div id="homeOcc"></div>
+    <div style="font-size:13px;color:var(--text-2);margin:0 4px 6px">إجمالي رصيدك</div>
+    <div class="big num">24,380<small>ر.س</small></div>
+    <div class="ghost"></div><div class="ghost"></div>
+  </div>
+
+  <!-- ٣ القفل -->
+  <div class="scr" id="s-lock">
+    <div class="lock"><span class="av" id="lockAv" style="width:78px;height:78px;font-size:28px"></span><h2 id="lockT"></h2><p id="lockP"></p>
+      <div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i></div>
+      <div class="pad"><span class="num">1</span><span class="num">2</span><span class="num">3</span><span class="num">4</span><span class="num">5</span><span class="num">6</span><span class="num">7</span><span class="num">8</span><span class="num">9</span><span style="background:none;border:0"></span><span class="num">0</span><span style="background:none;border:0" data-i="finger"></span></div>
+    </div>
+  </div>
+
+  <!-- ٤ المزيد -->
+  <div class="scr" id="s-more">
+    <div class="hrow"><span class="sp"></span><span class="gb" data-i="lock2"></span></div>
+    <h1 style="font-size:30px;margin:2px 2px 2px">المزيد</h1>
+    <p style="font-size:12.5px;color:var(--text-3);margin:0 2px 16px" class="num">الإصدار 2.13.0</p>
+    <button class="pcard press" data-go="prof"><span class="av" id="moreAv" style="width:54px;height:54px;font-size:20px"></span><span><b id="moreN"></b><small id="moreS"></small></span><span class="ch" data-i="chev"></span></button>
+    <div style="height:48px;border-radius:99px;background:var(--surface);border:1px solid var(--border);margin-bottom:20px"></div>
+    <div style="font-size:12.5px;font-weight:700;margin:0 4px 12px">المالية</div>
+    <div class="tiles"><div><i></i>الحركات</div><div><i></i>الفئات</div><div><i></i>الدخل</div><div><i></i>الأهداف</div></div>
+  </div>
+
+  <!-- ٥ الملف -->
+  <div class="scr" id="s-prof">
+    <div class="hrow"><span class="gb" data-i="back" data-go="more"></span><span class="sp"></span></div>
+    <div class="phead"><span class="av" id="profAv" style="width:96px;height:96px;font-size:36px"><span class="camb" data-i="cam"></span></span><h2 id="profN"></h2><p id="profS"></p></div>
+    <div class="stats"><div><b class="num" id="stAge"></b><small>العمر</small></div><div><b class="num">142</b><small>يوم مع QB</small></div><div><b class="num">1,284</b><small>حركة مسجّلة</small></div></div>
+    <div class="sect">المعلومات</div>
+    <div class="list">
+      <div class="li"><i data-i="user"></i><div class="m"><small>الاسم</small><b id="liN"></b></div><span class="v" data-i="pen"></span></div>
+      <div class="li"><i data-i="chat"></i><div class="m"><small>المخاطبة</small><b id="liG"></b></div><span class="v" data-i="pen"></span></div>
+      <div class="li"><i data-i="cal"></i><div class="m"><small>تاريخ الميلاد</small><b class="num" id="liB"></b></div><span class="v" data-i="pen"></span></div>
+      <div class="li"><i data-i="palette"></i><div class="m"><small>لون الصورة</small><b>بنفسجي</b></div><span class="v" id="liC"></span></div>
+    </div>
+    <div class="sect">رسائل الترحيب</div>
+    <div class="list">
+      <div class="li"><i data-i="sun"></i><div class="m"><b>الترحيب بالاسم</b><small>صباح الخير / مساء الخير بالرئيسية</small></div><span class="tog"></span></div>
+      <div class="li"><i data-i="gift"></i><div class="m"><b>تهنئة عيد الميلاد</b><small>بطاقة خاصة في يوم ميلادك</small></div><span class="tog"></span></div>
+      <div class="li"><i data-i="star"></i><div class="m"><b>رسائل المناسبات</b><small>الجمعة، يوم الراتب، الرجوع بعد غياب</small></div><span class="tog"></span></div>
+      <div class="li"><i data-i="lock"></i><div class="m"><b>الاسم في شاشة القفل</b><small>اطفئها لو أحد يشوف جوالك</small></div><span class="tog off"></span></div>
+    </div>
+    <div class="list"><div class="li"><i data-i="trash" style="color:var(--expense)"></i><div class="m"><b class="danger">حذف معلوماتي</b><small>يرجع الترحيب العام بدون اسم</small></div></div></div>
+  </div>
+</div>
+
+<script>
+const S=(p,s=18,w=2)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const IC={user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',lock:'<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',lock2:'<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ sync:'<path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+ chev:'<path d="m15 6-6 6 6 6"/>',back:'<path d="m9 6 6 6-6 6"/>',cam:'<path d="M4 8h3l2-2.5h6L17 8h3v11H4Z"/><circle cx="12" cy="13" r="3.3"/>',pen:'<path d="M4 20h4L19 9l-4-4L4 16Z"/>',chat:'<path d="M4 5h16v11H9l-5 4Z"/>',palette:'<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.4-2.2-.7-1.3.2-2.8 1.7-2.8H18a3 3 0 0 0 3-3c0-5.5-4-10-9-10Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="11" r="1"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/>',sunset:'<path d="M3 18h18M7 18a5 5 0 0 1 10 0M12 4v4M5.6 8.6l1.4 1.4M18.4 8.6 17 10"/>',
+ gift:'<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-2-4-6-4-6-1.5S9 9 12 9c3 0 6 0 6-1.5S14 5 12 9Z"/>',star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9Z"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',finger:'<path d="M12 11v3a6 6 0 0 1-1.2 3.6M8 9.6A4.5 4.5 0 0 1 16.5 11v2.5M5.5 14V11a6.5 6.5 0 0 1 11-4.7M19 15.5V11"/>',
+ mosque:'<path d="M12 3c2 2 4 3 4 6H8c0-3 2-4 4-6ZM5 21V12h14v9M9 21v-4a3 3 0 0 1 6 0v4M3 21h18"/>',coins:'<ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M15 11.5c3.3 0 6 1.3 6 3v4c0 1.7-2.7 3-6 3-2 0-3.8-.5-4.9-1.3"/>',wave:'<path d="M7 11V6.5a1.5 1.5 0 0 1 3 0V11M10 10V4.5a1.5 1.5 0 0 1 3 0V10M13 10V5.5a1.5 1.5 0 0 1 3 0V12M7 11a1.5 1.5 0 0 0-3 0v2a8 8 0 0 0 8 8h1a7 7 0 0 0 7-7v-4a1.5 1.5 0 0 0-3 0"/>'};
+const COLORS=['#8b7bff','#3ee08f','#ffbf47','#ff5f6d','#5fb3ff','#2ee6c8','#f4f4f6'];
+let st={name:'بلال',g:'m',bd:'1996/10/08',color:0,h:9,occ:'none',scr:'onb'};
+const $=id=>document.getElementById(id);
+document.querySelectorAll('[data-i]').forEach(e=>{if(!e.innerHTML.trim()||e.classList.contains('camb')||e.classList.contains('ic')||e.classList.contains('v')||e.tagName==='I'||e.classList.contains('gb')||e.classList.contains('ch'))e.innerHTML=S(IC[e.dataset.i],e.classList.contains('gb')?18:16,1.9)});
+const DESC={onb:'تظهر مرة واحدة بعد إنشاء الرقم السري (الخطوة ٢ من ٢)، ويمكن تخطيها. كل الحقول اختيارية عدا الاسم. «كيف نخاطبك» تضبط صياغة الرسائل (أنتَ/أنتِ، بك/بكِ). المعاينة تتحدّث مباشرة وأنت تكتب.',
+ home:'الترحيب بالرئيسية يصير باسمك حسب الوقت، وتحته سطر صغير متغيّر. في المناسبات تظهر بطاقة خاصة تحته (عيد ميلاد، جمعة، يوم الراتب، رجوع بعد غياب) — جرّبها من الأعلى.',
+ lock:'شاشة الرقم السري ترحّب باسمك مع صورتك. فيه خيار لإخفاء الاسم من شاشة القفل لو تفضّل الخصوصية.',
+ more:'بطاقة ملفك الشخصي أعلى «المزيد» بصورتك (الحرف الأول بلونك) واسمك وعمرك — تضغطها لتفتح الملف.',
+ prof:'شاشة الملف الشخصي: الصورة (حرف أول بلون أو صورة من الجهاز)، العمر، أيامك مع التطبيق، عدد حركاتك، تعديل المعلومات، والتحكم برسائل الترحيب. وحذف المعلومات يرجّع الترحيب العام.'};
+function age(){const m=st.bd.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);if(!m)return null;const t=new Date(2026,9,8);let a=t.getFullYear()-+m[1];if(t.getMonth()+1<+m[2]||(t.getMonth()+1==+m[2]&&t.getDate()<+m[3]))a--;return a}
+function ageWord(a){if(a===null)return '';if(a>=3&&a<=10)return a+' سنوات';return a+' سنة'}
+function av(el){const n=st.name.trim();el.style.background=COLORS[st.color];el.firstChild&&el.firstChild.nodeType===3&&el.removeChild(el.firstChild);el.insertBefore(document.createTextNode(n?n[0]:'؟'),el.firstChild)}
+function greetWord(){const h=st.h;return h<5?'ليلة سعيدة':h<12?'صباح الخير':h<17?'نهارك سعيد':'مساء الخير'}
+function timeIcon(){const h=st.h;return h<5||h>=21?IC.moon:h<12?IC.sun:h<17?IC.sun:IC.sunset}
+function subLine(){const f=st.g==='f';const h=st.h;
+  if(h<5)return f?'سهرانة؟ لا تنسين تسجّلين مصاريف اليوم':'سهران؟ لا تنسى تسجّل مصاريف اليوم';
+  if(h<12)return f?'يومك جديد — ميزانيتك اليوم 86 ر.س':'يومك جديد — ميزانيتك اليوم 86 ر.س';
+  if(h<17)return f?'صرفتِ 64 ر.س اليوم حتى الآن':'صرفت 64 ر.س اليوم حتى الآن';
+  return f?'ختام يومك: صرفتِ 106 ر.س':'ختام يومك: صرفت 106 ر.س';}
+function greetHTML(size=38){const n=st.name.trim();return `<span class="av" style="width:${size}px;height:${size}px;font-size:${size*.4}px;background:${COLORS[st.color]}">${n?n[0]:'؟'}</span><div><b>${greetWord()}${n?'، '+n:''}</b><div class="sub"><span style="display:flex;color:var(--sub)">${S(timeIcon(),13,2)}</span>${subLine()}</div></div>`}
+function occHTML(){const n=st.name.trim()||'';const f=st.g==='f';const a=age();
+  const box=(c,ic,t,s)=>`<div class="occ" style="background:linear-gradient(135deg,color-mix(in srgb,${c} 16%,transparent),color-mix(in srgb,${c} 4%,transparent));border:1px solid color-mix(in srgb,${c} 30%,transparent)"><i style="background:color-mix(in srgb,${c} 20%,transparent);color:${c}">${S(ic,17,2)}</i><div>${t}<small>${s}</small></div></div>`;
+  if(st.occ==='bday')return box('var(--sub)',IC.gift,`كل عام و${f?'أنتِ':'أنت'} بخير يا ${n}`,a!==null?`تمّ${f?'تِ':'يت'} ${ageWord(a)} اليوم — نتمنى لك سنة مليانة توفير`:'سنة سعيدة مليانة توفير');
+  if(st.occ==='fri')return box('var(--income)',IC.mosque,'جمعة مباركة',`${f?'خططي':'خطط'} لمصاريف نهاية الأسبوع — متبقي من ميزانيتك 1,940 ر.س`);
+  if(st.occ==='salary')return box('var(--commit)',IC.coins,`نزل راتبك يا ${n}`,`${f?'وزّعيه':'وزّعه'} على أهدافك قبل المصاريف — هدف الادخار 1,500 ر.س`);
+  if(st.occ==='away')return box('var(--transfer)',IC.wave,`${f?'وحشتينا':'وحشتنا'} يا ${n}`,`آخر زيارة قبل 6 أيام — ${f?'سجّلي':'سجّل'} ما فاتك من مصاريف`);
+  return '';}
+function render(){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.id==='s-'+st.scr));
+  ['onbAv','moreAv'].forEach(id=>av($(id)));
+  $('profAv').style.background=COLORS[st.color];$('profAv').childNodes[0].nodeType===3?$('profAv').childNodes[0].textContent=st.name.trim()[0]||'؟':$('profAv').insertBefore(document.createTextNode(st.name.trim()[0]||'؟'),$('profAv').firstChild);
+  $('lockAv').style.background=COLORS[st.color];$('lockAv').textContent=st.name.trim()[0]||'؟';
+  const a=age();$('ageChip').textContent=a!==null?ageWord(a):'';$('ageChip').style.display=a!==null?'':'none';
+  $('pvGreet').innerHTML=greetHTML();$('homeGreet').innerHTML=greetHTML(42);$('homeOcc').innerHTML=occHTML();
+  const n=st.name.trim();$('lockT').textContent=`${st.h<12&&st.h>=5?'صباح الخير':'أهلًا'}${n?' '+n:''}`;$('lockP').textContent='أدخل رقمك السري';
+  $('moreN').textContent=n||'أضف اسمك';$('moreS').textContent=[a!==null?ageWord(a):null,'الملف الشخصي'].filter(Boolean).join(' · ');
+  $('profN').textContent=n;$('profS').textContent='عضو منذ 2026/05/19';$('stAge').textContent=a??'—';
+  $('liN').textContent=n;$('liG').textContent=st.g==='m'?'أنتَ (مذكّر)':'أنتِ (مؤنث)';$('liB').textContent=st.bd;$('liC').innerHTML=`<span style="width:18px;height:18px;border-radius:50%;background:${COLORS[st.color]};display:block"></span>`;
+  $('colors').innerHTML=COLORS.map((c,i)=>`<button class="${i===st.color?'on':''}" data-c="${i}" style="background:${c}"></button>`).join('');
+  $('d-scr').textContent=DESC[st.scr];
+}
+function opt(id,key,num){$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;st[key]=num?+b.dataset.v:b.dataset.v;$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));if(key==='occ'||key==='h'){if(st.scr==='onb'||st.scr==='more'||st.scr==='prof'){st.scr='home';$('o-scr').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v==='home'))}}render();}}
+opt('o-scr','scr');opt('o-time','h',true);opt('o-occ','occ');
+$('gender').onclick=e=>{const b=e.target.closest('button');if(!b)return;st.g=b.dataset.v;$('gender').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));render();};
+$('name').oninput=e=>{st.name=e.target.value;render();};$('bd').oninput=e=>{st.bd=e.target.value;render();};
+document.addEventListener('click',e=>{const c=e.target.closest('[data-c]');if(c){st.color=+c.dataset.c;render();}const g=e.target.closest('[data-go]');if(g){st.scr=g.dataset.go;$('o-scr').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v===st.scr));render();}});
+render();
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import { scheduleBackgroundSync } from '../lib/autoSync'
 import { computeZakatStatus, getGoldPricePerGram } from '../lib/zakat'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 import { getLastBackupExportedAt, getOrInitFirstSeenAt } from '../lib/backup'
+import { getProfile, saveProfile, type UserProfile } from '../lib/profile'
 import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
 import { formatMoney } from '../lib/format'
 import type {
@@ -437,6 +438,8 @@ export interface DataSnapshot {
   salaryViolations?: SalaryViolationDeduction[]
   storeDebts?: StoreDebt[]
   storeDebtPayments?: StoreDebtPayment[]
+  /** الملف الشخصي (الاسم، المخاطبة، تاريخ الميلاد...) — محفوظ خارج حالة البيانات (lib/profile). */
+  profile?: UserProfile | null
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -1779,6 +1782,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           salaryViolations,
           storeDebts,
           storeDebtPayments,
+          profile: getProfile(),
         }
       },
       importSnapshot(snapshot: DataSnapshot) {
@@ -1804,6 +1808,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistSalaryViolations(snapshot.salaryViolations ?? [])
         persistStoreDebts(snapshot.storeDebts ?? [])
         persistStoreDebtPayments(snapshot.storeDebtPayments ?? [])
+        // نسخة قديمة بدون ملف شخصي ما تمسح الملف الحالي.
+        if (snapshot.profile) saveProfile(snapshot.profile)
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

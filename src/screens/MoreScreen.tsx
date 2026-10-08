@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/AuthContext'
 import { backgroundUpdateCheck, dismissUpdateDone, peekUpdateDone } from '../lib/appUpdate'
 import { recentMoreRoutes, recordMoreVisit, topUsedRoutes } from '../lib/moreUsage'
+import { ProfileAvatar } from '../components/ProfileAvatar'
+import { useProfile } from '../hooks/useProfile'
+import { ageLabel, ageOf, type UserProfile } from '../lib/profile'
 import { getLastSyncedAt, isSheetsSyncConfigured } from '../lib/sheetsSync'
 import { formatDate } from '../lib/format'
 import { APP_VERSION } from '../lib/version'
@@ -323,8 +326,43 @@ function RecentCapsule({ visible, items, onOpen }: { visible: boolean; items: Mo
   )
 }
 
+/** بطاقة الملف الشخصي أعلى "المزيد": الصورة والاسم والعمر — أو دعوة لإضافة المعلومات. */
+function ProfileCard({ profile, onOpen }: { profile: UserProfile | null; onOpen: () => void }) {
+  const age = profile ? ageOf(profile.birthDate, new Date()) : null
+  return (
+    <button
+      onClick={onOpen}
+      className="qb-press mb-4 flex w-full items-center gap-3 rounded-[24px] border border-white/10 p-3.5 text-right"
+      style={{ background: 'radial-gradient(120% 100% at 100% 0%, rgba(139,123,255,0.16), transparent 60%), linear-gradient(160deg, var(--color-surface-elevated), var(--color-bg))' }}
+    >
+      {profile ? (
+        <ProfileAvatar profile={profile} size={54} />
+      ) : (
+        <span className="flex h-[54px] w-[54px] flex-shrink-0 items-center justify-center rounded-full border border-dashed border-[var(--color-border-strong)] text-[var(--color-text-2)]">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+          </svg>
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[16px] font-bold">{profile ? profile.name : 'أضف اسمك'}</span>
+        <span className="block text-[11.5px] text-[var(--color-text-3)]">
+          {profile ? [age !== null ? ageLabel(age) : null, 'الملف الشخصي'].filter(Boolean).join(' · ') : 'حتى نرحّب بك باسمك'}
+        </span>
+      </span>
+      <span className="flex-shrink-0 text-[var(--color-text-3)]">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 6-6 6 6 6" />
+        </svg>
+      </span>
+    </button>
+  )
+}
+
 export function MoreScreen() {
   const navigate = useNavigate()
+  const profile = useProfile()
   const auth = useAuth()
   // بعد إعادة تشغيل ناتجة عن التحديث، تفتح الورقة مباشرة على "تم التحديث" بالإصدار السابق والحالي.
   const [updateDone, setUpdateDone] = useState(peekUpdateDone)
@@ -391,6 +429,8 @@ export function MoreScreen() {
           </HeaderIconButton>
         }
       />
+
+      <ProfileCard profile={profile} onOpen={() => navigate(profile ? '/profile' : '/welcome')} />
 
       <SearchField value={query} onChange={setQuery} placeholder="ابحث عن أداة أو إعداد..." className="mb-6" />
       <div ref={searchEndRef} aria-hidden="true" />
