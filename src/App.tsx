@@ -31,6 +31,8 @@ import { ComparisonsScreen } from './screens/ComparisonsScreen'
 import { ExportReportScreen } from './screens/ExportReportScreen'
 import { AboutScreen } from './screens/AboutScreen'
 import { AllTransactionsScreen } from './screens/AllTransactionsScreen'
+import { ProfileScreen } from './screens/ProfileScreen'
+import { ProfileSetupScreen } from './screens/ProfileSetupScreen'
 import { SecurityScreen } from './screens/SecurityScreen'
 import { ChangePinScreen } from './screens/ChangePinScreen'
 import { CalculatorScreen } from './screens/CalculatorScreen'
@@ -57,6 +59,8 @@ export default function App() {
           <Route path="loans" element={<DebtsHubScreen />} />
           <Route path="more" element={<MoreScreen />} />
         </Route>
+        <Route path="welcome" element={<ProfileSetupScreen />} />
+        <Route path="profile" element={<ProfileScreen />} />
         <Route path="add" element={<AddChooserScreen />} />
         <Route path="accounts/new" element={<AddAccountScreen />} />
         <Route path="accounts/:id/edit" element={<AddAccountScreen />} />

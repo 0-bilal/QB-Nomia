@@ -5,6 +5,7 @@ import { useAuth } from '../../state/AuthContext'
 import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
 import { runBackgroundPull } from '../../lib/autoSync'
+import { isProfileOnboarded } from '../../lib/profile'
 
 const DIGITS = 4
 
@@ -32,7 +33,8 @@ export function PinSetupScreen() {
       } else {
         if (next === firstPin) {
           auth.setup(next).then(() => {
-            navigate('/', { replace: true })
+            // أول تشغيل: "عرّفنا بنفسك" (مرة واحدة، قابلة للتخطي) قبل الرئيسية.
+            navigate(isProfileOnboarded() ? '/' : '/welcome', { replace: true })
             // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
             // حالة السحب تظهر كشريط عائم أعلى الشاشة (IslandHost).
             runBackgroundPull(importSnapshot)

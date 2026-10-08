@@ -4,6 +4,8 @@ import { PinPad } from '../../components/PinPad'
 import { useAuth } from '../../state/AuthContext'
 import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
+import { ProfileAvatar } from '../../components/ProfileAvatar'
+import { getProfile } from '../../lib/profile'
 import { configuredDigits } from '../../lib/auth'
 import { runBackgroundPull } from '../../lib/autoSync'
 import { isBiometricEnabled, verifyBiometric } from '../../lib/biometric'
@@ -93,7 +95,11 @@ export function PinLoginScreen() {
   }
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'صباح الخير' : hour < 17 ? 'نهارك سعيد' : 'مساء الخير'
+  // الاسم والصورة بشاشة القفل فقط لو المستخدم فعّلها من الملف الشخصي (مطفأة افتراضيًا للخصوصية).
+  const profile = getProfile()
+  const showName = Boolean(profile?.prefs.nameOnLock && profile.name.trim())
+  const base = hour >= 5 && hour < 12 ? 'صباح الخير' : hour >= 5 && hour < 17 ? 'نهارك سعيد' : 'مساء الخير'
+  const greeting = showName ? `${hour >= 5 && hour < 12 ? 'صباح الخير' : 'أهلًا'} ${profile!.name.trim()}` : base
 
   return (
     <div className="relative isolate flex h-full w-full flex-col items-center overflow-hidden bg-[var(--color-bg)]">
@@ -101,8 +107,8 @@ export function PinLoginScreen() {
 
       <div className="relative z-10 flex h-full w-full flex-col items-center px-7 pb-8 pt-16">
         <div className="qb-rise flex flex-col items-center">
-          <AppLogo tagline="" size={52} />
-          <div className="mb-1 mt-9 text-[20px] font-semibold">{greeting} 👋</div>
+          {showName && profile ? <ProfileAvatar profile={profile} size={78} /> : <AppLogo tagline="" size={52} />}
+          <div className={`mb-1 text-[20px] font-semibold ${showName ? 'mt-5' : 'mt-9'}`}>{greeting}</div>
           <div className="h-5 text-[13px]" style={{ color: error || biometricError ? 'var(--color-expense)' : 'var(--color-text-2)' }}>
             {error ? 'رقم غير صحيح، حاول مرة أخرى' : biometricError ? 'تعذّر التحقق بالبصمة — جرّب الرقم السري' : 'أدخل رقمك السري للمتابعة'}
           </div>

@@ -1,12 +1,15 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData } from '../state/DataContext'
+import { useData, SALARY_INCOME_SOURCE_ID } from '../state/DataContext'
 import { formatAmount, formatMoney, formatSigned, formatDate } from '../lib/format'
 import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
 import { AccountCardStack, CARD_HEIGHT } from '../components/AccountCardStack'
 import { EyeToggleButton } from '../components/EyeToggleButton'
-import { AppLogoMark } from '../components/AppLogo'
+import { HomeGreeting, OccasionCard } from '../components/HomeGreeting'
+import { useProfile } from '../hooks/useProfile'
+import { greetingSubline } from '../lib/greeting'
+import { currentOccasion, recordOpenAndGetPrevious } from '../lib/profile'
 import { BigAmount } from '../components/BigAmount'
 import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
 import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
@@ -17,7 +20,6 @@ import { localIso, upcomingItems } from '../lib/homeFeed'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
-import { APP_VERSION } from '../lib/version'
 
 function ChevronIcon() {
   return (
@@ -100,14 +102,6 @@ function StoreIcon() {
   )
 }
 
-function greeting(): string {
-  const h = new Date().getHours()
-  if (h < 5) return 'ليلة سعيدة'
-  if (h < 12) return 'صباح الخير'
-  if (h < 17) return 'نهارك سعيد'
-  return 'مساء الخير'
-}
-
 /** ترتيب ظهور متتابع (stagger) لكتل الشاشة. */
 function rise(i: number): CSSProperties {
   return { '--i': i } as CSSProperties
@@ -161,7 +155,11 @@ export function HomeScreen() {
     monthlyBudgetLimit,
     storeDebts,
     storeDebtPayments,
+    transactions,
   } = useData()
+  const profile = useProfile()
+  // وقت آخر فتح قبل هذه الجلسة — لبطاقة "الرجوع بعد غياب" (يُقرأ مرة لكل تركيب).
+  const [prevOpenAt] = useState(() => recordOpenAndGetPrevious())
   const navigate = useNavigate()
   const swipeFor = useActivitySwipe()
   const [hidden, setHidden] = useState(getHideBalancesDefault)
@@ -193,6 +191,15 @@ export function HomeScreen() {
   const now = new Date()
   const daysElapsedInMonth = now.getDate()
   const totalDaysInMonth = daysInMonth(now)
+
+  // الترحيب: مصروف اليوم، وميزانية اليوم (المتبقي من ميزانية الشهر ÷ الأيام الباقية)، ونزول الراتب اليوم.
+  const todayIso = localIso(now)
+  const todaySpent = transactions.filter((x) => x.type === 'expense' && x.date === todayIso).reduce((s, x) => s + x.amount, 0)
+  const monthBudgetLeft = monthlyBudgetLimit ? monthlyBudgetLimit - monthExpense : null
+  const dailyBudget = monthBudgetLeft !== null ? Math.max(0, Math.round((monthBudgetLeft + todaySpent) / (totalDaysInMonth - daysElapsedInMonth + 1))) : null
+  const salaryToday = transactions.some((x) => x.type === 'income' && x.incomeSourceId === SALARY_INCOME_SOURCE_ID && x.date === todayIso)
+  const hour = now.getHours()
+  const occasion = currentOccasion(profile, now, { salaryToday, prevOpenAt })
 
   const budgetAlerts = categories
     .filter((c) => c.kind === 'expense' && c.budgetLimit)
@@ -315,12 +322,18 @@ export function HomeScreen() {
         hidden={hidden}
         onTap={() => greetingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
       />
-      <div ref={greetingRef} className="safe-top mb-4 flex items-center gap-2.5 pt-[60px]">
-        <AppLogoMark size={38} round />
-        <div className="leading-tight">
-          <div className="text-[17px] font-bold">{greeting()}</div>
-          <div className="num mt-0.5 text-[11px] text-[var(--color-text-3)]">{formatDate(new Date().toISOString().slice(0, 10))} · v{APP_VERSION}</div>
-        </div>
+      <div ref={greetingRef} className="safe-top mb-4 pt-[60px]">
+        <HomeGreeting
+          profile={profile}
+          hour={hour}
+          subline={greetingSubline(hour, profile, { todaySpent, dailyBudget, monthBudgetLeft }, mask)}
+          onAvatar={() => navigate(profile ? '/profile' : '/welcome')}
+        />
+        {occasion && (
+          <div className="mt-3.5">
+            <OccasionCard occasion={occasion} profile={profile} monthBudgetLeft={monthBudgetLeft} mask={mask} onOpen={(to) => navigate(to)} />
+          </div>
+        )}
       </div>
 
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
