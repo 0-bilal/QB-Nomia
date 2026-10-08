@@ -6,7 +6,8 @@ import { PeoplePanel } from './PeoplePanel'
 import { SalaryAdvancePanel } from './SalaryAdvancePanel'
 import { SalaryViolationsPanel } from './SalaryViolationsPanel'
 import { StoreDebtsPanel } from './StoreDebtsPanel'
-import { TabHeader, HeaderIconButton, PlusGlyph } from '../../components/TabHeader'
+import { TabHeader, HeaderIconButton, PlusGlyph, FLOATING_ROW_OFFSET } from '../../components/TabHeader'
+import { useScrolledPast } from '../../hooks/useScrolledPast'
 import { SheetHandle } from '../../components/SheetHandle'
 import { haptic } from '../../lib/haptics'
 import { DEBT_KINDS, DEBT_META, isDebtTab, softBg, type DebtKind, type DebtTab } from './debtTypes'
@@ -42,52 +43,134 @@ function useDebtSummary() {
 }
 
 function TypeSwitcher({ tab, onSelect, alerts }: { tab: DebtTab; onSelect: (t: DebtTab) => void; alerts: Partial<Record<DebtTab, string>> }) {
+  // بعد التمرير تتحول البطاقات إلى كبسولة زجاجية مدمجة (بأسلوب الكبسولة الذكية) بدل شريط شفاف يظهر المحتوى خلفه.
+  const [sentinelRef, stuck] = useScrolledPast<HTMLDivElement>(FLOATING_ROW_OFFSET)
   return (
-    <div
-      data-own-gesture
-      className="sticky z-[3] -mx-5 mb-4 px-5 pb-2.5 pt-2"
-      // تحت صف الأزرار العائمة (FloatingHeaderRow) حتى لا يختفي تحتها.
-      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)', background: 'linear-gradient(180deg, var(--color-bg) 75%, transparent)' }}
-    >
-      <div className="grid grid-cols-5 gap-1.5" role="tablist">
-        {TABS.map((t) => {
-          const { color, label } = DEBT_META[t]
-          const active = tab === t
-          return (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={active}
-              onClick={() => onSelect(t)}
-              className="qb-press relative flex flex-col items-center gap-1.5 rounded-[18px] border px-0.5 pb-2 pt-2.5"
-              style={{
-                background: active ? softBg(color) : 'var(--color-surface)',
-                borderColor: active ? color : 'var(--color-border)',
-                transition: 'background 250ms ease, border-color 250ms ease',
-              }}
-            >
-              {alerts[t] && <span className="absolute rounded-full" style={{ top: 6, left: 8, width: 7, height: 7, background: alerts[t] }} />}
-              <span
-                className="flex items-center justify-center"
+    <>
+      <div ref={sentinelRef} aria-hidden="true" />
+      <div
+        data-own-gesture
+        className="pointer-events-none sticky z-[3] -mx-5 mb-4 px-5 pb-2.5 pt-2"
+        // تحت صف الأزرار العائمة (FloatingHeaderRow) حتى لا يختفي تحتها.
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
+      >
+        <div
+          className="grid grid-cols-5 gap-1.5"
+          role="tablist"
+          aria-hidden={stuck}
+          style={{
+            opacity: stuck ? 0 : 1,
+            transform: stuck ? 'translateY(-10px) scale(0.94)' : 'none',
+            pointerEvents: stuck ? 'none' : 'auto',
+            transition: 'opacity 200ms ease, transform 320ms cubic-bezier(0.22,1,0.36,1)',
+          }}
+        >
+          {TABS.map((t) => {
+            const { color, label } = DEBT_META[t]
+            const active = tab === t
+            return (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={active}
+                tabIndex={stuck ? -1 : 0}
+                onClick={() => onSelect(t)}
+                className="qb-press relative flex flex-col items-center gap-1.5 rounded-[18px] border px-0.5 pb-2 pt-2.5"
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 11,
-                  background: active ? color : softBg(color),
-                  color: active ? '#0a0a0c' : color,
-                  transition: 'background 250ms ease, color 250ms ease',
+                  background: active ? softBg(color) : 'var(--color-surface)',
+                  borderColor: active ? color : 'var(--color-border)',
+                  transition: 'background 250ms ease, border-color 250ms ease',
                 }}
               >
-                <DebtKindIcon kind={t} size={16} strokeWidth={2} />
-              </span>
-              <span className="whitespace-nowrap text-[10px] font-semibold" style={{ color: active ? 'var(--color-text)' : 'var(--color-text-2)' }}>
-                {label}
-              </span>
-            </button>
-          )
-        })}
+                {alerts[t] && <span className="absolute rounded-full" style={{ top: 6, left: 8, width: 7, height: 7, background: alerts[t] }} />}
+                <span
+                  className="flex items-center justify-center"
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 11,
+                    background: active ? color : softBg(color),
+                    color: active ? '#0a0a0c' : color,
+                    transition: 'background 250ms ease, color 250ms ease',
+                  }}
+                >
+                  <DebtKindIcon kind={t} size={16} strokeWidth={2} />
+                </span>
+                <span className="whitespace-nowrap text-[10px] font-semibold" style={{ color: active ? 'var(--color-text)' : 'var(--color-text-2)' }}>
+                  {label}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* الكبسولة المدمجة: أيقونات، والنوع المختار يتمدد باسمه ولونه. */}
+        <div
+          className="absolute inset-x-0 top-1 flex justify-center"
+          aria-hidden={!stuck}
+          style={{
+            opacity: stuck ? 1 : 0,
+            transform: stuck ? 'none' : 'translateY(-8px) scale(0.6)',
+            pointerEvents: 'none',
+            transition: 'opacity 220ms ease, transform 420ms cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          <div
+            role="tablist"
+            className="relative flex items-center gap-1 rounded-full border p-1"
+            style={{
+              pointerEvents: stuck ? 'auto' : 'none',
+              background: 'rgba(28,28,33,0.9)',
+              borderColor: 'var(--color-border-strong)',
+              backdropFilter: 'blur(20px) saturate(1.6)',
+              WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+              boxShadow: '0 12px 30px -12px rgba(0,0,0,0.8)',
+            }}
+          >
+            <span
+              className="pointer-events-none absolute rounded-full"
+              style={{
+                inset: '-12px -16px',
+                zIndex: -1,
+                background: 'rgba(5,5,6,0.35)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                maskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+                WebkitMaskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+              }}
+            />
+            {TABS.map((t) => {
+              const { color, label } = DEBT_META[t]
+              const active = tab === t
+              return (
+                <button
+                  key={t}
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={label}
+                  tabIndex={stuck ? 0 : -1}
+                  onClick={() => onSelect(t)}
+                  className="qb-press relative flex h-9 items-center justify-center gap-1.5 rounded-full"
+                  style={{
+                    minWidth: 36,
+                    padding: active ? '0 12px 0 10px' : 0,
+                    background: active ? color : 'transparent',
+                    color: active ? '#0a0a0c' : color,
+                    transition: 'background 250ms ease, padding 300ms cubic-bezier(0.22,1,0.36,1)',
+                  }}
+                >
+                  <DebtKindIcon kind={t} size={16} strokeWidth={2} />
+                  {active && <span className="whitespace-nowrap text-[12px] font-bold">{label}</span>}
+                  {alerts[t] && !active && (
+                    <span className="absolute rounded-full" style={{ top: 4, left: 5, width: 6, height: 6, background: alerts[t], border: '1.5px solid rgba(28,28,33,1)' }} />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
