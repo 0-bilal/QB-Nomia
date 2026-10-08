@@ -6,6 +6,8 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { intervalLabel } from './CommitmentsScreen'
 import type { RecurringTransaction, TransactionType } from '../types'
+import { SwipeableRow } from '../components/SwipeableRow'
+import { Badge, EmptyState, HeaderAddButton, HeroCard, HeroLabel, IconBubble, ListGroup, SectionTitle, TintButton } from '../components/ui'
 
 function daysUntil(dateStr: string): number {
   const today = new Date()
@@ -57,139 +59,145 @@ export function RecurringScreen() {
   const [openId, setOpenId] = useState<string | null>(null)
 
   const accountName = (id?: string) => accounts.find((a) => a.id === id)?.name ?? ''
-  const activeCount = recurringTransactions.filter((r) => r.status === 'active').length
+
+  const active = recurringTransactions.filter((r) => r.status === 'active')
+  const monthlyEstimate = (type: TransactionType) =>
+    active
+      .filter((r) => r.type === type)
+      .reduce((sum, r) => {
+        const perMonth = { day: 30, week: 30 / 7, month: 1, year: 1 / 12 }[r.intervalUnit] / r.intervalCount
+        return sum + r.amount * perMonth
+      }, 0)
+  const dueNow = active.filter((r) => daysUntil(r.nextDueDate) <= 0)
 
   return (
-    <ScreenScroll
-      header={
-        <ScreenHeader
-          title="الحركات المتكررة"
-          onBack={() => navigate(-1)}
-          right={
-            <button
-              onClick={() => navigate('/recurring/new')}
-              className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-              style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-              aria-label="إضافة حركة متكررة"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          }
-        />
-      }
-    >
-      <div className="mb-4 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.25)', color: 'var(--color-text-2)' }}>
-        حركات متكررة بمبلغ تقديري (زي الراتب) — لما يحين موعدها بتوصلك كإشعار تراجعه وتؤكده أو تعدّل مبلغه قبل ما يُسجَّل فعليًا.
+    <ScreenScroll header={<ScreenHeader title="الحركات المتكررة" onBack={() => navigate(-1)} right={<HeaderAddButton label="إضافة حركة متكررة" onClick={() => navigate('/recurring/new')} />} />}>
+      <HeroCard className="mb-4">
+        <HeroLabel>تقدير شهري للحركات النشطة</HeroLabel>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--color-income)]" />
+              دخل متوقع
+            </div>
+            <div className="num text-[20px] font-bold" style={{ color: 'var(--color-income)' }}>
+              {formatMoney(Math.round(monthlyEstimate('income')))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--color-expense)]" />
+              مصروف متوقع
+            </div>
+            <div className="num text-[20px] font-bold" style={{ color: 'var(--color-expense)' }}>
+              {formatMoney(Math.round(monthlyEstimate('expense')))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Badge color="var(--color-transfer)">{active.length} نشطة</Badge>
+          {dueNow.length > 0 && <Badge color="var(--color-expense)">{dueNow.length} تحتاج تأكيد</Badge>}
+        </div>
+      </HeroCard>
+
+      <div className="mb-6 rounded-[20px] bg-[var(--color-accent-soft)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
+        حركات بمبلغ تقديري (زي الراتب) — لما يحين موعدها توصلك كإشعار تراجعه وتؤكده أو تعدّل مبلغه قبل ما يُسجَّل فعليًا.
       </div>
 
-      <div className="qb-card-elevated mb-4 p-4.5">
-        <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">الحركات المتكررة النشطة</div>
-        <div className="num text-[26px] font-bold" style={{ color: 'var(--color-transfer)' }}>
-          {activeCount}
-        </div>
-      </div>
+      <SectionTitle title="كل الحركات المتكررة" hint="اسحب يمينًا للمراجعة والتأكيد · يسارًا للإيقاف أو الاستئناف" />
 
       {recurringTransactions.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">
-          لا توجد حركات متكررة بعد — أضف الراتب أو أي حركة تتكرر بمبلغ متغيّر
-        </div>
+        <EmptyState title="لا توجد حركات متكررة بعد" desc="أضف الراتب أو أي حركة تتكرر بمبلغ متغيّر." actionLabel="إضافة حركة متكررة" onAction={() => navigate('/recurring/new')} />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {recurringTransactions.map((r) => {
+        <ListGroup className="qb-rise">
+          {recurringTransactions.map((r, i) => {
             const badge = dueBadge(r)
             const open = openId === r.id
             const color = TYPE_COLOR[r.type]
             return (
-              <div key={r.id} className="qb-card p-4">
-                <button onClick={() => setOpenId(open ? null : r.id)} className="flex w-full items-center gap-3 text-right">
-                  <div
-                    className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
-                    style={{ width: 46, height: 46, background: `${color}1f`, color }}
-                  >
-                    <RecurringIcon />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="text-[14px] font-bold">{r.name}</div>
-                      {r.status !== 'active' && (
-                        <div className="rounded-full bg-white/6 px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-text-2)]">
-                          {STATUS_LABEL[r.status]}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[11.5px] text-[var(--color-text-3)]">
-                      {TYPE_LABEL[r.type]} · {intervalLabel(r.intervalUnit, r.intervalCount)}
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="num text-[14px] font-bold">~{formatMoney(r.amount)}</div>
-                    {badge && (
-                      <div className="mt-1 text-[11px] font-semibold" style={{ color: badge.color }}>
-                        {badge.text}
+              <SwipeableRow
+                key={r.id}
+                className={i > 0 ? 'border-t qb-divider' : ''}
+                rightSwipe={
+                  r.status === 'active'
+                    ? { label: 'تأكيد', icon: <RecurringIcon />, color, textColor: '#0a0a0c', onTrigger: () => navigate(`/recurring/${r.id}/confirm`) }
+                    : undefined
+                }
+                leftSwipe={
+                  r.status === 'cancelled'
+                    ? undefined
+                    : {
+                        label: r.status === 'active' ? 'إيقاف' : 'استئناف',
+                        icon: <RecurringIcon />,
+                        color: 'var(--color-subscription)',
+                        textColor: '#0a0a0c',
+                        onTrigger: () => setRecurringStatus(r.id, r.status === 'active' ? 'paused' : 'active'),
+                      }
+                }
+              >
+                <div className={r.status === 'cancelled' ? 'opacity-55' : ''}>
+                  <button onClick={() => setOpenId(open ? null : r.id)} className="flex w-full items-center gap-3 px-4 py-3.5 text-right active:bg-white/[0.03]">
+                    <IconBubble color={color}>
+                      <RecurringIcon />
+                    </IconBubble>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[14px] font-medium">{r.name}</span>
+                        {r.status !== 'active' && <Badge>{STATUS_LABEL[r.status]}</Badge>}
                       </div>
-                    )}
-                  </div>
-                </button>
-
-                {open && (
-                  <div className="mt-3.5 flex flex-col gap-2 border-t border-white/6 pt-3.5">
-                    {r.note && <div className="mb-1 text-[12px] leading-relaxed text-[var(--color-text-2)]">{r.note}</div>}
-                    <div className="mb-1 text-[11.5px] text-[var(--color-text-3)]">
-                      {r.type === 'transfer' ? `${accountName(r.accountId)} ← ${accountName(r.transferToAccountId)}` : `الحساب: ${accountName(r.accountId)}`}
+                      <div className="truncate text-[11.5px]" style={{ color: badge?.color ?? 'var(--color-text-3)' }}>
+                        {badge ? badge.text : `${TYPE_LABEL[r.type]} · ${intervalLabel(r.intervalUnit, r.intervalCount)}`}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => navigate(`/recurring/${r.id}/edit`)}
-                      className="qb-press rounded-xl py-2.5 text-[12.5px] font-semibold"
-                      style={{ background: 'var(--color-void)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
-                    >
-                      تعديل بيانات الحركة
-                    </button>
-                    {r.status === 'active' && (
-                      <button
-                        onClick={() => navigate(`/recurring/${r.id}/confirm`)}
-                        className="qb-press rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: `${color}22`, color }}
-                      >
-                        مراجعة وتأكيد الحركة
-                      </button>
-                    )}
-                    <div className="flex gap-2">
-                      {r.status === 'active' ? (
+                    <div className="flex-shrink-0 text-left">
+                      <div className="num text-[14px] font-bold" style={{ color }}>
+                        ~{formatMoney(r.amount)}
+                      </div>
+                      <div className="text-[10.5px] text-[var(--color-text-3)]">{intervalLabel(r.intervalUnit, r.intervalCount)}</div>
+                    </div>
+                  </button>
+
+                  {open && (
+                    <div className="grid grid-cols-2 gap-2 px-4 pb-4" style={{ animation: 'fade-in 200ms ease-out both' }}>
+                      <div className="col-span-2 rounded-[16px] bg-white/[0.04] px-3.5 py-2.5 text-[12px] leading-relaxed text-[var(--color-text-2)]">
+                        {r.type === 'transfer' ? `${accountName(r.accountId)} ← ${accountName(r.transferToAccountId)}` : `الحساب: ${accountName(r.accountId)}`}
+                        {r.note ? ` — ${r.note}` : ''}
+                      </div>
+                      {r.status === 'active' && (
                         <button
-                          onClick={() => setRecurringStatus(r.id, 'paused')}
-                          className="qb-press flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
+                          onClick={() => navigate(`/recurring/${r.id}/confirm`)}
+                          className="qb-press col-span-2 rounded-full py-3 text-[13px] font-semibold text-[#0a0a0c]"
+                          style={{ background: color }}
                         >
-                          إيقاف مؤقت
-                        </button>
-                      ) : r.status === 'paused' ? (
-                        <button
-                          onClick={() => setRecurringStatus(r.id, 'active')}
-                          className="qb-press flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
-                        >
-                          استئناف
-                        </button>
-                      ) : null}
-                      {r.status !== 'cancelled' && (
-                        <button
-                          onClick={() => setRecurringStatus(r.id, 'cancelled')}
-                          className="qb-press flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }}
-                        >
-                          إلغاء
+                          مراجعة وتأكيد الحركة
                         </button>
                       )}
+                      <button onClick={() => navigate(`/recurring/${r.id}/edit`)} className="qb-press rounded-full bg-white/[0.06] py-2.5 text-[12.5px] font-medium">
+                        تعديل
+                      </button>
+                      {r.status === 'active' ? (
+                        <TintButton color="var(--color-subscription)" className="!py-2.5 text-[12.5px]" onClick={() => setRecurringStatus(r.id, 'paused')}>
+                          إيقاف مؤقت
+                        </TintButton>
+                      ) : r.status === 'paused' ? (
+                        <TintButton color="var(--color-accent)" className="!py-2.5 text-[12.5px]" onClick={() => setRecurringStatus(r.id, 'active')}>
+                          استئناف
+                        </TintButton>
+                      ) : (
+                        <div />
+                      )}
+                      {r.status !== 'cancelled' && (
+                        <TintButton color="var(--color-expense)" className="col-span-2 !py-2.5 text-[12.5px]" onClick={() => setRecurringStatus(r.id, 'cancelled')}>
+                          إلغاء
+                        </TintButton>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </SwipeableRow>
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </ScreenScroll>
   )

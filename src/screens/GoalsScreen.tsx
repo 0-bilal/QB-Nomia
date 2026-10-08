@@ -8,6 +8,9 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { computeZakatStatus, getGoldPricePerGram, getGoldPriceUpdatedAt, setGoldPricePerGram } from '../lib/zakat'
 import { projectGoalCompletion } from '../lib/goalProjection'
 import type { Account, ZakatPayment } from '../types'
+import { BigAmount } from '../components/BigAmount'
+import { Badge, EmptyState, HeaderAddButton, HeroCard, HeroLabel, RingProgress, SectionTitle } from '../components/ui'
+import { rise } from '../lib/motion'
 
 function GoalIcon() {
   return (
@@ -41,7 +44,7 @@ function ZakatBlock({
 }) {
   if (!account.zakatHawlStartDate) {
     return (
-      <div className="mt-3 rounded-2xl border border-dashed px-3.5 py-2.5 text-[11px] leading-relaxed text-[var(--color-text-3)]" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+      <div className="mt-3 rounded-[18px] bg-white/[0.04] px-3.5 py-3 text-[11.5px] leading-relaxed text-[var(--color-text-3)]">
         حدّد تاريخ بداية حول الزكاة من شاشة تعديل الحساب لحساب زكاة هذا الهدف
       </div>
     )
@@ -51,8 +54,8 @@ function ZakatBlock({
   const lastPayment = payments[0]
 
   return (
-    <div className="mt-3 rounded-2xl border px-3.5 py-2.5" style={{ borderColor: 'rgba(96,165,250,0.3)', background: 'rgba(96,165,250,0.08)' }}>
-      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: 'var(--color-commitment)' }}>
+    <div className="mt-3 rounded-[20px] px-4 py-3" style={{ background: 'linear-gradient(135deg, rgba(95,179,255,0.14), rgba(95,179,255,0.04))' }}>
+      <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: 'var(--color-commitment)' }}>
         <ZakatIcon />
         الزكاة
       </div>
@@ -73,8 +76,8 @@ function ZakatBlock({
               e.stopPropagation()
               onMarkPaid(z.due)
             }}
-            className="qb-press mt-2.5 w-full rounded-xl py-2 text-[11.5px] font-bold"
-            style={{ background: 'rgba(96,165,250,0.18)', color: 'var(--color-commitment)' }}
+            className="qb-press mt-3 w-full rounded-full py-2.5 text-[12.5px] font-semibold text-[#0a0a0c]"
+            style={{ background: 'var(--color-commitment)' }}
           >
             تم إخراج الزكاة
           </button>
@@ -117,6 +120,10 @@ export function GoalsScreen() {
     if (cleaned && Number.isFinite(n) && n > 0) setGoldPricePerGram(n)
   }
 
+  const totalSaved = goals.reduce((sum, a) => sum + Math.min(a.balance, a.goalAmount ?? 0), 0)
+  const totalTarget = goals.reduce((sum, a) => sum + (a.goalAmount ?? 0), 0)
+  const reachedCount = goals.filter((a) => a.balance >= (a.goalAmount ?? 0)).length
+
   function handleConfirmZakatPaid() {
     if (!pendingZakat) return
     logZakatPayment(pendingZakat.account.id, pendingZakat.due)
@@ -125,25 +132,7 @@ export function GoalsScreen() {
 
   return (
     <ScreenScroll
-      header={
-        <ScreenHeader
-          title="الأهداف"
-          onBack={() => navigate(-1)}
-          right={
-            <button
-              onClick={() => navigate('/accounts/new?type=savings')}
-              className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-              style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-              aria-label="إضافة هدف"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          }
-        />
-      }
+      header={<ScreenHeader title="الأهداف" onBack={() => navigate(-1)} right={<HeaderAddButton label="إضافة هدف" onClick={() => navigate('/accounts/new?type=savings')} />} />}
     >
       <ConfirmDialog
         open={pendingZakat !== null}
@@ -155,32 +144,40 @@ export function GoalsScreen() {
         onCancel={() => setPendingZakat(null)}
       />
 
-      <div className="qb-card mb-4 p-4">
-        <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">سعر جرام الذهب (عيار 24) — لحساب الزكاة</label>
-        <div className="flex items-center gap-2.5">
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            value={goldPriceInput}
-            onChange={(e) => handleGoldPriceChange(e.target.value)}
-            placeholder="مثال: 320"
-            className="num flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-          />
-          <div className="text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</div>
-        </div>
-        <div className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-[var(--color-text-3)]">
-          {goldPriceUpdatedAt ? `آخر تحديث: ${formatDate(goldPriceUpdatedAt.slice(0, 10))} — ` : ''}
-          يُدخَل يدويًا من مصدر تثق فيه، ويُستخدم لحساب نصاب الزكاة (85 جرام) لكل أهدافك
-        </div>
-      </div>
+      {goals.length > 0 && (
+        <HeroCard className="mb-6">
+          <div className="flex items-center gap-5">
+            <RingProgress pct={totalTarget ? (totalSaved / totalTarget) * 100 : 0} size={104} color="var(--color-subscription)">
+              <span className="num text-[22px] font-bold leading-none">{totalTarget ? Math.round((totalSaved / totalTarget) * 100) : 0}%</span>
+              <span className="mt-1 text-[10px] text-[var(--color-text-3)]">من كل الأهداف</span>
+            </RingProgress>
+            <div className="min-w-0 flex-1">
+              <HeroLabel>إجمالي المدّخر</HeroLabel>
+              <BigAmount value={totalSaved} size={28} color="var(--color-subscription)" />
+              <div className="num mt-1.5 text-[12px] text-[var(--color-text-3)]">الهدف الكلي {formatMoney(totalTarget)}</div>
+              <div className="mt-2.5">
+                <Badge color="var(--color-income)">
+                  {reachedCount} من {goals.length} تحققت
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </HeroCard>
+      )}
+
+      <SectionTitle title="أهدافك" hint="اضغط أي هدف لتعديل مبلغه أو موعده" />
 
       {goals.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">
-          لا توجد أهداف ادخار بعد — أضف حساب ادخار وحدد له مبلغ هدف
-        </div>
+        <EmptyState
+          icon={<GoalIcon />}
+          title="لا توجد أهداف ادخار بعد"
+          desc="أضف حساب ادخار وحدد له مبلغ هدف وموعدًا، ونتابع معك تقدّمك ونتوقّع موعد الوصول."
+          actionLabel="إضافة هدف"
+          onAction={() => navigate('/accounts/new?type=savings')}
+        />
       ) : (
         <div className="flex flex-col gap-3">
-          {goals.map((a) => {
+          {goals.map((a, gi) => {
             const goalAmount = a.goalAmount ?? 0
             const pct = Math.min(100, (a.balance / goalAmount) * 100)
             const remaining = Math.max(0, goalAmount - a.balance)
@@ -189,78 +186,64 @@ export function GoalsScreen() {
             const reached = a.balance >= goalAmount
             const projection = !reached ? projectGoalCompletion(a.id, remaining, transactions) : null
             const projectionAheadOfTarget = projection?.projectedDate && a.goalTargetDate ? projection.projectedDate <= a.goalTargetDate : null
+            const ringColor = reached ? 'var(--color-income)' : 'var(--color-subscription)'
 
             return (
-              <div key={a.id} onClick={() => navigate(`/accounts/${a.id}/edit`)} className="qb-card-elevated qb-press block w-full p-4.5 text-right">
-                <div className="mb-3 flex items-center gap-3">
-                  <div
-                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]"
-                    style={{ width: 44, height: 44, background: 'rgba(245,185,66,0.14)', color: 'var(--color-subscription)' }}
-                  >
-                    <GoalIcon />
-                  </div>
+              <div key={a.id} onClick={() => navigate(`/accounts/${a.id}/edit`)} className="qb-card qb-press qb-rise block w-full p-4 text-right" style={rise(gi + 1)}>
+                <div className="flex items-center gap-4">
+                  <RingProgress pct={pct} size={72} stroke={7} color={ringColor}>
+                    {reached ? (
+                      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--color-income)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="5,13 10,18 19,6" />
+                      </svg>
+                    ) : (
+                      <span className="num text-[15px] font-bold">{Math.round(pct)}%</span>
+                    )}
+                  </RingProgress>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14.5px] font-bold">{a.goalLabel || a.name}</div>
-                    <div className="truncate text-[11px] text-[var(--color-text-3)]">{a.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[15.5px] font-semibold">{a.goalLabel || a.name}</span>
+                      {reached && <Badge color="var(--color-income)">تحقق</Badge>}
+                    </div>
+                    <div className="truncate text-[11.5px] text-[var(--color-text-3)]">{a.name}</div>
+                    <div className="num mt-1.5 flex items-baseline gap-1.5">
+                      <span className="text-[17px] font-bold" style={{ color: ringColor }}>
+                        {formatMoney(a.balance)}
+                      </span>
+                      <span className="text-[11.5px] text-[var(--color-text-3)]">/ {formatMoney(goalAmount)}</span>
+                    </div>
                   </div>
-                  {reached && (
-                    <div className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10.5px] font-bold" style={{ background: 'rgba(34,197,94,0.16)', color: 'var(--color-income)' }}>
-                      تحقق ✓
-                    </div>
-                  )}
                 </div>
 
-                <div className="num mb-2 flex items-baseline justify-between">
-                  <span className="text-[19px] font-bold" style={{ color: 'var(--color-subscription)' }}>
-                    {formatMoney(a.balance)}
-                  </span>
-                  <span className="text-[12px] text-[var(--color-text-3)]">من {formatMoney(goalAmount)}</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/8">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #F5B942, #F59E0B)' }}
-                  />
-                </div>
-                <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">{Math.round(pct)}% مكتمل</div>
-
-                {!reached && a.goalTargetDate && (
-                  <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5">
-                    <div className="flex items-center justify-between text-[11.5px]">
-                      <span className="text-[var(--color-text-3)]">الهدف بحلول</span>
-                      <span className="num font-semibold">{formatDate(a.goalTargetDate)}</span>
-                    </div>
-                    {monthlyNeeded !== null && (
-                      <div className="mt-1 flex items-center justify-between text-[11.5px]">
-                        <span className="text-[var(--color-text-3)]">تحتاج تودّع شهريًا</span>
-                        <span className="num font-bold" style={{ color: 'var(--color-subscription)' }}>
-                          {formatMoney(monthlyNeeded)}
-                        </span>
+                {!reached && (a.goalTargetDate || projection?.projectedDate) && (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {a.goalTargetDate && (
+                      <div className="rounded-[16px] bg-white/[0.04] px-3 py-2.5">
+                        <div className="text-[10.5px] text-[var(--color-text-3)]">الهدف بحلول</div>
+                        <div className="num text-[13px] font-semibold">{formatDate(a.goalTargetDate)}</div>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {!reached && projection?.projectedDate && (
-                  <div className="mt-3 rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5">
-                    <div className="flex items-center justify-between text-[11.5px]">
-                      <span className="text-[var(--color-text-3)]">بمعدّلك الحالي (آخر 3 أشهر)</span>
-                      <span className="num font-semibold" style={{ color: 'var(--color-income)' }}>
-                        +{formatMoney(projection.avgMonthlyContribution)}/شهر
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between text-[11.5px]">
-                      <span className="text-[var(--color-text-3)]">متوقّع تصل الهدف بحلول</span>
-                      <span
-                        className="num font-bold"
-                        style={{ color: projectionAheadOfTarget === false ? 'var(--color-expense)' : 'var(--color-income)' }}
-                      >
-                        {formatDate(projection.projectedDate)}
-                      </span>
-                    </div>
-                    {projectionAheadOfTarget !== null && (
-                      <div className="mt-1 text-[10.5px]" style={{ color: projectionAheadOfTarget ? 'var(--color-income)' : 'var(--color-expense)' }}>
-                        {projectionAheadOfTarget ? 'قبل الموعد المحدد أو بحدوده — استمر' : 'بعد الموعد المحدد — تحتاج ترفع معدّل الإيداع'}
+                    {monthlyNeeded !== null && (
+                      <div className="rounded-[16px] bg-white/[0.04] px-3 py-2.5">
+                        <div className="text-[10.5px] text-[var(--color-text-3)]">تحتاج شهريًا</div>
+                        <div className="num text-[13px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
+                          {formatMoney(monthlyNeeded)}
+                        </div>
+                      </div>
+                    )}
+                    {projection?.projectedDate && (
+                      <div className="col-span-2 rounded-[16px] px-3 py-2.5" style={{ background: projectionAheadOfTarget === false ? 'rgba(255,95,109,0.1)' : 'rgba(62,224,143,0.1)' }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10.5px] text-[var(--color-text-3)]">بمعدّلك (+{formatMoney(projection.avgMonthlyContribution)}/شهر) تصل بحلول</span>
+                          <span className="num text-[13px] font-bold" style={{ color: projectionAheadOfTarget === false ? 'var(--color-expense)' : 'var(--color-income)' }}>
+                            {formatDate(projection.projectedDate)}
+                          </span>
+                        </div>
+                        {projectionAheadOfTarget !== null && (
+                          <div className="mt-0.5 text-[10.5px]" style={{ color: projectionAheadOfTarget ? 'var(--color-income)' : 'var(--color-expense)' }}>
+                            {projectionAheadOfTarget ? 'قبل الموعد المحدد أو بحدوده — استمر' : 'بعد الموعد المحدد — ارفع معدّل الإيداع'}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -279,6 +262,26 @@ export function GoalsScreen() {
           })}
         </div>
       )}
+
+      <div className="qb-card qb-rise mt-6 p-4">
+        <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">سعر جرام الذهب (عيار 24) — لحساب الزكاة</label>
+        <div className="flex items-center gap-2.5">
+          <input
+            dir="ltr"
+            inputMode="decimal"
+            value={goldPriceInput}
+            onChange={(e) => handleGoldPriceChange(e.target.value)}
+            placeholder="مثال: 320"
+            className="num flex-1 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-void)] px-4 py-3.5 text-[16px] font-semibold outline-none placeholder:text-[var(--color-text-3)]"
+          />
+          <div className="text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</div>
+        </div>
+        <div className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-[var(--color-text-3)]">
+          {goldPriceUpdatedAt ? `آخر تحديث: ${formatDate(goldPriceUpdatedAt.slice(0, 10))} — ` : ''}
+          يُدخَل يدويًا من مصدر تثق فيه، ويُستخدم لحساب نصاب الزكاة (85 جرام) لكل أهدافك
+        </div>
+      </div>
+
     </ScreenScroll>
   )
 }

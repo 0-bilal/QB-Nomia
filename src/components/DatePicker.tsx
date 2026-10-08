@@ -102,15 +102,15 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
   return (
     <>
       {fieldLabel ? (
-        <button type="button" onClick={openPicker} className="qb-card qb-press flex w-full items-center gap-3 px-4 py-3 text-right">
+        <button type="button" onClick={openPicker} className="qb-card qb-press flex w-full items-center gap-3 px-4 py-3.5 text-right">
           <div
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full"
             style={{ width: 44, height: 44, background: `${color}1f`, color }}
           >
             <CalendarIcon />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="mb-0.5 text-[11px] font-semibold text-[var(--color-text-2)]">{fieldLabel}</div>
+            <div className="mb-0.5 text-[11.5px] font-medium text-[var(--color-text-3)]">{fieldLabel}</div>
             <div className={`num truncate text-[14px] font-bold ${value ? '' : 'text-[var(--color-text-3)]'}`}>{label}</div>
           </div>
           <div className="flex-shrink-0 text-[var(--color-text-3)]">
@@ -133,13 +133,13 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
       {open && (
         <div dir="rtl" className="fixed inset-0 z-[60] flex items-center justify-center px-6">
           <div
-            className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/70 backdrop-blur-[6px]"
             style={{ animation: 'fade-in 180ms ease-out both' }}
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
           <div
-            className="relative w-full max-w-[320px] rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]"
+            className="relative w-full max-w-[320px] rounded-[32px] border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-5 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.9)]"
             style={{ animation: 'speed-dial-in 200ms ease-out both' }}
           >
             <div className="mb-3 flex items-center justify-between">
@@ -197,7 +197,7 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
             <button
               type="button"
               onClick={goToday}
-              className="mt-3 w-full rounded-2xl py-2.5 text-center text-[12.5px] font-semibold"
+              className="mt-4 w-full rounded-full py-3 text-center text-[12.5px] font-semibold"
               style={{ background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
             >
               اليوم

@@ -11,6 +11,8 @@ import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIc
 import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import type { BillingCycle } from '../types'
+import { BigAmount } from '../components/BigAmount'
+import { IconBubble, Segmented } from '../components/ui'
 
 function defaultRenewalDate(): string {
   const d = new Date()
@@ -52,7 +54,7 @@ export function AddSubscriptionScreen() {
     const { name, provider, cost, billingCycle, nextRenewalDate, accountId } = existing
     deleteSubscription(id)
     navigate('/subscriptions', { replace: true })
-    showUndoToast('تم حذف الاشتراك', () => addSubscription({ name, provider, cost, billingCycle, nextRenewalDate, accountId }))
+    showUndoToast('تم حذف الاشتراك', (data) => data.addSubscription({ name, provider, cost, billingCycle, nextRenewalDate, accountId }))
   }
 
   return (
@@ -65,7 +67,7 @@ export function AddSubscriptionScreen() {
           className="pt-8 pb-6"
           right={
             isEditing ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -79,7 +81,7 @@ export function AddSubscriptionScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: 'var(--color-subscription)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الاشتراك'}
@@ -96,54 +98,60 @@ export function AddSubscriptionScreen() {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDeleteOpen(false)}
       />
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الاشتراك</label>
+      <div className="qb-card-elevated qb-rise mb-6 p-5">
+        <div className="flex items-center gap-3.5">
+          <IconBubble color="var(--color-subscription)" size={52}>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M8 5.5v13l10.5-6.5z" />
+            </svg>
+          </IconBubble>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[17px] font-semibold">{name.trim() || 'اشتراك جديد'}</div>
+            <div className="truncate text-[12px] text-[var(--color-text-3)]">{provider.trim() || 'المزود'}</div>
+          </div>
+        </div>
+        <div className="mt-5 flex items-baseline justify-between">
+          <BigAmount value={Number(cost) || 0} size={30} color="var(--color-subscription)" animate={false} />
+          <span className="text-[12.5px] text-[var(--color-text-3)]">{billingCycle === 'monthly' ? 'شهريًا' : 'سنويًا'}</span>
+        </div>
+      </div>
+
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الاشتراك</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: يوتيوب بريميوم"
-        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">المزود (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">المزود (اختياري)</label>
       <input
         value={provider}
         onChange={(e) => setProvider(e.target.value)}
         placeholder="مثال: Google Play"
-        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">التكلفة</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">التكلفة</label>
       <input
         dir="ltr"
         inputMode="decimal"
         value={cost}
         onChange={(e) => setCost(e.target.value.replace(/[^0-9.]/g, ''))}
         placeholder="0"
-        className="num mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="num mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">دورة الفوترة</label>
-      <div className="mb-5 flex gap-2">
-        {(
-          [
-            ['monthly', 'شهري'],
-            ['yearly', 'سنوي'],
-          ] as [BillingCycle, string][]
-        ).map(([cycle, label]) => (
-          <button
-            key={cycle}
-            onClick={() => setBillingCycle(cycle)}
-            className="qb-press flex-1 rounded-2xl py-2.5 text-[13px] font-semibold"
-            style={
-              billingCycle === cycle
-                ? { background: 'rgba(245,185,66,0.18)', color: 'var(--color-subscription)' }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">دورة الفوترة</label>
+      <Segmented
+        options={[
+          ['monthly', 'شهري'],
+          ['yearly', 'سنوي'],
+        ]}
+        value={billingCycle}
+        onChange={(v: BillingCycle) => setBillingCycle(v)}
+        color="var(--color-subscription)"
+      />
 
       <SelectSheet
         open={accountSheetOpen}
@@ -176,8 +184,8 @@ export function AddSubscriptionScreen() {
               setAccountSheetOpen(false)
               navigate('/accounts/new')
             }}
-            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
           >
             + إضافة حساب جديد
           </button>

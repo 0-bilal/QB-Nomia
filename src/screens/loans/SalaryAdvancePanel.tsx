@@ -8,6 +8,8 @@ import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 import type { AccountType } from '../../types'
+import { BigAmount } from '../../components/BigAmount'
+import { Badge, EmptyState, IconBubble, ListGroup, ListItem, SectionTitle } from '../../components/ui'
 
 function SalaryAdvanceIcon({ size = 20 }: { size?: number }) {
   return (
@@ -51,12 +53,14 @@ function LogAdvanceForm({
 
   return (
     <div>
-      <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">مبلغ السلفة</div>
-      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span className="num text-[32px] font-bold">{amount || '0'}</span>
-        <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</span>
+      <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">مبلغ السلفة</div>
+      <div dir="ltr" className="mb-5 flex items-baseline justify-center gap-2" style={{ color }}>
+        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+          {amount || '0'}
+        </span>
+        <span className="flex-shrink-0 text-[16px] font-medium opacity-60">ر.س</span>
       </div>
-      <div className="mb-4 flex justify-center">
+      <div className="mb-4">
         <AmountPad value={amount} onChange={setAmount} color={color} />
       </div>
 
@@ -91,8 +95,8 @@ function LogAdvanceForm({
               setAccountSheetOpen(false)
               navigate('/accounts/new')
             }}
-            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
           >
             + إضافة حساب جديد
           </button>
@@ -120,21 +124,21 @@ function LogAdvanceForm({
       </div>
 
       <div className="flex gap-2.5">
-        <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
+        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
           إلغاء
         </button>
         <button
           onClick={() => canSave && onSave(numeric, accountId)}
           disabled={!canSave}
-          className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
-          style={{ background: color }}
+          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
+          style={{ background: color, boxShadow: canSave ? `0 12px 26px -12px ${color}` : 'none' }}
         >
           حفظ
         </button>
       </div>
 
       {onDelete && (
-        <button onClick={onDelete} className="qb-press mt-3 w-full text-center text-[12.5px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+        <button onClick={onDelete} className="qb-press mt-4 w-full text-center text-[13px] font-medium" style={{ color: 'var(--color-expense)' }}>
           حذف السلفة
         </button>
       )}
@@ -169,13 +173,14 @@ export function SalaryAdvancePanel() {
         onCancel={() => setConfirmDeleteId(null)}
       />
 
-      <div className="qb-card-elevated mb-5 p-4.5">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'rgba(34,197,94,0.14)', color }}>
+      <div className="qb-card-elevated qb-rise mb-6 p-5">
+        <div className="relative">
+        <div className="mb-5 flex items-center gap-3">
+          <IconBubble color={color} size={46}>
             <SalaryAdvanceIcon />
-          </div>
+          </IconBubble>
           <div className="min-w-0 flex-1">
-            <div className="text-[14.5px] font-bold">سلفة الراتب</div>
+            <div className="text-[16px] font-semibold">سلفة الراتب</div>
             <div className="truncate text-[11px] text-[var(--color-text-3)]">تُخصم تلقائيًا من أول حركة دخل "راتب" تسجّلها</div>
           </div>
         </div>
@@ -205,75 +210,65 @@ export function SalaryAdvancePanel() {
         ) : (
           <>
             {outstandingTotal === 0 ? (
-              <div className="mb-3 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(34,197,94,0.4)', color: 'var(--color-text-2)' }}>
+              <div className="mb-4 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
                 لا توجد سلف قائمة حاليًا. سجّل سلفة جديدة وبتُخصم تلقائيًا من أول راتب تسجّله بعدها.
               </div>
             ) : (
-              <div className="mb-3">
-                <div className="text-[11.5px] text-[var(--color-text-3)]">المتبقي غير المسدَّد</div>
-                <div className="num text-[22px] font-bold" style={{ color }}>
-                  {formatMoney(outstandingTotal)}
-                </div>
+              <div className="mb-5">
+                <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">المتبقي غير المسدَّد</div>
+                <BigAmount value={outstandingTotal} size={36} color={color} />
               </div>
             )}
 
             <button
               onClick={() => setEditingId('new')}
               disabled={accounts.length === 0}
-              className="qb-press w-full rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
-              style={{ background: 'rgba(34,197,94,0.18)', color }}
+              className="qb-btn-primary flex w-full items-center justify-center gap-2 py-3 text-[13.5px]"
             >
               تسجيل سلفة جديدة
             </button>
           </>
         )}
       </div>
+      </div>
 
-      <div className="qb-section-label mb-2 px-1">سجل السلف</div>
+      <SectionTitle title="سجل السلف" />
       {salaryAdvances.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا يوجد سجل بعد</div>
+        <EmptyState title="لا يوجد سجل بعد" desc="كل سلفة تسجّلها تظهر هنا مع حالة سدادها." />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {salaryAdvances.map((a) => {
+        <ListGroup>
+          {salaryAdvances.map((a, i) => {
             const account = accounts.find((acc) => acc.id === a.accountId)
-            const row = (
-              <>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="text-[13px] font-bold">{formatDate(a.date)}</div>
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-[9.5px] font-bold"
-                      style={a.settled ? { background: 'rgba(255,255,255,0.08)', color: 'var(--color-text-3)' } : { background: 'rgba(34,197,94,0.16)', color }}
-                    >
-                      {a.settled ? 'مسدَّدة' : 'قائمة'}
-                    </span>
-                  </div>
-                  <span className="num text-[13px] font-bold" style={{ color }}>
+            const sub = [account ? `${account.name} · ${ACCOUNT_TYPE_LABELS[account.type]}` : '', a.settled && a.settledDate ? `خُصمت بتاريخ ${formatDate(a.settledDate)}` : '']
+              .filter(Boolean)
+              .join(' — ')
+            return (
+              <ListItem
+                key={a.id}
+                divider={i > 0}
+                muted={a.settled}
+                onClick={a.settled ? undefined : () => setEditingId(a.id)}
+                leading={
+                  <IconBubble color={a.settled ? 'var(--color-text-3)' : color}>
+                    <SalaryAdvanceIcon size={18} />
+                  </IconBubble>
+                }
+                title={
+                  <span className="flex items-center gap-2">
+                    <span className="num">{formatDate(a.date)}</span>
+                    <Badge color={a.settled ? 'var(--color-text-3)' : color}>{a.settled ? 'مسدَّدة' : 'قائمة'}</Badge>
+                  </span>
+                }
+                subtitle={sub || undefined}
+                trailing={
+                  <span className="num text-[14px] font-bold" style={{ color: a.settled ? 'var(--color-text-2)' : color }}>
                     {formatMoney(a.amount)}
                   </span>
-                </div>
-                {account && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                    <AccountTypeIcon type={account.type} size={13} />
-                    <span>{account.name} · {ACCOUNT_TYPE_LABELS[account.type]}</span>
-                  </div>
-                )}
-                {a.settled && a.settledDate && (
-                  <div className="mt-1 text-[11px] text-[var(--color-text-3)]">تمّ خصمها من الراتب بتاريخ {formatDate(a.settledDate)}</div>
-                )}
-              </>
-            )
-            return a.settled ? (
-              <div key={a.id} className="qb-card p-3.5">
-                {row}
-              </div>
-            ) : (
-              <button key={a.id} onClick={() => setEditingId(a.id)} className="qb-card qb-press p-3.5 text-right">
-                {row}
-              </button>
+                }
+              />
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </>
   )

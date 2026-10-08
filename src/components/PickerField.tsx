@@ -23,15 +23,15 @@ interface PickerFieldProps {
 /** حقل نموذج قابل للنقر بشكل صف (أيقونة + عنوان/قيمة + محتوى ذيلي) يفتح Sheet اختيار — بديل موحّد لقوائم الأزرار الدائرية المتفرقة. */
 export function PickerField({ label, icon, iconColor, iconBg, title, subtitle, trailing, placeholder, onClick }: PickerFieldProps) {
   return (
-    <button type="button" onClick={onClick} className="qb-card qb-press flex w-full items-center gap-3 px-4 py-3 text-right">
+    <button type="button" onClick={onClick} className="qb-card qb-press flex w-full items-center gap-3 px-4 py-3.5 text-right">
       <div
-        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]"
+        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full"
         style={{ width: 44, height: 44, background: iconBg, color: iconColor }}
       >
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="mb-0.5 text-[11px] font-semibold text-[var(--color-text-2)]">{label}</div>
+        <div className="mb-0.5 text-[11.5px] font-medium text-[var(--color-text-3)]">{label}</div>
         <div className={`truncate text-[14px] font-bold ${placeholder ? 'text-[var(--color-text-3)]' : ''}`}>{title}</div>
         {subtitle && <div className="truncate text-[11px] text-[var(--color-text-3)]">{subtitle}</div>}
       </div>

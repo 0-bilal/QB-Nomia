@@ -83,7 +83,7 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
         className="qb-card-elevated qb-press mb-4 flex w-full flex-col items-center justify-center gap-2 p-8 text-center"
         style={{ height: CARD_HEIGHT }}
       >
-        <div className="text-[13px] font-bold">أضف حسابك الأول</div>
+        <div className="text-[13px] font-semibold">أضف حسابك الأول</div>
         <div className="text-[11.5px] text-[var(--color-text-3)]">كاش، بنكي، ادخار، أو محفظة رقمية</div>
       </button>
     )
@@ -132,7 +132,7 @@ export function AccountCardStack({ accounts, hidden }: { accounts: Account[]; hi
   }
 
   return (
-    <div className="relative mb-4" style={{ height: stackHeight + dotsSpace }}>
+    <div data-own-gesture className="relative mb-4" style={{ height: stackHeight + dotsSpace }}>
       {Array.from({ length: visibleCount }, (_, slot) => {
         const idx = (safeIndex + slot) % count
         const account = ordered[idx]

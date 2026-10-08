@@ -123,7 +123,7 @@ export function SyncStatusBar() {
         {status === 'success' && (
           <div
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold shadow-[0_6px_18px_-6px_rgba(0,0,0,0.6)]"
-            style={{ animation: 'fade-in 150ms ease-out both', background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)', border: '1px solid rgba(255,255,255,0.3)' }}
+            style={{ animation: 'fade-in 150ms ease-out both', background: 'var(--color-accent)', color: 'var(--color-on-accent)', border: '1px solid transparent' }}
           >
             <CloudCheckIcon />
             {MESSAGES[direction].success}

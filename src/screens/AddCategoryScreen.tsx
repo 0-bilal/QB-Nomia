@@ -6,9 +6,11 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { showUndoToast } from '../lib/undoToast'
 import { formatDate, formatMoney } from '../lib/format'
-import { ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
+import { ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { colorFor } from '../components/Avatar'
 import { CATEGORY_ICON_OPTIONS, CategoryIcon } from '../components/CategoryIcons'
+import { SheetHandle } from '../components/SheetHandle'
+import { EmptyState, IconBubble, ListGroup, ListItem, SectionTitle } from '../components/ui'
 
 function EditBadgeIcon() {
   return (
@@ -45,15 +47,15 @@ function IconPickerSheet({
 
   return (
     <div dir="rtl" className="fixed inset-0 z-[60] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
       <div
-        className="relative flex max-h-[75vh] w-full max-w-[480px] flex-col rounded-t-[28px] border-x border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
-        style={{ animation: 'sheet-in 260ms cubic-bezier(0.16,1,0.3,1) both' }}
+        className="relative flex max-h-[75vh] w-full max-w-[480px] flex-col rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
       >
-        <div className="mx-auto mb-1 mt-2.5 h-1 w-9 flex-shrink-0 rounded-full bg-white/15" />
+        <SheetHandle onDismiss={onClose} />
         <div className="flex flex-shrink-0 items-center justify-between px-5 py-3">
-          <div className="text-[15px] font-bold">اختر أيقونة الفئة</div>
-          <button onClick={onClose} aria-label="إغلاق" className="qb-press flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text-2)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="text-[17px] font-semibold">اختر أيقونة الفئة</div>
+          <button onClick={onClose} aria-label="إغلاق" className="qb-press flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-2)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <CloseIcon />
           </button>
         </div>
@@ -124,7 +126,7 @@ export function AddCategoryScreen() {
     const { name, kind, budgetLimit, icon } = existing
     deleteCategory(id)
     navigate('/categories', { replace: true })
-    showUndoToast('تم حذف الفئة', () => addCategory({ name, kind, budgetLimit, icon }))
+    showUndoToast('تم حذف الفئة', (data) => data.addCategory({ name, kind, budgetLimit, icon }))
   }
 
   return (
@@ -137,7 +139,7 @@ export function AddCategoryScreen() {
           className="pt-8 pb-6"
           right={
             isEditing && !isProtected ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -151,7 +153,7 @@ export function AddCategoryScreen() {
           <button
             onClick={handleSave}
             disabled={!name.trim()}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: 'var(--color-accent)' }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ'}
@@ -180,14 +182,20 @@ export function AddCategoryScreen() {
         onClose={() => setIconPickerOpen(false)}
       />
 
-      <div className="mb-5 flex justify-center">
-        <button type="button" onClick={() => setIconPickerOpen(true)} className="qb-press flex flex-col items-center gap-2" aria-label="اختيار أيقونة الفئة">
-          <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center">
+      <div className="qb-card-elevated qb-rise mb-6 flex flex-col items-center py-7">
+        <button type="button" onClick={() => setIconPickerOpen(true)} className="qb-press flex flex-col items-center gap-3" aria-label="اختيار أيقونة الفئة">
+          <div className="relative flex flex-shrink-0 items-center justify-center">
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ width: 64, height: 64, background: `${previewColor}22`, color: previewColor }}
+              className="flex items-center justify-center rounded-full"
+              style={{
+                width: 88,
+                height: 88,
+                background: `radial-gradient(120% 120% at 30% 20%, ${previewColor}55, ${previewColor}14 70%)`,
+                boxShadow: `inset 0 0 0 1.5px ${previewColor}40, 0 18px 40px -16px ${previewColor}`,
+                color: previewColor,
+              }}
             >
-              {icon ? <CategoryIcon iconKey={icon} size={28} /> : <span style={{ fontWeight: 700, fontSize: 24 }}>{name.trim().charAt(0) || '؟'}</span>}
+              {icon ? <CategoryIcon iconKey={icon} size={38} /> : <span style={{ fontWeight: 600, fontSize: 34 }}>{name.trim().charAt(0) || '؟'}</span>}
             </div>
             <div
               className="absolute -bottom-1 -left-1 flex h-6 w-6 items-center justify-center rounded-full border-2"
@@ -196,71 +204,63 @@ export function AddCategoryScreen() {
               <EditBadgeIcon />
             </div>
           </div>
-          <span className="text-[11.5px] font-semibold" style={{ color: 'var(--color-accent)' }}>
-            اختر أيقونة
-          </span>
+          <span className="text-[17px] font-semibold">{name.trim() || 'فئة جديدة'}</span>
+          <span className="rounded-full bg-[var(--color-accent-soft)] px-3 py-1 text-[11.5px] font-semibold text-[var(--color-accent)]">اضغط لتغيير الأيقونة</span>
         </button>
       </div>
 
       {isProtected && (
-        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.16)', color: 'var(--color-text-2)' }}>
+        <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           هذي فئة أساسية يعتمد عليها التطبيق داخليًا (لحركات مثل الاشتراكات أو الالتزامات أو تسديد الديون)، فما ينحذفها حتى ما تختفي فئة تلك الحركات مستقبلًا. تقدر تعدّل اسمها أو أيقونتها بس.
         </div>
       )}
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">اسم الفئة</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الفئة</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="مثال: صيانة السيارة"
-        className="mb-5 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ميزانية شهرية (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ميزانية شهرية (اختياري)</label>
       <input
         dir="ltr"
         inputMode="decimal"
         value={budgetLimit}
         onChange={(e) => setBudgetLimit(e.target.value.replace(/[^0-9.]/g, ''))}
         placeholder="0"
-        className="num mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="num mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
       {isEditing && (
         <>
-          <div className="mb-2 mt-3 flex items-center justify-between px-1">
-            <div className="qb-section-label">حركات هذه الفئة</div>
-            {categoryTransactions.length > 0 && (
-              <span className="num text-[12.5px] font-bold" style={{ color: 'var(--color-expense)' }}>
-                الإجمالي {formatMoney(categoryTotal)}
-              </span>
-            )}
-          </div>
+          <SectionTitle className="mb-3 mt-4" title="حركات هذه الفئة" hint={categoryTransactions.length > 0 ? `الإجمالي ${formatMoney(categoryTotal)}` : undefined} />
           {categoryTransactions.length === 0 ? (
-            <div className="qb-card py-8 text-center text-[12.5px] text-[var(--color-text-3)]">لا توجد حركات مسجّلة على هذي الفئة بعد</div>
+            <EmptyState title="لا توجد حركات على هذي الفئة بعد" />
           ) : (
-            <div className="flex flex-col gap-2.5">
-              {categoryTransactions.map((t) => {
+            <ListGroup>
+              {categoryTransactions.map((t, i) => {
                 const account = accounts.find((a) => a.id === t.accountId)
                 return (
-                  <button key={t.id} onClick={() => navigate(`/add/transaction/${t.id}`)} className="qb-card qb-press p-3.5 text-right">
-                    <div className="flex items-center justify-between">
-                      <div className="text-[13px] font-bold">{formatDate(t.date)}</div>
-                      <span className="num text-[13px] font-bold" style={{ color: 'var(--color-expense)' }}>
-                        {formatMoney(t.amount)}
-                      </span>
-                    </div>
-                    {t.note && <div className="mt-1 truncate text-[11.5px] text-[var(--color-text-2)]">{t.note}</div>}
-                    {account && (
-                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                        <AccountTypeIcon type={account.type} size={13} />
-                        <span>{account.name} · {ACCOUNT_TYPE_LABELS[account.type]}</span>
-                      </div>
-                    )}
-                  </button>
+                  <ListItem
+                    key={t.id}
+                    divider={i > 0}
+                    onClick={() => navigate(`/add/transaction/${t.id}`)}
+                    leading={
+                      account ? (
+                        <IconBubble color={ACCOUNT_ICON_COLOR[account.type]} size={40}>
+                          <AccountTypeIcon type={account.type} size={17} />
+                        </IconBubble>
+                      ) : undefined
+                    }
+                    title={<span className="num">{formatDate(t.date)}</span>}
+                    subtitle={[account ? `${account.name} · ${ACCOUNT_TYPE_LABELS[account.type]}` : '', t.note ?? ''].filter(Boolean).join(' — ') || undefined}
+                    trailing={<span className="num text-[14px] font-bold">−{formatMoney(t.amount)}</span>}
+                  />
                 )
               })}
-            </div>
+            </ListGroup>
           )}
         </>
       )}

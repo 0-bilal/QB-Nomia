@@ -87,36 +87,52 @@ export function ChangePinScreen() {
     setValue((v) => v.slice(0, -1))
   }
 
+  const stageIndex = stage === 'verify' ? 0 : stage === 'enter' ? 1 : 2
+
   return (
-    <div dir="rtl" className="flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg)]">
-      <ScreenHeader title="تغيير الرقم السري" onBack={() => navigate(-1)} className="pt-8 pb-5" />
-      <div className="flex flex-1 flex-col items-center px-7 pb-10">
+    <div dir="rtl" className="relative isolate flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg)]">
+      <div className="qb-aurora" aria-hidden="true" />
+      <div className="relative z-10">
+        <ScreenHeader title="تغيير الرقم السري" onBack={() => navigate(-1)} />
+      </div>
+      <div className="relative z-10 flex flex-1 flex-col items-center px-7 pb-10">
         {done ? (
-          <div className="mt-28 flex flex-col items-center gap-3">
+          <div className="mt-28 flex flex-col items-center gap-4">
             <div
-              className="flex h-16 w-16 items-center justify-center rounded-full"
-              style={{ background: 'rgba(34,197,94,0.14)', color: 'var(--color-income)' }}
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 80, height: 80, background: 'var(--color-accent)', color: 'var(--color-on-accent)', animation: 'qb-pop 520ms var(--ease-spring) both', boxShadow: '0 0 60px -6px rgba(255,255,255,0.35)' }}
             >
               <CheckIcon />
             </div>
-            <div className="text-[14px] font-bold">تم تغيير الرقم السري</div>
+            <div className="text-[17px] font-semibold">تم تغيير الرقم السري</div>
           </div>
         ) : (
           <>
-            <div className="mb-1 mt-10 text-base font-semibold">{TITLES[stage]}</div>
-            <div className="mb-9 text-[12.5px] text-[var(--color-text-2)]">
-              {error
-                ? stage === 'verify'
-                  ? 'رقم غير صحيح، حاول مرة أخرى'
-                  : 'الرقمان غير متطابقين، حاول مرة أخرى'
-                : stage === 'verify'
-                  ? 'للتحقق من هويتك قبل التغيير'
-                  : stage === 'enter'
-                    ? `اختر ${digits} أرقام جديدة`
-                    : 'أدخل نفس الرقم الجديد مرة أخرى'}
+            <div className="mt-6 flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="h-1.5 rounded-full"
+                  style={{ width: i === stageIndex ? 28 : 12, background: i <= stageIndex ? 'var(--color-accent)' : 'rgba(255,255,255,0.12)', transition: 'width 320ms var(--ease-spring), background 200ms ease' }}
+                />
+              ))}
+            </div>
+            <div key={stage} className="qb-rise flex flex-col items-center">
+              <div className="mb-1 mt-6 text-[19px] font-semibold">{TITLES[stage]}</div>
+              <div className="text-[13px]" style={{ color: error ? 'var(--color-expense)' : 'var(--color-text-2)' }}>
+                {error
+                  ? stage === 'verify'
+                    ? 'رقم غير صحيح، حاول مرة أخرى'
+                    : 'الرقمان غير متطابقين، حاول مرة أخرى'
+                  : stage === 'verify'
+                    ? 'للتحقق من هويتك قبل التغيير'
+                    : stage === 'enter'
+                      ? `اختر ${digits} أرقام جديدة`
+                      : 'أدخل نفس الرقم الجديد مرة أخرى'}
+              </div>
             </div>
             <div className="mt-auto">
-              <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} />
+              <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} error={error} />
             </div>
           </>
         )}

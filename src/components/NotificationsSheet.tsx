@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { AppNotification } from '../state/DataContext'
 import { isNotificationSupported, notificationPermission, requestNotificationPermission } from '../lib/deviceNotify'
+import { SheetHandle } from './SheetHandle'
 
 function CloseIcon() {
   return (
@@ -172,19 +173,19 @@ export function NotificationsSheet({ open, notifications, onClose }: { open: boo
 
   return (
     <div dir="rtl" className="fixed inset-0 z-[65] flex items-end justify-center">
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
       <div
-        className="relative flex max-h-[80vh] w-full max-w-[480px] flex-col rounded-t-[28px] border-x border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
-        style={{ animation: 'sheet-in 260ms cubic-bezier(0.16,1,0.3,1) both' }}
+        className="relative flex max-h-[80vh] w-full max-w-[480px] flex-col rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
       >
-        <div className="mx-auto mb-1 mt-2.5 h-1 w-9 flex-shrink-0 rounded-full bg-white/15" />
+        <SheetHandle onDismiss={onClose} />
 
         <div className="flex flex-shrink-0 items-center justify-between px-5 py-3">
-          <div className="text-[15px] font-bold">التنبيهات</div>
+          <div className="text-[17px] font-semibold">التنبيهات</div>
           <button
             onClick={onClose}
             aria-label="إغلاق"
-            className="qb-press flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text-2)]"
+            className="qb-press flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-2)]"
             style={{ background: 'rgba(255,255,255,0.08)' }}
           >
             <CloseIcon />
@@ -196,12 +197,12 @@ export function NotificationsSheet({ open, notifications, onClose }: { open: boo
             <div className="qb-card mb-3 flex items-center gap-3 p-3.5">
               <div
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
-                style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--color-accent)' }}
+                style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
               >
                 <DeviceIcon />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[12.5px] font-bold">تنبيهات الجهاز</div>
+                <div className="text-[12.5px] font-semibold">تنبيهات الجهاز</div>
                 <div className="text-[11px] text-[var(--color-text-3)]">
                   {permission === 'denied' ? 'موقوفة من إعدادات المتصفح — فعّلها يدويًا من هناك' : 'فعّلها عشان توصلك إشعارات حقيقية بالجهاز'}
                 </div>
@@ -209,7 +210,7 @@ export function NotificationsSheet({ open, notifications, onClose }: { open: boo
               {permission !== 'denied' && (
                 <button
                   onClick={enableDeviceNotifications}
-                  className="qb-press flex-shrink-0 rounded-full px-3.5 py-1.75 text-[11.5px] font-bold"
+                  className="qb-press flex-shrink-0 rounded-full px-3.5 py-1.75 text-[11.5px] font-semibold"
                   style={{ background: 'var(--color-accent)', color: '#0A0A0C' }}
                 >
                   تفعيل
@@ -237,17 +238,17 @@ export function NotificationsSheet({ open, notifications, onClose }: { open: boo
                       onClose()
                       navigate(n.to)
                     }}
-                    className="qb-press flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-right"
+                    className="qb-press flex w-full items-center gap-3 rounded-[20px] border px-3.5 py-3.5 text-right"
                     style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
                   >
                     <div
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px]"
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
                       style={{ width: 40, height: 40, background: `${n.color}1f`, color: n.color }}
                     >
                       <Icon />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-bold">{n.title}</div>
+                      <div className="truncate text-[13px] font-semibold">{n.title}</div>
                       <div className="truncate text-[11.5px]" style={{ color: n.color }}>
                         {n.message}
                       </div>

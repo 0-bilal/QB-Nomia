@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatMoney, formatSigned, formatDate } from '../lib/format'
@@ -7,6 +7,11 @@ import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
 import { AccountCardStack, CARD_HEIGHT } from '../components/AccountCardStack'
 import { EyeToggleButton } from '../components/EyeToggleButton'
+import { AppLogoMark } from '../components/AppLogo'
+import { BigAmount } from '../components/BigAmount'
+import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
+import { SwipeableRow } from '../components/SwipeableRow'
+import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 import { APP_VERSION } from '../lib/version'
@@ -18,26 +23,111 @@ function ChevronIcon() {
     </svg>
   )
 }
-
+function ArrowDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7l10 10M17 9v8H9" />
+    </svg>
+  )
+}
+function ArrowUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 17 7 7M7 15V7h8" />
+    </svg>
+  )
+}
+function SwapIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 3l4 4-4 4M20 7H8M8 21l-4-4 4-4M4 17h12" />
+    </svg>
+  )
+}
+function ListIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <circle cx="4.5" cy="6" r="1" fill="currentColor" />
+      <circle cx="4.5" cy="12" r="1" fill="currentColor" />
+      <circle cx="4.5" cy="18" r="1" fill="currentColor" />
+    </svg>
+  )
+}
 function SubscriptionIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="8,6 18,12 8,18" />
     </svg>
   )
 }
 function CommitmentIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="3" width="16" height="18" rx="2.5" />
       <path d="M8 8h8M8 12h8M8 16h5" />
     </svg>
+  )
+}
+function AlertIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 2.5 20h19L12 3Z" />
+      <path d="M12 10v4.5" />
+      <circle cx="12" cy="17.3" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 5) return 'ليلة سعيدة'
+  if (h < 12) return 'صباح الخير'
+  if (h < 17) return 'نهارك سعيد'
+  return 'مساء الخير'
+}
+
+/** ترتيب ظهور متتابع (stagger) لكتل الشاشة. */
+function rise(i: number): CSSProperties {
+  return { '--i': i } as CSSProperties
+}
+
+function QuickAction({ label, icon, onClick, primary = false, color }: { label: string; icon: ReactNode; onClick: () => void; primary?: boolean; color?: string }) {
+  return (
+    <button onClick={onClick} className="qb-press flex flex-1 flex-col items-center gap-2">
+      <span
+        className="flex h-[58px] w-[58px] items-center justify-center rounded-[22px] border"
+        style={
+          primary
+            ? { background: 'var(--color-accent)', borderColor: 'transparent', color: 'var(--color-on-accent)', boxShadow: '0 14px 30px -14px rgba(255,255,255,0.35)' }
+            : { background: 'var(--color-surface)', borderColor: 'var(--color-border)', color }
+        }
+      >
+        {icon}
+      </span>
+      <span className="text-[11.5px] font-medium text-[var(--color-text-2)]">{label}</span>
+    </button>
+  )
+}
+
+function SectionTitle({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  return (
+    <div className="mb-3 flex items-center justify-between px-1">
+      <div className="qb-section-title">{title}</div>
+      {action && (
+        <button onClick={onAction} className="qb-press flex items-center gap-0.5 text-[12px] font-medium text-[var(--color-accent)]">
+          {action}
+          <ChevronIcon />
+        </button>
+      )}
+    </div>
   )
 }
 
 export function HomeScreen() {
   const {
     accounts,
+    homeTotalBalance,
     totalMonthlySubscriptions,
     commitments,
     notifications,
@@ -47,14 +137,19 @@ export function HomeScreen() {
     monthTotals,
   } = useData()
   const navigate = useNavigate()
+  const swipeFor = useActivitySwipe()
   const [hidden, setHidden] = useState(getHideBalancesDefault)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [totalSheetOpen, setTotalSheetOpen] = useState(false)
   const mask = (s: string) => (hidden ? '•••••' : s)
 
   const homeAccounts = accounts.filter((a) => a.showOnHome !== false)
+  const includedCount = accounts.filter((a) => a.includeInTotal !== false).length
 
   const activity = recentActivity(6)
   const { income: monthIncome, expense: monthExpense } = monthTotals()
+  const monthNet = monthIncome - monthExpense
+  const flowTotal = monthIncome + monthExpense
 
   const topCategories = categories
     .filter((c) => c.kind === 'expense')
@@ -84,211 +179,240 @@ export function HomeScreen() {
     .sort((a, b) => Math.max(b.pct, b.projectedPct) - Math.max(a.pct, a.projectedPct))
 
   return (
-    <div dir="rtl" className="px-5 pb-4">
-      <div className="safe-top qb-sticky-header-row mb-5 flex items-center justify-between pt-14">
-        <div className="qb-glass-circle flex flex-col justify-center rounded-full border px-3.5 py-1" style={{ minHeight: 38 }}>
-          <div className="text-[11.5px] font-semibold leading-tight text-[var(--color-text-2)]">مرحبًا بك في QB-Nomia</div>
-          <div className="num text-[9.5px] leading-tight text-[var(--color-text-3)]">
-            {formatDate(new Date().toISOString().slice(0, 10))} · الإصدار {APP_VERSION}
+    <div dir="rtl" className="px-5 pb-6">
+      <div className="safe-top qb-sticky-header-row -mx-5 mb-4 flex items-center justify-between px-5 pb-2 pt-12">
+        <div className="qb-glass-circle flex items-center gap-2.5 rounded-full border py-1.5 pe-4 ps-1.5">
+          <AppLogoMark size={32} round />
+          <div className="leading-tight">
+            <div className="text-[13px] font-semibold">{greeting()}</div>
+            <div className="num text-[10px] text-[var(--color-text-3)]">
+              {formatDate(new Date().toISOString().slice(0, 10))} · v{APP_VERSION}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <NotificationBellButton notifications={notifications} onClick={() => setNotificationsOpen(true)} />
           <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
         </div>
       </div>
 
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
+      <TotalAccountsSheet open={totalSheetOpen} onClose={() => setTotalSheetOpen(false)} />
 
-      {accounts.length > 0 && homeAccounts.length === 0 ? (
+      {/* الرصيد الإجمالي — العنصر البطل بالشاشة */}
+      <section className="qb-rise mb-6 px-1" style={rise(0)}>
         <button
-          onClick={() => navigate('/accounts')}
-          className="qb-card-elevated qb-press mb-4 flex w-full flex-col items-center justify-center gap-2 p-8 text-center"
-          style={{ height: CARD_HEIGHT }}
+          onClick={() => setTotalSheetOpen(true)}
+          className="qb-press mb-2 flex items-center gap-2 rounded-full py-1 text-[13px] font-medium text-[var(--color-text-2)]"
+          aria-label="اختيار الحسابات المحسوبة بالإجمالي"
         >
-          <div className="text-[13px] font-bold">كل حساباتك مخفية من الشاشة الرئيسية</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">فعّل الظهور لأي حساب من شاشة الحسابات</div>
+          إجمالي رصيدك
+          <span className="num inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-2.5 py-1 text-[11.5px] text-[var(--color-text-2)]">
+            {includedCount === accounts.length ? `كل الحسابات (${accounts.length})` : `${includedCount} من ${accounts.length} حسابات`}
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6,9 12,15 18,9" />
+            </svg>
+          </span>
         </button>
-      ) : (
-        <AccountCardStack accounts={homeAccounts} hidden={hidden} />
-      )}
+        <BigAmount value={homeTotalBalance} hidden={hidden} size={46} />
+        {flowTotal > 0 && (
+          <div className="mt-3 flex items-center gap-2">
+            <span
+              className="num inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+              style={{
+                background: monthNet >= 0 ? 'rgba(62,224,143,0.12)' : 'rgba(255,95,109,0.12)',
+                color: monthNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)',
+              }}
+            >
+              {mask(formatSigned(monthNet))}
+            </span>
+            <span className="text-[11.5px] text-[var(--color-text-3)]">صافي هذا الشهر</span>
+          </div>
+        )}
+      </section>
+
+      {/* اختصارات سريعة */}
+      <section className="qb-rise mb-6 flex items-start justify-between gap-2" style={rise(1)}>
+        <QuickAction primary label="مصروف" icon={<ArrowDownIcon />} onClick={() => navigate('/add/transaction?type=expense')} />
+        <QuickAction label="دخل" color="var(--color-income)" icon={<ArrowUpIcon />} onClick={() => navigate('/add/transaction?type=income')} />
+        <QuickAction label="تحويل" color="var(--color-transfer)" icon={<SwapIcon />} onClick={() => navigate('/add/transaction?type=transfer')} />
+        <QuickAction label="الحركات" color="var(--color-text)" icon={<ListIcon />} onClick={() => navigate('/transactions')} />
+      </section>
+
+      <section className="qb-rise" style={rise(2)}>
+        <SectionTitle title="بطاقاتك" action="الكل" onAction={() => navigate('/accounts')} />
+        {accounts.length > 0 && homeAccounts.length === 0 ? (
+          <button
+            onClick={() => navigate('/accounts')}
+            className="qb-card-elevated qb-press mb-4 flex w-full flex-col items-center justify-center gap-2 p-8 text-center"
+            style={{ height: CARD_HEIGHT }}
+          >
+            <div className="text-[13.5px] font-semibold">كل حساباتك مخفية من الشاشة الرئيسية</div>
+            <div className="text-[12px] text-[var(--color-text-3)]">فعّل الظهور لأي حساب من شاشة الحسابات</div>
+          </button>
+        ) : (
+          <AccountCardStack accounts={homeAccounts} hidden={hidden} />
+        )}
+      </section>
 
       {budgetAlerts.length > 0 && (
         <button
           onClick={() => navigate('/categories')}
-          className="qb-press mb-4 flex w-full flex-col gap-1.5 rounded-2xl border px-4 py-3 text-right"
-          style={{ borderColor: 'rgba(255,92,92,0.3)', background: 'rgba(255,92,92,0.08)' }}
+          className="qb-press qb-rise mb-4 flex w-full items-start gap-3 rounded-[24px] border px-4 py-3.5 text-right"
+          style={{ ...rise(3), borderColor: 'rgba(255,95,109,0.28)', background: 'linear-gradient(135deg, rgba(255,95,109,0.14), rgba(255,95,109,0.04))' }}
         >
-          {budgetAlerts.map((c) => {
-            const isProjectedOnly = c.pct < 80 && c.projectedPct >= 100
-            const label = c.pct >= 100
-              ? `تجاوزت ميزانية "${c.name}"`
-              : c.pct >= 80
-                ? `قاربت على تجاوز ميزانية "${c.name}"`
-                : `بمعدلك الحالي راح تتجاوز ميزانية "${c.name}"`
-            return (
-              <div key={c.id} className="flex items-center justify-between text-[12px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-                <span>{label}</span>
-                <span className="num">
-                  {Math.round(isProjectedOnly ? c.projectedPct : c.pct)}%{isProjectedOnly ? ' متوقع' : ''}
-                </span>
-              </div>
-            )
-          })}
+          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(255,95,109,0.18)', color: 'var(--color-expense)' }}>
+            <AlertIcon />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            {budgetAlerts.map((c) => {
+              const isProjectedOnly = c.pct < 80 && c.projectedPct >= 100
+              const label = c.pct >= 100
+                ? `تجاوزت ميزانية "${c.name}"`
+                : c.pct >= 80
+                  ? `قاربت على تجاوز ميزانية "${c.name}"`
+                  : `بمعدلك الحالي راح تتجاوز ميزانية "${c.name}"`
+              return (
+                <div key={c.id} className="flex items-center justify-between gap-2 text-[12.5px] font-medium" style={{ color: 'var(--color-expense)' }}>
+                  <span className="min-w-0 truncate">{label}</span>
+                  <span className="num flex-shrink-0 font-semibold">
+                    {Math.round(isProjectedOnly ? c.projectedPct : c.pct)}%{isProjectedOnly ? ' متوقع' : ''}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </button>
       )}
 
-      <div className="mb-4 flex gap-2.5">
-        <div className="qb-card flex-1 p-3.5">
-          <div className="mb-2.5 flex items-center gap-1.5">
-            <div
-              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
-              style={{ background: 'rgba(34,197,94,0.14)' }}
-            >
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--color-income)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5" />
-                <polyline points="6,11 12,5 18,11" />
-              </svg>
-            </div>
-            <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">دخل الشهر</div>
+      {/* شبكة Bento — ملخص الشهر */}
+      <section className="qb-rise mb-4 grid grid-cols-2 gap-3" style={rise(4)}>
+        <div className="qb-card col-span-2 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-[13px] font-medium text-[var(--color-text-2)]">تدفّق هذا الشهر</div>
+            <div className="text-[11px] text-[var(--color-text-3)]">دخل مقابل مصروف</div>
           </div>
-          <div className="num text-[16.5px] font-bold" style={{ color: 'var(--color-income)' }}>
-            {mask(formatMoney(monthIncome))}
+          <div className="mb-3 flex h-2.5 gap-1 overflow-hidden rounded-full bg-white/[0.04]">
+            {flowTotal > 0 && (
+              <>
+                <div className="h-full rounded-full" style={{ width: `${(monthIncome / flowTotal) * 100}%`, background: 'var(--color-income)', transition: 'width 600ms var(--ease-out-expo)' }} />
+                <div className="h-full rounded-full" style={{ width: `${(monthExpense / flowTotal) * 100}%`, background: 'var(--color-expense)', transition: 'width 600ms var(--ease-out-expo)' }} />
+              </>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-income)]" />
+                الدخل
+              </div>
+              <div className="num text-[18px] font-bold" style={{ color: 'var(--color-income)' }}>
+                {mask(formatMoney(monthIncome))}
+              </div>
+            </div>
+            <div>
+              <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-expense)]" />
+                المصروف
+              </div>
+              <div className="num text-[18px] font-bold" style={{ color: 'var(--color-expense)' }}>
+                {formatMoney(monthExpense)}
+              </div>
+            </div>
           </div>
         </div>
-        <div className="qb-card flex-1 p-3.5">
-          <div className="mb-2.5 flex items-center gap-1.5">
-            <div
-              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
-              style={{ background: 'rgba(255,92,92,0.14)' }}
-            >
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--color-expense)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <polyline points="6,13 12,19 18,13" />
-              </svg>
-            </div>
-            <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">مصروف الشهر</div>
-          </div>
-          <div className="num text-[16.5px] font-bold" style={{ color: 'var(--color-expense)' }}>
-            {formatMoney(monthExpense)}
-          </div>
-        </div>
-      </div>
+
+        {totalMonthlySubscriptions > 0 && (
+          <button onClick={() => navigate('/subscriptions')} className={`qb-card qb-press p-4 text-right ${activeCommitments.length === 0 ? 'col-span-2' : ''}`}>
+            <span className="mb-5 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(255,191,71,0.14)', color: 'var(--color-subscription)' }}>
+              <SubscriptionIcon />
+            </span>
+            <div className="mb-0.5 text-[12px] text-[var(--color-text-3)]">الاشتراكات شهريًا</div>
+            <div className="num text-[17px] font-bold">{formatMoney(totalMonthlySubscriptions)}</div>
+          </button>
+        )}
+        {activeCommitments.length > 0 && (
+          <button onClick={() => navigate('/commitments')} className={`qb-card qb-press p-4 text-right ${totalMonthlySubscriptions <= 0 ? 'col-span-2' : ''}`}>
+            <span className="mb-5 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(95,179,255,0.14)', color: 'var(--color-commitment)' }}>
+              <CommitmentIcon />
+            </span>
+            <div className="mb-0.5 text-[12px] text-[var(--color-text-3)]">التزامات نشطة</div>
+            <div className="num text-[17px] font-bold">{activeCommitments.length}</div>
+          </button>
+        )}
+      </section>
 
       {topCategories.length > 0 && (
-        <div className="qb-card mb-4 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="qb-section-label">أكثر الفئات إنفاقًا هذا الشهر</div>
-            <button
-              onClick={() => navigate('/categories')}
-              className="qb-press flex items-center gap-0.5 text-[11.5px] font-semibold"
-              style={{ color: 'var(--color-accent)' }}
-            >
-              عرض الكل
+        <section className="qb-card qb-rise mb-6 p-4" style={rise(5)}>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-[14px] font-semibold">أين ذهبت أموالك</div>
+            <button onClick={() => navigate('/categories')} className="qb-press flex items-center gap-0.5 text-[12px] font-medium text-[var(--color-accent)]">
+              الفئات
               <ChevronIcon />
             </button>
           </div>
-          <div className="flex flex-col gap-3">
-            {topCategories.map((c) => (
+          <div className="flex flex-col gap-3.5">
+            {topCategories.map((c, i) => (
               <div key={c.id}>
-                <div className="mb-1 flex items-center justify-between text-[12.5px]">
-                  <div className="font-semibold">{c.name}</div>
+                <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
+                  <div className="font-medium">{c.name}</div>
                   <div className="num font-semibold text-[var(--color-text-2)]">{formatMoney(c.spent)}</div>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/6">
+                <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${maxCategorySpent ? (c.spent / maxCategorySpent) * 100 : 0}%`, background: 'var(--color-expense)' }}
+                    style={{
+                      width: `${maxCategorySpent ? (c.spent / maxCategorySpent) * 100 : 0}%`,
+                      background: i === 0 ? 'var(--color-accent)' : `color-mix(in srgb, var(--color-accent) ${70 - i * 12}%, var(--color-surface-high))`,
+                      transition: 'width 700ms var(--ease-out-expo)',
+                    }}
                   />
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (
-        <div className="mb-4 flex gap-2.5">
-          {totalMonthlySubscriptions > 0 && (
-            <button onClick={() => navigate('/subscriptions')} className="qb-card qb-press flex-1 p-3.5 text-right">
-              <div className="mb-2.5 flex items-center gap-1.5">
-                <div
-                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
-                  style={{ background: 'rgba(245,185,66,0.14)', color: 'var(--color-subscription)' }}
-                >
-                  <SubscriptionIcon />
-                </div>
-                <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">الاشتراكات</div>
-              </div>
-              <div className="num text-[15px] font-bold" style={{ color: 'var(--color-subscription)' }}>
-                {formatMoney(totalMonthlySubscriptions)}
-              </div>
-              <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">شهريًا</div>
-            </button>
-          )}
-          {activeCommitments.length > 0 && (
-            <button onClick={() => navigate('/commitments')} className="qb-card qb-press flex-1 p-3.5 text-right">
-              <div className="mb-2.5 flex items-center gap-1.5">
-                <div
-                  className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
-                  style={{ background: 'rgba(96,165,250,0.14)', color: 'var(--color-commitment)' }}
-                >
-                  <CommitmentIcon />
-                </div>
-                <div className="text-[11.5px] font-semibold text-[var(--color-text-2)]">الالتزامات</div>
-              </div>
-              <div className="num text-[15px] font-bold" style={{ color: 'var(--color-commitment)' }}>
-                {activeCommitments.length}
-              </div>
-              <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">نشطة</div>
-            </button>
-          )}
-        </div>
-      )}
+      <section className="qb-rise" style={rise(6)}>
+        <SectionTitle title="آخر الحركات" action={activity.length > 0 ? 'عرض الكل' : undefined} onAction={() => navigate('/transactions')} />
 
-      <div className="mb-2 flex items-center justify-between">
-        <div className="text-[14.5px] font-bold">آخر الحركات</div>
-        {activity.length > 0 && (
-          <button
-            onClick={() => navigate('/transactions')}
-            className="qb-press flex items-center gap-0.5 text-[11.5px] font-semibold"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            عرض الكل
-            <ChevronIcon />
-          </button>
+        {activity.length === 0 ? (
+          <div className="qb-card flex flex-col items-center gap-3 py-10 text-center">
+            <div className="text-[13.5px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
+            <button onClick={() => navigate('/add/transaction')} className="qb-btn-primary px-5 py-2.5 text-[13px]">
+              سجّل أول حركة
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="qb-card overflow-hidden">
+              {activity.map((item, i) => (
+                <SwipeableRow key={item.id} {...swipeFor(item)} className={i > 0 ? 'border-t qb-divider' : ''}>
+                  <button onClick={() => navigate(activityEditPath(item))} className="flex w-full items-center gap-3 px-4 py-3.5 text-right active:bg-white/[0.03]">
+                    <div
+                      className="flex flex-shrink-0 items-center justify-center rounded-full"
+                      style={{ width: 44, height: 44, background: `color-mix(in srgb, ${item.color} 14%, transparent)`, color: item.color }}
+                    >
+                      <ActivityIcon kind={item.kind} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-medium">{item.title}</div>
+                      <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
+                        {item.subtitle} · {formatDate(item.date)}
+                      </div>
+                    </div>
+                    <div className="num flex-shrink-0 text-[14px] font-bold" style={{ color: item.amount > 0 ? 'var(--color-income)' : 'var(--color-text)' }}>
+                      {formatSigned(item.amount)}
+                    </div>
+                  </button>
+                </SwipeableRow>
+              ))}
+            </div>
+            <div className="mt-2.5 text-center text-[11px] text-[var(--color-text-3)]">اسحب الحركة يسارًا للحذف · يمينًا لتكرارها</div>
+          </>
         )}
-      </div>
-
-      {activity.length === 0 ? (
-        <div className="qb-card py-8 text-center text-[13px] text-[var(--color-text-3)]">لا توجد حركات بعد</div>
-      ) : (
-        <div className="qb-card overflow-hidden">
-          {activity.map((item, i) => (
-            <button
-              key={item.id}
-              onClick={() => navigate(activityEditPath(item))}
-              className={`qb-press flex w-full items-center gap-3 px-4 py-3 text-right ${i > 0 ? 'border-t qb-divider' : ''}`}
-            >
-              <div
-                className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-[13px]"
-                style={{ width: 42, height: 42, background: `${item.color}1f`, color: item.color }}
-              >
-                <ActivityIcon kind={item.kind} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13.5px] font-semibold">{item.title}</div>
-                <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
-                  {item.subtitle} · {formatDate(item.date)}
-                </div>
-              </div>
-              <div className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color: item.color }}>
-                {formatSigned(item.amount)}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      </section>
     </div>
   )
 }

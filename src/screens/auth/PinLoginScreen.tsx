@@ -8,12 +8,13 @@ import { configuredDigits } from '../../lib/auth'
 import { runBackgroundPull } from '../../lib/autoSync'
 import { isBiometricEnabled, verifyBiometric } from '../../lib/biometric'
 import { APP_VERSION } from '../../lib/version'
+import { haptic } from '../../lib/haptics'
 
 type Stage = 'input' | 'success'
 
 function FingerprintIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3a7 7 0 0 1 7 7c0 2.5-.5 4-1 5" />
       <path d="M12 3a7 7 0 0 0-7 7c0 1.2.1 2.2.3 3" />
       <path d="M12 7a6 6 0 0 1 6 6c0 2-.4 3.5-1 4.7" />
@@ -48,7 +49,7 @@ export function PinLoginScreen() {
       setTimeout(() => {
         navigate('/', { replace: true })
         runBackgroundPull(importSnapshot)
-      }, 500)
+      }, 750)
     } else {
       setBiometricError(true)
       setTimeout(() => setBiometricError(false), 2500)
@@ -67,14 +68,16 @@ export function PinLoginScreen() {
     if (next.length === digits) {
       const ok = await auth.login(next)
       if (ok) {
+        haptic('success')
         setStage('success')
         setTimeout(() => {
           navigate('/', { replace: true })
           // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
           // حالة السحب تظهر كشريط عائم أعلى الشاشة (SyncStatusBar).
           runBackgroundPull(importSnapshot)
-        }, 500)
+        }, 750)
       } else {
+        haptic('warning')
         setError(true)
         setTimeout(() => {
           setError(false)
@@ -89,58 +92,70 @@ export function PinLoginScreen() {
     setValue((v) => v.slice(0, -1))
   }
 
-  return (
-    <div className="relative flex h-full w-full flex-col items-center overflow-hidden bg-[var(--color-bg)]">
-      <div
-        className="pointer-events-none absolute -top-32 left-1/2 h-85 w-85 -translate-x-1/2 rounded-full blur-[10px]"
-        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)', width: 340, height: 340 }}
-      />
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'صباح الخير' : hour < 17 ? 'نهارك سعيد' : 'مساء الخير'
 
-      <div className="relative flex h-full flex-col items-center px-7 pt-19 pb-10">
-        <AppLogo />
-        <div className="mb-2 mt-14 text-base font-semibold">أدخل الرقم السري</div>
-        <div className="mb-9 text-[12.5px] text-[var(--color-text-3)]">
-          {error ? 'رقم غير صحيح، حاول مرة أخرى' : biometricError ? 'تعذّر التحقق بالبصمة — جرّب الرقم السري' : 'لفتح تطبيق QB-Nomia'}
+  return (
+    <div className="relative isolate flex h-full w-full flex-col items-center overflow-hidden bg-[var(--color-bg)]">
+      <div className="qb-aurora" aria-hidden="true" />
+
+      <div className="relative z-10 flex h-full w-full flex-col items-center px-7 pb-8 pt-16">
+        <div className="qb-rise flex flex-col items-center">
+          <AppLogo tagline="" size={52} />
+          <div className="mb-1 mt-9 text-[20px] font-semibold">{greeting} 👋</div>
+          <div className="h-5 text-[13px]" style={{ color: error || biometricError ? 'var(--color-expense)' : 'var(--color-text-2)' }}>
+            {error ? 'رقم غير صحيح، حاول مرة أخرى' : biometricError ? 'تعذّر التحقق بالبصمة — جرّب الرقم السري' : 'أدخل رقمك السري للمتابعة'}
+          </div>
         </div>
 
         <div className="mt-auto">
-          <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={stage !== 'input' || error} />
+          <PinPad
+            digits={digits}
+            value={value}
+            onDigit={handleDigit}
+            onBackspace={handleBackspace}
+            disabled={stage !== 'input' || error}
+            error={error}
+            success={stage === 'success'}
+            extraKey={
+              biometricAvailable ? (
+                <button
+                  type="button"
+                  onClick={handleBiometric}
+                  disabled={biometricBusy || stage !== 'input'}
+                  aria-label="افتح ببصمة الإصبع"
+                  className="flex h-[76px] w-[76px] items-center justify-center rounded-full text-[var(--color-accent)] transition-transform active:scale-90 disabled:opacity-50"
+                  style={{ animation: biometricBusy ? 'qb-hint-up 1.2s ease-in-out infinite' : undefined }}
+                >
+                  <FingerprintIcon />
+                </button>
+              ) : undefined
+            }
+          />
         </div>
 
-        {biometricAvailable && (
-          <button
-            type="button"
-            onClick={handleBiometric}
-            disabled={biometricBusy || stage !== 'input'}
-            className="qb-press mt-6 flex items-center gap-2 text-[12.5px] font-semibold text-[var(--color-accent)] disabled:opacity-50"
-          >
-            <FingerprintIcon />
-            {biometricBusy ? 'جارٍ التحقق...' : 'افتح ببصمة الإصبع'}
+        <div className="mt-8 flex w-full items-center justify-between px-2 text-[12px]">
+          <button type="button" onClick={() => auth.forgetPin()} className="text-[var(--color-text-2)]">
+            نسيت الرقم السري؟
           </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => auth.forgetPin()}
-          className="mt-6 text-[12.5px] text-[var(--color-text-3)]"
-        >
-          هل نسيت الرقم السري؟
-        </button>
-
-        <div className="num mt-6 text-[10.5px] text-[var(--color-text-3)]">الإصدار {APP_VERSION}</div>
+          <div className="num text-[var(--color-text-3)]">v{APP_VERSION}</div>
+        </div>
       </div>
 
       {stage === 'success' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
-          <div
-            className="flex h-19 w-19 items-center justify-center rounded-full shadow-[0_0_0_10px_rgba(255,255,255,0.1)]"
-            style={{ background: 'linear-gradient(150deg, var(--color-accent), var(--color-accent-b))', width: 76, height: 76 }}
-          >
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#0A0A0C" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="5,13 10,18 19,6" />
-            </svg>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[var(--color-bg)]" style={{ animation: 'fade-in 200ms ease-out both' }}>
+          <div className="relative flex items-center justify-center">
+            <span className="absolute h-20 w-20 rounded-full border-2 border-[var(--color-accent)]" style={{ animation: 'qb-ring 900ms var(--ease-out-expo) both' }} />
+            <div
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 80, height: 80, background: 'var(--color-accent)', animation: 'qb-pop 520ms var(--ease-spring) both', boxShadow: '0 0 60px -6px rgba(255,255,255,0.35)' }}
+            >
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--color-on-accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="5,13 10,18 19,6" />
+              </svg>
+            </div>
           </div>
-          <div className="text-base font-bold">تم التحقق بنجاح</div>
+          <div className="text-[17px] font-semibold">أهلًا بعودتك</div>
         </div>
       )}
     </div>

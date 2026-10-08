@@ -71,7 +71,7 @@ export function LogVehicleScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: 'var(--color-vehicle)' }}
           >
             تسجيل
@@ -85,26 +85,31 @@ export function LogVehicleScreen() {
             key={f.key}
             type="button"
             onClick={() => setActiveField(f.key)}
-            className="qb-press rounded-2xl border px-2 py-2.5 text-center"
+            className="qb-press rounded-[20px] border px-2 py-3 text-center"
             style={
               activeField === f.key
-                ? { borderColor: 'var(--color-vehicle)', background: 'rgba(56,189,248,0.14)' }
-                : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }
+                ? { borderColor: 'transparent', background: 'var(--color-vehicle)', color: '#0a0a0c', transition: 'background 200ms ease' }
+                : { borderColor: 'var(--color-border)', background: 'var(--color-surface)' }
             }
           >
-            <div className="text-[10.5px] text-[var(--color-text-3)]">{f.label}</div>
-            <div className="num text-[13px] font-bold" style={{ color: !f.value ? 'var(--color-text-3)' : activeField === f.key ? 'var(--color-vehicle)' : 'var(--color-text)' }}>
+            <div className="text-[11px] font-medium" style={{ opacity: activeField === f.key ? 0.7 : 1, color: activeField === f.key ? undefined : 'var(--color-text-3)' }}>
+              {f.label}
+            </div>
+            <div className="num text-[14px] font-bold" style={{ color: activeField === f.key ? undefined : !f.value ? 'var(--color-text-3)' : 'var(--color-text)' }}>
               {f.value ? `${f.value}${f.unit ? ` ${f.unit}` : ''}` : '—'}
             </div>
           </button>
         ))}
       </div>
 
-      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span className="num text-[36px] font-bold">{activeValue || '0'}</span>
-        {activeUnit && <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">{activeUnit}</span>}
+      <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">{fields.find((f) => f.key === activeField)?.label}</div>
+      <div dir="ltr" className="mb-5 flex items-baseline justify-center gap-2" style={{ color: 'var(--color-vehicle)' }}>
+        <span key={activeValue} className="num text-[50px] font-bold leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+          {activeValue || '0'}
+        </span>
+        <span className="flex-shrink-0 text-[17px] font-medium opacity-60">{activeUnit ?? 'ر.س'}</span>
       </div>
-      <div className="mb-5 flex justify-center">
+      <div className="mb-5">
         <AmountPad value={activeValue} onChange={setActiveValue} color="var(--color-vehicle)" />
       </div>
 
@@ -122,14 +127,14 @@ export function LogVehicleScreen() {
             className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
           >
             <div>
-              <div className="text-[13.5px] font-bold">تعبئة كاملة (لين آخر الخزان)</div>
+              <div className="text-[13.5px] font-semibold">تعبئة كاملة (لين آخر الخزان)</div>
               <div className="text-[11.5px] text-[var(--color-text-3)]">هذا هو الوضع الطبيعي عند التعبئة — عطّلها فقط لو عبّيت جزء من الخزان</div>
             </div>
             <div
-              className="flex h-6 w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
+              className="flex h-[30px] w-[52px] flex-shrink-0 items-center rounded-full p-[3px] transition-colors duration-300"
               style={{ background: isFullTank ? 'var(--color-vehicle)' : 'rgba(255,255,255,0.14)' }}
             >
-              <div className="h-5 w-5 rounded-full bg-white transition-transform" style={{ transform: isFullTank ? 'translateX(-20px)' : 'translateX(0)' }} />
+              <div className="h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-transform duration-300" style={{ transform: isFullTank ? 'translateX(-22px)' : 'translateX(0)' }} />
             </div>
           </button>
           {!isFullTank && (
@@ -173,8 +178,8 @@ export function LogVehicleScreen() {
                   setAccountSheetOpen(false)
                   navigate('/accounts/new')
                 }}
-                className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-                style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+                className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+                style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
               >
                 + إضافة حساب جديد
               </button>

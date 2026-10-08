@@ -9,6 +9,8 @@ import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 import type { Account, StoreDebt, StoreDebtPayment } from '../../types'
+import { BigAmount } from '../../components/BigAmount'
+import { EmptyState, IconBubble, ProgressBar, SectionTitle, TintButton } from '../../components/ui'
 
 const color = 'var(--color-expense)'
 
@@ -46,18 +48,18 @@ function DebtForm({
 
   return (
     <div>
-      <label className="mb-1.5 block text-[12px] text-[var(--color-text-3)]">اسم المتجر</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم المتجر</label>
       <input
         value={storeName}
         onChange={(e) => setStoreName(e.target.value)}
         placeholder="مثال: بقالة الحي"
-        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
       <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">مبلغ الدَين</div>
       <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span className="num text-[32px] font-bold">{amount || '0'}</span>
-        <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</span>
+        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{amount || '0'}</span>
+        <span className="flex-shrink-0 text-[16px] font-medium text-[var(--color-text-3)]">ر.س</span>
       </div>
       <div className="mb-4 flex justify-center">
         <AmountPad value={amount} onChange={setAmount} color={color} />
@@ -70,22 +72,22 @@ function DebtForm({
         <DatePicker value={dueDate} onChange={setDueDate} color={color} placeholder="بدون تاريخ استحقاق" fieldLabel="تاريخ الاستحقاق (اختياري)" />
       </div>
 
-      <label className="mb-1.5 block text-[12px] text-[var(--color-text-3)]">ملاحظة (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="وش اشتريت أو استلمت من خدمة؟"
-        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
 
       <div className="flex gap-2.5">
-        <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
+        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
           إلغاء
         </button>
         <button
           onClick={() => canSave && onSave({ storeName, amount: numeric, date, dueDate: dueDate || undefined, note })}
           disabled={!canSave}
-          className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
+          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
           style={{ background: color }}
         >
           حفظ
@@ -126,8 +128,8 @@ function PaymentForm({
     <div>
       <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">مبلغ السداد (المتبقي {formatMoney(remaining)})</div>
       <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span className="num text-[32px] font-bold">{amount || '0'}</span>
-        <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">ر.س</span>
+        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{amount || '0'}</span>
+        <span className="flex-shrink-0 text-[16px] font-medium text-[var(--color-text-3)]">ر.س</span>
       </div>
       <div className="mb-4 flex justify-center">
         <AmountPad value={amount} onChange={setAmount} color={color} />
@@ -164,8 +166,8 @@ function PaymentForm({
               setAccountSheetOpen(false)
               navigate('/accounts/new')
             }}
-            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
           >
             + إضافة حساب جديد
           </button>
@@ -193,13 +195,13 @@ function PaymentForm({
       </div>
 
       <div className="flex gap-2.5">
-        <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
+        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
           إلغاء
         </button>
         <button
           onClick={() => canSave && onSave(numeric, accountId)}
           disabled={!canSave}
-          className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
+          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
           style={{ background: color }}
         >
           تسجيل السداد
@@ -261,27 +263,38 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
         onCancel={() => setConfirmDeletePaymentId(null)}
       />
 
-      <button onClick={() => setExpanded((e) => !e)} className="qb-press block w-full p-3.5 text-right">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <div className="text-[13.5px] font-bold">{debt.storeName}</div>
-            <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-bold" style={statusStyle}>
-              {statusLabel}
-            </span>
+      <button onClick={() => setExpanded((e) => !e)} className="block w-full p-4 text-right active:bg-white/[0.03]">
+        <div className="flex items-center gap-3">
+          <IconBubble color={settled ? 'var(--color-text-3)' : color}>
+            <StoreDebtIcon size={19} />
+          </IconBubble>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-[14px] font-medium">{debt.storeName}</span>
+              <span className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold" style={statusStyle}>
+                {statusLabel}
+              </span>
+            </div>
+            <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
+              {formatDate(debt.date)}
+              {debt.dueDate ? ` · الاستحقاق: ${formatDate(debt.dueDate)}` : ''}
+              {debt.note ? ` · ${debt.note}` : ''}
+            </div>
           </div>
-          <span className="num text-[13.5px] font-bold" style={{ color }}>
-            {formatMoney(remaining)}
-          </span>
+          <div className="flex flex-shrink-0 flex-col items-end">
+            <span className="num text-[14px] font-bold" style={{ color: settled ? 'var(--color-text-2)' : color }}>
+              {formatMoney(Math.max(0, remaining))}
+            </span>
+            <span className="text-[10.5px] text-[var(--color-text-3)]">من {formatMoney(debt.amount)}</span>
+          </div>
         </div>
-        <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
-          {formatDate(debt.date)}
-          {debt.dueDate ? ` · الاستحقاق: ${formatDate(debt.dueDate)}` : ''}
-          {debt.note ? ` · ${debt.note}` : ''}
+        <div className="mt-3">
+          <ProgressBar pct={(paidTotal / debt.amount) * 100} color={settled ? 'var(--color-income)' : color} height={5} />
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t qb-divider p-3.5">
+        <div className="border-t qb-divider p-4">
           {mode === 'edit' ? (
             <DebtForm
               initial={{ storeName: debt.storeName, amount: debt.amount, date: debt.date, dueDate: debt.dueDate, note: debt.note }}
@@ -306,21 +319,21 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
             <>
               <div className="mb-3 flex gap-2.5">
                 {!settled && (
-                  <button onClick={() => setMode('pay')} className="qb-press flex-1 rounded-2xl py-2.5 text-[12.5px] font-bold" style={{ background: 'rgba(255,92,92,0.16)', color }}>
+                  <TintButton color={color} onClick={() => setMode('pay')} className="flex-1">
                     سداد
-                  </button>
+                  </TintButton>
                 )}
                 <button
                   onClick={() => setMode('edit')}
-                  className="qb-press flex-1 rounded-2xl border border-[var(--color-border)] py-2.5 text-[12.5px] font-semibold text-[var(--color-text-2)]"
+                  className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]"
                 >
                   تعديل
                 </button>
               </div>
 
-              <div className="qb-section-label mb-2">الدفعات المسجَّلة</div>
+              <div className="mb-2 text-[12.5px] font-semibold text-[var(--color-text-2)]">الدفعات المسجَّلة</div>
               {payments.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-3 text-center text-[11.5px] text-[var(--color-text-3)]" style={{ borderColor: 'rgba(255,255,255,0.14)' }}>
+                <div className="rounded-[18px] bg-white/[0.04] p-3 text-center text-[12px] text-[var(--color-text-3)]">
                   ما فيه دفعات مسجَّلة بعد
                 </div>
               ) : (
@@ -331,7 +344,7 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
                       <button
                         key={p.id}
                         onClick={() => setConfirmDeletePaymentId(p.id)}
-                        className="qb-press flex items-center justify-between rounded-xl px-3 py-2 text-right"
+                        className="qb-press flex items-center justify-between rounded-[16px] px-3.5 py-2.5 text-right"
                         style={{ background: 'rgba(255,255,255,0.04)' }}
                       >
                         <div className="text-[11.5px] text-[var(--color-text-3)]">
@@ -362,13 +375,13 @@ export function StoreDebtsPanel() {
 
   return (
     <>
-      <div className="qb-card-elevated mb-5 p-4.5">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'rgba(255,92,92,0.14)', color }}>
+      <div className="qb-card-elevated qb-rise mb-6 p-5">
+        <div className="mb-5 flex items-center gap-3">
+          <IconBubble color={color} size={46}>
             <StoreDebtIcon />
-          </div>
+          </IconBubble>
           <div className="min-w-0 flex-1">
-            <div className="text-[14.5px] font-bold">ديون المتاجر</div>
+            <div className="text-[16px] font-semibold">ديون المتاجر</div>
             <div className="truncate text-[11px] text-[var(--color-text-3)]">سلع أو خدمات أخذتها ولسه ما دفعت قيمتها بالكامل</div>
           </div>
         </div>
@@ -384,27 +397,25 @@ export function StoreDebtsPanel() {
         ) : (
           <>
             {totalOutstanding === 0 ? (
-              <div className="mb-3 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,92,92,0.4)', color: 'var(--color-text-2)' }}>
+              <div className="mb-3 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
                 لا توجد ديون قائمة حاليًا.
               </div>
             ) : (
-              <div className="mb-3">
-                <div className="text-[11.5px] text-[var(--color-text-3)]">إجمالي المتبقي</div>
-                <div className="num text-[22px] font-bold" style={{ color }}>
-                  {formatMoney(totalOutstanding)}
-                </div>
+              <div className="mb-5">
+                <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">إجمالي المتبقي</div>
+                <BigAmount value={totalOutstanding} size={36} color={color} />
               </div>
             )}
-            <button onClick={() => setAddingNew(true)} className="qb-press w-full rounded-2xl py-2.75 text-[12.5px] font-bold" style={{ background: 'rgba(255,92,92,0.16)', color }}>
+            <button onClick={() => setAddingNew(true)} className="qb-btn-primary flex w-full items-center justify-center py-3 text-[13.5px]">
               تسجيل دَين جديد
             </button>
           </>
         )}
       </div>
 
-      <div className="qb-section-label mb-2 px-1">سجل الديون</div>
+      <SectionTitle title="سجل الديون" hint="اضغط أي دَين لسداده أو تعديله" />
       {storeDebts.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا يوجد سجل بعد</div>
+        <EmptyState title="لا يوجد سجل بعد" />
       ) : (
         <div className="flex flex-col gap-2.5">
           {storeDebts.map((debt) => (

@@ -7,8 +7,9 @@ import { computeFuelGaps, computeFuelStats, computeVehicleCostStats } from '../l
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
-import { ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import type { FuelLog, OilChangeLog } from '../types'
+import { Badge, EmptyState, IconBubble, ListGroup, ListItem, RingProgress, SectionTitle, Segmented, StatTile } from '../components/ui'
+import { rise } from '../lib/motion'
 
 function EditIcon() {
   return (
@@ -66,22 +67,22 @@ function InlineNumberEditor({
 
   return (
     <div>
-      <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">{label}</div>
-      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span className="num text-[32px] font-bold">{value || '0'}</span>
-        <span className="flex-shrink-0 text-[13px] font-semibold text-[var(--color-text-3)]">{unit}</span>
+      <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">{label}</div>
+      <div dir="ltr" className="mb-5 flex items-baseline justify-center gap-2" style={{ color }}>
+        <span key={value} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{value || '0'}</span>
+        <span className="flex-shrink-0 text-[16px] font-medium opacity-60">{unit}</span>
       </div>
-      <div className="mb-4 flex justify-center">
+      <div className="mb-4">
         <AmountPad value={value} onChange={setValue} color={color} />
       </div>
       <div className="flex gap-2.5">
-        <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
+        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
           إلغاء
         </button>
         <button
           onClick={() => canSave && onSave(numeric)}
           disabled={!canSave}
-          className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
+          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
           style={{ background: color }}
         >
           حفظ
@@ -126,25 +127,18 @@ export function VehicleScreen() {
     ...fuelLogs.map((log): CombinedLogEntry => ({ kind: 'fuel', log })),
   ].sort((a, b) => (a.log.date === b.log.date ? b.log.odometerKm - a.log.odometerKm : a.log.date < b.log.date ? 1 : -1))
 
-  return (
-    <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
-      <div className="qb-card-elevated mb-5 p-4.5">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'rgba(56,189,248,0.14)', color: 'var(--color-vehicle)' }}>
-            <CarIcon />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[14.5px] font-bold">سيارتي</div>
-            <div className="truncate text-[11px] text-[var(--color-text-3)]">تتبّع الممشى، تغيير الزيت، واستهلاك الوقود</div>
-          </div>
-        </div>
+  const vColor = 'var(--color-vehicle)'
+  const oilColor = oil ? (oil.overdue ? 'var(--color-expense)' : oil.dueSoon ? 'var(--color-subscription)' : vColor) : vColor
 
+  return (
+    <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} />}>
+      <div className="qb-card-elevated qb-rise mb-4 p-5">
         {editing === 'odometer' ? (
           <InlineNumberEditor
             label="عداد السيارة الحالي"
             unit="كم"
             initialValue={vehicleOdometerKm}
-            color="var(--color-vehicle)"
+            color={vColor}
             onSave={(v) => {
               setVehicleOdometerKm(v)
               setEditing(null)
@@ -156,7 +150,7 @@ export function VehicleScreen() {
             label="فاصل تغيير الزيت (كل كم كيلومتر توصي بالتغيير)"
             unit="كم"
             initialValue={vehicleOilIntervalKm}
-            color="var(--color-vehicle)"
+            color={vColor}
             onSave={(v) => {
               setVehicleOilIntervalKm(v)
               setEditing(null)
@@ -168,7 +162,7 @@ export function VehicleScreen() {
             label="سعة خزان الوقود"
             unit="لتر"
             initialValue={fuelTankCapacityL}
-            color="var(--color-vehicle)"
+            color={vColor}
             onSave={(v) => {
               setFuelTankCapacityL(v)
               setEditing(null)
@@ -177,89 +171,83 @@ export function VehicleScreen() {
           />
         ) : (
           <>
-            <button onClick={() => setEditing('odometer')} className="qb-press mb-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-3">
-              <div className="text-[12px] text-[var(--color-text-3)]">عداد السيارة الحالي</div>
-              <div className="flex items-center gap-2">
-                <span className="num text-[15px] font-bold">{vehicleOdometerKm !== null ? `${vehicleOdometerKm.toLocaleString('en-US')} كم` : 'ما تحدد بعد'}</span>
-                <div className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <EditIcon />
-                </div>
+            <div className="mb-5 flex items-center gap-3">
+              <IconBubble color={vColor} size={46}>
+                <CarIcon />
+              </IconBubble>
+              <div className="min-w-0 flex-1">
+                <div className="text-[16px] font-semibold">سيارتي</div>
+                <div className="truncate text-[11.5px] text-[var(--color-text-3)]">الممشى، الزيت، واستهلاك الوقود</div>
               </div>
+            </div>
+
+            <button onClick={() => setEditing('odometer')} className="qb-press mb-5 block w-full text-right">
+              <div className="mb-1 flex items-center gap-2 text-[12.5px] text-[var(--color-text-2)]">
+                عداد السيارة
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.08] text-[var(--color-text-2)]">
+                  <EditIcon />
+                </span>
+              </div>
+              {vehicleOdometerKm !== null ? (
+                <div dir="ltr" className="num flex items-baseline justify-end gap-2">
+                  <span className="text-[40px] font-bold leading-none tracking-tight">{vehicleOdometerKm.toLocaleString('en-US')}</span>
+                  <span className="text-[15px] font-medium text-[var(--color-text-3)]">كم</span>
+                </div>
+              ) : (
+                <div className="text-[18px] font-semibold text-[var(--color-text-3)]">اضغط لتحديد العداد</div>
+              )}
             </button>
 
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setActiveType('oil')}
-                className="qb-press flex items-center justify-center gap-1.5 rounded-2xl border py-2.5 text-[12px] font-bold"
-                style={
-                  activeType === 'oil'
-                    ? { borderColor: 'var(--color-vehicle)', background: 'rgba(56,189,248,0.14)', color: 'var(--color-vehicle)' }
-                    : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'var(--color-text-3)' }
-                }
-              >
-                <CarIcon size={15} />
-                تغيير الزيت
-              </button>
-              <button
-                onClick={() => setActiveType('fuel')}
-                className="qb-press flex items-center justify-center gap-1.5 rounded-2xl border py-2.5 text-[12px] font-bold"
-                style={
-                  activeType === 'fuel'
-                    ? { borderColor: 'var(--color-vehicle)', background: 'rgba(56,189,248,0.14)', color: 'var(--color-vehicle)' }
-                    : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'var(--color-text-3)' }
-                }
-              >
-                <FuelIcon size={15} />
-                تعبئة وقود
-              </button>
-            </div>
+            <Segmented
+              options={[
+                ['oil', 'تغيير الزيت'],
+                ['fuel', 'تعبئة وقود'],
+              ]}
+              value={activeType}
+              onChange={setActiveType}
+              color={vColor}
+              className="mb-4"
+            />
 
             {activeType === 'oil' ? (
               <>
                 {!hasBaseline ? (
-                  <div className="mb-3 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(56,189,248,0.4)', color: 'var(--color-text-2)' }}>
+                  <div className="mb-4 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
                     {vehicleOdometerKm === null
                       ? 'حدّد عداد السيارة الحالي، ثم اضغط "تم تغيير الزيت" أول مرة عشان يبدأ التتبّع.'
                       : 'اضغط "تم تغيير الزيت" أول مرة عشان يبدأ حساب الممشى منذ آخر تغيير.'}
                   </div>
                 ) : (
-                  <>
-                    <div className="num mb-2 flex items-baseline justify-between">
-                      <span className="text-[19px] font-bold" style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-vehicle)' }}>
+                  <div className="mb-4 flex items-center gap-4">
+                    <RingProgress pct={pct} size={100} color={oilColor}>
+                      <span className="num text-[20px] font-bold leading-none">{Math.round(100 - pct)}%</span>
+                      <span className="mt-1 text-[9.5px] text-[var(--color-text-3)]">عمر الزيت</span>
+                    </RingProgress>
+                    <div className="min-w-0 flex-1">
+                      <div className="num text-[20px] font-bold" style={{ color: oilColor }}>
                         {Math.round(oil!.drivenSinceLastChange).toLocaleString('en-US')} كم
-                      </span>
-                      <span className="text-[12px] text-[var(--color-text-3)]">من {vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/8">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${pct}%`, background: oil!.overdue ? 'var(--color-expense)' : oil!.dueSoon ? 'var(--color-subscription)' : 'var(--color-vehicle)' }}
-                      />
-                    </div>
-                    <div className="mt-1.5 mb-3 flex items-center justify-between text-[11px]">
-                      <span style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-text-3)' }}>
+                      </div>
+                      <div className="text-[11.5px] text-[var(--color-text-3)]">منذ آخر تغيير</div>
+                      <div className="mt-2 text-[11.5px] font-medium" style={{ color: oil!.overdue ? 'var(--color-expense)' : 'var(--color-text-2)' }}>
                         {oil!.overdue
-                          ? `تجاوزت الفاصل الموصى به بـ ${Math.round(-oil!.remainingKm).toLocaleString('en-US')} كم`
-                          : `متبقي ${Math.round(oil!.remainingKm).toLocaleString('en-US')} كم لتغيير الزيت`}
-                      </span>
-                      <span className="num font-semibold text-[var(--color-text-3)]">التغيير القادم عند {nextChangeKm!.toLocaleString('en-US')} كم</span>
+                          ? `تجاوزت الفاصل بـ ${Math.round(-oil!.remainingKm).toLocaleString('en-US')} كم`
+                          : `متبقي ${Math.round(oil!.remainingKm).toLocaleString('en-US')} كم`}
+                      </div>
+                      <div className="num text-[11px] text-[var(--color-text-3)]">التغيير القادم عند {nextChangeKm!.toLocaleString('en-US')} كم</div>
                     </div>
-                  </>
+                  </div>
                 )}
 
-                <button
-                  onClick={() => setEditing('interval')}
-                  className="qb-press mb-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5"
-                >
-                  <span className="text-[11.5px] text-[var(--color-text-3)]">فاصل تغيير الزيت</span>
-                  <span className="num text-[12.5px] font-semibold">{vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
+                <button onClick={() => setEditing('interval')} className="qb-press mb-4 flex w-full items-center justify-between rounded-[18px] bg-white/[0.04] px-4 py-3">
+                  <span className="text-[12px] text-[var(--color-text-3)]">فاصل تغيير الزيت</span>
+                  <span className="num text-[13px] font-semibold">{vehicleOilIntervalKm.toLocaleString('en-US')} كم</span>
                 </button>
 
                 <button
                   onClick={() => navigate('/vehicle/log/oil')}
                   disabled={vehicleOdometerKm === null}
-                  className="qb-press w-full rounded-2xl py-2.75 text-[12.5px] font-bold disabled:opacity-40"
-                  style={{ background: 'rgba(56,189,248,0.18)', color: 'var(--color-vehicle)' }}
+                  className="qb-press w-full rounded-full py-3.5 text-[14px] font-semibold text-[#0a0a0c] disabled:opacity-35"
+                  style={{ background: vColor, boxShadow: '0 14px 30px -14px var(--color-vehicle)' }}
                 >
                   تم تغيير الزيت
                 </button>
@@ -267,48 +255,45 @@ export function VehicleScreen() {
             ) : (
               <>
                 {fuelStats.avgKmPerLiter === null ? (
-                  <div className="mb-3 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(56,189,248,0.4)', color: 'var(--color-text-2)' }}>
+                  <div className="mb-4 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
                     سجّل تعبئتين كاملتين على الأقل (لين آخر الخزان) عشان يبدأ حساب معدل الاستهلاك والمدى المتوقع.
                   </div>
                 ) : (
-                  <>
-                    <div className="mb-3 grid grid-cols-2 gap-2.5">
-                      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
-                        <div className="mb-1 text-[11px] text-[var(--color-text-3)]">معدل الاستهلاك</div>
-                        <div className="num text-[15px] font-bold" style={{ color: 'var(--color-vehicle)' }}>
-                          {fuelStats.avgKmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })} كم/لتر
-                        </div>
+                  <div className="mb-4 grid grid-cols-2 gap-2.5">
+                    <div className="rounded-[18px] bg-white/[0.04] p-3.5">
+                      <div className="mb-1 text-[11px] text-[var(--color-text-3)]">معدل الاستهلاك</div>
+                      <div className="num text-[17px] font-bold" style={{ color: vColor }}>
+                        {fuelStats.avgKmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })}
+                        <span className="text-[11px] font-medium text-[var(--color-text-3)]"> كم/لتر</span>
                       </div>
-                      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
-                        <div className="mb-1 text-[11px] text-[var(--color-text-3)]">استهلاك لكل 100كم</div>
-                        <div className="num text-[15px] font-bold" style={{ color: 'var(--color-vehicle)' }}>
-                          {fuelStats.avgLitersPer100Km!.toLocaleString('en-US', { maximumFractionDigits: 1 })} لتر
-                        </div>
+                    </div>
+                    <div className="rounded-[18px] bg-white/[0.04] p-3.5">
+                      <div className="mb-1 text-[11px] text-[var(--color-text-3)]">لكل 100 كم</div>
+                      <div className="num text-[17px] font-bold" style={{ color: vColor }}>
+                        {fuelStats.avgLitersPer100Km!.toLocaleString('en-US', { maximumFractionDigits: 1 })}
+                        <span className="text-[11px] font-medium text-[var(--color-text-3)]"> لتر</span>
                       </div>
                     </div>
                     {fuelStats.estimatedRangeKm !== null && (
-                      <div className="mb-3 text-center text-[11.5px] text-[var(--color-text-3)]">
-                        المدى التقديري بخزان كامل:{' '}
-                        <span className="num font-bold" style={{ color: 'var(--color-vehicle)' }}>
+                      <div className="col-span-2 flex items-center justify-between rounded-[18px] bg-white/[0.04] px-3.5 py-3">
+                        <span className="text-[11.5px] text-[var(--color-text-3)]">المدى التقديري بخزان كامل</span>
+                        <span className="num text-[15px] font-bold" style={{ color: vColor }}>
                           {Math.round(fuelStats.estimatedRangeKm).toLocaleString('en-US')} كم
                         </span>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
 
-                <button
-                  onClick={() => setEditing('fuelCapacity')}
-                  className="qb-press mb-3 flex w-full items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5"
-                >
-                  <span className="text-[11.5px] text-[var(--color-text-3)]">سعة خزان الوقود</span>
-                  <span className="num text-[12.5px] font-semibold">{fuelTankCapacityL !== null ? `${fuelTankCapacityL.toLocaleString('en-US')} لتر` : 'ما تحدد بعد'}</span>
+                <button onClick={() => setEditing('fuelCapacity')} className="qb-press mb-4 flex w-full items-center justify-between rounded-[18px] bg-white/[0.04] px-4 py-3">
+                  <span className="text-[12px] text-[var(--color-text-3)]">سعة خزان الوقود</span>
+                  <span className="num text-[13px] font-semibold">{fuelTankCapacityL !== null ? `${fuelTankCapacityL.toLocaleString('en-US')} لتر` : 'ما تحدد بعد'}</span>
                 </button>
 
                 <button
                   onClick={() => navigate('/vehicle/log/fuel')}
-                  className="qb-press w-full rounded-2xl py-2.75 text-[12.5px] font-bold"
-                  style={{ background: 'rgba(56,189,248,0.18)', color: 'var(--color-vehicle)' }}
+                  className="qb-press w-full rounded-full py-3.5 text-[14px] font-semibold text-[#0a0a0c]"
+                  style={{ background: vColor, boxShadow: '0 14px 30px -14px var(--color-vehicle)' }}
                 >
                   تسجيل تعبئة وقود
                 </button>
@@ -319,83 +304,56 @@ export function VehicleScreen() {
       </div>
 
       {costStats.costPerKm !== null && (
-        <div className="qb-card mb-4 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="qb-section-label">تكلفة السيارة</div>
-            <div className="num text-[11px] text-[var(--color-text-3)]">آخر {Math.round(costStats.drivenKm).toLocaleString('en-US')} كم مسجَّلة</div>
-          </div>
-          <div className="mb-3 flex items-baseline justify-between">
-            <span className="text-[12px] text-[var(--color-text-3)]">التكلفة لكل كيلومتر</span>
-            <span className="num text-[17px] font-bold" style={{ color: 'var(--color-vehicle)' }}>
-              {costStats.costPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[11.5px] text-[var(--color-text-3)]">
-            <span>وقود: {formatMoney(costStats.fuelCostTotal)}</span>
-            <span>زيت: {formatMoney(costStats.oilCostTotal)}</span>
-            <span className="font-semibold text-[var(--color-text-2)]">الإجمالي: {formatMoney(costStats.totalCost)}</span>
-          </div>
+        <div className="qb-rise mb-6 grid grid-cols-2 gap-3" style={rise(1)}>
+          <StatTile
+            className="col-span-2"
+            label={`تكلفة الكيلومتر (آخر ${Math.round(costStats.drivenKm).toLocaleString('en-US')} كم)`}
+            value={`${costStats.costPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم`}
+            color={vColor}
+          />
+          <StatTile label="الوقود" value={formatMoney(costStats.fuelCostTotal)} color="var(--color-fuel)" icon={<FuelIcon size={17} />} />
+          <StatTile label="الزيت" value={formatMoney(costStats.oilCostTotal)} color={vColor} icon={<CarIcon size={17} />} sub={`الإجمالي ${formatMoney(costStats.totalCost)}`} />
         </div>
       )}
 
-      <div className="qb-section-label mb-2 px-1">سجل العمليات</div>
+      <SectionTitle title="سجل العمليات" />
       {combinedLogs.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا يوجد سجل بعد</div>
+        <EmptyState title="لا يوجد سجل بعد" desc="كل تغيير زيت أو تعبئة وقود تسجّلها تظهر هنا." />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {combinedLogs.map((entry) => {
+        <ListGroup className="qb-rise">
+          {combinedLogs.map((entry, i) => {
             const account = entry.log.accountId ? accounts.find((a) => a.id === entry.log.accountId) : undefined
             const gap = entry.kind === 'fuel' ? fuelGaps.get(entry.log.id) : undefined
+            const c = entry.kind === 'oil' ? vColor : 'var(--color-fuel)'
+            const details = [
+              gap ? `قطعت ${Math.round(gap.drivenKm).toLocaleString('en-US')} كم` : '',
+              gap && gap.kmPerLiter !== null ? `${gap.kmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })} كم/لتر` : '',
+              entry.log.cost && account ? account.name : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
             return (
-              <div key={`${entry.kind}-${entry.log.id}`} className="qb-card p-3.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <div className="text-[13px] font-bold">{formatDate(entry.log.date)}</div>
-                    <span
-                      className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold"
-                      style={{ background: 'rgba(56,189,248,0.16)', color: 'var(--color-vehicle)' }}
-                    >
-                      {entry.kind === 'oil' ? <CarIcon size={10} /> : <FuelIcon size={10} />}
-                      {entry.kind === 'oil' ? 'تغيير زيت' : 'تعبئة وقود'}
-                    </span>
-                    {entry.kind === 'fuel' && entry.log.isFullTank && (
-                      <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-bold" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--color-text-3)' }}>
-                        كاملة
-                      </span>
-                    )}
+              <ListItem
+                key={`${entry.kind}-${entry.log.id}`}
+                divider={i > 0}
+                leading={<IconBubble color={c}>{entry.kind === 'oil' ? <CarIcon size={19} /> : <FuelIcon size={19} />}</IconBubble>}
+                title={
+                  <span className="flex items-center gap-2">
+                    {entry.kind === 'oil' ? 'تغيير زيت' : 'تعبئة وقود'}
+                    {entry.kind === 'fuel' && entry.log.isFullTank && <Badge color={c}>كاملة</Badge>}
+                  </span>
+                }
+                subtitle={`${formatDate(entry.log.date)} · ${entry.log.odometerKm.toLocaleString('en-US')} كم${details ? ` · ${details}` : ''}`}
+                trailing={
+                  <div className="flex flex-col items-end">
+                    {entry.log.cost ? <span className="num text-[14px] font-bold">{formatMoney(entry.log.cost)}</span> : null}
+                    {entry.kind === 'fuel' && <span className="num text-[11px] text-[var(--color-text-3)]">{entry.log.liters.toLocaleString('en-US')} لتر</span>}
                   </div>
-                  <div className="num text-[12.5px] font-semibold text-[var(--color-text-2)]">
-                    {entry.kind === 'fuel' ? `${entry.log.liters.toLocaleString('en-US')} لتر · ` : ''}
-                    {entry.log.odometerKm.toLocaleString('en-US')} كم
-                  </div>
-                </div>
-                {gap && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                    <span>قطعت</span>
-                    <span className="num font-bold" style={{ color: 'var(--color-vehicle)' }}>
-                      {Math.round(gap.drivenKm).toLocaleString('en-US')} كم
-                    </span>
-                    <span>منذ التعبئة السابقة</span>
-                    {gap.kmPerLiter !== null && (
-                      <span className="num mr-auto font-semibold text-[var(--color-text-2)]">
-                        {gap.kmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })} كم/لتر
-                      </span>
-                    )}
-                  </div>
-                )}
-                {entry.log.cost && account && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                    <AccountTypeIcon type={account.type} size={13} />
-                    <span>{account.name} · {ACCOUNT_TYPE_LABELS[account.type]}</span>
-                    <span className="num mr-auto font-semibold" style={{ color: ACCOUNT_ICON_COLOR[account.type] }}>
-                      {formatMoney(entry.log.cost)}
-                    </span>
-                  </div>
-                )}
-              </div>
+                }
+              />
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </ScreenScroll>
   )

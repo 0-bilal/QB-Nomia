@@ -12,6 +12,9 @@ import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIc
 import { formatMoney } from '../../lib/format'
 import { showUndoToast } from '../../lib/undoToast'
 import type { LoanDirection } from '../../types'
+import { Segmented } from '../../components/ui'
+import { AmountHero } from '../../components/AmountHero'
+import { Avatar } from '../../components/Avatar'
 
 export function AddLoanScreen() {
   const { personId, loanId } = useParams<{ personId: string; loanId?: string }>()
@@ -67,7 +70,7 @@ export function AddLoanScreen() {
     const { personId, direction, amount, accountId, date, dueDate, note } = existing
     deleteLoanTransaction(loanId)
     navigate(`/loans/${person.id}`, { replace: true })
-    showUndoToast('تم حذف الحركة', () => addLoanTransaction({ personId, direction, amount, accountId, date, dueDate, note }))
+    showUndoToast('تم حذف الحركة', (data) => data.addLoanTransaction({ personId, direction, amount, accountId, date, dueDate, note }))
   }
 
   return (
@@ -80,7 +83,7 @@ export function AddLoanScreen() {
           className="pt-8 pb-6"
           right={
             isEditing ? (
-              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press text-[13px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+              <button onClick={() => setConfirmDeleteOpen(true)} className="qb-press flex h-10 items-center rounded-full px-4 text-[13px] font-semibold" style={{ color: 'var(--color-expense)', background: 'rgba(255,95,109,0.12)' }}>
                 حذف
               </button>
             ) : (
@@ -94,7 +97,7 @@ export function AddLoanScreen() {
           <button
             onClick={handleSave}
             disabled={!canSave}
-            className="qb-press w-full rounded-2xl py-3.5 text-center text-[14.5px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: color }}
           >
             {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
@@ -112,22 +115,23 @@ export function AddLoanScreen() {
         onCancel={() => setConfirmDeleteOpen(false)}
       />
 
-      <div className="mb-6 flex gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] p-1.25">
-        <button
-          onClick={() => setDirection('given')}
-          className="qb-press flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
-          style={direction === 'given' ? { background: 'rgba(251,146,60,0.2)', color: 'var(--color-owed-by)' } : { color: 'var(--color-text-2)' }}
-        >
-          أعطيته مبلغ
-        </button>
-        <button
-          onClick={() => setDirection('received')}
-          className="qb-press flex-1 rounded-[14px] py-2.75 text-[13.5px] font-bold"
-          style={direction === 'received' ? { background: 'rgba(45,212,191,0.2)', color: 'var(--color-owed-to)' } : { color: 'var(--color-text-2)' }}
-        >
-          استلمت منه مبلغ
-        </button>
+      <div className="qb-rise mb-5 flex items-center gap-3 px-1">
+        <Avatar name={person.name} size={44} />
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold">{person.name}</div>
+          <div className="text-[11.5px] text-[var(--color-text-3)]">{direction === 'given' ? 'المبلغ يُضاف لما لك عنده' : 'المبلغ يُخصم مما لك عنده'}</div>
+        </div>
       </div>
+
+      <Segmented
+        options={[
+          ['given', 'أعطيته مبلغ'],
+          ['received', 'استلمت منه'],
+        ]}
+        value={direction}
+        onChange={setDirection}
+        color={color}
+      />
 
       <SelectSheet
         open={accountSheetOpen}
@@ -160,8 +164,8 @@ export function AddLoanScreen() {
               setAccountSheetOpen(false)
               navigate('/accounts/new')
             }}
-            className="qb-press mt-1 w-full rounded-2xl border border-dashed py-2.5 text-[12.5px] font-semibold"
-            style={{ borderColor: 'rgba(255,255,255,0.3)', color: 'var(--color-accent)' }}
+            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
+            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
           >
             + إضافة حساب جديد
           </button>
@@ -188,12 +192,7 @@ export function AddLoanScreen() {
         />
       </div>
 
-      <div className="mb-6 text-center">
-        <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">المبلغ</div>
-        <div className="num text-[40px] font-bold" style={{ color }}>
-          {amount || '0'}
-        </div>
-      </div>
+      <AmountHero amount={amount} color={color} label={direction === 'given' ? 'كم أعطيته؟' : 'كم استلمت منه؟'} />
 
       <div className="mb-6">
         <AmountPad value={amount} onChange={setAmount} color={color} />
@@ -218,12 +217,12 @@ export function AddLoanScreen() {
         </div>
       )}
 
-      <label className="mb-1.5 block text-[12.5px] font-semibold text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
+      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: سلفة راتب"
-        className="mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
       />
     </ScreenScroll>
   )

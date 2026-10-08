@@ -5,6 +5,12 @@ import { formatMoney } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import type { Subscription } from '../types'
+import { BigAmount } from '../components/BigAmount'
+import { AccountTypeIcon } from '../components/AccountVisuals'
+import { SwipeableRow } from '../components/SwipeableRow'
+import { Badge, EmptyState, HeaderAddButton, HeroCard, HeroLabel, IconBubble, ListGroup, ListItem, SectionTitle, TintButton } from '../components/ui'
+import { rise } from '../lib/motion'
+import { haptic } from '../lib/haptics'
 
 function daysUntil(dateStr: string): number {
   const today = new Date()
@@ -37,179 +43,211 @@ export function SubscriptionsScreen() {
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? ''
   const wallets = accounts.filter((a) => a.type === 'wallet')
 
+  const active = subscriptions.filter((x) => x.status === 'active')
+  const upcoming = [...active].sort((x, y) => x.nextRenewalDate.localeCompare(y.nextRenewalDate)).slice(0, 4)
+
   return (
-    <ScreenScroll
-      header={
-        <ScreenHeader
-          title="الاشتراكات"
-          onBack={() => navigate(-1)}
-          right={
-            <button
-              onClick={() => navigate('/subscriptions/new')}
-              className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-              style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-              aria-label="إضافة اشتراك"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          }
-        />
-      }
-    >
-      <div className="qb-card-elevated mb-4 p-4.5">
-        <div className="mb-1.5 text-[12.5px] text-[var(--color-text-2)]">إجمالي الاشتراكات الشهرية</div>
-        <div className="num text-[26px] font-bold" style={{ color: 'var(--color-subscription)' }}>
-          {formatMoney(totalMonthlySubscriptions)}
+    <ScreenScroll header={<ScreenHeader title="الاشتراكات" onBack={() => navigate(-1)} right={<HeaderAddButton label="إضافة اشتراك" onClick={() => navigate('/subscriptions/new')} />} />}>
+      <HeroCard className="mb-6">
+        <HeroLabel>إجمالي الاشتراكات الشهرية</HeroLabel>
+        <BigAmount value={totalMonthlySubscriptions} size={38} color="var(--color-subscription)" />
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="rounded-[18px] bg-white/[0.04] px-3.5 py-3">
+            <div className="text-[11px] text-[var(--color-text-3)]">تقدير سنوي</div>
+            <div className="num text-[15px] font-bold">{formatMoney(totalMonthlySubscriptions * 12)}</div>
+          </div>
+          <div className="rounded-[18px] bg-white/[0.04] px-3.5 py-3">
+            <div className="text-[11px] text-[var(--color-text-3)]">اشتراكات نشطة</div>
+            <div className="num text-[15px] font-bold">
+              {active.length}
+              <span className="text-[11px] font-normal text-[var(--color-text-3)]"> من {subscriptions.length}</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </HeroCard>
 
-      <div className="mb-5">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="qb-section-label">المحافظ الرقمية</div>
-          <button
-            onClick={() => navigate('/accounts/new?type=wallet')}
-            className="qb-press text-[11.5px] font-semibold"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            + محفظة جديدة
-          </button>
+      {upcoming.length > 0 && (
+        <div className="qb-rise mb-6" style={rise(1)}>
+          <SectionTitle title="التجديدات القادمة" />
+          <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+            {upcoming.map((sub) => {
+              const days = daysUntil(sub.nextRenewalDate)
+              const urgent = days <= 3
+              return (
+                <button
+                  key={sub.id}
+                  onClick={() => setOpenId(sub.id)}
+                  className="qb-press flex w-[150px] flex-shrink-0 flex-col rounded-[24px] border p-4 text-right"
+                  style={{
+                    borderColor: urgent ? 'rgba(255,191,71,0.35)' : 'var(--color-border)',
+                    background: urgent ? 'linear-gradient(160deg, rgba(255,191,71,0.16), rgba(255,191,71,0.03))' : 'var(--color-surface)',
+                  }}
+                >
+                  <div className="num text-[30px] font-bold leading-none" style={{ color: urgent ? 'var(--color-subscription)' : 'var(--color-text)' }}>
+                    {Math.max(0, days)}
+                  </div>
+                  <div className="mb-3 text-[11px] text-[var(--color-text-3)]">{days <= 0 ? 'اليوم/متأخر' : days === 1 ? 'يوم' : 'أيام'}</div>
+                  <div className="truncate text-[13px] font-medium">{sub.name}</div>
+                  <div className="num text-[12px] text-[var(--color-text-2)]">{formatMoney(sub.cost)}</div>
+                </button>
+              )
+            })}
+          </div>
         </div>
+      )}
 
+      <div className="qb-rise mb-6" style={rise(2)}>
+        <SectionTitle title="المحافظ الرقمية" action="محفظة جديدة" onAction={() => navigate('/accounts/new?type=wallet')} />
         {wallets.length === 0 ? (
-          <div className="rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,255,255,0.35)', color: 'var(--color-text-2)' }}>
+          <div className="rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
             ما عندك محفظة رقمية بعد. أنشئ محفظة (مثل Google Play)، عبّيها بتحويل من الكاش أو البنكي، وسدد اشتراكاتك منها.
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            {wallets.map((w) => (
-              <div key={w.id} className="qb-card flex items-center justify-between p-4">
-                <div>
-                  <div className="text-[13.5px] font-bold">{w.name}</div>
-                  <div className="num mt-0.5 text-[16px] font-bold" style={{ color: 'var(--color-accent)' }}>
-                    {formatMoney(w.balance)}
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate(`/add/transaction?type=transfer&to=${w.id}`)}
-                  className="rounded-full px-3.5 py-2 text-[12px] font-semibold"
-                  style={{ background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)' }}
-                >
-                  شحن المحفظة
-                </button>
-              </div>
+          <ListGroup>
+            {wallets.map((w, i) => (
+              <ListItem
+                key={w.id}
+                divider={i > 0}
+                leading={
+                  <IconBubble color="var(--color-accent)">
+                    <AccountTypeIcon type="wallet" size={19} />
+                  </IconBubble>
+                }
+                title={w.name}
+                subtitle={<span className="num">{formatMoney(w.balance)}</span>}
+                trailing={
+                  <button
+                    onClick={() => navigate(`/add/transaction?type=transfer&to=${w.id}`)}
+                    className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
+                    style={{ background: 'var(--color-accent)', color: 'var(--color-on-accent)' }}
+                  >
+                    شحن
+                  </button>
+                }
+              />
             ))}
-          </div>
+          </ListGroup>
         )}
       </div>
 
-      <div className="qb-section-label mb-2">كل الاشتراكات</div>
+      <SectionTitle title="كل الاشتراكات" hint="اسحب يمينًا لتسجيل الدفع · يسارًا للإيقاف أو الاستئناف" />
 
       {subscriptions.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد اشتراكات بعد</div>
+        <EmptyState title="لا توجد اشتراكات بعد" desc="أضف اشتراكاتك (يوتيوب، Google Play...) وتابع موعد تجديدها." actionLabel="إضافة اشتراك" onAction={() => navigate('/subscriptions/new')} />
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {subscriptions.map((sub) => {
+        <ListGroup className="qb-rise">
+          {subscriptions.map((sub, i) => {
             const badge = renewalBadge(sub)
             const open = openId === sub.id
             return (
-              <div key={sub.id} className="qb-card p-4">
-                <button
-                  onClick={() => setOpenId(open ? null : sub.id)}
-                  className="flex w-full items-center gap-3 text-right"
-                >
-                  <div
-                    className="flex h-11.5 w-11.5 flex-shrink-0 items-center justify-center rounded-[14px]"
-                    style={{ width: 46, height: 46, background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
-                  >
-                    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="8,6 18,12 8,18" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="text-[14px] font-bold">{sub.name}</div>
-                      {sub.status !== 'active' && (
-                        <div className="rounded-full bg-white/6 px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-text-2)]">
-                          {STATUS_LABEL[sub.status]}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[11.5px] text-[var(--color-text-3)]">
-                      {sub.provider ? `${sub.provider} · ` : ''}
-                      {accountName(sub.accountId)}
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <div className="num text-[14px] font-bold">
-                      {formatMoney(sub.cost)}
-                      <span className="text-[11px] font-normal text-[var(--color-text-3)]">
-                        {sub.billingCycle === 'monthly' ? ' / شهريًا' : ' / سنويًا'}
-                      </span>
-                    </div>
-                    {badge && (
-                      <div className="mt-1 text-[11px] font-semibold" style={{ color: badge.color }}>
-                        {badge.text}
+              <SwipeableRow
+                key={sub.id}
+                className={i > 0 ? 'border-t qb-divider' : ''}
+                rightSwipe={
+                  sub.status === 'active'
+                    ? { label: 'دفع', icon: <PayIcon />, color: 'var(--color-accent)', textColor: 'var(--color-on-accent)', onTrigger: () => {
+                        logSubscriptionPayment(sub.id)
+                        haptic('success')
+                      } }
+                    : undefined
+                }
+                leftSwipe={
+                  sub.status === 'cancelled'
+                    ? undefined
+                    : {
+                        label: sub.status === 'active' ? 'إيقاف' : 'استئناف',
+                        icon: <PauseIcon paused={sub.status !== 'active'} />,
+                        color: 'var(--color-subscription)',
+                        textColor: '#0a0a0c',
+                        onTrigger: () => setSubscriptionStatus(sub.id, sub.status === 'active' ? 'paused' : 'active'),
+                      }
+                }
+              >
+                <div className={sub.status === 'cancelled' ? 'opacity-55' : ''}>
+                  <button onClick={() => setOpenId(open ? null : sub.id)} className="flex w-full items-center gap-3 px-4 py-3.5 text-right active:bg-white/[0.03]">
+                    <IconBubble color="var(--color-subscription)">
+                      <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+                        <path d="M8 5.5v13l10.5-6.5z" />
+                      </svg>
+                    </IconBubble>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[14px] font-medium">{sub.name}</span>
+                        {sub.status !== 'active' && <Badge>{STATUS_LABEL[sub.status]}</Badge>}
                       </div>
-                    )}
-                  </div>
-                </button>
+                      <div className="truncate text-[11.5px]" style={{ color: badge?.color ?? 'var(--color-text-3)' }}>
+                        {badge ? badge.text : [sub.provider, accountName(sub.accountId)].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 text-left">
+                      <div className="num text-[14px] font-bold">{formatMoney(sub.cost)}</div>
+                      <div className="text-[10.5px] text-[var(--color-text-3)]">{sub.billingCycle === 'monthly' ? 'شهريًا' : 'سنويًا'}</div>
+                    </div>
+                  </button>
 
-                {open && (
-                  <div className="mt-3.5 flex flex-col gap-2 border-t border-white/6 pt-3.5">
-                    <button
-                      onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
-                      className="rounded-xl py-2.5 text-[12.5px] font-semibold"
-                      style={{ background: 'var(--color-void)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
-                    >
-                      تعديل بيانات الاشتراك
-                    </button>
-                    {sub.status === 'active' && (
-                      <button
-                        onClick={() => logSubscriptionPayment(sub.id)}
-                        className="rounded-xl py-2.5 text-[12.5px] font-semibold"
-                        style={{ background: 'rgba(255,255,255,0.14)', color: 'var(--color-accent)' }}
-                      >
-                        تسجيل الدفع الآن (يخصم {formatMoney(sub.cost)} من {accountName(sub.accountId)})
-                      </button>
-                    )}
-                    <div className="flex gap-2">
-                      {sub.status === 'active' ? (
+                  {open && (
+                    <div className="grid grid-cols-2 gap-2 px-4 pb-4" style={{ animation: 'fade-in 200ms ease-out both' }}>
+                      {sub.status === 'active' && (
                         <button
-                          onClick={() => setSubscriptionStatus(sub.id, 'paused')}
-                          className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(245,185,66,0.12)', color: 'var(--color-subscription)' }}
+                          onClick={() => logSubscriptionPayment(sub.id)}
+                          className="qb-press col-span-2 rounded-full py-3 text-[13px] font-semibold"
+                          style={{ background: 'var(--color-accent)', color: 'var(--color-on-accent)' }}
                         >
-                          إيقاف مؤقت
-                        </button>
-                      ) : sub.status === 'paused' ? (
-                        <button
-                          onClick={() => setSubscriptionStatus(sub.id, 'active')}
-                          className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(255,255,255,0.12)', color: 'var(--color-accent)' }}
-                        >
-                          استئناف
-                        </button>
-                      ) : null}
-                      {sub.status !== 'cancelled' && (
-                        <button
-                          onClick={() => setSubscriptionStatus(sub.id, 'cancelled')}
-                          className="flex-1 rounded-xl py-2.5 text-[12.5px] font-semibold"
-                          style={{ background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }}
-                        >
-                          إلغاء الاشتراك
+                          تسجيل الدفع الآن ({formatMoney(sub.cost)} من {accountName(sub.accountId)})
                         </button>
                       )}
+                      <button
+                        onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
+                        className="qb-press rounded-full bg-white/[0.06] py-2.5 text-[12.5px] font-medium"
+                      >
+                        تعديل
+                      </button>
+                      {sub.status === 'active' ? (
+                        <TintButton color="var(--color-subscription)" className="!py-2.5 text-[12.5px]" onClick={() => setSubscriptionStatus(sub.id, 'paused')}>
+                          إيقاف مؤقت
+                        </TintButton>
+                      ) : sub.status === 'paused' ? (
+                        <TintButton color="var(--color-accent)" className="!py-2.5 text-[12.5px]" onClick={() => setSubscriptionStatus(sub.id, 'active')}>
+                          استئناف
+                        </TintButton>
+                      ) : (
+                        <div />
+                      )}
+                      {sub.status !== 'cancelled' && (
+                        <TintButton color="var(--color-expense)" className="col-span-2 !py-2.5 text-[12.5px]" onClick={() => setSubscriptionStatus(sub.id, 'cancelled')}>
+                          إلغاء الاشتراك
+                        </TintButton>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </SwipeableRow>
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </ScreenScroll>
+  )
+}
+
+function PayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="6" width="18" height="13" rx="3" />
+      <path d="M3 10.5h18M7 15h3" />
+    </svg>
+  )
+}
+
+function PauseIcon({ paused }: { paused: boolean }) {
+  return paused ? (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+      <path d="M8 5.5v13l10.5-6.5z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+      <rect x="6.5" y="5" width="4" height="14" rx="1.2" />
+      <rect x="13.5" y="5" width="4" height="14" rx="1.2" />
+    </svg>
   )
 }

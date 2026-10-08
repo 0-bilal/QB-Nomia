@@ -6,6 +6,9 @@ import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { colorFor } from '../components/Avatar'
 import { CategoryIcon } from '../components/CategoryIcons'
+import { BigAmount } from '../components/BigAmount'
+import { EmptyState, HeaderAddButton, IconBubble, ListGroup, ProgressBar, RingProgress, SectionTitle } from '../components/ui'
+import { budgetColor, rise } from '../lib/motion'
 
 function EditIcon() {
   return (
@@ -54,12 +57,12 @@ function SetBudgetDialog({
 
   return (
     <div dir="rtl" className="fixed inset-0 z-[60] flex items-center justify-center px-6">
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onCancel} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onCancel} aria-hidden="true" />
       <div
-        className="relative w-full max-w-[320px] rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-5 text-center shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]"
-        style={{ animation: 'speed-dial-in 200ms ease-out both' }}
+        className="relative w-full max-w-[330px] rounded-[32px] border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-6 text-center shadow-[0_30px_70px_-20px_rgba(0,0,0,0.9)]"
+        style={{ animation: 'qb-pop 340ms var(--ease-spring) both' }}
       >
-        <div className="mb-1.5 text-[15px] font-bold">الميزانية الإجمالية الشهرية</div>
+        <div className="mb-2 text-[17px] font-semibold">الميزانية الإجمالية الشهرية</div>
         <div className="mb-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
           سقف عام لكل مصاريفك الشهرية، بجانب ميزانيات الفئات الفردية
         </div>
@@ -70,16 +73,16 @@ function SetBudgetDialog({
           value={value}
           onChange={(e) => setValue(e.target.value.replace(/[^0-9.]/g, ''))}
           placeholder="0"
-          className="num mb-4 w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] px-4 py-3 text-center text-[18px] font-bold outline-none placeholder:text-[var(--color-text-3)]"
+          className="num mb-5 w-full rounded-[20px] border border-[var(--color-border)] bg-[var(--color-void)] px-4 py-4 text-center text-[28px] font-bold outline-none placeholder:text-[var(--color-text-3)]"
         />
         <div className="flex gap-2.5">
-          <button onClick={onCancel} className="flex-1 rounded-2xl border border-[var(--color-border)] py-2.75 text-[13px] font-semibold text-[var(--color-text-2)]">
+          <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
             إلغاء
           </button>
           <button
             onClick={() => canSave && onSave(numeric)}
             disabled={!canSave}
-            className="flex-1 rounded-2xl py-2.75 text-[13px] font-bold text-[#0A0A0C] disabled:opacity-40"
+            className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: 'var(--color-accent)' }}
           >
             حفظ
@@ -105,28 +108,10 @@ export function CategoriesScreen() {
   const overallRawPct = monthlyBudgetLimit ? (monthExpense / monthlyBudgetLimit) * 100 : null
   const overallPct = overallRawPct !== null ? Math.min(100, overallRawPct) : null
 
+  const totalSpent = expenseCategories.reduce((sum, c) => sum + categorySpentThisMonth(c.id), 0)
+
   return (
-    <ScreenScroll
-      header={
-        <ScreenHeader
-          title="فئات المصاريف"
-          onBack={() => navigate(-1)}
-          right={
-            <button
-              onClick={() => navigate('/categories/new')}
-              className="qb-glass-circle qb-press flex h-9.5 w-9.5 items-center justify-center rounded-full border"
-              style={{ width: 38, height: 38, color: 'var(--color-accent)' }}
-              aria-label="إضافة فئة"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          }
-        />
-      }
-    >
+    <ScreenScroll header={<ScreenHeader title="فئات المصاريف" onBack={() => navigate(-1)} right={<HeaderAddButton label="إضافة فئة" onClick={() => navigate('/categories/new')} />} />}>
       <SetBudgetDialog
         open={budgetDialogOpen}
         initialValue={monthlyBudgetLimit}
@@ -141,68 +126,96 @@ export function CategoriesScreen() {
         onCancel={() => setBudgetDialogOpen(false)}
       />
 
-      <button onClick={() => setBudgetDialogOpen(true)} className="qb-card-elevated qb-press mb-5 block w-full p-4.5 text-right">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="qb-section-label">الميزانية الإجمالية الشهرية</div>
-          <div className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)]" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <EditIcon />
-          </div>
-        </div>
-        {monthlyBudgetLimit === null ? (
-          <div className="text-[12.5px] text-[var(--color-text-3)]">ما حددت سقف مصاريف شهري بعد — اضغط لتحديده</div>
-        ) : (
-          <>
-            <div className="num mb-2.5 flex items-baseline justify-between">
-              <span className="text-[20px] font-bold" style={{ color: overallRawPct !== null && overallRawPct >= 100 ? 'var(--color-expense)' : 'var(--color-text)' }}>
-                {formatMoney(monthExpense)}
+      <button onClick={() => setBudgetDialogOpen(true)} className="qb-card-elevated qb-press qb-rise mb-6 block w-full p-5 text-right">
+        <div className="flex items-center gap-5">
+          <RingProgress pct={overallPct ?? 0} size={104} color={budgetColor(overallRawPct ?? 0)}>
+            <span className="num text-[22px] font-bold leading-none">{overallRawPct !== null ? `${Math.round(overallRawPct)}%` : '—'}</span>
+            <span className="mt-1 text-[10px] text-[var(--color-text-3)]">من الميزانية</span>
+          </RingProgress>
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[12.5px] font-medium text-[var(--color-text-2)]">مصروف هذا الشهر</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.08] text-[var(--color-text-2)]">
+                <EditIcon />
               </span>
-              <span className="text-[12.5px] text-[var(--color-text-3)]">من {formatMoney(monthlyBudgetLimit)}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/8">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${overallPct ?? 0}%`,
-                  background: (overallRawPct ?? 0) >= 100 ? 'var(--color-expense)' : (overallRawPct ?? 0) >= 80 ? 'var(--color-subscription)' : 'var(--color-income)',
-                }}
-              />
+            <BigAmount value={monthExpense} size={28} color={overallRawPct !== null && overallRawPct >= 100 ? 'var(--color-expense)' : undefined} />
+            <div className="mt-2 text-[12px] text-[var(--color-text-3)]">
+              {monthlyBudgetLimit === null ? 'اضغط لتحديد سقف مصاريف شهري' : `السقف الشهري ${formatMoney(monthlyBudgetLimit)}`}
             </div>
             {overallRawPct !== null && overallRawPct >= 100 && (
-              <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-                تجاوزت الميزانية الإجمالية بـ {formatMoney(monthExpense - monthlyBudgetLimit)}
+              <div className="mt-1 text-[11.5px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                تجاوزت بـ {formatMoney(monthExpense - (monthlyBudgetLimit ?? 0))}
               </div>
             )}
             {overallRawPct !== null && overallRawPct >= 80 && overallRawPct < 100 && (
-              <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
-                قاربت على تجاوز الميزانية الإجمالية ({Math.round(overallRawPct)}%)
+              <div className="mt-1 text-[11.5px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
+                قاربت على التجاوز
               </div>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </button>
 
-      <div className="mb-2 px-1">
-        <div className="qb-section-label mb-1">ميزانيات الفئات</div>
-        <div className="text-[11px] leading-relaxed text-[var(--color-text-3)]">رتّب فئاتك بالأسهم عشان الأكثر استخدامًا تطلع أول قائمة اختيار الفئة بإضافة الحركات</div>
-      </div>
+      {totalSpent > 0 && (
+        <div className="qb-rise mb-6" style={rise(1)}>
+          <SectionTitle title="توزيع الإنفاق" />
+          <div className="flex h-3 gap-1 overflow-hidden rounded-full">
+            {expenseCategories
+              .map((c) => ({ c, spent: categorySpentThisMonth(c.id) }))
+              .filter((x) => x.spent > 0)
+              .sort((x, y) => y.spent - x.spent)
+              .map(({ c, spent }) => (
+                <div key={c.id} className="h-full rounded-full" style={{ width: `${(spent / totalSpent) * 100}%`, background: colorFor(c.name) }} title={c.name} />
+              ))}
+          </div>
+        </div>
+      )}
+
+      <SectionTitle title="ميزانيات الفئات" hint="رتّب بالأسهم — الأعلى يظهر أول بقائمة اختيار الفئة عند إضافة حركة" />
 
       {expenseCategories.length === 0 ? (
-        <div className="qb-card py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد فئات بعد</div>
+        <EmptyState title="لا توجد فئات بعد" actionLabel="إضافة فئة" onAction={() => navigate('/categories/new')} />
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <ListGroup className="qb-rise">
           {expenseCategories.map((c, idx) => {
             const spent = categorySpentThisMonth(c.id)
             const rawPct = c.budgetLimit ? (spent / c.budgetLimit) * 100 : null
-            const pct = rawPct !== null ? Math.min(100, rawPct) : null
+            const cColor = colorFor(c.name)
             return (
-              <div key={c.id} className="qb-card flex items-stretch gap-2.5 p-3.5">
-                <div className="flex flex-shrink-0 flex-col gap-1.5">
+              <div key={c.id} className={`flex items-center gap-2 py-3 pe-4 ps-2 ${idx > 0 ? 'border-t qb-divider' : ''}`}>
+                <button onClick={() => navigate(`/categories/${c.id}/edit`)} className="flex min-w-0 flex-1 items-center gap-3 ps-2 text-right">
+                  <IconBubble color={cColor}>
+                    {c.icon ? <CategoryIcon iconKey={c.icon} size={19} /> : <span style={{ fontWeight: 600, fontSize: 16 }}>{c.name.trim().charAt(0) || '؟'}</span>}
+                  </IconBubble>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="truncate text-[14px] font-medium">{c.name}</div>
+                      <div className="num flex-shrink-0 text-[13.5px] font-semibold">{formatMoney(spent)}</div>
+                    </div>
+                    {rawPct !== null ? (
+                      <>
+                        <div className="mt-2">
+                          <ProgressBar pct={rawPct} color={budgetColor(rawPct)} height={6} />
+                        </div>
+                        <div className="mt-1 flex justify-between text-[10.5px]">
+                          <span style={{ color: rawPct >= 80 ? budgetColor(rawPct) : 'var(--color-text-3)' }}>
+                            {rawPct >= 100 ? `تجاوزت بـ ${formatMoney(spent - (c.budgetLimit ?? 0))}` : `${Math.round(rawPct)}%`}
+                          </span>
+                          <span className="num text-[var(--color-text-3)]">من {formatMoney(c.budgetLimit ?? 0)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-[11px] text-[var(--color-text-3)]">بدون ميزانية</div>
+                    )}
+                  </div>
+                </button>
+                <div data-own-gesture className="flex flex-shrink-0 flex-col gap-1">
                   <button
                     onClick={() => moveCategoryUp(c.id)}
                     disabled={idx === 0}
                     aria-label="نقل الفئة لأعلى"
-                    className="qb-press flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)] disabled:opacity-30"
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
+                    className="qb-press flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[var(--color-text-2)] disabled:opacity-25"
                   >
                     <ChevronUpIcon />
                   </button>
@@ -210,52 +223,15 @@ export function CategoriesScreen() {
                     onClick={() => moveCategoryDown(c.id)}
                     disabled={idx === expenseCategories.length - 1}
                     aria-label="نقل الفئة لأسفل"
-                    className="qb-press flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-3)] disabled:opacity-30"
-                    style={{ background: 'rgba(255,255,255,0.08)' }}
+                    className="qb-press flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[var(--color-text-2)] disabled:opacity-25"
                   >
                     <ChevronDownIcon />
                   </button>
                 </div>
-
-                <button onClick={() => navigate(`/categories/${c.id}/edit`)} className="qb-press flex min-w-0 flex-1 items-center gap-3 text-right">
-                  <div
-                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
-                    style={{ width: 40, height: 40, background: `${colorFor(c.name)}22`, color: colorFor(c.name) }}
-                  >
-                    {c.icon ? <CategoryIcon iconKey={c.icon} size={18} /> : <span style={{ fontWeight: 700, fontSize: 15 }}>{c.name.trim().charAt(0) || '؟'}</span>}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[13.5px] font-bold">{c.name}</div>
-                    <div className="num text-[13px] font-semibold text-[var(--color-text-2)]">
-                      {formatMoney(spent)}
-                      {c.budgetLimit ? ` / ${formatMoney(c.budgetLimit)}` : ''}
-                    </div>
-                  </div>
-                  {pct !== null && (
-                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/6">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${pct}%`, background: pct >= 100 ? 'var(--color-expense)' : pct >= 80 ? 'var(--color-subscription)' : 'var(--color-accent)' }}
-                      />
-                    </div>
-                  )}
-                  {rawPct !== null && rawPct >= 100 && (
-                    <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-                      تجاوزت الميزانية بـ {formatMoney(spent - (c.budgetLimit ?? 0))}
-                    </div>
-                  )}
-                  {rawPct !== null && rawPct >= 80 && rawPct < 100 && (
-                    <div className="mt-1.5 text-[11px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
-                      قاربت على تجاوز الميزانية ({Math.round(rawPct)}%)
-                    </div>
-                  )}
-                  </div>
-                </button>
               </div>
             )
           })}
-        </div>
+        </ListGroup>
       )}
     </ScreenScroll>
   )
