@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الرئيسية — تصميم مقترح</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --commit:#5fb3ff; --owed:#2ee6c8;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:20px 0 40px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .15s var(--ease)}.press:active{transform:scale(.97)}
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){body{padding:0}.phone{border-radius:0;border:0;height:100vh}}
+  .scroll{height:100%;overflow-y:auto;padding:0 16px 120px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .aurora{position:absolute;top:-120px;left:-60px;right:-60px;height:380px;background:radial-gradient(50% 60% at 70% 40%,rgba(139,123,255,.14),transparent 70%),radial-gradient(40% 50% at 20% 30%,rgba(62,224,143,.08),transparent 70%);pointer-events:none}
+
+  /* الرأس */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:44px 2px 16px;position:relative}
+  .who{display:flex;align-items:center;gap:10px}
+  .logo{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(150deg,#fff,#f4f4f6 55%,#a9a9b3);box-shadow:0 8px 20px -8px rgba(255,255,255,.35)}
+  .hi{font-size:15px;font-weight:700}
+  .dt{font-size:11px;color:var(--text-3);margin-top:1px}
+  .acts{display:flex;gap:8px}
+  .rb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border);position:relative}
+  .rb .bdg{position:absolute;top:-2px;left:-2px;min-width:17px;height:17px;border-radius:99px;background:var(--expense);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px;border:2px solid var(--bg)}
+
+  /* البطل */
+  .hero{position:relative;border-radius:30px;border:1px solid rgba(255,255,255,.1);overflow:hidden;padding:18px 18px 16px;
+    background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.08) 0%,transparent 55%),linear-gradient(165deg,var(--surface-el) 0%,var(--void) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 24px 48px -28px rgba(0,0,0,.9)}
+  .hero::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:14px 14px;-webkit-mask-image:linear-gradient(135deg,#000 0%,transparent 60%);mask-image:linear-gradient(135deg,#000 0%,transparent 60%);pointer-events:none}
+  .hero > *{position:relative}
+  .h-top{display:flex;justify-content:space-between;align-items:center}
+  .lbl{font-size:12.5px;color:var(--text-2);font-weight:500}
+  .scope{font-size:11px;color:var(--text-2);background:rgba(255,255,255,.07);padding:4px 10px;border-radius:99px;display:flex;gap:4px;align-items:center}
+  .bal{display:flex;align-items:baseline;gap:4px;margin-top:6px}
+  .bal .w{font-size:44px;font-weight:700;letter-spacing:-.035em}
+  .bal .c{font-size:20px;opacity:.5;font-weight:700}
+  .bal .cur{font-size:15px;opacity:.55;font-family:var(--font-sans);margin-inline-start:6px;font-weight:500}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:99px}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--text-3)}
+  .spark{margin:12px -18px 0;height:62px;display:block}
+  .qa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;padding-top:14px;border-top:1px solid var(--border)}
+  .q{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text-2)}
+  .q span{width:52px;height:52px;border-radius:19px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+  .q.p span{background:var(--accent);color:var(--on-accent);border-color:transparent;box-shadow:0 12px 26px -12px rgba(255,255,255,.4)}
+
+  .sec{display:flex;justify-content:space-between;align-items:center;margin:24px 6px 11px}
+  .sec h2{font-size:15px;font-weight:700}
+  .sec button{font-size:12px;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:3px}
+
+  /* بطاقات الانتباه */
+  .ins{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+  .ins::-webkit-scrollbar{display:none}
+  .in{flex:0 0 78%;scroll-snap-align:start;border-radius:22px;padding:14px;border:1px solid;display:flex;gap:12px;align-items:flex-start;text-align:right}
+  .in .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
+  .in .t{font-size:13px;font-weight:700}
+  .in .d{font-size:11.5px;color:var(--text-2);margin-top:3px;line-height:1.5}
+  .in .bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:9px}
+  .in .bar span{display:block;height:100%;border-radius:99px}
+
+  /* رزمة البطاقات */
+  .stack{position:relative;height:202px}
+  .bank{position:absolute;left:0;right:0;top:0;height:176px;border-radius:26px;padding:18px;border:1px solid rgba(255,255,255,.14);overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 22px 40px -24px rgba(0,0,0,.9)}
+  .bank .r{display:flex;justify-content:space-between;align-items:center}
+  .bank .n{font-size:14px;font-weight:600}
+  .bank .ty{font-size:11px;opacity:.6}
+  .bank .ib{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center}
+  .bank .bl{font-size:11px;opacity:.7}
+  .bank .am{font-size:30px;font-weight:700}
+  .dots{display:flex;justify-content:center;gap:5px;position:absolute;bottom:0;left:0;right:0}
+  .dots i{height:5px;width:5px;border-radius:99px;background:rgba(255,255,255,.18)}
+  .dots i.on{width:14px;background:var(--accent)}
+
+  /* هذا الشهر */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:24px}
+  .month{padding:16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kv .k{font-size:11.5px;color:var(--text-3);display:flex;align-items:center;gap:6px}
+  .kv .k i{width:7px;height:7px;border-radius:50%}
+  .kv .v{font-size:19px;font-weight:700;margin-top:3px}
+  .week{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .week .h{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-3);margin-bottom:10px}
+  .bars{display:flex;align-items:flex-end;gap:8px;height:84px}
+  .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .b span{width:100%;border-radius:8px 8px 4px 4px;background:rgba(255,255,255,.12);min-height:4px;position:relative}
+  .b.today span{background:var(--accent)}
+  .b.over span{background:rgba(255,95,109,.55)}
+  .b em{font-style:normal;font-size:10px;color:var(--text-3)}
+  .b.today em{color:var(--text);font-weight:700}
+  .avgline{position:relative}
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .mc{padding:14px;text-align:right}
+  .mc .ic{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px}
+  .mc .k{font-size:11.5px;color:var(--text-3)}
+  .mc .v{font-size:17px;font-weight:700;margin-top:2px}
+
+  /* الفئات */
+  .cats{padding:6px 14px}
+  .cr{display:flex;align-items:center;gap:11px;padding:10px 0}
+  .cr + .cr{border-top:1px solid var(--border)}
+  .cr .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
+  .cr .m{flex:1;min-width:0}
+  .cr .r1{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+  .cr .r1 .num{font-weight:700}
+  .cr .bar{height:5px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:7px;overflow:hidden}
+  .cr .bar span{display:block;height:100%;border-radius:99px}
+  .cr .pc{font-size:10.5px;color:var(--text-3);width:34px;text-align:left;flex-shrink:0}
+
+  /* القادم */
+  .up{padding:6px 14px}
+  .ur{display:flex;align-items:center;gap:12px;padding:10px 0}
+  .ur + .ur{border-top:1px solid var(--border)}
+  .date{width:44px;height:48px;border-radius:14px;background:var(--surface-el);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+  .date b{font-size:16px;font-weight:700;font-family:var(--font-num);line-height:1}
+  .date small{font-size:9.5px;color:var(--text-3);margin-top:3px}
+  .ur .m{flex:1;min-width:0}
+  .ur .n{font-size:13px;font-weight:600}
+  .ur .s{font-size:11px;color:var(--text-3);margin-top:3px;display:flex;align-items:center;gap:6px}
+  .tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px}
+  .ur .a{font-size:13.5px;font-weight:700}
+
+  /* الحركات */
+  .day{font-size:11.5px;font-weight:600;color:var(--text-3);margin:14px 6px 8px;display:flex;justify-content:space-between}
+  .tx{padding:4px 14px}
+  .tr{display:flex;align-items:center;gap:11px;padding:10px 0}
+  .tr + .tr{border-top:1px solid var(--border)}
+  .tr .ic{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex-shrink:0}
+  .tr .m{flex:1;min-width:0}
+  .tr .n{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr .s{font-size:11px;color:var(--text-3);margin-top:2px}
+  .tr .a{font-size:14px;font-weight:700}
+  .hint{text-align:center;font-size:11px;color:var(--text-3);margin-top:10px}
+
+  .nav{position:absolute;bottom:14px;left:14px;right:14px;height:66px;border-radius:26px;background:rgba(22,22,26,.85);backdrop-filter:blur(18px);border:1px solid var(--border-strong);display:flex;justify-content:space-around;align-items:center;z-index:5}
+  .nav div{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text-3)}
+  .nav .on{color:var(--text);font-weight:600}
+  .nav .plus{width:54px;height:54px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;margin-top:-30px;box-shadow:0 12px 30px -10px rgba(255,255,255,.4)}
+  .hide .amt{filter:blur(7px)}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="aurora"></div>
+  <div class="scroll">
+    <div class="top">
+      <div class="who">
+        <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0a0c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 L10 9 L14 13 L20 5"/><path d="M15 5 H20 V10"/></svg></div>
+        <div><div class="hi">صباح الخير</div><div class="dt">الخميس <span class="num">8 أكتوبر</span></div></div>
+      </div>
+      <div class="acts">
+        <button class="rb press" aria-label="التنبيهات"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="bdg num">3</span></button>
+        <button class="rb press" id="eye" aria-label="إخفاء المبالغ"></button>
+      </div>
+    </div>
+
+    <!-- البطل -->
+    <section class="hero">
+      <div class="h-top">
+        <span class="lbl">إجمالي رصيدك</span>
+        <span class="scope num">كل الحسابات (5)<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg></span>
+      </div>
+      <div class="bal amt" dir="ltr" style="justify-content:flex-end"><span class="w num">37,965</span><span class="c num">.75</span><span class="cur">ر.س</span></div>
+      <div class="meta">
+        <span class="pill num amt" style="background:rgba(62,224,143,.12);color:var(--income)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>+4,280</span>
+        صافي هذا الشهر
+      </div>
+      <svg class="spark" viewBox="0 0 356 62" preserveAspectRatio="none" id="spark"></svg>
+      <div class="qa">
+        <button class="q p press"><span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 9v8H9"/></svg></span>مصروف</button>
+        <button class="q press"><span style="color:var(--income)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17 7 7M7 15V7h8"/></svg></span>دخل</button>
+        <button class="q press"><span style="color:var(--transfer)"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4M20 7H8M8 21l-4-4 4-4M4 17h12"/></svg></span>تحويل</button>
+        <button class="q press"><span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/></svg></span>الحركات</button>
+      </div>
+    </section>
+
+    <!-- يحتاج انتباهك -->
+    <div class="sec"><h2>يحتاج انتباهك</h2><button class="num" style="color:var(--text-3)">4</button></div>
+    <div class="ins" id="ins"></div>
+
+    <!-- بطاقاتك -->
+    <div class="sec"><h2>بطاقاتك</h2><button>الكل <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button></div>
+    <div class="stack" id="stack"></div>
+
+    <!-- هذا الشهر -->
+    <div class="sec"><h2>أكتوبر حتى الآن</h2><button>التقارير <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button></div>
+    <div class="card month">
+      <div class="two">
+        <div class="kv"><div class="k"><i style="background:var(--income)"></i>الدخل</div><div class="v num amt" style="color:var(--income)">9,500</div></div>
+        <div class="kv"><div class="k"><i style="background:var(--expense)"></i>المصروف</div><div class="v num amt" style="color:var(--expense)">5,220</div></div>
+      </div>
+      <div class="week">
+        <div class="h"><span>مصروف آخر 7 أيام</span><span>متوسط يومي <b class="num amt" style="color:var(--text-2)">186</b></span></div>
+        <div class="bars" id="bars"></div>
+      </div>
+    </div>
+    <div class="mini">
+      <button class="card mc press"><div class="ic" style="background:rgba(255,191,71,.14);color:var(--sub)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,6 18,12 8,18"/></svg></div><div class="k">الاشتراكات شهريًا</div><div class="v num amt">245</div></button>
+      <button class="card mc press"><div class="ic" style="background:rgba(95,179,255,.14);color:var(--commit)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div><div class="k">التزامات نشطة</div><div class="v num">4</div></button>
+    </div>
+
+    <!-- الفئات -->
+    <div class="sec"><h2>أين ذهبت أموالك</h2><button>الفئات <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button></div>
+    <div class="card cats" id="cats"></div>
+
+    <!-- القادم -->
+    <div class="sec"><h2>القادم خلال 14 يوم</h2><button>الكل <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button></div>
+    <div class="card up" id="up"></div>
+
+    <!-- الحركات -->
+    <div class="sec" style="margin-bottom:0"><h2>آخر الحركات</h2><button>عرض الكل <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button></div>
+    <div id="tx"></div>
+    <div class="hint">اسحب الحركة يسارًا للحذف · يمينًا لتكرارها</div>
+  </div>
+
+  <nav class="nav">
+    <div class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1Z"/></svg>الرئيسية</div>
+    <div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg>الحسابات</div>
+    <div class="plus"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+    <div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/></svg>السلف</div>
+    <div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>المزيد</div>
+  </nav>
+</div>
+
+<script>
+const ICONS={"food": "<path d=\"M6 3v7a2 2 0 0 0 4 0V3\" /> <path d=\"M8 3v18\" /> <path d=\"M8 10v0\" /> <path d=\"M17 3c-1.7 0-3 2-3 5s1.3 5 3 5v9\" />", "groceries": "<path d=\"M3 6h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 9H6.5\" /> <circle cx=\"9.5\" cy=\"21\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\" /> <circle cx=\"17\" cy=\"21\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\" />", "coffee": "<path d=\"M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z\" /> <path d=\"M17 9h1.5a2.5 2.5 0 0 1 0 5H17\" /> <path d=\"M7 2.5c0 1-1 1-1 2s1 1 1 2\" /> <path d=\"M11 2.5c0 1-1 1-1 2s1 1 1 2\" />", "transport": "<path d=\"M3 13.5 5 8a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5.5\" /> <path d=\"M2.5 13.5h19v4a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1h-11v1a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-4Z\" /> <circle cx=\"7\" cy=\"15.5\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\" /> <circle cx=\"17\" cy=\"15.5\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\" />", "bills": "<path d=\"M6 2.5h12v19l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V2.5Z\" /> <path d=\"M8.5 7.5h7M8.5 11h7M8.5 14.5h4\" />", "shopping": "<path d=\"M6 8h12l-1 12.5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 20.5L6 8Z\" /> <path d=\"M9 8V6a3 3 0 0 1 6 0v2\" />", "clothing": "<path d=\"M9 3 3 6.5 5.5 10 8 8.5V21h8V8.5l2.5 1.5L21 6.5 15 3a3 3 0 0 1-6 0Z\" />", "health": "<path d=\"M20.5 8.5c0 5-8.5 11.5-8.5 11.5S3.5 13.5 3.5 8.5a4.5 4.5 0 0 1 8.5-2 4.5 4.5 0 0 1 8.5 2Z\" />", "gym": "<path d=\"M4 9v6M2.5 10.5v3M20 9v6M21.5 10.5v3\" /> <path d=\"M7 12h10\" /> <path d=\"M7 8v8M17 8v8\" />", "sports": "<circle cx=\"12\" cy=\"12\" r=\"9\" /> <path d=\"M12 3v18M3 12h18\" /> <path d=\"M5.5 5.5c2 2.5 2 10.5 0 13M18.5 5.5c-2 2.5-2 10.5 0 13\" />", "fun": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2.5\" /> <polygon points=\"10,9 15,12 10,15\" fill=\"currentColor\" stroke=\"none\" />", "subscriptions": "<path d=\"M4 12a8 8 0 0 1 13.7-5.7L20 8\" /> <path d=\"M20 4v4h-4\" /> <path d=\"M20 12a8 8 0 0 1-13.7 5.7L4 16\" /> <path d=\"M4 20v-4h4\" />", "commitments": "<rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.5\" /> <path d=\"M8 8h8M8 12h8M8 16h5\" />", "home": "<path d=\"M4 11 12 4l8 7\" /> <path d=\"M6 9.5V20h12V9.5\" /> <path d=\"M10 20v-6h4v6\" />", "education": "<path d=\"M2 8 12 4l10 4-10 4L2 8Z\" /> <path d=\"M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5\" /> <path d=\"M21 8v6\" />", "travel": "<path d=\"M11 3 3.5 10 2 9.3 3 12l2.7 1 6.3-2.3\" /> <path d=\"M11 3 21 9l-8 3-3.5 8-1.2-1.5 1-3.2\" /> <path d=\"M3.5 10 12 13l3.5 8\" />", "pets": "<circle cx=\"6.5\" cy=\"10\" r=\"1.7\" /> <circle cx=\"10.5\" cy=\"6.5\" r=\"1.7\" /> <circle cx=\"13.5\" cy=\"6.5\" r=\"1.7\" /> <circle cx=\"17.5\" cy=\"10\" r=\"1.7\" /> <path d=\"M12 12c-3.5 0-6 2-6 4.5S8 21 12 21s6-2 6-4.5S15.5 12 12 12Z\" />", "gifts": "<rect x=\"3.5\" y=\"9\" width=\"17\" height=\"12\" rx=\"1.5\" /> <path d=\"M3.5 13.5h17\" /> <path d=\"M12 9v12\" /> <path d=\"M12 9C9 9 8 6 9.5 4.5S13 4 12 9Z\" /> <path d=\"M12 9c3 0 4-3 2.5-4.5S11 4 12 9Z\" />", "kids": "<circle cx=\"12\" cy=\"7\" r=\"3.2\" /> <path d=\"M5 21v-2a7 7 0 0 1 14 0v2\" />", "electronics": "<rect x=\"3\" y=\"4.5\" width=\"18\" height=\"12\" rx=\"1.5\" /> <path d=\"M2 19.5h20\" /> <path d=\"M9 19.5v-3M15 19.5v-3\" />", "insurance": "<path d=\"M12 3 4.5 6v6c0 5 3.5 8 7.5 9 4-1 7.5-4 7.5-9V6L12 3Z\" /> <path d=\"M9 12l2 2 4-4\" />", "phone": "<path d=\"M5.5 4.5h3.2L10 8l-1.8 1.4a12 12 0 0 0 6.4 6.4L16 14l3.5 1.3v3.2a1.5 1.5 0 0 1-1.6 1.5A15 15 0 0 1 4 5.6a1.5 1.5 0 0 1 1.5-1.1Z\" />", "internet": "<path d=\"M3.5 9a13 13 0 0 1 17 0\" /> <path d=\"M6.5 12.5a8.5 8.5 0 0 1 11 0\" /> <path d=\"M9.7 16a4 4 0 0 1 4.6 0\" /> <circle cx=\"12\" cy=\"19\" r=\"1.1\" fill=\"currentColor\" stroke=\"none\" />", "beauty": "<path d=\"M12 2.5 13.5 8 19 9.5l-5.5 1.5L12 16.5 10.5 11 5 9.5 10.5 8Z\" /> <path d=\"M18.5 15.5 19.3 18l2.5.8-2.5.8-.8 2.5-.8-2.5-2.5-.8 2.5-.8Z\" />", "savings": "<path d=\"M4 12.5c0-3.5 3.5-6 8-6s8 1.8 8 4.5c0 1-.5 1.8-1.3 2.4\" /> <path d=\"M4 12.5v3a2 2 0 0 0 2 2h8.5a4 4 0 0 0 3.7-2.5\" /> <path d=\"M16 6.5c1-1 2-1 3 0\" /> <circle cx=\"9.5\" cy=\"13\" r=\"1\" fill=\"currentColor\" stroke=\"none\" />"};
+const cic=(k,s=19)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]||''}</svg>`;
+const S=(p,s=18,w=2)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const soft=(c,p=15)=>`color-mix(in srgb, ${c} ${p}%, transparent)`;
+
+/* منحنى الرصيد */
+(function(){
+  const pts=[31200,31050,30800,32100,31900,31600,31400,30900,30700,40200,39800,39100,38600,38900,38300,37965];
+  const w=356,h=62,min=Math.min(...pts)-800,max=Math.max(...pts)+300;
+  // RTL: الأحدث على اليسار
+  const xy=pts.map((v,i)=>[w-(i/(pts.length-1))*w, h-((v-min)/(max-min))*(h-8)-4]);
+  const d=xy.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const last=xy[xy.length-1];
+  document.getElementById('spark').innerHTML=`<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f4f6" stop-opacity=".18"/><stop offset="1" stop-color="#f4f4f6" stop-opacity="0"/></linearGradient></defs>
+    <path d="${d} L0 ${h} L${w} ${h} Z" fill="url(#g)"/><path d="${d}" fill="none" stroke="#f4f4f6" stroke-opacity=".7" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="${last[0]+3}" cy="${last[1]}" r="3.5" fill="#f4f4f6"/>`;
+})();
+
+/* يحتاج انتباهك */
+document.getElementById('ins').innerHTML=[
+  {c:'var(--expense)',i:'<path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4.5"/><path d="M12 17.3h.01"/>',t:'تجاوزت ميزانية «قهوة»',d:'<span class="num amt">310</span> من <span class="num">250</span> ر.س — متبقي 23 يوم',bar:124},
+  {c:'var(--income)',i:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',t:'تقدر تصرف <span class="num amt">102</span> ر.س يوميًا',d:'لتبقى ضمن سقفك الشهري حتى نهاية أكتوبر'},
+  {c:'var(--sub)',i:'<polygon points="8,6 18,12 8,18"/>',t:'Netflix بعد يومين',d:'<span class="num amt">45</span> ر.س من الراجحي — 10 أكتوبر'},
+  {c:'#ffbf47',i:'<path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5h16"/><path d="M5.5 13v7h13v-7"/>',t:'دَين «إكسترا» متأخر',d:'متبقي <span class="num amt">600</span> ر.س — كان مستحقًا 1 أكتوبر'},
+].map(x=>`<button class="in press" style="background:linear-gradient(135deg,${soft(x.c,13)},${soft(x.c,3)});border-color:${soft(x.c,28)}">
+  <span class="ic" style="background:${soft(x.c,18)};color:${x.c}">${S(x.i,18)}</span>
+  <span style="flex:1;min-width:0"><div class="t">${x.t}</div><div class="d">${x.d}</div>${x.bar?`<div class="bar"><span style="width:100%;background:${x.c}"></span></div>`:''}</span></button>`).join('');
+
+/* رزمة البطاقات */
+const BG=['radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.16) 0%,transparent 50%),linear-gradient(160deg,#1c1c21 0%,#0b0b0d 60%,#030304 100%)',
+ 'radial-gradient(100% 120% at 100% 0%,rgba(255,255,255,.34) 0%,transparent 45%),linear-gradient(150deg,#8d8d97 0%,#5a5a63 40%,#33333a 75%,#1c1c21 100%)',
+ 'radial-gradient(100% 120% at 100% 0%,rgba(255,230,180,.32) 0%,transparent 45%),linear-gradient(150deg,#ffad4d 0%,#ff7a1a 40%,#8a3306 100%)'];
+document.getElementById('stack').innerHTML=[2,1,0].map(s=>`<div class="bank" style="background:${BG[s]};transform:translateY(${s*13}px) scale(${1-s*.04});opacity:${1-s*.18};z-index:${3-s}">
+  <div class="r"><div style="display:flex;gap:10px;align-items:center"><span class="ib">${S('<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/>',16,1.9)}</span><div><div class="n">${['الكاش','الراجحي','بطاقة الوقود'][s]}</div><div class="ty">${['نقدي','بنكي','بطاقة وقود'][s]}</div></div></div>${S('<path d="M6 17c2-3.5 2-7.5 0-11"/><path d="M10.5 19c2.8-5 2.8-10.8 0-15.8"/><path d="M15 21c3.6-6.5 3.6-14.2 0-20.7"/>',20,2)}</div>
+  <div><div class="bl">الرصيد المتاح</div><div class="am num amt" dir="ltr" style="text-align:right">${['850','12,480.50','96'][s]} <span style="font-size:13px;opacity:.6;font-family:var(--font-sans)">ر.س</span></div></div></div>`).join('')
+ +`<div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>`;
+
+/* آخر 7 أيام */
+const week=[['سبت',120],['أحد',340],['اثنين',90],['ثلاثاء',0],['أربعاء',260],['أمس',180],['اليوم',64]];
+const mx=Math.max(...week.map(w=>w[1]));
+document.getElementById('bars').innerHTML=week.map(([d,v],i)=>`<div class="b ${i===6?'today':''} ${v>300?'over':''}"><span style="height:${Math.max(4,v/mx*62)}px" title="${v}"></span><em>${d}</em></div>`).join('');
+
+/* الفئات */
+const cats=[['مطاعم','food','#FF9A4D',820],['بقالة','groceries','#2EE6C8',1240],['فواتير','bills','#A1A1AD',690],['قهوة','coffee','#FFBF47',310]].sort((a,b)=>b[3]-a[3]);
+const tot=5220;
+document.getElementById('cats').innerHTML=cats.map(([n,k,c,v])=>`<div class="cr"><span class="ic" style="background:${soft(c,18)};color:${c}">${cic(k)}</span>
+  <div class="m"><div class="r1"><span>${n}</span><span class="num amt">${v.toLocaleString('en-US')}</span></div><div class="bar"><span style="width:${v/cats[0][3]*100}%;background:${c}"></span></div></div>
+  <span class="pc num">${Math.round(v/tot*100)}%</span></div>`).join('');
+
+/* القادم */
+document.getElementById('up').innerHTML=[
+  ['10','أكتوبر','Netflix','اشتراك','var(--sub)','45','بعد يومين'],
+  ['14','أكتوبر','تجديد رخصة القيادة','التزام','var(--commit)','80','بعد 6 أيام'],
+  ['27','أكتوبر','الراتب','دخل متكرر','var(--income)','+9,500','بعد 19 يوم'],
+].map(([d,m,n,t,c,a,w])=>`<div class="ur"><div class="date"><b>${d}</b><small>${m}</small></div>
+  <div class="m"><div class="n">${n}</div><div class="s"><span class="tag" style="background:${soft(c)};color:${c}">${t}</span>${w}</div></div>
+  <div class="a num amt" style="color:${a.startsWith('+')?'var(--income)':'var(--text)'}" dir="ltr">${a}</div></div>`).join('');
+
+/* الحركات */
+const groups=[['اليوم','−106',[['قهوة','coffee','#FFBF47','دانكن · الراجحي','−18'],['مطاعم','food','#FF9A4D','البيك · الكاش','−42'],['مواصلات','transport','#45C8FF','أوبر · الراجحي','−46']]],
+ ['أمس','+9,320',[['الراتب','savings','#3ee08f','دخل · الراجحي','+9,500'],['بقالة','groceries','#2EE6C8','بنده · الراجحي','−180']]]];
+document.getElementById('tx').innerHTML=groups.map(([g,sum,rows])=>`<div class="day"><span>${g}</span><span class="num amt" dir="ltr">${sum}</span></div>
+  <div class="card tx">${rows.map(([n,k,c,s,a])=>`<div class="tr"><span class="ic" style="background:${soft(c,18)};color:${c}">${cic(k,19)}</span>
+    <div class="m"><div class="n">${n}</div><div class="s">${s}</div></div><div class="a num amt" dir="ltr" style="color:${a.startsWith('+')?'var(--income)':'var(--text)'}">${a}</div></div>`).join('')}</div>`).join('');
+
+/* إخفاء المبالغ */
+const eye=document.getElementById('eye');let hid=false;
+const eyeOn=S('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',18,1.9),eyeOff=S('<path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7c1.8 0 3.3-.5 4.6-1.2"/>',18,1.9);
+eye.innerHTML=eyeOn;eye.onclick=()=>{hid=!hid;document.getElementById('phone').classList.toggle('hide',hid);eye.innerHTML=hid?eyeOff:eyeOn;};
+</script>
+</body>
+</html>
