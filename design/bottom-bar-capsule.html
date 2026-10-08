@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الشريط السفلي — كبسولة ذكية</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#050506;--surface:#121215;--surface-el:#1a1a1f;--surface-hi:#24242a;--border:rgba(255,255,255,.07);--border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6;--on-accent:#0a0a0c;--text:#f4f4f6;--text-2:#a1a1ad;--text-3:#62626d;--income:#3ee08f;--expense:#ff5f6d;--transfer:#8b7bff;--owed:#2ee6c8;--sub:#ffbf47;
+    --sans:'Readex Pro',system-ui,sans-serif;--num:'Inter',system-ui,sans-serif;--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 0 40px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--num);font-variant-numeric:tabular-nums}
+  .panel{width:390px;max-width:100%;padding:0 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+  .grp{background:#0e0e11;border:1px solid #1f1f24;border-radius:18px;padding:10px}
+  .grp h4{font-size:12px;color:#8a8a95;font-weight:600;margin-bottom:7px}
+  .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .opts button{padding:8px 2px;border-radius:12px;font-size:11px;font-weight:600;color:#9a9aa5;background:#16161a;border:1px solid #222228;line-height:1.35}
+  .opts button b{display:block;font-size:13px;color:#d6d6dc}
+  .opts button.on{background:#f4f4f6;color:#3a3a42;border-color:transparent}.opts button.on b{color:#0a0a0c}
+  .desc{font-size:11.5px;color:#8f8f99;line-height:1.8;margin-top:8px;padding:0 2px}
+  .sim{display:flex;gap:6px;flex-wrap:wrap}
+  .sim button{padding:7px 11px;border-radius:99px;font-size:11.5px;font-weight:600;background:#16161a;border:1px solid #26262c;color:#c9c9d1}
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative}
+  @media (max-width:440px){.phone{border-radius:0;border:0}}
+  .scroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:70px 20px 150px}
+  .scroll::-webkit-scrollbar{display:none}
+  .aurora{position:absolute;top:-120px;left:-60px;right:-60px;height:360px;background:radial-gradient(50% 60% at 70% 40%,rgba(139,123,255,.14),transparent 70%);pointer-events:none}
+  h1{font-size:30px;margin:0 2px 18px}
+  .blk{background:var(--surface);border:1px solid var(--border);border-radius:22px;margin-bottom:12px}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px}.row+.row{border-top:1px solid var(--border)}
+  .row i{width:40px;height:40px;border-radius:13px;background:var(--surface-hi)}
+  .row .m{flex:1}.row .m b{display:block;font-size:13px}.row .m small{font-size:11px;color:var(--text-3)}
+  .row .a{font-weight:700;font-size:13.5px}
+
+  .dock{position:absolute;left:0;right:0;bottom:22px;z-index:30;display:flex;justify-content:center;align-items:flex-end;gap:10px;padding:0 16px;pointer-events:none}
+  .dock>*{pointer-events:auto}
+  .glass{background:rgba(22,22,27,.86);border:1px solid var(--border-strong);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);box-shadow:0 24px 50px -16px rgba(0,0,0,.95)}
+  .halo{position:relative}
+  .halo:before{content:'';position:absolute;inset:-14px -18px;z-index:-1;border-radius:99px;background:rgba(5,5,6,.4);backdrop-filter:blur(10px);-webkit-mask-image:radial-gradient(closest-side,#000 60%,transparent);mask-image:radial-gradient(closest-side,#000 60%,transparent)}
+  .bar{height:64px;border-radius:99px;display:flex;align-items:center;padding:0 8px;gap:2px;transition:all .5s var(--spring);overflow:hidden;max-width:100%}
+  .tab{height:46px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 11px;border-radius:99px;color:var(--text-3);font-size:12px;font-weight:600;white-space:nowrap;transition:all .4s var(--spring);flex-shrink:0;overflow:hidden}
+  .tab em{font-style:normal;max-width:0;opacity:0;transition:all .35s var(--spring)}
+  .tab.on{background:rgba(255,255,255,.1);color:var(--accent);padding:0 15px 0 12px}
+  .tab.on em{max-width:70px;opacity:1}
+  .tab.gone{max-width:0;padding:0;opacity:0;margin:0}
+  .plus{height:46px;min-width:56px;border-radius:99px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;color:var(--on-accent);font-size:12.5px;font-weight:700;background:linear-gradient(150deg,#fff,var(--accent) 50%,#c9c9d1);box-shadow:inset 0 1px 0 rgba(255,255,255,.6);flex-shrink:0;transition:all .45s var(--spring);white-space:nowrap;overflow:hidden}
+  .plus em{font-style:normal;max-width:0;opacity:0;transition:all .35s var(--spring)}
+  .plus.lab em{max-width:110px;opacity:1}
+  .solo{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:var(--on-accent);background:linear-gradient(150deg,#fff,var(--accent) 50%,#c9c9d1);box-shadow:0 16px 34px -10px rgba(255,255,255,.3),inset 0 1px 0 rgba(255,255,255,.6);transition:all .45s var(--spring)}
+  .solo.sm{width:52px;height:52px}
+  /* حالة الجزيرة (ب) */
+  .live{display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:1;min-width:0}
+  .live i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+  .live .m{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .live small{display:block;font-size:10.5px;color:var(--text-3);font-weight:500}
+  .live .act{padding:7px 12px;border-radius:99px;background:var(--accent);color:var(--on-accent);font-size:11.5px;font-weight:700;flex-shrink:0}
+  .prog{position:absolute;left:18px;right:18px;bottom:6px;height:2.5px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.06)}
+  .prog span{display:block;height:100%;width:35%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:ind 1.1s ease-in-out infinite}
+  @keyframes ind{from{transform:translateX(-120%)}to{transform:translateX(320%)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* د: الموسّعة */
+  .menu{position:absolute;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px) scale(.5);transform-origin:50% 100%;opacity:0;pointer-events:none;transition:all .45s var(--spring);z-index:31;border-radius:30px;padding:8px;display:grid;grid-template-columns:repeat(4,72px);gap:4px}
+  .menu.on{transform:translateX(-50%);opacity:1;pointer-events:auto}
+  .menu button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 0;border-radius:22px;font-size:11px;font-weight:600;color:var(--text-2)}
+  .menu button i{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:var(--text)}
+  .menu button.on{background:rgba(255,255,255,.1);color:var(--text)}
+  .menu button.on i{background:var(--accent);color:var(--on-accent)}
+  .scrim{position:absolute;inset:0;z-index:29;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .25s}
+  .scrim.on{opacity:1;pointer-events:auto}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="grp"><h4>اختر النمط</h4>
+    <div class="opts" id="opts">
+      <button data-v="A" class="on"><b>أ</b>يتقلّص بالتمرير</button>
+      <button data-v="B"><b>ب</b>جزيرة حيّة</button>
+      <button data-v="C"><b>ج</b>سياقي لكل تبويب</button>
+      <button data-v="D"><b>د</b>كبسولة واحدة تتوسّع</button>
+    </div><div class="desc" id="desc"></div></div>
+  <div class="grp"><h4>جرّب داخل الجوال: مرّر، وبدّل التبويب، ومحاكاة الأحداث</h4>
+    <div class="sim">
+      <button data-sim="sync">مزامنة</button><button data-sim="add">إضافة حركة</button><button data-sim="budget">تنبيه ميزانية</button><button data-sim="up">رجوع لأعلى</button>
+    </div></div>
+</div>
+
+<div class="phone" id="phone">
+  <div class="aurora"></div>
+  <div class="scroll" id="scroll"><h1 id="title">الرئيسية</h1><div id="content"></div></div>
+  <div class="scrim" id="scrim"></div>
+  <div class="menu glass" id="menu"></div>
+  <div class="dock" id="dock"></div>
+</div>
+
+<script>
+const S=(p,s=21,w=1.9)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const I={home:'<path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19v-8.5Z"/>',wallet:'<rect x="3" y="6" width="18" height="13" rx="3.5"/><path d="M3 10.5h18"/>',
+ people:'<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.3 14.2c2.5.4 4.2 1.9 4.2 4.8"/>',more:'<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="3.25"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="3.25"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',check:'<path d="M5 12.5 10 17l9-10"/>',sync:'<path d="M21 12a9 9 0 1 1-9-9"/>',warn:'<path d="M12 8v5M12 16.5h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',up:'<path d="m6 15 6-6 6 6"/>',search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'};
+const TABS=[['الرئيسية',I.home],['الحسابات',I.wallet],['السلف',I.people],['المزيد',I.more]];
+const CTX=['حركة','حساب','سلفة','بحث'];
+const DESC={A:'كامل وقت التوقف. عند التمرير لتحت يتقلّص لكبسولة صغيرة فيها التبويب الحالي + زر + فقط (يكشف المحتوى أكثر)، ويرجع كامل عند التمرير لفوق أو لمس الكبسولة.',
+ B:'الشريط نفسه يصير «جزيرة حيّة»: لما يصير حدث (مزامنة، إضافة حركة مع «تراجع»، تنبيه ميزانية) يتمدد ويعرضه مكان التبويبات لثوانٍ ثم يرجع. يغني عن الإشعار العلوي للأحداث المهمة.',
+ C:'التبويبات أيقونات فقط (المختار مضيء)، وزر + يتغيّر حسب التبويب ويعرض ما سيضيفه: «+ حركة» بالرئيسية، «+ حساب» بالحسابات، «+ سلفة» بالسلف، و«بحث» بالمزيد. عند التمرير يختفي النص ويبقى الرمز.',
+ D:'أبسط شكل: كبسولة واحدة صغيرة فيها التبويب الحالي، وبجانبها زر + دائري. لمس الكبسولة يفتحها لشبكة التبويبات (مثل توسّع الكبسولة الذكية)، والسحب عليها يبدّل التبويب.'};
+let st={v:'A',tab:0,mini:false,lastY:0,live:null,menu:false,timer:null};
+const $=id=>document.getElementById(id);
+const rows=n=>Array.from({length:n},(_,i)=>`<div class="row"><i></i><div class="m"><b>${['مطاعم','بقالة','قهوة','مواصلات','فواتير','تسوق'][i%6]}</b><small>الراجحي</small></div><div class="a num">−${[42,180,18,46,230,149][i%6]}</div></div>`).join('');
+$('content').innerHTML=`<div class="blk" style="height:180px"></div><div class="blk">${rows(6)}</div><div class="blk">${rows(6)}</div><div class="blk">${rows(6)}</div>`;
+
+function tabsHTML(onlyActive){return TABS.map((t,i)=>`<button class="tab ${i===st.tab?'on':''} ${onlyActive&&i!==st.tab?'gone':''}" data-tab="${i}">${S(t[1])}<em>${t[0]}</em></button>`).join('')}
+function liveHTML(){const L=st.live;
+  if(L==='sync')return `<div class="live"><i style="background:rgba(255,255,255,.08);color:var(--text-2)"><span style="display:flex;animation:spin .8s linear infinite">${S(I.sync,15,2.6)}</span></i><div class="m">جارٍ المزامنة<small>Google Sheets</small></div></div><div class="prog"><span></span></div>`;
+  if(L==='synced')return `<div class="live"><i style="background:rgba(62,224,143,.16);color:var(--income)">${S(I.check,15,2.8)}</i><div class="m">تم الحفظ الاحتياطي<small>قبل لحظات</small></div></div>`;
+  if(L==='add')return `<div class="live"><i style="background:rgba(62,224,143,.16);color:var(--income)">${S(I.check,15,2.8)}</i><div class="m">أُضيف مصروف <span class="num">42</span> ر.س<small>مطاعم · الكاش</small></div><button class="act" data-undo>تراجع</button></div>`;
+  if(L==='budget')return `<div class="live"><i style="background:rgba(255,191,71,.16);color:var(--sub)">${S(I.warn,15,2.2)}</i><div class="m">مطاعم: 92% من الميزانية<small>متبقي 40 ر.س</small></div><button class="act" style="background:rgba(255,255,255,.1);color:var(--text)">عرض</button></div>`;
+  return '';}
+function render(){
+  $('title').textContent=TABS[st.tab][0];
+  const plusBtn=(lab)=>`<button class="plus ${lab?'lab':''}" data-plus>${S(st.v==='C'&&st.tab===3?I.search:I.plus,22,2.4)}<em>${lab||''}</em></button>`;
+  let h='';
+  if(st.v==='A'){h=`<div class="bar glass halo" data-expand>${tabsHTML(st.mini)}${plusBtn('')}</div>`;}
+  if(st.v==='B'){h=`<div class="bar glass halo" style="${st.live?'width:100%;position:relative':''}">${st.live?liveHTML():tabsHTML(false)+plusBtn('')}</div>`;}
+  if(st.v==='C'){h=`<div class="bar glass halo">${tabsHTML(false).replace(/<em>[^<]*<\/em>/g,'<em></em>')}${plusBtn(st.mini?'':CTX[st.tab])}</div>`;}
+  if(st.v==='D'){h=`<div class="bar glass halo" data-menu style="padding:0 6px">${tabsHTML(true)}<span style="color:var(--text-3);padding:0 8px 0 4px;display:flex">${S('<path d="m6 15 6-6 6 6"/>',14,2.4)}</span></div><button class="solo ${st.mini?'sm':''}" data-plus>${S(I.plus,24,2.4)}</button>`;}
+  $('dock').innerHTML=h;
+  $('menu').innerHTML=TABS.map((t,i)=>`<button class="${i===st.tab?'on':''}" data-tab="${i}"><i>${S(t[1],20)}</i>${t[0]}</button>`).join('');
+  $('menu').classList.toggle('on',st.menu);$('scrim').classList.toggle('on',st.menu);
+}
+function showLive(k,ms=2600,next){st.live=k;render();clearTimeout(st.timer);st.timer=setTimeout(()=>{if(next){showLive(next,1800)}else{st.live=null;render();}},ms);}
+document.addEventListener('click',e=>{const g=a=>e.target.closest(a);let el;
+  if(el=g('#opts button')){st.v=el.dataset.v;st.live=null;st.menu=false;st.mini=false;document.querySelectorAll('#opts button').forEach(b=>b.classList.toggle('on',b===el));$('desc').textContent=DESC[st.v];render();return;}
+  if(el=g('[data-sim]')){const k=el.dataset.sim;if(k==='up'){$('scroll').scrollTo({top:0,behavior:'smooth'});return;}
+    if(st.v!=='B'){document.querySelector('[data-v=B]').click();}
+    if(k==='sync')showLive('sync',2200,'synced');else showLive(k,3200);return;}
+  if(g('[data-undo]')){showLive('synced',1);st.live=null;render();return;}
+  if(el=g('[data-tab]')){if(st.v==='D'&&!st.menu&&g('.bar')){st.menu=true;render();return;}st.tab=+el.dataset.tab;st.menu=false;st.mini=false;$('scroll').scrollTop=0;render();return;}
+  if(g('[data-menu]')){st.menu=!st.menu;render();return;}
+  if(g('#scrim')){st.menu=false;render();return;}
+  if(g('[data-expand]')&&st.mini){st.mini=false;render();return;}
+});
+$('scroll').addEventListener('scroll',()=>{const y=$('scroll').scrollTop;const d=y-st.lastY;st.lastY=y;
+  let mini=st.mini;if(y<40)mini=false;else if(d>6)mini=true;else if(d<-6)mini=false;
+  if(mini!==st.mini){st.mini=mini;render();}});
+$('desc').textContent=DESC.A;render();
+</script>
+</body>
+</html>
