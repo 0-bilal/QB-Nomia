@@ -3,6 +3,11 @@ export function formatMoney(amount: number): string {
   return `${rounded.toLocaleString('en-US')} ر.س`
 }
 
+/** المبلغ بدون العملة — للأرقام الكبيرة اللي تُعرض العملة بجانبها بخط أصغر، أو المساحات الضيقة. */
+export function formatAmount(amount: number): string {
+  return (Math.round(amount * 100) / 100).toLocaleString('en-US')
+}
+
 export function formatSigned(amount: number): string {
   const sign = amount > 0 ? '+' : amount < 0 ? '−' : ''
   return `${sign}${formatMoney(Math.abs(amount))}`
