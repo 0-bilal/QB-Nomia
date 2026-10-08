@@ -2,7 +2,7 @@
  * كبسولة عنوان عائمة (النمط "ج") — تظهر في منتصف أعلى الشاشة بعد تمرير العنوان الكبير،
  * وتعرض اسم الصفحة فقط، مع هالة ضبابية خفيفة حولها حتى تبقى مقروءة فوق المحتوى المتمرر.
  */
-export function FloatingTitle({ title, visible }: { title: string; visible: boolean }) {
+export function FloatingTitle({ title, visible, dot }: { title: string; visible: boolean; dot?: string }) {
   return (
     <div
       aria-hidden={!visible}
@@ -25,7 +25,7 @@ export function FloatingTitle({ title, visible }: { title: string; visible: bool
         }}
       />
       <span
-        className="relative block max-w-[56vw] truncate whitespace-nowrap rounded-full border px-4 py-2 text-[13.5px] font-bold"
+        className="relative flex max-w-[44vw] items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[13.5px] font-bold"
         style={{
           background: 'rgba(28,28,33,0.82)',
           borderColor: 'var(--color-border-strong)',
@@ -34,7 +34,8 @@ export function FloatingTitle({ title, visible }: { title: string; visible: bool
           boxShadow: '0 12px 30px -12px rgba(0,0,0,0.8)',
         }}
       >
-        {title}
+        {dot && <span className="flex-shrink-0 rounded-full" style={{ width: 7, height: 7, background: dot }} />}
+        <span className="truncate">{title}</span>
       </span>
     </div>
   )

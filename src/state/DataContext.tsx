@@ -399,6 +399,12 @@ interface DataContextValue {
   addTransaction: (input: AddTransactionInput) => void
   updateTransaction: (id: string, input: AddTransactionInput) => void
   deleteTransaction: (id: string) => void
+  /** حذف عدة حركات دفعة واحدة (تحديد متعدد) — يرجّع الحركات المحذوفة لإمكانية التراجع. */
+  deleteTransactions: (ids: string[]) => Transaction[]
+  /** إرجاع حركات محذوفة كما كانت (نفس المعرّفات) — للتراجع عن الحذف الجماعي. */
+  restoreTransactions: (txns: Transaction[]) => void
+  /** تغيير فئة عدة مصاريف دفعة واحدة. */
+  setTransactionsCategory: (ids: string[], categoryId: string) => void
   categorySpentThisMonth: (categoryId: string) => number
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
@@ -1476,6 +1482,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!txn) return
         persistAccounts(withTransactionEffect(accounts, txn, -1))
         persistTransactions(transactions.filter((t) => t.id !== id))
+      },
+      deleteTransactions(ids: string[]) {
+        const idSet = new Set(ids)
+        const removed = transactions.filter((t) => idSet.has(t.id))
+        if (removed.length === 0) return []
+        persistAccounts(removed.reduce((accs, txn) => withTransactionEffect(accs, txn, -1), accounts))
+        persistTransactions(transactions.filter((t) => !idSet.has(t.id)))
+        return removed
+      },
+      restoreTransactions(txns: Transaction[]) {
+        const existing = new Set(transactions.map((t) => t.id))
+        const back = txns.filter((t) => !existing.has(t.id))
+        if (back.length === 0) return
+        persistAccounts(back.reduce((accs, txn) => withTransactionEffect(accs, txn, 1), accounts))
+        persistTransactions([...back, ...transactions])
+      },
+      setTransactionsCategory(ids: string[], categoryId: string) {
+        const idSet = new Set(ids)
+        persistTransactions(transactions.map((t) => (idSet.has(t.id) && t.type === 'expense' ? { ...t, categoryId } : t)))
       },
       addSubscription(input: AddSubscriptionInput) {
         const sub: Subscription = {
