@@ -253,7 +253,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
     title: 'النظام',
     items: [
       { label: 'الأمان', full: 'الأمان والخصوصية', desc: 'الرقم السري والبصمة', to: '/security', icon: <ShieldIcon /> },
-      { label: 'مزامنة', full: 'مزامنة Google Sheets', desc: 'نسخة احتياطية مشفّرة', to: '/sync-settings', icon: <CloudSyncIcon /> },
+      { label: 'مزامنة', full: 'المزامنة والنسخ الاحتياطي', desc: 'نسخة احتياطية مشفّرة', to: '/sync-settings', icon: <CloudSyncIcon /> },
       { label: 'حول', full: 'حول التطبيق', desc: 'الإصدار والمطوّر', to: '/about', icon: <InfoIcon /> },
     ],
   },
