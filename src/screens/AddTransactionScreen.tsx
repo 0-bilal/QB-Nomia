@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData, SALARY_INCOME_SOURCE_ID } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -10,7 +10,9 @@ import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { colorFor } from '../components/Avatar'
-import { CategoryIcon } from '../components/CategoryIcons'
+import { CategoryPickerSheet } from '../components/CategoryPickerSheet'
+import { ExpenseCategoryField } from '../components/ExpenseCategoryField'
+import { mostUsedCategories } from '../lib/categoryStats'
 import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import { haptic } from '../lib/haptics'
@@ -56,15 +58,6 @@ function SwapIcon() {
     </svg>
   )
 }
-function TagIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3h6a2 2 0 0 1 2 2v6L11 20l-8-8Z" />
-      <circle cx="15.5" cy="8.5" r="1.3" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-
 const TYPE_OPTIONS: [TransactionType, string, () => React.ReactElement][] = [
   ['expense', 'مصروف', ExpenseTypeIcon],
   ['income', 'دخل', IncomeTypeIcon],
@@ -75,7 +68,7 @@ export function AddTransactionScreen() {
   const { id } = useParams<{ id?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { accounts, categories, incomeSources, transactions, addTransaction, updateTransaction, deleteTransaction } = useData()
+  const { accounts, categories, incomeSources, transactions, addTransaction, updateTransaction, deleteTransaction, categorySpentThisMonth } = useData()
 
   const existing = id ? transactions.find((t) => t.id === id) : undefined
   const isEditing = Boolean(existing)
@@ -110,13 +103,21 @@ export function AddTransactionScreen() {
   const [fromSheetOpen, setFromSheetOpen] = useState(false)
   const [toSheetOpen, setToSheetOpen] = useState(false)
   const [metaSheetOpen, setMetaSheetOpen] = useState(false)
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
 
   const color = TYPE_COLOR[type]
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
   const numericAmount = Number(amount)
   const selectedAccount = accounts.find((a) => a.id === accountId)
   const selectedTransferToAccount = accounts.find((a) => a.id === transferToId)
-  const selectedCategory = expenseCategories.find((c) => c.id === categoryId)
+  const mostUsed = useMemo(() => mostUsedCategories(expenseCategories, transactions), [expenseCategories, transactions])
+  /** مصروف الفئة هذا الشهر بدون مبلغ هذه الحركة نفسها (عند التعديل) — حتى لا يُحسب المبلغ مرتين في "بعد هذا المصروف". */
+  function spentExcludingThis(id: string): number {
+    const spent = categorySpentThisMonth(id)
+    const now = new Date()
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    return existing && existing.type === 'expense' && existing.categoryId === id && existing.date.startsWith(monthPrefix) ? spent - existing.amount : spent
+  }
   const selectedIncomeSource = incomeSources.find((s) => s.id === incomeSourceId)
 
   useEffect(() => {
@@ -218,17 +219,6 @@ export function AddTransactionScreen() {
         ),
       }))
 
-  const categorySheetItems: SelectSheetItem[] = expenseCategories.map((c) => {
-    const cColor = colorFor(c.name)
-    return {
-      id: c.id,
-      icon: c.icon ? <CategoryIcon iconKey={c.icon} size={17} /> : <span style={{ fontWeight: 700, fontSize: 14 }}>{c.name.trim().charAt(0) || '؟'}</span>,
-      iconColor: cColor,
-      iconBg: `${cColor}22`,
-      title: c.name,
-      subtitle: c.budgetLimit ? `الميزانية الشهرية: ${formatMoney(c.budgetLimit)}` : undefined,
-    }
-  })
 
   const incomeSourceSheetItems: SelectSheetItem[] = incomeSources.map((s) => {
     const sColor = colorFor(s.name)
@@ -323,16 +313,29 @@ export function AddTransactionScreen() {
 
       <SelectSheet
         open={metaSheetOpen}
-        title={type === 'expense' ? 'اختر الفئة' : 'اختر مصدر الدخل'}
-        items={type === 'expense' ? categorySheetItems : incomeSourceSheetItems}
-        selectedId={type === 'expense' ? categoryId : incomeSourceId}
+        title="اختر مصدر الدخل"
+        items={incomeSourceSheetItems}
+        selectedId={incomeSourceId}
         onSelect={(v) => {
-          if (type === 'expense') setCategoryId(v)
-          else setIncomeSourceId(v)
+          setIncomeSourceId(v)
           setMetaSheetOpen(false)
         }}
         onClose={() => setMetaSheetOpen(false)}
-        emptyLabel={type === 'expense' ? 'لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"' : 'لا توجد مصادر دخل بعد'}
+        emptyLabel="لا توجد مصادر دخل بعد"
+      />
+
+      <CategoryPickerSheet
+        open={categoryPickerOpen}
+        categories={expenseCategories}
+        mostUsed={mostUsed}
+        selectedId={categoryId}
+        spentOf={spentExcludingThis}
+        onSelect={(v) => {
+          setCategoryId(v)
+          setCategoryPickerOpen(false)
+        }}
+        onAddNew={() => navigate('/categories/new')}
+        onClose={() => setCategoryPickerOpen(false)}
       />
 
       <div data-own-gesture className="relative mb-5 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
@@ -457,61 +460,33 @@ export function AddTransactionScreen() {
         {!isEditing && <div className="mt-1 text-[11px] text-[var(--color-text-3)]">‹ اسحب هنا يمينًا أو يسارًا لتغيير نوع الحركة ›</div>}
       </div>
 
+      {type === 'expense' && (
+        <ExpenseCategoryField
+          categories={expenseCategories}
+          mostUsed={mostUsed}
+          selectedId={categoryId}
+          spentOf={spentExcludingThis}
+          amount={numericAmount}
+          onSelect={setCategoryId}
+          onOpenAll={() => (expenseCategories.length === 0 ? navigate('/categories/new') : setCategoryPickerOpen(true))}
+        />
+      )}
+
       <div className="mb-6">
         <AmountPad value={amount} onChange={setAmount} color={color} />
       </div>
 
-      {type !== 'transfer' && (
+      {type === 'income' && (
         <div className="mb-5">
           <PickerField
-            label={type === 'expense' ? 'الفئة' : 'مصدر الدخل'}
-            icon={
-              type === 'expense' ? (
-                selectedCategory ? (
-                  selectedCategory.icon ? (
-                    <CategoryIcon iconKey={selectedCategory.icon} size={17} />
-                  ) : (
-                    <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedCategory.name.trim().charAt(0)}</span>
-                  )
-                ) : (
-                  <TagIcon />
-                )
-              ) : selectedIncomeSource ? (
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedIncomeSource.name.trim().charAt(0)}</span>
-              ) : (
-                <IncomeTypeIcon />
-              )
-            }
-            iconColor={
-              type === 'expense'
-                ? selectedCategory
-                  ? colorFor(selectedCategory.name)
-                  : 'var(--color-text-3)'
-                : selectedIncomeSource
-                  ? colorFor(selectedIncomeSource.name)
-                  : 'var(--color-text-3)'
-            }
-            iconBg={
-              type === 'expense'
-                ? selectedCategory
-                  ? `${colorFor(selectedCategory.name)}22`
-                  : 'rgba(255,255,255,0.08)'
-                : selectedIncomeSource
-                  ? `${colorFor(selectedIncomeSource.name)}22`
-                  : 'rgba(255,255,255,0.08)'
-            }
-            title={
-              type === 'expense'
-                ? (selectedCategory?.name ?? (expenseCategories.length === 0 ? 'لا توجد فئات' : 'اختر فئة'))
-                : (selectedIncomeSource?.name ?? (incomeSources.length === 0 ? 'لا توجد مصادر دخل' : 'اختر مصدر الدخل'))
-            }
-            placeholder={type === 'expense' ? !selectedCategory : !selectedIncomeSource}
+            label="مصدر الدخل"
+            icon={selectedIncomeSource ? <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedIncomeSource.name.trim().charAt(0)}</span> : <IncomeTypeIcon />}
+            iconColor={selectedIncomeSource ? colorFor(selectedIncomeSource.name) : 'var(--color-text-3)'}
+            iconBg={selectedIncomeSource ? `${colorFor(selectedIncomeSource.name)}22` : 'rgba(255,255,255,0.08)'}
+            title={selectedIncomeSource?.name ?? (incomeSources.length === 0 ? 'لا توجد مصادر دخل' : 'اختر مصدر الدخل')}
+            placeholder={!selectedIncomeSource}
             onClick={() => {
-              if (type === 'expense' && expenseCategories.length === 0) {
-                navigate('/categories/new')
-                return
-              }
-              if (type === 'income' && incomeSources.length === 0) {
+              if (incomeSources.length === 0) {
                 navigate('/income-sources/new')
                 return
               }

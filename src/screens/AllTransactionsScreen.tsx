@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
@@ -249,7 +249,12 @@ export function AllTransactionsScreen() {
   const navigate = useNavigate()
   const { recentActivity, accounts } = useData()
   const [query, setQuery] = useState('')
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [searchParams] = useSearchParams()
+  // ?category=<اسم> — يفتح القائمة مفلترة على فئة واحدة (من تفاصيل الفئة بشاشة الفئات).
+  const [filters, setFilters] = useState<Filters>(() => {
+    const category = searchParams.get('category')
+    return category ? { ...EMPTY_FILTERS, categories: [category] } : EMPTY_FILTERS
+  })
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const all = useMemo(() => recentActivity(1000000), [recentActivity])

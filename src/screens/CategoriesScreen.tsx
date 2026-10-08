@@ -1,48 +1,61 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
-import { formatMoney } from '../lib/format'
+import { formatAmount, formatDate, formatMoney } from '../lib/format'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { colorFor } from '../components/Avatar'
-import { CategoryIcon } from '../components/CategoryIcons'
-import { BigAmount } from '../components/BigAmount'
-import { EmptyState, HeaderAddButton, IconBubble, ListGroup, ProgressBar, RingProgress, SectionTitle } from '../components/ui'
-import { budgetColor, rise } from '../lib/motion'
+import { SheetHandle } from '../components/SheetHandle'
+import { CategoryIconBox } from '../components/CategoryVisual'
+import { EmptyState, HeaderAddButton } from '../components/ui'
+import { BUDGET_STATE_COLOR, budgetLeftLabel, budgetState, categoryColor, monthProgress, type BudgetState } from '../lib/categoryStats'
+import type { Category } from '../types'
 
-function EditIcon() {
+type Filter = 'all' | 'over' | 'near' | 'none'
+
+const FILTERS: [Filter, string][] = [
+  ['all', 'الكل'],
+  ['over', 'تجاوزت'],
+  ['near', 'قاربت'],
+  ['none', 'بدون ميزانية'],
+]
+
+function matchesFilter(state: BudgetState, filter: Filter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'over') return state === 'over' || state === 'reached'
+  if (filter === 'near') return state === 'near'
+  return state === 'none'
+}
+
+function Svg({ size = 18, strokeWidth = 1.9, children }: { size?: number; strokeWidth?: number; children: ReactNode }) {
   return (
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
-      <path d="M13.5 8 16 10.5" />
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      {children}
     </svg>
   )
 }
+const EditGlyph = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+    <path d="M13.5 8 16 10.5" />
+  </Svg>
+)
 
-function ChevronUpIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 15 12 8 19 15" />
-    </svg>
-  )
-}
+const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
-function ChevronDownIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 9 12 16 19 9" />
-    </svg>
-  )
-}
-
-function SetBudgetDialog({
+function BudgetDialog({
   open,
+  title,
+  desc,
+  clearLabel,
   initialValue,
   onSave,
   onClear,
   onCancel,
 }: {
   open: boolean
+  title: string
+  desc: string
+  clearLabel: string
   initialValue: number | null
   onSave: (value: number) => void
   onClear: () => void
@@ -56,16 +69,14 @@ function SetBudgetDialog({
   const canSave = value.trim() !== '' && numeric > 0
 
   return (
-    <div dir="rtl" className="fixed inset-0 z-[60] flex items-center justify-center px-6">
+    <div dir="rtl" className="fixed inset-0 z-[70] flex items-center justify-center px-6">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onCancel} aria-hidden="true" />
       <div
         className="relative w-full max-w-[330px] rounded-[32px] border border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] p-6 text-center shadow-[0_30px_70px_-20px_rgba(0,0,0,0.9)]"
         style={{ animation: 'qb-pop 340ms var(--ease-spring) both' }}
       >
-        <div className="mb-2 text-[17px] font-semibold">الميزانية الإجمالية الشهرية</div>
-        <div className="mb-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
-          سقف عام لكل مصاريفك الشهرية، بجانب ميزانيات الفئات الفردية
-        </div>
+        <div className="mb-2 text-[17px] font-semibold">{title}</div>
+        <div className="mb-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">{desc}</div>
         <input
           autoFocus
           dir="ltr"
@@ -90,7 +101,7 @@ function SetBudgetDialog({
         </div>
         {initialValue !== null && (
           <button onClick={onClear} className="mt-3 text-[12px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-            إزالة الميزانية الإجمالية
+            {clearLabel}
           </button>
         )}
       </div>
@@ -98,140 +109,432 @@ function SetBudgetDialog({
   )
 }
 
-export function CategoriesScreen() {
-  const { categories, categorySpentThisMonth, monthlyBudgetLimit, setMonthlyBudgetLimit, monthTotals, moveCategoryUp, moveCategoryDown } = useData()
+function Meter({ pct, color, height = 10, marker }: { pct: number; color: string; height?: number; marker?: number }) {
+  return (
+    <div className="relative overflow-hidden rounded-full bg-white/[0.07]" style={{ height }}>
+      <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, pct))}%`, background: color, transition: 'width 400ms ease' }} />
+      {marker !== undefined && (
+        <span className="absolute rounded-sm bg-white/50" style={{ top: -2, bottom: -2, width: 2, right: `${Math.min(100, marker)}%` }} title="المتوقع حتى اليوم" />
+      )}
+    </div>
+  )
+}
+
+function CategoryTile({ category, spent, onClick }: { category: Category; spent: number; onClick: () => void }) {
+  const color = categoryColor(category)
+  const state = budgetState(spent, category.budgetLimit)
+  const pct = category.budgetLimit ? (spent / category.budgetLimit) * 100 : 0
+  const badge =
+    state === 'over' ? { label: 'تجاوز', bg: 'rgba(255,95,109,0.14)' } : state === 'reached' ? { label: 'الحد', bg: 'rgba(255,95,109,0.14)' } : state === 'near' ? { label: 'قارب', bg: 'rgba(255,191,71,0.14)' } : null
+  return (
+    <button
+      onClick={onClick}
+      className="qb-press relative flex min-h-[132px] flex-col overflow-hidden rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 text-right"
+    >
+      <span className="pointer-events-none absolute rounded-full" style={{ left: -30, bottom: -40, width: 110, height: 110, background: color, filter: 'blur(30px)', opacity: 0.16 }} />
+      <div className="relative flex items-start justify-between">
+        <CategoryIconBox category={category} size={40} radius={14} />
+        {badge && (
+          <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: badge.bg, color: BUDGET_STATE_COLOR[state] }}>
+            {badge.label}
+          </span>
+        )}
+      </div>
+      <div className="relative mt-2.5 truncate text-[13.5px] font-semibold">{category.name}</div>
+      <div className="num relative mt-px text-[16px] font-bold">
+        {formatAmount(spent)} <span className="font-sans text-[10.5px] font-medium text-[var(--color-text-3)]">ر.س</span>
+      </div>
+      {category.budgetLimit ? (
+        <div className="relative mt-auto pt-2.5">
+          <Meter pct={pct} color={BUDGET_STATE_COLOR[state]} height={5} />
+          <div className="mt-1.5 flex justify-between gap-1 text-[10.5px] text-[var(--color-text-3)]">
+            <span className="truncate" style={{ color: state === 'ok' ? undefined : BUDGET_STATE_COLOR[state] }}>
+              {budgetLeftLabel(spent, category.budgetLimit, formatAmount)}
+            </span>
+            <span className="num flex-shrink-0">{formatAmount(category.budgetLimit)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="relative mt-auto pt-2 text-[10.5px] text-[var(--color-text-3)]">بدون ميزانية</div>
+      )}
+    </button>
+  )
+}
+
+function CategoryDetailSheet({ category, onClose, onEditBudget }: { category: Category; onClose: () => void; onEditBudget: () => void }) {
+  const { transactions, categorySpentThisMonth } = useData()
   const navigate = useNavigate()
-  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false)
+  const spent = categorySpentThisMonth(category.id)
+  const state = budgetState(spent, category.budgetLimit)
+  const now = new Date()
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const categoryTx = transactions
+    .filter((t) => t.type === 'expense' && t.categoryId === category.id)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+  const monthCount = categoryTx.filter((t) => t.date.startsWith(monthPrefix)).length
+
+  const actions: { label: string; icon: ReactNode; onClick: () => void }[] = [
+    {
+      label: category.budgetLimit ? 'تعديل الميزانية' : 'تحديد ميزانية',
+      icon: (
+        <Svg>
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="5" />
+          <circle cx="12" cy="12" r="1.3" />
+        </Svg>
+      ),
+      onClick: onEditBudget,
+    },
+    {
+      label: 'كل الحركات',
+      icon: (
+        <Svg>
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+        </Svg>
+      ),
+      onClick: () => navigate(`/transactions?category=${encodeURIComponent(category.name)}`),
+    },
+    { label: 'تعديل الفئة', icon: <EditGlyph />, onClick: () => navigate(`/categories/${category.id}/edit`) },
+  ]
+
+  return (
+    <div dir="rtl" className="fixed inset-0 z-[60] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-label="تفاصيل الفئة"
+        className="relative flex max-h-[85vh] w-full max-w-[480px] flex-col rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
+      >
+        <SheetHandle onDismiss={onClose} />
+        <div className="flex-1 overflow-y-auto px-4 pt-2" style={{ paddingBottom: 'calc(22px + env(safe-area-inset-bottom))' }}>
+          <div className="mb-3.5 flex items-center gap-3">
+            <CategoryIconBox category={category} size={52} radius={18} iconSize={24} />
+            <div className="min-w-0">
+              <div className="truncate text-[17px] font-bold">{category.name}</div>
+              <div className="text-[12px] text-[var(--color-text-3)]">
+                <span className="num">{monthCount}</span> حركة هذا الشهر
+              </div>
+            </div>
+          </div>
+
+          <div className="qb-card p-3.5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[12.5px] font-medium text-[var(--color-text-2)]">مصروف الشهر</span>
+              <span className="num text-[22px] font-bold">
+                {formatAmount(spent)} <span className="font-sans text-[12px] font-medium text-[var(--color-text-3)]">ر.س</span>
+              </span>
+            </div>
+            {category.budgetLimit ? (
+              <>
+                <div className="mb-1.5 mt-3">
+                  <Meter pct={(spent / category.budgetLimit) * 100} color={BUDGET_STATE_COLOR[state]} />
+                </div>
+                <div className="flex justify-between text-[11px] text-[var(--color-text-3)]">
+                  <span style={{ color: BUDGET_STATE_COLOR[state] }}>{budgetLeftLabel(spent, category.budgetLimit, formatMoney)}</span>
+                  <span className="num">الميزانية {formatMoney(category.budgetLimit)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="mt-2 text-[12px] text-[var(--color-text-3)]">لا توجد ميزانية لهذه الفئة</div>
+            )}
+          </div>
+
+          <div className="my-3.5 grid grid-cols-3 gap-2">
+            {actions.map((a) => (
+              <button
+                key={a.label}
+                onClick={a.onClick}
+                className="qb-press flex flex-col items-center gap-1.5 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-3 text-[11px] font-semibold text-[var(--color-text-2)]"
+              >
+                <span className="text-[var(--color-text)]">{a.icon}</span>
+                {a.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mx-1 mb-2 text-[11.5px] font-semibold text-[var(--color-text-3)]">آخر الحركات</div>
+          {categoryTx.length === 0 ? (
+            <div className="qb-card py-5 text-center text-[12px] text-[var(--color-text-3)]">لا توجد مصاريف على هذه الفئة بعد</div>
+          ) : (
+            <div className="qb-card px-3.5 py-1">
+              {categoryTx.slice(0, 3).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => navigate(`/add/transaction/${t.id}`)}
+                  className="flex w-full items-center gap-2.5 border-t border-[var(--color-border)] py-2.5 text-right first:border-t-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-semibold">{t.note?.trim() || category.name}</div>
+                    <div className="text-[10.5px] font-medium text-[var(--color-text-3)]">{formatDate(t.date)}</div>
+                  </div>
+                  <div dir="ltr" className="num flex-shrink-0 text-[13px] font-bold">
+                    −{formatMoney(t.amount)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function CategoriesScreen() {
+  const { categories, categorySpentThisMonth, monthlyBudgetLimit, setMonthlyBudgetLimit, monthTotals, moveCategoryUp, moveCategoryDown, updateCategory } = useData()
+  const navigate = useNavigate()
+  const [overallDialogOpen, setOverallDialogOpen] = useState(false)
+  const [budgetFor, setBudgetFor] = useState<Category | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<Filter>('all')
+  const [ordering, setOrdering] = useState(false)
+
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
+  const spentById = new Map(expenseCategories.map((c) => [c.id, categorySpentThisMonth(c.id)]))
+  const spentOf = (id: string) => spentById.get(id) ?? 0
 
   const monthExpense = monthTotals().expense
-  const overallRawPct = monthlyBudgetLimit ? (monthExpense / monthlyBudgetLimit) * 100 : null
-  const overallPct = overallRawPct !== null ? Math.min(100, overallRawPct) : null
+  const { day, days, daysLeft } = monthProgress()
+  const overallState = budgetState(monthExpense, monthlyBudgetLimit ?? undefined)
+  const overallPct = monthlyBudgetLimit ? (monthExpense / monthlyBudgetLimit) * 100 : 0
+  const remaining = monthlyBudgetLimit ? Math.max(0, monthlyBudgetLimit - monthExpense) : 0
 
-  const totalSpent = expenseCategories.reduce((sum, c) => sum + categorySpentThisMonth(c.id), 0)
+  const totalSpent = expenseCategories.reduce((s, c) => s + spentOf(c.id), 0)
+  const bySpend = expenseCategories.filter((c) => spentOf(c.id) > 0).sort((a, b) => spentOf(b.id) - spentOf(a.id))
+  const legendTop = bySpend.slice(0, 5)
+  const legendRest = bySpend.slice(5).reduce((s, c) => s + spentOf(c.id), 0)
+
+  const counts: Record<Filter, number> = { all: 0, over: 0, near: 0, none: 0 }
+  for (const c of expenseCategories) {
+    const st = budgetState(spentOf(c.id), c.budgetLimit)
+    for (const [f] of FILTERS) if (matchesFilter(st, f)) counts[f]++
+  }
+  const visible = expenseCategories.filter((c) => matchesFilter(budgetState(spentOf(c.id), c.budgetLimit), filter))
+  const detail = detailId ? expenseCategories.find((c) => c.id === detailId) : undefined
 
   return (
     <ScreenScroll header={<ScreenHeader title="فئات المصاريف" onBack={() => navigate(-1)} right={<HeaderAddButton label="إضافة فئة" onClick={() => navigate('/categories/new')} />} />}>
-      <SetBudgetDialog
-        open={budgetDialogOpen}
+      <BudgetDialog
+        key={`overall-${overallDialogOpen}`}
+        open={overallDialogOpen}
+        title="السقف الشهري للمصاريف"
+        desc="سقف عام لكل مصاريفك الشهرية، بجانب ميزانيات الفئات الفردية"
+        clearLabel="إزالة السقف الشهري"
         initialValue={monthlyBudgetLimit}
         onSave={(v) => {
           setMonthlyBudgetLimit(v)
-          setBudgetDialogOpen(false)
+          setOverallDialogOpen(false)
         }}
         onClear={() => {
           setMonthlyBudgetLimit(null)
-          setBudgetDialogOpen(false)
+          setOverallDialogOpen(false)
         }}
-        onCancel={() => setBudgetDialogOpen(false)}
+        onCancel={() => setOverallDialogOpen(false)}
       />
-
-      <button onClick={() => setBudgetDialogOpen(true)} className="qb-card-elevated qb-press qb-rise mb-6 block w-full p-5 text-right">
-        <div className="flex items-center gap-5">
-          <RingProgress pct={overallPct ?? 0} size={104} color={budgetColor(overallRawPct ?? 0)}>
-            <span className="num text-[22px] font-bold leading-none">{overallRawPct !== null ? `${Math.round(overallRawPct)}%` : '—'}</span>
-            <span className="mt-1 text-[10px] text-[var(--color-text-3)]">من الميزانية</span>
-          </RingProgress>
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-[12.5px] font-medium text-[var(--color-text-2)]">مصروف هذا الشهر</span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.08] text-[var(--color-text-2)]">
-                <EditIcon />
-              </span>
-            </div>
-            <BigAmount value={monthExpense} size={28} color={overallRawPct !== null && overallRawPct >= 100 ? 'var(--color-expense)' : undefined} />
-            <div className="mt-2 text-[12px] text-[var(--color-text-3)]">
-              {monthlyBudgetLimit === null ? 'اضغط لتحديد سقف مصاريف شهري' : `السقف الشهري ${formatMoney(monthlyBudgetLimit)}`}
-            </div>
-            {overallRawPct !== null && overallRawPct >= 100 && (
-              <div className="mt-1 text-[11.5px] font-semibold" style={{ color: 'var(--color-expense)' }}>
-                تجاوزت بـ {formatMoney(monthExpense - (monthlyBudgetLimit ?? 0))}
-              </div>
-            )}
-            {overallRawPct !== null && overallRawPct >= 80 && overallRawPct < 100 && (
-              <div className="mt-1 text-[11.5px] font-semibold" style={{ color: 'var(--color-subscription)' }}>
-                قاربت على التجاوز
-              </div>
-            )}
-          </div>
-        </div>
-      </button>
-
-      {totalSpent > 0 && (
-        <div className="qb-rise mb-6" style={rise(1)}>
-          <SectionTitle title="توزيع الإنفاق" />
-          <div className="flex h-3 gap-1 overflow-hidden rounded-full">
-            {expenseCategories
-              .map((c) => ({ c, spent: categorySpentThisMonth(c.id) }))
-              .filter((x) => x.spent > 0)
-              .sort((x, y) => y.spent - x.spent)
-              .map(({ c, spent }) => (
-                <div key={c.id} className="h-full rounded-full" style={{ width: `${(spent / totalSpent) * 100}%`, background: colorFor(c.name) }} title={c.name} />
-              ))}
-          </div>
-        </div>
+      <BudgetDialog
+        key={`cat-${budgetFor?.id ?? 'none'}`}
+        open={budgetFor !== null}
+        title={`ميزانية ${budgetFor?.name ?? ''}`}
+        desc="الحد الشهري لمصاريف هذه الفئة"
+        clearLabel="إزالة ميزانية الفئة"
+        initialValue={budgetFor?.budgetLimit ?? null}
+        onSave={(v) => {
+          if (budgetFor) updateCategory(budgetFor.id, { name: budgetFor.name, kind: budgetFor.kind, icon: budgetFor.icon, budgetLimit: v })
+          setBudgetFor(null)
+        }}
+        onClear={() => {
+          if (budgetFor) updateCategory(budgetFor.id, { name: budgetFor.name, kind: budgetFor.kind, icon: budgetFor.icon, budgetLimit: undefined })
+          setBudgetFor(null)
+        }}
+        onCancel={() => setBudgetFor(null)}
+      />
+      {detail && (
+        <CategoryDetailSheet
+          category={detail}
+          onClose={() => setDetailId(null)}
+          onEditBudget={() => setBudgetFor(detail)}
+        />
       )}
 
-      <SectionTitle title="ميزانيات الفئات" hint="رتّب بالأسهم — الأعلى يظهر أول بقائمة اختيار الفئة عند إضافة حركة" />
+      {/* بطاقة الشهر */}
+      <div className="qb-card-elevated qb-rise mb-1 p-[18px]">
+        <div className="flex items-center justify-between">
+          <span className="text-[12.5px] font-medium text-[var(--color-text-2)]">مصروف {MONTHS_AR[new Date().getMonth()]}</span>
+          <button
+            onClick={() => setOverallDialogOpen(true)}
+            className="qb-press flex items-center gap-1.5 rounded-full bg-white/[0.07] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-text-2)]"
+          >
+            <EditGlyph size={12} />
+            {monthlyBudgetLimit ? 'السقف الشهري' : 'حدّد سقفًا شهريًا'}
+          </button>
+        </div>
+        <div className="mt-1.5 flex items-baseline gap-1.5">
+          <span className="num text-[32px] font-bold" style={{ color: overallState === 'over' ? 'var(--color-expense)' : undefined }}>
+            {formatAmount(monthExpense)}
+          </span>
+          <span className="num text-[13px] font-medium text-[var(--color-text-3)]">{monthlyBudgetLimit ? `/ ${formatAmount(monthlyBudgetLimit)} ر.س` : 'ر.س'}</span>
+        </div>
+        {monthlyBudgetLimit ? (
+          <>
+            <div className="mb-2 mt-3.5">
+              <Meter pct={overallPct} color={BUDGET_STATE_COLOR[overallState]} marker={(day / days) * 100} />
+            </div>
+            <div className="flex justify-between text-[11px] text-[var(--color-text-3)]">
+              <span>
+                <b className="num" style={{ color: BUDGET_STATE_COLOR[overallState] }}>
+                  {Math.round(overallPct)}%
+                </b>{' '}
+                من السقف
+              </span>
+              <span>الخط الأبيض = المتوقع حتى اليوم</span>
+            </div>
+            <div className="mt-3.5 grid grid-cols-3 gap-2">
+              {[
+                { v: formatAmount(remaining), k: overallState === 'over' ? 'تجاوزت السقف' : 'متبقي' },
+                { v: formatAmount(Math.floor(remaining / daysLeft)), k: 'مسموح يوميًا' },
+                { v: String(daysLeft), k: 'يوم متبقي' },
+              ].map((s) => (
+                <div key={s.k} className="rounded-2xl bg-white/[0.04] px-2 py-2.5 text-center">
+                  <div className="num text-[14.5px] font-bold">{s.v}</div>
+                  <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">{s.k}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="mt-2 text-[12px] text-[var(--color-text-3)]">حدّد سقفًا شهريًا لترى المتبقي والمسموح صرفه يوميًا</div>
+        )}
+      </div>
+
+      {totalSpent > 0 && (
+        <>
+          <div className="mx-1.5 mb-2.5 mt-6 text-[14px] font-semibold">أين تذهب مصاريفك</div>
+          <div className="qb-card p-3.5">
+            <div className="flex h-3 gap-0.5 overflow-hidden rounded-full">
+              {bySpend.map((c) => (
+                <span key={c.id} title={c.name} className="h-full" style={{ flexGrow: spentOf(c.id), background: categoryColor(c) }} />
+              ))}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+              {legendTop.map((c) => (
+                <div key={c.id} className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-[var(--color-text-2)]">
+                  <i className="flex-shrink-0 rounded-[3px]" style={{ width: 8, height: 8, background: categoryColor(c) }} />
+                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                  <b className="num font-semibold text-[var(--color-text)]">{Math.round((spentOf(c.id) / totalSpent) * 100)}%</b>
+                </div>
+              ))}
+              {legendRest > 0 && (
+                <div className="flex min-w-0 items-center gap-1.5 text-[11.5px] text-[var(--color-text-2)]">
+                  <i className="flex-shrink-0 rounded-[3px] bg-[var(--color-surface-high)]" style={{ width: 8, height: 8 }} />
+                  <span className="min-w-0 flex-1 truncate">أخرى</span>
+                  <b className="num font-semibold text-[var(--color-text)]">{Math.round((legendRest / totalSpent) * 100)}%</b>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="mx-1.5 mb-2.5 mt-6 flex items-center justify-between">
+        <span className="text-[14px] font-semibold">الفئات</span>
+        {expenseCategories.length > 1 && (
+          <button
+            onClick={() => setOrdering((o) => !o)}
+            className="qb-press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-semibold"
+            style={
+              ordering
+                ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)', borderColor: 'transparent' }
+                : { background: 'var(--color-surface-elevated)', color: 'var(--color-text-2)', borderColor: 'var(--color-border)' }
+            }
+          >
+            <Svg size={13} strokeWidth={2.2}>
+              <path d="M7 4v16M3 8l4-4 4 4M17 20V4M21 16l-4 4-4-4" />
+            </Svg>
+            {ordering ? 'تم' : 'ترتيب'}
+          </button>
+        )}
+      </div>
 
       {expenseCategories.length === 0 ? (
         <EmptyState title="لا توجد فئات بعد" actionLabel="إضافة فئة" onAction={() => navigate('/categories/new')} />
-      ) : (
-        <ListGroup className="qb-rise">
-          {expenseCategories.map((c, idx) => {
-            const spent = categorySpentThisMonth(c.id)
-            const rawPct = c.budgetLimit ? (spent / c.budgetLimit) * 100 : null
-            const cColor = colorFor(c.name)
-            return (
-              <div key={c.id} className={`flex items-center gap-2 py-3 pe-4 ps-2 ${idx > 0 ? 'border-t qb-divider' : ''}`}>
-                <button onClick={() => navigate(`/categories/${c.id}/edit`)} className="flex min-w-0 flex-1 items-center gap-3 ps-2 text-right">
-                  <IconBubble color={cColor}>
-                    {c.icon ? <CategoryIcon iconKey={c.icon} size={19} /> : <span style={{ fontWeight: 600, fontSize: 16 }}>{c.name.trim().charAt(0) || '؟'}</span>}
-                  </IconBubble>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="truncate text-[14px] font-medium">{c.name}</div>
-                      <div className="num flex-shrink-0 text-[13.5px] font-semibold">{formatMoney(spent)}</div>
-                    </div>
-                    {rawPct !== null ? (
-                      <>
-                        <div className="mt-2">
-                          <ProgressBar pct={rawPct} color={budgetColor(rawPct)} height={6} />
-                        </div>
-                        <div className="mt-1 flex justify-between text-[10.5px]">
-                          <span style={{ color: rawPct >= 80 ? budgetColor(rawPct) : 'var(--color-text-3)' }}>
-                            {rawPct >= 100 ? `تجاوزت بـ ${formatMoney(spent - (c.budgetLimit ?? 0))}` : `${Math.round(rawPct)}%`}
-                          </span>
-                          <span className="num text-[var(--color-text-3)]">من {formatMoney(c.budgetLimit ?? 0)}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-[11px] text-[var(--color-text-3)]">بدون ميزانية</div>
-                    )}
-                  </div>
-                </button>
-                <div data-own-gesture className="flex flex-shrink-0 flex-col gap-1">
+      ) : ordering ? (
+        <>
+          <div className="mx-1.5 mb-2.5 text-[11.5px] text-[var(--color-text-3)]">الأعلى يظهر أولًا عند اختيار الفئة في مصروف جديد</div>
+          <div className="qb-card">
+            {expenseCategories.map((c, i) => (
+              <div key={c.id} className="flex items-center gap-3 border-t border-[var(--color-border)] px-3.5 py-2.5 first:border-t-0">
+                <span className="num w-5 text-center text-[11px] text-[var(--color-text-3)]">{i + 1}</span>
+                <CategoryIconBox category={c} size={36} radius={12} />
+                <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">{c.name}</span>
+                <div data-own-gesture className="flex gap-1.5">
                   <button
                     onClick={() => moveCategoryUp(c.id)}
-                    disabled={idx === 0}
+                    disabled={i === 0}
                     aria-label="نقل الفئة لأعلى"
-                    className="qb-press flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[var(--color-text-2)] disabled:opacity-25"
+                    className="qb-press flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-surface-high)] text-[var(--color-text-2)] disabled:opacity-25"
                   >
-                    <ChevronUpIcon />
+                    <Svg size={14} strokeWidth={2.4}>
+                      <path d="M5 15 12 8l7 7" />
+                    </Svg>
                   </button>
                   <button
                     onClick={() => moveCategoryDown(c.id)}
-                    disabled={idx === expenseCategories.length - 1}
+                    disabled={i === expenseCategories.length - 1}
                     aria-label="نقل الفئة لأسفل"
-                    className="qb-press flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-[var(--color-text-2)] disabled:opacity-25"
+                    className="qb-press flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-surface-high)] text-[var(--color-text-2)] disabled:opacity-25"
                   >
-                    <ChevronDownIcon />
+                    <Svg size={14} strokeWidth={2.4}>
+                      <path d="M5 9l7 7 7-7" />
+                    </Svg>
                   </button>
                 </div>
               </div>
-            )
-          })}
-        </ListGroup>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <div data-own-gesture className="-mx-5 mb-3 flex gap-1.5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {FILTERS.map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className="qb-press flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold"
+                style={
+                  filter === key
+                    ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)', borderColor: 'transparent' }
+                    : { background: 'var(--color-surface)', color: 'var(--color-text-2)', borderColor: 'var(--color-border)' }
+                }
+              >
+                {label}
+                <span className="num text-[10.5px] opacity-70">{counts[key]}</span>
+              </button>
+            ))}
+          </div>
+          {visible.length === 0 ? (
+            <div className="qb-card py-8 text-center text-[12.5px] text-[var(--color-text-3)]">لا توجد فئات في هذا التصنيف</div>
+          ) : (
+            <div className="qb-rise grid grid-cols-2 gap-2.5">
+              {visible.map((c) => (
+                <CategoryTile key={c.id} category={c} spent={spentOf(c.id)} onClick={() => setDetailId(c.id)} />
+              ))}
+              {filter === 'all' && (
+                <button
+                  onClick={() => navigate('/categories/new')}
+                  className="qb-press flex min-h-[132px] flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed border-[var(--color-border-strong)] text-[12.5px] font-semibold text-[var(--color-text-2)]"
+                >
+                  <span className="flex items-center justify-center rounded-[14px] bg-[var(--color-surface-elevated)] text-[var(--color-text)]" style={{ width: 40, height: 40 }}>
+                    <Svg size={20} strokeWidth={2.2}>
+                      <path d="M12 5v14M5 12h14" />
+                    </Svg>
+                  </span>
+                  فئة جديدة
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </ScreenScroll>
   )
