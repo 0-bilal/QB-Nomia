@@ -4,6 +4,8 @@ import { useNavigate, useNavigationType } from 'react-router-dom'
 import { haptic } from '../lib/haptics'
 
 const EDGE_ZONE = 20
+/** ارتفاع رأس ScreenHeader العائم (pt-8 + زر 40 + pb-3) — المحتوى يبدأ تحته. */
+const FLOATING_HEADER_HEIGHT = 84
 const BACK_COMMIT = 90
 
 /**
@@ -111,15 +113,29 @@ export function ScreenScroll({
             transition: dragX ? 'none' : 'transform 300ms var(--ease-out-expo)',
           }}
         >
-          <ScreenTitleContext.Provider value={{ managed: headerTitle !== undefined, scrolled }}>{header}</ScreenTitleContext.Provider>
-          <div className={`flex-1 overflow-y-auto overflow-x-hidden ${contentClassName}`} onScroll={headerTitle !== undefined ? onContentScroll : undefined}>
-            {headerTitle !== undefined && (
-              <h1 ref={titleRef} className="mb-4 truncate text-[28px] font-bold leading-tight tracking-tight">
-                {headerTitle}
-              </h1>
-            )}
-            {children}
-          </div>
+          {headerTitle !== undefined ? (
+            // الرأس يطفو فوق المحتوى (مثل الرئيسية): المحتوى يتمرر تحت الأزرار والكبسولة بدل ما يُقص عند حافة شريط مستقل.
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
+                <ScreenTitleContext.Provider value={{ managed: true, scrolled }}>{header}</ScreenTitleContext.Provider>
+              </div>
+              <div
+                className={`flex-1 overflow-y-auto overflow-x-hidden ${contentClassName}`}
+                style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${FLOATING_HEADER_HEIGHT}px)` }}
+                onScroll={onContentScroll}
+              >
+                <h1 ref={titleRef} className="mb-4 truncate text-[28px] font-bold leading-tight tracking-tight">
+                  {headerTitle}
+                </h1>
+                {children}
+              </div>
+            </div>
+          ) : (
+            <>
+              {header}
+              <div className={`flex-1 overflow-y-auto overflow-x-hidden ${contentClassName}`}>{children}</div>
+            </>
+          )}
           {footer}
         </div>
       </div>

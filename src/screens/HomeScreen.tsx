@@ -11,6 +11,7 @@ import { BigAmount } from '../components/BigAmount'
 import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
 import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
 import { useScrolledPast } from '../hooks/useScrolledPast'
+import { QuickSyncButton } from '../components/QuickSyncButton'
 import { GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
 import { localIso, upcomingItems } from '../lib/homeFeed'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
@@ -299,6 +300,7 @@ export function HomeScreen() {
         visible={greetingPast}
         end={
           <>
+            <QuickSyncButton />
             <NotificationBellButton notifications={notifications} onClick={() => setNotificationsOpen(true)} />
             <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
           </>
