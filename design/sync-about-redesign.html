@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المزامنة وحول التطبيق — تصميم مقترح</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --accent-soft:rgba(255,255,255,.09); --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --owed-to:#2ee6c8; --sub:#ffbf47;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 0 40px}
+  button,input{font:inherit;color:inherit;background:none;border:0}
+  button{cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+  /* أدوات المعاينة (خارج الهاتف) */
+  .preview-bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;padding:0 16px}
+  .pill{padding:8px 14px;border-radius:99px;background:#16161a;border:1px solid #26262c;font-size:12.5px;font-weight:600;color:var(--text-2)}
+  .pill.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){body{padding-top:12px}.phone{border-radius:0;border:0;height:auto;min-height:100vh}}
+  .scroll{height:100%;overflow-y:auto;padding:0 16px 40px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .screen{display:none}.screen.on{display:block;animation:fade .35s var(--ease)}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* رأس الشاشة */
+  .top{display:flex;align-items:center;gap:12px;padding:30px 4px 18px}
+  .back{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--surface-el);border:1px solid var(--border);flex-shrink:0}
+  .top h1{font-size:20px;font-weight:700}
+  .top p{font-size:11.5px;color:var(--text-3);margin-top:1px}
+
+  .press{transition:transform .15s var(--ease)}.press:active{transform:scale(.97)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:24px}
+  .elev{position:relative;border-radius:28px;border:1px solid rgba(255,255,255,.09);overflow:hidden;
+    background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.07) 0%,transparent 55%),linear-gradient(165deg,var(--surface-el) 0%,var(--void) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 24px 48px -28px rgba(0,0,0,.9)}
+  .elev::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:14px 14px;
+    -webkit-mask-image:linear-gradient(135deg,#000 0%,transparent 60%);mask-image:linear-gradient(135deg,#000 0%,transparent 60%)}
+  .elev > *{position:relative}
+  .sec{display:flex;justify-content:space-between;align-items:baseline;margin:22px 6px 10px;font-size:13px;font-weight:600}
+  .sec span{font-size:11px;color:var(--text-3);font-weight:500}
+  .muted{color:var(--text-3)}
+
+  /* ===== المزامنة ===== */
+  .status{padding:20px}
+  .st-row{display:flex;align-items:center;gap:14px}
+  .orb{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;position:relative}
+  .orb.on{background:var(--accent);color:var(--on-accent);box-shadow:0 10px 30px -10px rgba(255,255,255,.35)}
+  .orb.off{background:var(--surface-hi);color:var(--text-3)}
+  .orb .ring{position:absolute;inset:-5px;border-radius:50%;border:2px solid transparent;border-top-color:var(--accent);animation:spin .8s linear infinite;display:none}
+  .busy .orb .ring{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .st-title{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .live{width:8px;height:8px;border-radius:50%;background:var(--income);box-shadow:0 0 0 4px rgba(62,224,143,.15)}
+  .st-sub{font-size:12px;color:var(--text-3);margin-top:3px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,255,255,.06);color:var(--text-2)}
+  .chip.g{background:rgba(62,224,143,.1);color:var(--income)}
+  .sync-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:12.5px;border-radius:99px;font-size:13px;font-weight:600}
+  .btn.primary{background:var(--accent);color:var(--on-accent)}
+  .btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--border-strong)}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.4}
+  .note{font-size:11px;color:var(--text-3);text-align:center;margin-top:10px;line-height:1.6}
+
+  .steps{padding:6px 16px}
+  .step{display:flex;gap:12px;padding:12px 0;align-items:flex-start}
+  .step + .step{border-top:1px solid var(--border)}
+  .step b{width:24px;height:24px;border-radius:50%;background:var(--surface-hi);display:grid;place-items:center;font-size:11.5px;flex-shrink:0;font-family:var(--font-num)}
+  .step div{font-size:12.5px;line-height:1.6;color:var(--text-2)}
+  .step strong{color:var(--text);font-weight:600}
+
+  .acc-head{width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;text-align:right}
+  .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+  .acc-head .t{flex:1;min-width:0}
+  .t1{font-size:14px;font-weight:600}
+  .t2{font-size:11px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chev{color:var(--text-3);transition:transform .25s var(--ease)}
+  .open .chev{transform:rotate(180deg)}
+  .acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s var(--ease)}
+  .open .acc-body{grid-template-rows:1fr}
+  .acc-body > div{overflow:hidden}
+  .form{padding:0 16px 16px}
+  .lbl{display:block;font-size:12px;font-weight:500;color:var(--text-2);margin:0 4px 7px}
+  .field{display:flex;align-items:center;gap:8px;background:var(--void);border:1px solid var(--border);border-radius:16px;padding:0 14px;margin-bottom:14px}
+  .field input{flex:1;min-width:0;padding:12.5px 0;font-size:13px;outline:none}
+  .field input::placeholder{color:var(--text-3)}
+  .field button{font-size:11.5px;font-weight:600;color:var(--text-2);flex-shrink:0}
+  .danger{display:block;width:100%;text-align:center;font-size:12px;font-weight:600;color:var(--expense);padding:12px 0 2px}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:24px 24px 0 0;overflow:hidden}
+  .stat{background:var(--surface);padding:14px 10px;text-align:center}
+  .stat .v{font-size:16px;font-weight:700}
+  .stat .k{font-size:10.5px;color:var(--text-3);margin-top:3px}
+  .list-row{width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;text-align:right;border-top:1px solid var(--border)}
+  .list-row .t{flex:1;min-width:0}
+  .arrow{color:var(--text-3)}
+
+  .toast{position:absolute;left:16px;right:16px;bottom:20px;padding:13px 16px;border-radius:18px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:10px;
+    background:#1c1c21;border:1px solid var(--border-strong);box-shadow:0 20px 40px -10px rgba(0,0,0,.8);transform:translateY(140%);transition:transform .35s var(--ease);z-index:5}
+  .toast.show{transform:none}
+  .toast i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;flex-shrink:0}
+
+  /* ===== حول التطبيق ===== */
+  .about-hero{padding:34px 20px 24px;text-align:center}
+  .logo{width:72px;height:72px;border-radius:23px;margin:0 auto;display:grid;place-items:center;position:relative;
+    background:linear-gradient(150deg,#fff,var(--accent) 55%,#a9a9b3);box-shadow:0 14px 36px -14px rgba(255,255,255,.35),inset 0 1px 0 rgba(255,255,255,.55)}
+  .logo::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;bottom:9px;left:9px;background:#6b6b75;box-shadow:0 0 0 1.5px #fff}
+  .brand{font-size:24px;font-weight:700;margin-top:14px}
+  .brand .dot{color:var(--text-3)}
+  .tag{font-size:13px;color:var(--text-2);margin-top:3px}
+  .ver-row{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .promise{padding:6px 16px}
+  .pr{display:flex;gap:12px;align-items:flex-start;padding:13px 0}
+  .pr + .pr{border-top:1px solid var(--border)}
+  .pr .ic{width:34px;height:34px;background:var(--accent-soft)}
+  .pr .t1{font-size:13.5px}
+  .pr .t2{white-space:normal;line-height:1.55;font-size:11.5px}
+  .feat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .f{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 8px 12px;text-align:center}
+  .f .ic{width:38px;height:38px;margin:0 auto 9px}
+  .f div{font-size:11.5px;font-weight:600;line-height:1.4}
+  .info-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;gap:10px}
+  .info-row + .info-row{border-top:1px solid var(--border)}
+  .info-row .k{font-size:12.5px;color:var(--text-2)}
+  .info-row .v{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .copy{font-size:11px;font-weight:600;color:var(--text-2);background:var(--surface-hi);padding:4px 9px;border-radius:99px}
+  .apk{padding:18px;display:flex;gap:14px;align-items:center}
+  .apk .ic{width:48px;height:48px;border-radius:16px;background:rgba(62,224,143,.12);color:var(--income)}
+  .news li{list-style:none;display:flex;gap:10px;padding:9px 0;font-size:12.5px;color:var(--text-2);line-height:1.55}
+  .news li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:8px;flex-shrink:0}
+  .foot{text-align:center;font-size:11px;color:var(--text-3);padding:22px 0 6px;line-height:1.8}
+</style>
+</head>
+<body>
+
+<div class="preview-bar">
+  <button class="pill on" data-screen="sync">مزامنة Google Sheets</button>
+  <button class="pill" data-screen="about">حول التطبيق</button>
+  <span style="width:1px;background:#26262c"></span>
+  <button class="pill on" id="connToggle" title="للمعاينة فقط">الحالة: متصل</button>
+</div>
+
+<div class="phone">
+  <div class="scroll" id="scroll">
+
+    <!-- ================= شاشة المزامنة ================= -->
+    <section class="screen on" id="sync">
+      <div class="top">
+        <button class="back press" aria-label="رجوع"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        <div><h1>المزامنة والنسخ الاحتياطي</h1><p>Google Sheets · نسخة محلية</p></div>
+      </div>
+
+      <!-- بطاقة الحالة -->
+      <div class="elev status" id="statusCard">
+        <div class="st-row">
+          <div class="orb on" id="orb">
+            <span class="ring"></span>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.8A4 4 0 0 0 6.5 16"/><path d="M12 12v6M9.5 15.5 12 18l2.5-2.5"/></svg>
+          </div>
+          <div style="min-width:0">
+            <div class="st-title" id="stTitle"><span class="live"></span>المزامنة مفعّلة</div>
+            <div class="st-sub" id="stSub">آخر مزامنة قبل ٤ دقائق · اليوم ٩:٤٢ ص</div>
+          </div>
+        </div>
+        <div class="chips" id="chips">
+          <span class="chip g">● رفع تلقائي</span>
+          <span class="chip">🔒 تشفير كامل</span>
+          <span class="chip num">1,284 سجل</span>
+        </div>
+        <div class="sync-actions" id="syncActions">
+          <button class="btn primary press" id="pushBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+            رفع الآن
+          </button>
+          <button class="btn ghost press" id="pullBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M8 11l4 4 4-4"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+            سحب واستبدال
+          </button>
+        </div>
+        <div class="note" id="syncNote">كل تعديل يُرفع تلقائيًا بالخلفية — الأزرار للمزامنة الفورية عند الحاجة.</div>
+      </div>
+
+      <!-- خطوات الربط (تظهر عند عدم الاتصال) -->
+      <div id="stepsWrap" style="display:none">
+        <div class="sec">طريقة الربط <span>٣ خطوات</span></div>
+        <div class="card steps">
+          <div class="step"><b>1</b><div>انسخ <strong>سكربت QB-Nomia</strong> إلى Google Apps Script وضع فيه رمزًا سريًا من اختيارك.</div></div>
+          <div class="step"><b>2</b><div>انشره كـ <strong>Web App</strong> بصلاحية «أي شخص» وانسخ الرابط المنتهي بـ <span class="num" dir="ltr">/exec</span>.</div></div>
+          <div class="step"><b>3</b><div>الصق <strong>الرابط والرمز</strong> في الأسفل واضغط «ربط».</div></div>
+        </div>
+      </div>
+
+      <!-- إعدادات الربط -->
+      <div class="sec">إعدادات الربط <span>محفوظة على هذا الجهاز فقط</span></div>
+      <div class="card acc" id="connAcc">
+        <button class="acc-head" data-acc="connAcc">
+          <div class="ic" style="background:rgba(139,123,255,.14);color:var(--transfer)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+          </div>
+          <div class="t"><div class="t1">Web App والرمز السري</div><div class="t2 num" dir="ltr" style="text-align:right" id="connSummary">script.google.com/…/AKfy…x9/exec</div></div>
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+        </button>
+        <div class="acc-body"><div><div class="form">
+          <label class="lbl">رابط Web App</label>
+          <div class="field"><input dir="ltr" id="url" placeholder="https://script.google.com/macros/s/.../exec" value="https://script.google.com/macros/s/AKfy...x9/exec"></div>
+          <label class="lbl">الرمز السري</label>
+          <div class="field"><input dir="ltr" id="token" type="password" placeholder="نفس الرمز الموضوع بالسكربت" value="my-secret-token"><button type="button" id="showTok">إظهار</button></div>
+          <button class="btn primary block press" id="saveBtn">حفظ التغييرات</button>
+          <button class="danger" id="unlinkBtn">إزالة الربط من هذا الجهاز</button>
+        </div></div></div>
+      </div>
+
+      <!-- النسخة المحلية -->
+      <div class="sec">نسخة احتياطية محلية <span>ملف JSON على جهازك</span></div>
+      <div class="card" style="overflow:hidden">
+        <div class="stats">
+          <div class="stat"><div class="v num" dir="ltr">186 KB</div><div class="k">حجم البيانات</div></div>
+          <div class="stat"><div class="v num">1,284</div><div class="k">سجل</div></div>
+          <div class="stat"><div class="v">قبل ٣ أيام</div><div class="k">آخر تصدير</div></div>
+        </div>
+        <button class="list-row press" id="exportBtn">
+          <div class="ic" style="background:var(--accent-soft)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+          </div>
+          <div class="t"><div class="t1">تصدير نسخة احتياطية</div><div class="t2">يحفظ كل بياناتك في ملف على جهازك</div></div>
+          <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+        <button class="list-row press" id="importBtn">
+          <div class="ic" style="background:rgba(46,230,200,.12);color:var(--owed-to)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M8 11l4 4 4-4"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+          </div>
+          <div class="t"><div class="t1">استعادة من ملف</div><div class="t2">يستبدل بياناتك الحالية بالكامل</div></div>
+          <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+      </div>
+      <div class="note" style="margin-top:14px">🔒 بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets لا يخزّن أي بيانات مالية مقروءة.</div>
+    </section>
+
+    <!-- ================= شاشة حول التطبيق ================= -->
+    <section class="screen" id="about">
+      <div class="top">
+        <button class="back press" aria-label="رجوع"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        <div><h1>حول التطبيق</h1></div>
+      </div>
+
+      <div class="elev about-hero">
+        <div class="logo"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0a0a0c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 L10 9 L14 13 L20 5"/><path d="M15 5 H20 V10"/></svg></div>
+        <div class="brand num">QB<span class="dot">·</span>Nomia</div>
+        <div class="tag">محفظتك المالية الشخصية</div>
+        <div class="ver-row">
+          <span class="chip num" style="background:var(--accent);color:var(--on-accent)">الإصدار 2.2.0</span>
+          <span class="chip">PWA · أندرويد</span>
+        </div>
+      </div>
+
+      <div class="sec">خصوصيتك أولًا</div>
+      <div class="card promise">
+        <div class="pr">
+          <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+          <div><div class="t1">بياناتك على جهازك فقط</div><div class="t2">لا يوجد خادم يجمع بياناتك أو يطّلع عليها.</div></div>
+        </div>
+        <div class="pr">
+          <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a15 15 0 0 1 20 0"/><circle cx="12" cy="19.5" r=".8" fill="currentColor"/></svg></div>
+          <div><div class="t1">يعمل بدون إنترنت</div><div class="t2">تطبيق ويب تقدّمي (PWA) يفتح ويحفظ حتى بدون اتصال.</div></div>
+        </div>
+        <div class="pr">
+          <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+          <div><div class="t1">مزامنة مشفّرة اختيارية</div><div class="t2">نسخة مشفّرة على Google Sheets لا يقرؤها أحد غيرك.</div></div>
+        </div>
+      </div>
+
+      <div class="sec">أبرز المزايا</div>
+      <div class="feat">
+        <div class="f"><div class="ic" style="background:rgba(139,123,255,.14);color:var(--transfer)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg></div><div>الحسابات والبطاقات</div></div>
+        <div class="f"><div class="ic" style="background:rgba(62,224,143,.12);color:var(--income)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M10 19V5M16 19v-6M22 19H2"/></svg></div><div>تقارير ومقارنات</div></div>
+        <div class="f"><div class="ic" style="background:rgba(46,230,200,.12);color:var(--owed-to)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 4a3 3 0 0 1 0 6M18 14c2 .6 3 2.2 3 5"/></svg></div><div>السلف والديون</div></div>
+        <div class="f"><div class="ic" style="background:rgba(255,191,71,.12);color:var(--sub)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><div>الاشتراكات والالتزامات</div></div>
+        <div class="f"><div class="ic" style="background:rgba(255,95,109,.12);color:var(--expense)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div><div>الأهداف والزكاة</div></div>
+        <div class="f"><div class="ic" style="background:var(--accent-soft)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></div><div>تصدير PDF و Excel</div></div>
+      </div>
+
+      <div class="sec">ما الجديد <span class="num">2.2.0</span></div>
+      <div class="card" style="padding:6px 16px">
+        <ul class="news">
+          <li>شاشة حسابات جديدة: قائمة مجمّعة وعرض بطاقات قابل للسحب.</li>
+          <li>شريط توزيع الأرصدة في بطاقة الإجمالي.</li>
+          <li>تفاصيل الحساب وآخر حركاته داخل الصف مباشرة.</li>
+        </ul>
+      </div>
+
+      <div class="sec">تطبيق أندرويد</div>
+      <div class="card apk">
+        <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M4 20h16"/></svg></div>
+        <div style="flex:1;min-width:0"><div class="t1">تثبيت ملف APK</div><div class="t2" style="white-space:normal;line-height:1.5">بناء تجريبي غير منشور على Google Play — يطلب تفعيل «مصادر غير معروفة» أول مرة.</div></div>
+      </div>
+      <button class="btn primary block press" style="margin-top:10px">تنزيل أحدث نسخة</button>
+
+      <div class="sec">معلومات</div>
+      <div class="card">
+        <div class="info-row"><span class="k">المطوّر</span><span class="v">بلال الخواجة</span></div>
+        <div class="info-row"><span class="k">بواسطة</span><span class="v">برمجيات QB</span></div>
+        <div class="info-row"><span class="k">الإصدار</span><span class="v num">2.2.0</span></div>
+        <div class="info-row"><span class="k">بصمة البناء</span><span class="v"><span class="num">5692acf</span><button class="copy" id="copyBtn">نسخ</button></span></div>
+      </div>
+
+      <div class="foot">© 2026 برمجيات QB — جميع الحقوق محفوظة</div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"><i></i><span></span></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let connected = true;
+
+function toast(msg, kind='ok'){
+  const t=$('#toast');
+  t.querySelector('span').textContent=msg;
+  const i=t.querySelector('i');
+  i.textContent = kind==='ok'?'✓':kind==='err'?'!':'…';
+  i.style.background = kind==='ok'?'rgba(62,224,143,.15)':kind==='err'?'rgba(255,95,109,.15)':'rgba(255,255,255,.08)';
+  i.style.color = kind==='ok'?'var(--income)':kind==='err'?'var(--expense)':'var(--text-2)';
+  t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+function renderConn(){
+  $('#orb').className='orb '+(connected?'on':'off');
+  $('#stTitle').innerHTML = connected?'<span class="live"></span>المزامنة مفعّلة':'المزامنة غير مربوطة';
+  $('#stSub').textContent = connected?'آخر مزامنة قبل ٤ دقائق · اليوم ٩:٤٢ ص':'اربط Google Sheets لحفظ نسخة مشفّرة من بياناتك';
+  $('#chips').style.display = connected?'flex':'none';
+  $('#syncActions').style.display = connected?'grid':'none';
+  $('#syncNote').style.display = connected?'block':'none';
+  $('#stepsWrap').style.display = connected?'none':'block';
+  $('#connSummary').textContent = connected?'script.google.com/…/AKfy…x9/exec':'غير مربوط — أدخل الرابط والرمز';
+  $('#unlinkBtn').style.display = connected?'block':'none';
+  $('#saveBtn').textContent = connected?'حفظ التغييرات':'ربط';
+  $('#connAcc').classList.toggle('open', !connected);
+  if(!connected){$('#url').value='';$('#token').value='';}
+  const tg=$('#connToggle'); tg.textContent='الحالة: '+(connected?'متصل':'غير متصل'); tg.classList.toggle('on',connected);
+}
+
+document.addEventListener('click',e=>{
+  const sc=e.target.closest('[data-screen]');
+  if(sc){document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('on',b===sc));
+    document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===sc.dataset.screen));
+    $('#connToggle').style.display = sc.dataset.screen==='sync'?'':'none';
+    $('#scroll').scrollTop=0;return;}
+  const acc=e.target.closest('[data-acc]');
+  if(acc){document.getElementById(acc.dataset.acc).classList.toggle('open');return;}
+});
+$('#connToggle').onclick=()=>{connected=!connected;renderConn();};
+$('#showTok').onclick=()=>{const t=$('#token');t.type=t.type==='password'?'text':'password';$('#showTok').textContent=t.type==='password'?'إظهار':'إخفاء';};
+$('#pushBtn').onclick=()=>{const c=$('#statusCard');c.classList.add('busy');toast('يتم رفع البيانات…','busy');
+  setTimeout(()=>{c.classList.remove('busy');$('#stSub').textContent='آخر مزامنة الآن';toast('تم رفع البيانات المشفّرة بنجاح');},1400);};
+$('#pullBtn').onclick=()=>{ if(confirm('سحب البيانات سيستبدل كل بياناتك المحلية الحالية بالكامل. متابعة؟')) toast('تم سحب البيانات وفك تشفيرها بنجاح'); };
+$('#saveBtn').onclick=()=>{ if(!$('#url').value||!$('#token').value){toast('أدخل الرابط والرمز السري أولًا','err');return;}
+  connected=true;renderConn();toast('تم حفظ إعدادات الربط على هذا الجهاز'); };
+$('#unlinkBtn').onclick=()=>{ if(confirm('إزالة الربط من هذا الجهاز؟ بياناتك المالية المحلية لن تتأثر.')){connected=false;renderConn();toast('تمت إزالة الربط');} };
+$('#exportBtn').onclick=()=>toast('تم تصدير النسخة الاحتياطية على جهازك');
+$('#importBtn').onclick=()=>toast('اختر ملف JSON صادر من التطبيق','busy');
+$('#copyBtn').onclick=()=>toast('تم نسخ بصمة البناء');
+renderConn();
+</script>
+</body>
+</html>
