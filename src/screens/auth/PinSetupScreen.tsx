@@ -34,7 +34,7 @@ export function PinSetupScreen() {
           auth.setup(next).then(() => {
             navigate('/', { replace: true })
             // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
-            // حالة السحب تظهر كشريط عائم أعلى الشاشة (SyncStatusBar).
+            // حالة السحب تظهر كشريط عائم أعلى الشاشة (IslandHost).
             runBackgroundPull(importSnapshot)
           })
         } else {

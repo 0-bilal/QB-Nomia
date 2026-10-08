@@ -220,6 +220,16 @@ textarea:focus {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+/* الكبسولة الذكية (IslandHost): أثناء ظهور إشعار تختفي الأزرار العائمة وكبسولة العنوان لحظيًا ثم ترجع. */
+[data-floating-chrome] {
+  transition: opacity 220ms ease, transform 320ms var(--ease-spring);
+}
+.qb-island-active [data-floating-chrome] {
+  opacity: 0;
+  transform: scale(0.88);
+  pointer-events: none !important;
+}
+
 /* صف رأس عائم يلتصق بأعلى الشاشة أثناء التمرير (position: sticky). */
 .qb-sticky-header-row {
   position: sticky;
