@@ -5,15 +5,16 @@ import { pullFromSheets, pushToSheets } from './sheetsSync'
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline'
 export type SyncDirection = 'push' | 'pull'
 
-type Listener = (status: SyncStatus, direction: SyncDirection) => void
+/** `manual` = بدأها المستخدم بنفسه (زر المزامنة) — الرفع الخلفي الناجح يبقى صامتًا، أما اليدوي فيُؤكَّد له. */
+type Listener = (status: SyncStatus, direction: SyncDirection, manual: boolean) => void
 
 const listeners = new Set<Listener>()
 let debounceTimer: number | undefined
 let idleTimer: number | undefined
 let pullIdleTimer: number | undefined
 
-function emit(status: SyncStatus, direction: SyncDirection): void {
-  listeners.forEach((fn) => fn(status, direction))
+function emit(status: SyncStatus, direction: SyncDirection, manual = false): void {
+  listeners.forEach((fn) => fn(status, direction, manual))
 }
 
 export function subscribeSyncStatus(fn: Listener): () => void {
@@ -80,26 +81,26 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void):
 
 /**
  * مزامنة فورية يدوية (زر المزامنة بالرئيسية): ترفع البيانات الحالية الآن بدل انتظار الرفع الخلفي،
- * وتُظهر نفس شريط الحالة العائم (SyncStatusBar). الرفع فقط — السحب يستبدل البيانات المحلية فيبقى من شاشة المزامنة.
+ * وتُظهر نتيجتها بالكبسولة الذكية (IslandHost). الرفع فقط — السحب يستبدل البيانات المحلية فيبقى من شاشة المزامنة.
  */
 export async function syncNow(snapshot: DataSnapshot): Promise<boolean> {
   if (!isSheetsSyncConfigured()) return false
   if (debounceTimer) window.clearTimeout(debounceTimer)
   if (idleTimer) window.clearTimeout(idleTimer)
   if (!navigator.onLine) {
-    emit('offline', 'push')
-    idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
+    emit('offline', 'push', true)
+    idleTimer = window.setTimeout(() => emit('idle', 'push', true), 3000)
     return false
   }
-  emit('syncing', 'push')
+  emit('syncing', 'push', true)
   try {
     await pushToSheets(snapshot)
-    emit('success', 'push')
-    idleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
+    emit('success', 'push', true)
+    idleTimer = window.setTimeout(() => emit('idle', 'push', true), 1800)
     return true
   } catch {
-    emit('error', 'push')
-    idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
+    emit('error', 'push', true)
+    idleTimer = window.setTimeout(() => emit('idle', 'push', true), 3000)
     return false
   }
 }

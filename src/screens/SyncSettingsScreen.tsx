@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react'
+import { useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData, type DataSnapshot } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -8,6 +8,7 @@ import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets }
 import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
 import { getLastBackupExportedAt, markBackupExported } from '../lib/backup'
+import { dismissNotice, notify } from '../lib/notify'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -96,16 +97,6 @@ const RecordsIcon = ({ size = 12 }: { size?: number }) => (
     <path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
   </Svg>
 )
-const CheckIcon = ({ size = 12 }: { size?: number }) => (
-  <Svg size={size} strokeWidth={2.6}>
-    <path d="M5 12.5 10 17l9-10" />
-  </Svg>
-)
-const AlertIcon = ({ size = 12 }: { size?: number }) => (
-  <Svg size={size} strokeWidth={2.6}>
-    <path d="M12 7v6M12 17h.01" />
-  </Svg>
-)
 const ChevronDown = ({ open }: { open: boolean }) => (
   <span className="flex-shrink-0 text-[var(--color-text-3)]" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 250ms cubic-bezier(0.22,1,0.36,1)' }}>
     <Svg size={14} strokeWidth={2.4}>
@@ -186,7 +177,6 @@ export function SyncSettingsScreen() {
   const [showToken, setShowToken] = useState(false)
   const [confirmImportOpen, setConfirmImportOpen] = useState(false)
   const [pendingImport, setPendingImport] = useState<DataSnapshot | null>(null)
-  const [toastVisible, setToastVisible] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const canSave = url.trim().length > 0 && token.trim().length > 0
@@ -205,17 +195,14 @@ export function SyncSettingsScreen() {
     backupSnapshot.categories.length +
     backupSnapshot.incomeSources.length
 
+  // نتيجة كل عملية تظهر بالكبسولة الذكية (notify) بدل إشعار سفلي خاص بالشاشة.
   function setStatus(next: Status) {
     setStatusRaw(next)
-    setToastVisible(next.kind !== 'idle')
+    if (next.kind === 'busy') notify('progress', next.label)
+    else if (next.kind === 'ok') notify('success', next.label)
+    else if (next.kind === 'error') notify('error', next.label)
+    else dismissNotice()
   }
-
-  // الإشعار العائم: يبقى ظاهرًا أثناء العمليات الجارية، ويختفي تلقائيًا بعد النجاح أو الخطأ.
-  useEffect(() => {
-    if (status.kind === 'idle' || status.kind === 'busy') return
-    const t = setTimeout(() => setToastVisible(false), status.kind === 'error' ? 5000 : 2800)
-    return () => clearTimeout(t)
-  }, [status])
 
   function handleExportBackup() {
     const json = JSON.stringify(backupSnapshot, null, 2)
@@ -306,13 +293,6 @@ export function SyncSettingsScreen() {
       setStatus({ kind: 'error', label: err instanceof Error ? err.message : 'فشل السحب' })
     }
   }
-
-  const toastTone =
-    status.kind === 'error'
-      ? { bg: 'rgba(255,95,109,0.15)', fg: 'var(--color-expense)', icon: <AlertIcon /> }
-      : status.kind === 'busy'
-        ? { bg: 'rgba(255,255,255,0.08)', fg: 'var(--color-text-2)', icon: <RefreshIcon /> }
-        : { bg: 'rgba(62,224,143,0.15)', fg: 'var(--color-income)', icon: <CheckIcon /> }
 
   return (
     <ScreenScroll header={<ScreenHeader title="المزامنة والنسخ الاحتياطي" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
@@ -530,28 +510,6 @@ export function SyncSettingsScreen() {
         <span>بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets لا يخزّن أي بيانات مالية مقروءة.</span>
       </div>
 
-      {/* إشعار عائم بنتيجة آخر عملية */}
-      {status.kind !== 'idle' && (
-        <div
-          role="status"
-          className="fixed inset-x-4 z-50 mx-auto flex max-w-[420px] items-center gap-2.5 rounded-[18px] border border-[var(--color-border-strong)] bg-[#1c1c21] px-4 py-3 text-[12.5px] font-semibold"
-          style={{
-            bottom: 'calc(20px + env(safe-area-inset-bottom))',
-            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.8)',
-            transform: toastVisible ? 'none' : 'translateY(160%)',
-            opacity: toastVisible ? 1 : 0,
-            transition: 'transform 350ms cubic-bezier(0.22,1,0.36,1), opacity 350ms ease',
-          }}
-        >
-          <span
-            className="flex flex-shrink-0 items-center justify-center rounded-full"
-            style={{ width: 22, height: 22, background: toastTone.bg, color: toastTone.fg, animation: busy ? 'spin 900ms linear infinite' : undefined }}
-          >
-            {toastTone.icon}
-          </span>
-          <span className="min-w-0 flex-1">{status.label}</span>
-        </div>
-      )}
     </ScreenScroll>
   )
 }

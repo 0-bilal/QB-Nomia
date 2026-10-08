@@ -5,17 +5,15 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './state/AuthContext'
 import { DataProvider } from './state/DataContext'
-import { SyncStatusBar } from './components/SyncStatusBar'
-import { UndoToastHost } from './components/UndoToastHost'
+import { IslandHost } from './components/IslandHost'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <DataProvider>
-          <SyncStatusBar />
           <App />
-          <UndoToastHost />
+          <IslandHost />
         </DataProvider>
       </AuthProvider>
     </BrowserRouter>

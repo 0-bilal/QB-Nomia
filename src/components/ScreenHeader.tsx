@@ -28,7 +28,10 @@ export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'p
   // داخل ScreenScroll: العنوان الكبير بالمحتوى (يتمرر)، وهنا كبسولة تظهر بعد تمريره — النمط "ج".
   const { managed, scrolled } = useContext(ScreenTitleContext)
   return (
-    <div className={`safe-top relative z-10 flex items-center justify-between gap-3 px-5 ${managed ? 'pb-3 pt-8' : className}`}>
+    <div
+      data-floating-chrome={managed ? '' : undefined}
+      className={`safe-top relative z-10 flex items-center justify-between gap-3 px-5 ${managed ? 'pb-3 pt-3' : className}`}
+    >
       {managed && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3" style={{ height: 40 }}>
           <FloatingTitle title={title} visible={scrolled} />

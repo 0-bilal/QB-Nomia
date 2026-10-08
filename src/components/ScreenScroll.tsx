@@ -4,8 +4,8 @@ import { useNavigate, useNavigationType } from 'react-router-dom'
 import { haptic } from '../lib/haptics'
 
 const EDGE_ZONE = 20
-/** ارتفاع رأس ScreenHeader العائم (pt-8 + زر 40 + pb-3) — المحتوى يبدأ تحته. */
-const FLOATING_HEADER_HEIGHT = 84
+/** ارتفاع رأس ScreenHeader العائم (pt-3 + زر 40 + pb-3) — نفس صف أزرار التبويبات، والمحتوى يبدأ تحته. */
+const FLOATING_HEADER_HEIGHT = 64
 const BACK_COMMIT = 90
 
 /**

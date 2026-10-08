@@ -12,7 +12,7 @@ export const FLOATING_ROW_OFFSET = 60
 export function FloatingHeaderRow({ title, visible, start, end }: { title: string; visible: boolean; start?: ReactNode; end?: ReactNode }) {
   return (
     <div className="sticky top-0 z-30 -mx-5 h-0">
-      <div className="relative flex items-center justify-between gap-2 px-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', height: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}>
+      <div data-floating-chrome className="relative flex items-center justify-between gap-2 px-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', height: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}>
         <div className="flex items-center gap-2">{start}</div>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 'calc(env(safe-area-inset-top, 0px) + 12px)', height: 40 }}>
           <FloatingTitle title={title} visible={visible} />
