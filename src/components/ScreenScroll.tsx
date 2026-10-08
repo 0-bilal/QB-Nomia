@@ -1,4 +1,5 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { isValidElement, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type UIEvent } from 'react'
+import { ScreenTitleContext } from '../hooks/useScrolledPast'
 import { useNavigate, useNavigationType } from 'react-router-dom'
 import { haptic } from '../lib/haptics'
 
@@ -61,6 +62,15 @@ export function ScreenScroll({
 
   const progress = Math.min(1, -dragX / BACK_COMMIT)
 
+  // النمط "ج": عنوان ScreenHeader يُعرض كبيرًا أعلى المحتوى ويتمرر معه، وكبسولة العنوان تظهر بالرأس بعد تمريره.
+  const headerTitle = isValidElement<{ title?: unknown }>(header) && typeof header.props.title === 'string' ? header.props.title : undefined
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const [scrolled, setScrolled] = useState(false)
+  function onContentScroll(e: UIEvent<HTMLDivElement>) {
+    const past = e.currentTarget.scrollTop > (titleRef.current?.offsetHeight ?? 40) - 6
+    if (past !== scrolled) setScrolled(past)
+  }
+
   return (
     <div
       dir="rtl"
@@ -101,8 +111,15 @@ export function ScreenScroll({
             transition: dragX ? 'none' : 'transform 300ms var(--ease-out-expo)',
           }}
         >
-          {header}
-          <div className={`flex-1 overflow-y-auto overflow-x-hidden ${contentClassName}`}>{children}</div>
+          <ScreenTitleContext.Provider value={{ managed: headerTitle !== undefined, scrolled }}>{header}</ScreenTitleContext.Provider>
+          <div className={`flex-1 overflow-y-auto overflow-x-hidden ${contentClassName}`} onScroll={headerTitle !== undefined ? onContentScroll : undefined}>
+            {headerTitle !== undefined && (
+              <h1 ref={titleRef} className="mb-4 truncate text-[28px] font-bold leading-tight tracking-tight">
+                {headerTitle}
+              </h1>
+            )}
+            {children}
+          </div>
           {footer}
         </div>
       </div>

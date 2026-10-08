@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
+import { FloatingTitle } from './FloatingTitle'
+import { ScreenTitleContext } from '../hooks/useScrolledPast'
 
 function ChevronBackIcon() {
   return (
@@ -23,8 +25,15 @@ interface ScreenHeaderProps {
  * الشاشة اليمنى للرجوع (ScreenScroll) كبديل للزر.
  */
 export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'pt-8 pb-5' }: ScreenHeaderProps) {
+  // داخل ScreenScroll: العنوان الكبير بالمحتوى (يتمرر)، وهنا كبسولة تظهر بعد تمريره — النمط "ج".
+  const { managed, scrolled } = useContext(ScreenTitleContext)
   return (
-    <div className={`safe-top relative z-10 flex items-center justify-between gap-3 px-5 ${className}`}>
+    <div className={`safe-top relative z-10 flex items-center justify-between gap-3 px-5 ${managed ? 'pb-3 pt-8' : className}`}>
+      {managed && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3" style={{ height: 40 }}>
+          <FloatingTitle title={title} visible={scrolled} />
+        </div>
+      )}
       <div className="flex min-w-0 items-center gap-3">
         {onBack &&
           (cancelLabel ? (
@@ -45,7 +54,7 @@ export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'p
             </button>
           ))}
 
-        <h1 className="min-w-0 truncate text-[21px] font-semibold tracking-tight">{title}</h1>
+        {!managed && <h1 className="min-w-0 truncate text-[21px] font-semibold tracking-tight">{title}</h1>}
       </div>
 
       {right}

@@ -1,19 +1,42 @@
 import type { ReactNode } from 'react'
+import { FloatingTitle } from './FloatingTitle'
+import { useScrolledPast } from '../hooks/useScrolledPast'
+
+/** ارتفاع منطقة الأزرار العائمة أعلى الشاشة (فوق منطقة الأمان). */
+export const FLOATING_ROW_OFFSET = 60
 
 /**
- * رأس التبويبات الرئيسية (الحسابات/السلف/المزيد) بنمط "العنوان الكبير" لتطبيقات 2026:
- * عنوان عريض + سطر فرعي خافت، وأزرار إجراء زجاجية بالطرف المقابل — يلتصق أعلى الشاشة
- * أثناء التمرير بخلفية متلاشية (qb-sticky-header-row).
+ * صف عائم يلتصق أعلى حاوية التمرير بارتفاع صفر: الأزرار تطفو بمكانها، وكبسولة العنوان تظهر بالمنتصف بعد التمرير.
+ * `start` بجهة البداية (يمين بالعربي)، `end` بالجهة المقابلة.
+ */
+export function FloatingHeaderRow({ title, visible, start, end }: { title: string; visible: boolean; start?: ReactNode; end?: ReactNode }) {
+  return (
+    <div className="sticky top-0 z-30 -mx-5 h-0">
+      <div className="relative flex items-center justify-between gap-2 px-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', height: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}>
+        <div className="flex items-center gap-2">{start}</div>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 'calc(env(safe-area-inset-top, 0px) + 12px)', height: 40 }}>
+          <FloatingTitle title={title} visible={visible} />
+        </div>
+        <div className="relative z-20 flex items-center gap-2">{end}</div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * رأس التبويبات الرئيسية (الحسابات/السلف/المزيد) — النمط "ج": العنوان الكبير والسطر الفرعي يتمرران مع الصفحة،
+ * أزرار الإجراء تطفو ثابتة أعلى الشاشة، وكبسولة باسم الصفحة تظهر بالمنتصف بعد تمرير العنوان.
  */
 export function TabHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+  const [titleRef, past] = useScrolledPast<HTMLDivElement>(FLOATING_ROW_OFFSET)
   return (
-    <div className="safe-top qb-sticky-header-row mb-5 flex items-end justify-between gap-3 pb-1 pt-12">
-      <div className="min-w-0">
+    <>
+      <FloatingHeaderRow title={title} visible={past} end={actions} />
+      <div ref={titleRef} className="safe-top mb-5 min-w-0 pt-[64px]">
         <h1 className="truncate text-[30px] font-semibold leading-tight tracking-tight">{title}</h1>
         {subtitle && <div className="mt-0.5 truncate text-[12.5px] text-[var(--color-text-3)]">{subtitle}</div>}
       </div>
-      {actions && <div className="mb-1 flex flex-shrink-0 items-center gap-2">{actions}</div>}
-    </div>
+    </>
   )
 }
 
