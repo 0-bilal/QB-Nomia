@@ -1,8 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
-import { formatMoney, formatSigned, formatDate } from '../lib/format'
-import { ActivityIcon } from '../components/ActivityIcon'
+import { formatAmount, formatMoney, formatSigned, formatDate } from '../lib/format'
 import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
 import { AccountCardStack, CARD_HEIGHT } from '../components/AccountCardStack'
@@ -10,7 +9,8 @@ import { EyeToggleButton } from '../components/EyeToggleButton'
 import { AppLogoMark } from '../components/AppLogo'
 import { BigAmount } from '../components/BigAmount'
 import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
-import { SwipeableRow } from '../components/SwipeableRow'
+import { GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
+import { localIso, upcomingItems } from '../lib/homeFeed'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
@@ -79,6 +79,24 @@ function AlertIcon() {
   )
 }
 
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  )
+}
+function StoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 9.5 5.5 4h13L20 9.5" />
+      <path d="M4 9.5h16" />
+      <path d="M5.5 13v7h13v-7" />
+    </svg>
+  )
+}
+
 function greeting(): string {
   const h = new Date().getHours()
   if (h < 5) return 'ليلة سعيدة'
@@ -135,6 +153,11 @@ export function HomeScreen() {
     categories,
     categorySpentThisMonth,
     monthTotals,
+    subscriptions,
+    recurringTransactions,
+    monthlyBudgetLimit,
+    storeDebts,
+    storeDebtPayments,
   } = useData()
   const navigate = useNavigate()
   const swipeFor = useActivitySwipe()
@@ -146,7 +169,7 @@ export function HomeScreen() {
   const homeAccounts = accounts.filter((a) => a.showOnHome !== false)
   const includedCount = accounts.filter((a) => a.includeInTotal !== false).length
 
-  const activity = recentActivity(6)
+  const activity = recentActivity(8)
   const { income: monthIncome, expense: monthExpense } = monthTotals()
   const monthNet = monthIncome - monthExpense
   const flowTotal = monthIncome + monthExpense
@@ -177,6 +200,94 @@ export function HomeScreen() {
     })
     .filter((c) => c.pct >= 80 || c.projectedPct >= 100)
     .sort((a, b) => Math.max(b.pct, b.projectedPct) - Math.max(a.pct, a.projectedPct))
+
+  const today = localIso(now)
+  const upcoming = upcomingItems(subscriptions, commitments, recurringTransactions, today, 14).slice(0, 4)
+
+  /** "يحتاج انتباهك": الميزانيات، المسموح يوميًا من السقف، اشتراكات تتجدد خلال يومين، وديون متاجر متأخرة. */
+  const insights: Insight[] = []
+  for (const c of budgetAlerts.slice(0, 3)) {
+    const isProjectedOnly = c.pct < 80 && c.projectedPct >= 100
+    const over = c.pct >= 100
+    insights.push({
+      id: `b-${c.id}`,
+      color: over || isProjectedOnly ? 'var(--color-expense)' : 'var(--color-subscription)',
+      icon: <AlertIcon />,
+      title: over ? `تجاوزت ميزانية «${c.name}»` : c.pct >= 80 ? `قاربت ميزانية «${c.name}»` : `بمعدلك ستتجاوز «${c.name}»`,
+      desc: (
+        <>
+          <span className="num">{mask(formatAmount(c.spent))}</span> من <span className="num">{formatAmount(c.budgetLimit ?? 0)}</span> ر.س
+          {isProjectedOnly ? <> · المتوقع <span className="num">{Math.round(c.projectedPct)}%</span></> : null}
+        </>
+      ),
+      barPct: c.pct,
+      onClick: () => navigate('/categories'),
+    })
+  }
+  if (monthlyBudgetLimit) {
+    const daysLeft = totalDaysInMonth - daysElapsedInMonth + 1
+    const remaining = monthlyBudgetLimit - monthExpense
+    insights.push(
+      remaining > 0
+        ? {
+            id: 'daily',
+            color: 'var(--color-income)',
+            icon: <ClockIcon />,
+            title: (
+              <>
+                تقدر تصرف <span className="num">{mask(formatAmount(Math.floor(remaining / daysLeft)))}</span> ر.س يوميًا
+              </>
+            ),
+            desc: `لتبقى ضمن سقفك الشهري حتى نهاية الشهر (${daysLeft} يوم)`,
+            onClick: () => navigate('/categories'),
+          }
+        : {
+            id: 'daily',
+            color: 'var(--color-expense)',
+            icon: <AlertIcon />,
+            title: 'تجاوزت سقفك الشهري',
+            desc: (
+              <>
+                بفارق <span className="num">{mask(formatAmount(-remaining))}</span> ر.س
+              </>
+            ),
+            onClick: () => navigate('/categories'),
+          },
+    )
+  }
+  for (const sub of subscriptions) {
+    if (sub.status !== 'active') continue
+    const item = upcoming.find((u) => u.id === `s-${sub.id}`)
+    if (!item || item.daysLeft > 2) continue
+    insights.push({
+      id: `s-${sub.id}`,
+      color: 'var(--color-subscription)',
+      icon: <SubscriptionIcon />,
+      title: item.daysLeft < 0 ? `فات موعد تجديد ${sub.name}` : item.daysLeft === 0 ? `${sub.name} يتجدد اليوم` : item.daysLeft === 1 ? `${sub.name} يتجدد غدًا` : `${sub.name} بعد يومين`,
+      desc: (
+        <>
+          <span className="num">{mask(formatAmount(sub.cost))}</span> ر.س · <span className="num">{formatDate(sub.nextRenewalDate)}</span>
+        </>
+      ),
+      onClick: () => navigate('/subscriptions'),
+    })
+  }
+  for (const d of storeDebts) {
+    const left = d.amount - storeDebtPayments.filter((p) => p.debtId === d.id).reduce((sum, p) => sum + p.amount, 0)
+    if (left <= 0 || !d.dueDate || d.dueDate >= today) continue
+    insights.push({
+      id: `d-${d.id}`,
+      color: 'var(--color-subscription)',
+      icon: <StoreIcon />,
+      title: `دَين «${d.storeName}» متأخر`,
+      desc: (
+        <>
+          متبقي <span className="num">{mask(formatAmount(left))}</span> ر.س · كان مستحقًا <span className="num">{formatDate(d.dueDate)}</span>
+        </>
+      ),
+      onClick: () => navigate('/loans?tab=stores'),
+    })
+  }
 
   return (
     <div dir="rtl" className="px-5 pb-6">
@@ -255,34 +366,11 @@ export function HomeScreen() {
         )}
       </section>
 
-      {budgetAlerts.length > 0 && (
-        <button
-          onClick={() => navigate('/categories')}
-          className="qb-press qb-rise mb-4 flex w-full items-start gap-3 rounded-[24px] border px-4 py-3.5 text-right"
-          style={{ ...rise(3), borderColor: 'rgba(255,95,109,0.28)', background: 'linear-gradient(135deg, rgba(255,95,109,0.14), rgba(255,95,109,0.04))' }}
-        >
-          <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ background: 'rgba(255,95,109,0.18)', color: 'var(--color-expense)' }}>
-            <AlertIcon />
-          </span>
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            {budgetAlerts.map((c) => {
-              const isProjectedOnly = c.pct < 80 && c.projectedPct >= 100
-              const label = c.pct >= 100
-                ? `تجاوزت ميزانية "${c.name}"`
-                : c.pct >= 80
-                  ? `قاربت على تجاوز ميزانية "${c.name}"`
-                  : `بمعدلك الحالي راح تتجاوز ميزانية "${c.name}"`
-              return (
-                <div key={c.id} className="flex items-center justify-between gap-2 text-[12.5px] font-medium" style={{ color: 'var(--color-expense)' }}>
-                  <span className="min-w-0 truncate">{label}</span>
-                  <span className="num flex-shrink-0 font-semibold">
-                    {Math.round(isProjectedOnly ? c.projectedPct : c.pct)}%{isProjectedOnly ? ' متوقع' : ''}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </button>
+      {insights.length > 0 && (
+        <section className="qb-rise mb-5" style={rise(3)}>
+          <SectionTitle title="يحتاج انتباهك" />
+          <InsightsStrip insights={insights} />
+        </section>
       )}
 
       {/* شبكة Bento — ملخص الشهر */}
@@ -374,7 +462,18 @@ export function HomeScreen() {
         </section>
       )}
 
-      <section className="qb-rise" style={rise(6)}>
+      {upcoming.length > 0 && (
+        <section className="qb-rise mb-6" style={rise(6)}>
+          <SectionTitle title="القادم خلال 14 يوم" />
+          <UpcomingList
+            items={upcoming}
+            hidden={hidden}
+            onOpen={(kind) => navigate(kind === 'subscription' ? '/subscriptions' : kind === 'commitment' ? '/commitments' : '/recurring')}
+          />
+        </section>
+      )}
+
+      <section className="qb-rise" style={rise(7)}>
         <SectionTitle title="آخر الحركات" action={activity.length > 0 ? 'عرض الكل' : undefined} onAction={() => navigate('/transactions')} />
 
         {activity.length === 0 ? (
@@ -386,29 +485,14 @@ export function HomeScreen() {
           </div>
         ) : (
           <>
-            <div className="qb-card overflow-hidden">
-              {activity.map((item, i) => (
-                <SwipeableRow key={item.id} {...swipeFor(item)} className={i > 0 ? 'border-t qb-divider' : ''}>
-                  <button onClick={() => navigate(activityEditPath(item))} className="flex w-full items-center gap-3 px-4 py-3.5 text-right active:bg-white/[0.03]">
-                    <div
-                      className="flex flex-shrink-0 items-center justify-center rounded-full"
-                      style={{ width: 44, height: 44, background: `color-mix(in srgb, ${item.color} 14%, transparent)`, color: item.color }}
-                    >
-                      <ActivityIcon kind={item.kind} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[14px] font-medium">{item.title}</div>
-                      <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
-                        {item.subtitle} · {formatDate(item.date)}
-                      </div>
-                    </div>
-                    <div className="num flex-shrink-0 text-[14px] font-bold" style={{ color: item.amount > 0 ? 'var(--color-income)' : 'var(--color-text)' }}>
-                      {formatSigned(item.amount)}
-                    </div>
-                  </button>
-                </SwipeableRow>
-              ))}
-            </div>
+            <GroupedActivity
+              items={activity}
+              categories={categories}
+              today={today}
+              hidden={hidden}
+              swipeFor={swipeFor}
+              onOpen={(item) => navigate(activityEditPath(item))}
+            />
             <div className="mt-2.5 text-center text-[11px] text-[var(--color-text-3)]">اسحب الحركة يسارًا للحذف · يمينًا لتكرارها</div>
           </>
         )}
