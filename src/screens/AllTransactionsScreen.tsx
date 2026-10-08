@@ -181,6 +181,91 @@ function GlassButton({ onClick, label, active, badge, visible = true, children }
   )
 }
 
+/** كبسولة الأنواع المدمجة بعد التمرير: "الكل" + أيقونات الأنواع، والمختار يتمدد باسمه ولونه. */
+function TypeCapsule({ visible, type, onSelect }: { visible: boolean; type: TxType | null; onSelect: (t: TxType | null) => void }) {
+  const items: { key: TxType | null; label: string; color: string; icon: ReactNode }[] = [
+    {
+      key: null,
+      label: 'الكل',
+      color: 'var(--color-accent)',
+      icon: (
+        <svg {...ic} width={16} height={16} strokeWidth={2}>
+          <rect x="4" y="4" width="6.5" height="6.5" rx="2" />
+          <rect x="13.5" y="4" width="6.5" height="6.5" rx="2" />
+          <rect x="4" y="13.5" width="6.5" height="6.5" rx="2" />
+          <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2" />
+        </svg>
+      ),
+    },
+    ...TYPES.map((t) => ({ key: t, label: TYPE_META[t].label, color: TYPE_META[t].color, icon: <ActivityIcon kind={TYPE_META[t].icon} /> })),
+  ]
+  return (
+    <div
+      className="absolute inset-x-0 top-0 flex justify-center"
+      aria-hidden={!visible}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'none' : 'translateY(-8px) scale(0.6)',
+        pointerEvents: 'none',
+        transition: 'opacity 220ms ease, transform 420ms cubic-bezier(0.34,1.56,0.64,1)',
+      }}
+    >
+      <div
+        role="tablist"
+        className="relative flex items-center gap-1 rounded-full border p-1"
+        style={{
+          pointerEvents: visible ? 'auto' : 'none',
+          background: 'rgba(28,28,33,0.9)',
+          borderColor: 'var(--color-border-strong)',
+          backdropFilter: 'blur(20px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+          boxShadow: '0 12px 30px -12px rgba(0,0,0,0.8)',
+        }}
+      >
+        <span
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            inset: '-12px -16px',
+            zIndex: -1,
+            background: 'rgba(5,5,6,0.35)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            maskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(closest-side, #000 60%, transparent 100%)',
+          }}
+        />
+        {items.map((it) => {
+          const active = type === it.key
+          return (
+            <button
+              key={it.label}
+              role="tab"
+              aria-selected={active}
+              aria-label={it.label}
+              tabIndex={visible ? 0 : -1}
+              onClick={() => {
+                haptic('tick')
+                onSelect(it.key)
+              }}
+              className="qb-press flex h-9 items-center justify-center gap-1.5 rounded-full"
+              style={{
+                minWidth: 36,
+                padding: active ? '0 12px 0 10px' : 0,
+                background: active ? it.color : 'transparent',
+                color: active ? 'var(--color-on-accent)' : it.color,
+                transition: 'background 250ms ease, padding 300ms cubic-bezier(0.22,1,0.36,1)',
+              }}
+            >
+              <span className="flex scale-[0.85] items-center">{it.icon}</span>
+              {active && <span className="whitespace-nowrap text-[12px] font-bold">{it.label}</span>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function AllTransactionsScreen() {
   const navigate = useNavigate()
   const { recentActivity, accounts, categories, transactions, deleteTransactions, setTransactionsCategory, categorySpentThisMonth } = useData()
@@ -197,6 +282,7 @@ export function AllTransactionsScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [catPickerOpen, setCatPickerOpen] = useState(false)
   const [toolsEndRef, toolsGone] = useScrolledPast<HTMLDivElement>(64)
+  const [typesSentinelRef, typesStuck] = useScrolledPast<HTMLDivElement>(60)
   const swipeFor = useActivitySwipe()
 
   const today = localIso(new Date())
@@ -302,7 +388,8 @@ export function AllTransactionsScreen() {
   const expenseCategories = useMemo(() => categories.filter((c) => c.kind === 'expense'), [categories])
   const mostUsed = useMemo(() => mostUsedCategories(expenseCategories, transactions), [expenseCategories, transactions])
 
-  const capsuleTitle = [filters.type ? TYPE_META[filters.type].label : null, filters.period !== 'all' ? periodLabel(filters) : null].filter(Boolean).join(' · ')
+  // نوع الحركة يظهر في كبسولة الأنواع اللاصقة، فكبسولة العنوان تعرض الفترة فقط.
+  const capsuleTitle = filters.period !== 'all' ? periodLabel(filters) : ''
   const shown = filtered.slice(0, limit)
   const byDate = filters.sort === 'new' || filters.sort === 'old'
 
@@ -430,7 +517,6 @@ export function AllTransactionsScreen() {
         <ScreenHeader
           title="كل الحركات"
           capsuleTitle={toolsGone && capsuleTitle ? capsuleTitle : undefined}
-          capsuleDot={toolsGone && filters.type ? TYPE_META[filters.type].color : undefined}
           onBack={() => (selectMode ? exitSelect() : navigate(-1))}
           right={
             <div className="flex items-center gap-2">
@@ -515,37 +601,51 @@ export function AllTransactionsScreen() {
         </button>
       </div>
 
-      {/* بطاقات النوع — ضغطة للتصفية وضغطة ثانية للإلغاء */}
-      <div className="mt-2.5 grid grid-cols-4 gap-[7px]">
-        {TYPES.map((t) => {
-          const meta = TYPE_META[t]
-          const on = filters.type === t
-          const dim = filters.type !== null && !on
-          return (
-            <button
-              key={t}
-              onClick={() => {
-                haptic('tick')
-                update({ type: on ? null : t })
-              }}
-              className="qb-press flex flex-col items-center gap-[5px] rounded-2xl border px-1.5 pb-2 pt-2.5"
-              style={{
-                background: on ? soft(meta.color, 13) : 'var(--color-surface)',
-                borderColor: on ? soft(meta.color, 45) : 'var(--color-border)',
-                opacity: dim ? 0.45 : 1,
-                transition: 'opacity 250ms ease, background 250ms ease, border-color 250ms ease',
-              }}
-            >
-              <span className="flex items-center justify-center rounded-[10px]" style={{ width: 30, height: 30, background: soft(meta.color, 16), color: meta.color }}>
-                <ActivityIcon kind={meta.icon} />
-              </span>
-              <span className="text-[11.5px] font-semibold" style={{ color: on ? 'var(--color-text)' : 'var(--color-text-2)' }}>
-                {meta.label}
-              </span>
-              <span className="num max-w-full truncate text-[10.5px] font-bold text-[var(--color-text-3)]">{formatAmount(tTotals[t])}</span>
-            </button>
-          )
-        })}
+      {/* بطاقات النوع — ضغطة للتصفية وضغطة ثانية للإلغاء. بعد التمرير تتحول لكبسولة زجاجية مدمجة (أسلوب الكبسولة الذكية). */}
+      <div ref={typesSentinelRef} aria-hidden="true" />
+      {/* sticky يُقاس من داخل حشوة حاوية ScreenScroll (المنطقة الآمنة + 64) — ‎-8px تضعه تحت صف الأزرار العائمة مباشرة. */}
+      <div className="pointer-events-none sticky z-[3] -mx-5 mt-2.5 px-5" style={{ top: -8 }}>
+        <div
+          className="grid grid-cols-4 gap-[7px]"
+          aria-hidden={typesStuck}
+          style={{
+            opacity: typesStuck ? 0 : 1,
+            transform: typesStuck ? 'translateY(-10px) scale(0.94)' : 'none',
+            pointerEvents: typesStuck ? 'none' : 'auto',
+            transition: 'opacity 200ms ease, transform 320ms cubic-bezier(0.22,1,0.36,1)',
+          }}
+        >
+          {TYPES.map((t) => {
+            const meta = TYPE_META[t]
+            const on = filters.type === t
+            const dim = filters.type !== null && !on
+            return (
+              <button
+                key={t}
+                onClick={() => {
+                  haptic('tick')
+                  update({ type: on ? null : t })
+                }}
+                className="qb-press flex flex-col items-center gap-[5px] rounded-2xl border px-1.5 pb-2 pt-2.5"
+                style={{
+                  background: on ? soft(meta.color, 13) : 'var(--color-surface)',
+                  borderColor: on ? soft(meta.color, 45) : 'var(--color-border)',
+                  opacity: dim ? 0.45 : 1,
+                  transition: 'opacity 250ms ease, background 250ms ease, border-color 250ms ease',
+                }}
+              >
+                <span className="flex items-center justify-center rounded-[10px]" style={{ width: 30, height: 30, background: soft(meta.color, 16), color: meta.color }}>
+                  <ActivityIcon kind={meta.icon} />
+                </span>
+                <span className="text-[11.5px] font-semibold" style={{ color: on ? 'var(--color-text)' : 'var(--color-text-2)' }}>
+                  {meta.label}
+                </span>
+                <span className="num max-w-full truncate text-[10.5px] font-bold text-[var(--color-text-3)]">{formatAmount(tTotals[t])}</span>
+              </button>
+            )
+          })}
+        </div>
+        <TypeCapsule visible={typesStuck} type={filters.type} onSelect={(type) => update({ type })} />
       </div>
 
       {/* متنقّل الأشهر */}
