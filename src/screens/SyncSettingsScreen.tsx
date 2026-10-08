@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData, type DataSnapshot } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -7,15 +7,38 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
 import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
-import { markBackupExported } from '../lib/backup'
-import { Badge, HeroCard, IconBubble, TintButton } from '../components/ui'
+import { getLastBackupExportedAt, markBackupExported } from '../lib/backup'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} بايت`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} كيلوبايت`
-  return `${(bytes / 1024 / 1024).toFixed(2)} ميجابايت`
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** وقت نسبي مختصر ("قبل ٤ دقائق") — يرجع للتاريخ الكامل بعد أسبوع. */
+function formatRelative(iso: string): string {
+  const diffMin = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (diffMin < 1) return 'الآن'
+  if (diffMin < 60) return `قبل ${diffMin} دقيقة`
+  const hours = Math.floor(diffMin / 60)
+  if (hours < 24) return `قبل ${hours} ساعة`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'أمس'
+  if (days < 7) return `قبل ${days} أيام`
+  return formatDate(iso)
+}
+
+/** يختصر رابط Web App لسطر الملخص: النطاق + بداية ونهاية معرّف السكربت. */
+function shortenUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const id = u.pathname.split('/').filter(Boolean).find((p) => p.length > 16)
+    return id ? `${u.host}/…/${id.slice(0, 4)}…${id.slice(-2)}/exec` : `${u.host}${u.pathname}`
+  } catch {
+    return url
+  }
 }
 
 function isDataSnapshot(value: unknown): value is DataSnapshot {
@@ -24,48 +47,150 @@ function isDataSnapshot(value: unknown): value is DataSnapshot {
   return Array.isArray(v.accounts) && Array.isArray(v.transactions) && Array.isArray(v.people)
 }
 
-function DatabaseIcon() {
+function Svg({ size = 18, children, strokeWidth = 1.9 }: { size?: number; children: ReactNode; strokeWidth?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="6" rx="8" ry="3" />
-      <path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
-      <path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      {children}
     </svg>
   )
 }
-function ExportIcon() {
+const CloudIcon = ({ size = 26 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={1.8}>
+    <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.8A4 4 0 0 0 6.5 16" />
+    <path d="M12 12v6M9.5 15.5 12 18l2.5-2.5" />
+  </Svg>
+)
+const UploadIcon = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2}>
+    <path d="M12 15V4M8 8l4-4 4 4" />
+    <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
+  </Svg>
+)
+const DownloadIcon = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2}>
+    <path d="M12 4v11M8 11l4 4 4-4" />
+    <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
+  </Svg>
+)
+const LinkIcon = () => (
+  <Svg>
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+  </Svg>
+)
+const LockIcon = ({ size = 12 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <rect x="4" y="10" width="16" height="11" rx="2.5" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </Svg>
+)
+const RefreshIcon = ({ size = 12 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4" />
+    <path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4" />
+  </Svg>
+)
+const RecordsIcon = ({ size = 12 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2.2}>
+    <ellipse cx="12" cy="6" rx="8" ry="3" />
+    <path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" />
+  </Svg>
+)
+const CheckIcon = ({ size = 12 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2.6}>
+    <path d="M5 12.5 10 17l9-10" />
+  </Svg>
+)
+const AlertIcon = ({ size = 12 }: { size?: number }) => (
+  <Svg size={size} strokeWidth={2.6}>
+    <path d="M12 7v6M12 17h.01" />
+  </Svg>
+)
+const ChevronDown = ({ open }: { open: boolean }) => (
+  <span className="flex-shrink-0 text-[var(--color-text-3)]" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 250ms cubic-bezier(0.22,1,0.36,1)' }}>
+    <Svg size={14} strokeWidth={2.4}>
+      <polyline points="6,9 12,15 18,9" />
+    </Svg>
+  </span>
+)
+const ChevronStart = () => (
+  <span className="flex-shrink-0 text-[var(--color-text-3)]">
+    <Svg size={14} strokeWidth={2.4}>
+      <path d="m15 6-6 6 6 6" />
+    </Svg>
+  </span>
+)
+
+function Chip({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'good' }) {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 15V4M12 4 8 8M12 4l4 4" />
-      <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
-    </svg>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+      style={tone === 'good' ? { background: 'rgba(62,224,143,0.1)', color: 'var(--color-income)' } : { background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }}
+    >
+      {children}
+    </span>
   )
 }
-function ImportIcon() {
+
+function SectionHead({ title, hint }: { title: string; hint?: string }) {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 4v11M12 15l-4-4M12 15l4-4" />
-      <path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" />
-    </svg>
+    <div className="mx-1.5 mb-2.5 mt-6 flex items-baseline justify-between gap-2">
+      <div className="text-[13px] font-semibold">{title}</div>
+      {hint && <div className="truncate text-[11px] text-[var(--color-text-3)]">{hint}</div>}
+    </div>
   )
 }
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <label className="mx-1 mb-1.5 block text-[12px] font-medium text-[var(--color-text-2)]">{label}</label>
+      <div className="mb-3.5 flex items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] px-3.5">{children}</div>
+    </>
+  )
+}
+
+function ActionRow({ icon, iconStyle, title, desc, onClick }: { icon: ReactNode; iconStyle: CSSProperties; title: string; desc: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="qb-press flex w-full items-center gap-3 border-t border-[var(--color-border)] px-4 py-3.5 text-right">
+      <div className="flex flex-shrink-0 items-center justify-center rounded-full" style={{ width: 38, height: 38, ...iconStyle }}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[14px] font-semibold">{title}</div>
+        <div className="mt-0.5 truncate text-[11px] text-[var(--color-text-3)]">{desc}</div>
+      </div>
+      <ChevronStart />
+    </button>
+  )
+}
+
+const STEPS: ReactNode[] = [
+  <>انسخ <strong className="font-semibold text-[var(--color-text)]">سكربت QB-Nomia</strong> إلى Google Apps Script وضع فيه رمزًا سريًا من اختيارك.</>,
+  <>انشره كـ <strong className="font-semibold text-[var(--color-text)]">Web App</strong> بصلاحية «Anyone» وانسخ الرابط المنتهي بـ <span dir="ltr" className="num">/exec</span>.</>,
+  <>الصق <strong className="font-semibold text-[var(--color-text)]">الرابط والرمز</strong> في الأسفل واضغط «ربط».</>,
+]
 
 export function SyncSettingsScreen() {
   const navigate = useNavigate()
   const { exportSnapshot, importSnapshot } = useData()
-  const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const [status, setStatusRaw] = useState<Status>({ kind: 'idle' })
   const [lastSynced, setLastSynced] = useState(getLastSyncedAt())
+  const [lastExported, setLastExported] = useState(getLastBackupExportedAt())
   const [confirmPullOpen, setConfirmPullOpen] = useState(false)
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
   const [configured, setConfigured] = useState(isSheetsSyncConfigured())
+  const [connOpen, setConnOpen] = useState(!isSheetsSyncConfigured())
   const [url, setUrl] = useState(getSheetsWebAppUrl())
   const [token, setToken] = useState(getSheetsSecretToken())
   const [showToken, setShowToken] = useState(false)
   const [confirmImportOpen, setConfirmImportOpen] = useState(false)
   const [pendingImport, setPendingImport] = useState<DataSnapshot | null>(null)
+  const [toastVisible, setToastVisible] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const canSave = url.trim().length > 0 && token.trim().length > 0
+  const busy = status.kind === 'busy'
 
   const backupSnapshot = exportSnapshot()
   const backupSizeBytes = new Blob([JSON.stringify(backupSnapshot)]).size
@@ -80,18 +205,31 @@ export function SyncSettingsScreen() {
     backupSnapshot.categories.length +
     backupSnapshot.incomeSources.length
 
+  function setStatus(next: Status) {
+    setStatusRaw(next)
+    setToastVisible(next.kind !== 'idle')
+  }
+
+  // الإشعار العائم: يبقى ظاهرًا أثناء العمليات الجارية، ويختفي تلقائيًا بعد النجاح أو الخطأ.
+  useEffect(() => {
+    if (status.kind === 'idle' || status.kind === 'busy') return
+    const t = setTimeout(() => setToastVisible(false), status.kind === 'error' ? 5000 : 2800)
+    return () => clearTimeout(t)
+  }, [status])
+
   function handleExportBackup() {
     const json = JSON.stringify(backupSnapshot, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
+    const href = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
+    a.href = href
     a.download = `qb-nomia-backup-${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a)
     a.click()
     a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 2000)
+    setTimeout(() => URL.revokeObjectURL(href), 2000)
     markBackupExported()
+    setLastExported(getLastBackupExportedAt())
     setStatus({ kind: 'ok', label: 'تم تصدير النسخة الاحتياطية على جهازك' })
   }
 
@@ -125,9 +263,13 @@ export function SyncSettingsScreen() {
   }
 
   function handleSaveCredentials() {
-    if (!canSave) return
+    if (!canSave) {
+      setStatus({ kind: 'error', label: 'أدخل رابط Web App والرمز السري أولًا' })
+      return
+    }
     setSheetsSyncCredentials(url, token)
     setConfigured(true)
+    setConnOpen(false)
     setStatus({ kind: 'ok', label: 'تم حفظ إعدادات الربط على هذا الجهاز' })
   }
 
@@ -137,7 +279,8 @@ export function SyncSettingsScreen() {
     setUrl('')
     setToken('')
     setConfigured(false)
-    setStatus({ kind: 'idle' })
+    setConnOpen(true)
+    setStatus({ kind: 'ok', label: 'تمت إزالة الربط من هذا الجهاز' })
   }
 
   async function handlePush() {
@@ -164,10 +307,15 @@ export function SyncSettingsScreen() {
     }
   }
 
+  const toastTone =
+    status.kind === 'error'
+      ? { bg: 'rgba(255,95,109,0.15)', fg: 'var(--color-expense)', icon: <AlertIcon /> }
+      : status.kind === 'busy'
+        ? { bg: 'rgba(255,255,255,0.08)', fg: 'var(--color-text-2)', icon: <RefreshIcon /> }
+        : { bg: 'rgba(62,224,143,0.15)', fg: 'var(--color-income)', icon: <CheckIcon /> }
+
   return (
-    <ScreenScroll
-      header={<ScreenHeader title="مزامنة Google Sheets" onBack={() => navigate(-1)} className="pt-8 pb-6" />}
-    >
+    <ScreenScroll header={<ScreenHeader title="المزامنة والنسخ الاحتياطي" onBack={() => navigate(-1)} className="pt-8 pb-6" />}>
       <ConfirmDialog
         open={confirmPullOpen}
         title="سحب البيانات"
@@ -199,156 +347,209 @@ export function SyncSettingsScreen() {
         }}
       />
 
-      <HeroCard className="mb-5">
-        <div className="flex items-center gap-4">
+      {/* بطاقة الحالة */}
+      <div className="qb-card-elevated qb-rise p-5">
+        <div className="flex items-center gap-3.5">
           <div className="relative flex-shrink-0">
-            <IconBubble color={configured ? 'var(--color-accent)' : 'var(--color-text-3)'} size={56} solid={configured}>
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.8A4 4 0 0 0 6.5 16" />
-                <path d="M12 12v6M9.5 15.5 12 18l2.5-2.5" />
-              </svg>
-            </IconBubble>
-            {status.kind === 'busy' && <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-[var(--color-accent)]" style={{ animation: 'spin 800ms linear infinite' }} />}
+            <div
+              className="flex items-center justify-center rounded-full"
+              style={
+                configured
+                  ? { width: 58, height: 58, background: 'var(--color-accent)', color: 'var(--color-on-accent)', boxShadow: '0 10px 30px -10px rgba(255,255,255,0.35)' }
+                  : { width: 58, height: 58, background: 'var(--color-surface-high)', color: 'var(--color-text-3)' }
+              }
+            >
+              <CloudIcon />
+            </div>
+            {busy && (
+              <span
+                className="absolute rounded-full border-2 border-transparent border-t-[var(--color-accent)]"
+                style={{ inset: -5, animation: 'spin 800ms linear infinite' }}
+              />
+            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[17px] font-semibold">{configured ? 'المزامنة مفعّلة' : 'المزامنة غير مربوطة'}</div>
-            <div className="text-[12px] text-[var(--color-text-3)]">{lastSynced ? `آخر مزامنة: ${formatDate(lastSynced)}` : 'Google Sheets مشفّر من الطرفين'}</div>
-            <div className="mt-2">
-              <Badge color={configured ? 'var(--color-accent)' : 'var(--color-text-3)'}>{configured ? 'متصل' : 'غير متصل'}</Badge>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[17px] font-semibold">
+              {configured && <span className="rounded-full" style={{ width: 8, height: 8, background: 'var(--color-income)', boxShadow: '0 0 0 4px rgba(62,224,143,0.15)' }} />}
+              {configured ? 'المزامنة مفعّلة' : 'المزامنة غير مربوطة'}
+            </div>
+            <div className="mt-0.5 text-[12px] text-[var(--color-text-3)]">
+              {configured
+                ? lastSynced
+                  ? `آخر مزامنة ${formatRelative(lastSynced)}`
+                  : 'لم تتم أي مزامنة بعد'
+                : 'اربط Google Sheets لحفظ نسخة مشفّرة من بياناتك'}
             </div>
           </div>
         </div>
-      </HeroCard>
 
-      <div className="mb-5 rounded-[20px] bg-white/[0.04] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
-        الرابط والرمز السري يُحفظان على هذا الجهاز فقط (مو بكود التطبيق) — بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets نفسه لا يخزّن أي بيانات مالية مقروءة.
-      </div>
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">رابط Web App</label>
-      <input
-        dir="ltr"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder="https://script.google.com/macros/s/.../exec"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">الرمز السري</label>
-      <div className="mb-4 flex items-center gap-2 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1">
-        <input
-          dir="ltr"
-          type={showToken ? 'text' : 'password'}
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="نفس الرمز الموضوع بالسكربت"
-          className="w-full bg-transparent py-2.5 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
-        />
-        <button type="button" onClick={() => setShowToken((s) => !s)} className="flex-shrink-0 text-[11.5px] font-semibold text-[var(--color-text-2)]">
-          {showToken ? 'إخفاء' : 'إظهار'}
-        </button>
-      </div>
-
-      <button
-        onClick={handleSaveCredentials}
-        disabled={!canSave}
-        className="qb-btn-primary mb-5 w-full py-3.5 text-center text-[14px]"
-      >
-        حفظ إعدادات الربط
-      </button>
-
-      {configured && (
-        <>
-          <div className="mb-3 flex gap-3">
-            <TintButton color="var(--color-transfer)" className="flex-1" onClick={handlePush} disabled={status.kind === 'busy'}>
-              <ExportIcon />
-              رفع البيانات
-            </TintButton>
-            <TintButton color="var(--color-owed-to)" className="flex-1" onClick={() => setConfirmPullOpen(true)} disabled={status.kind === 'busy'}>
-              <ImportIcon />
-              سحب البيانات
-            </TintButton>
-          </div>
-
-          <div className="mb-1.5 text-center text-[11px] text-[var(--color-text-3)]">
-            كل تعديل جديد (حركة، حساب، سلفة...) يُرفع تلقائيًا بالخلفية — الزرين أعلاه لمزامنة فورية يدوية عند الحاجة فقط.
-          </div>
-
-          {lastSynced && (
-            <div className="mb-3 text-center text-[11.5px] text-[var(--color-text-3)]">
-              آخر مزامنة: {formatDate(lastSynced)}
+        {configured && (
+          <>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              <Chip tone="good">
+                <RefreshIcon />
+                رفع تلقائي
+              </Chip>
+              <Chip>
+                <LockIcon />
+                تشفير كامل
+              </Chip>
+              <Chip>
+                <RecordsIcon />
+                <span className="num">{recordsCount.toLocaleString('en-US')}</span> سجل
+              </Chip>
             </div>
-          )}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button onClick={handlePush} disabled={busy} className="qb-btn-primary flex items-center justify-center gap-2 py-3 text-[13px] disabled:opacity-40">
+                <UploadIcon size={16} />
+                رفع الآن
+              </button>
+              <button
+                onClick={() => setConfirmPullOpen(true)}
+                disabled={busy}
+                className="qb-press flex items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold disabled:opacity-40"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border-strong)' }}
+              >
+                <DownloadIcon size={16} />
+                سحب واستبدال
+              </button>
+            </div>
+            <div className="mt-2.5 text-center text-[11px] leading-relaxed text-[var(--color-text-3)]">
+              كل تعديل يُرفع تلقائيًا بالخلفية — الأزرار للمزامنة الفورية عند الحاجة.
+            </div>
+          </>
+        )}
+      </div>
 
-          <button onClick={() => setConfirmClearOpen(true)} className="mb-3 w-full text-center text-[12px] font-semibold text-[var(--color-text-3)]">
-            إزالة الربط من هذا الجهاز
-          </button>
+      {/* خطوات الربط — قبل الربط فقط */}
+      {!configured && (
+        <>
+          <SectionHead title="طريقة الربط" hint="٣ خطوات" />
+          <div className="qb-card px-4 py-1.5">
+            {STEPS.map((step, i) => (
+              <div key={i} className="flex items-start gap-3 border-t border-[var(--color-border)] py-3 first:border-t-0">
+                <span className="num flex flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-high)] text-[11.5px] font-bold" style={{ width: 24, height: 24 }}>
+                  {i + 1}
+                </span>
+                <div className="text-[12.5px] leading-relaxed text-[var(--color-text-2)]">{step}</div>
+              </div>
+            ))}
+          </div>
         </>
       )}
 
-      <div className="qb-section-title mb-3 mt-6 px-1">نسخة احتياطية محلية</div>
-
-      <div className="qb-card mb-3.5 flex items-center gap-3 p-4">
-        <div
-          className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full"
-          style={{ width: 38, height: 38, background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
-        >
-          <DatabaseIcon />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-medium">{formatBytes(backupSizeBytes)}</div>
-          <div className="text-[11px] text-[var(--color-text-3)]">{recordsCount} سجل مخزَّن على هذا الجهاز</div>
+      {/* إعدادات الربط */}
+      <SectionHead title="إعدادات الربط" hint="محفوظة على هذا الجهاز فقط" />
+      <div className="qb-card overflow-hidden">
+        <button onClick={() => setConnOpen((o) => !o)} aria-expanded={connOpen} className="flex w-full items-center gap-3 px-4 py-3.5 text-right">
+          <div className="flex flex-shrink-0 items-center justify-center rounded-full" style={{ width: 38, height: 38, background: 'rgba(139,123,255,0.14)', color: 'var(--color-transfer)' }}>
+            <LinkIcon />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-semibold">Web App والرمز السري</div>
+            <div className="mt-0.5 truncate text-[11px] text-[var(--color-text-3)]">
+              {configured ? <span dir="ltr" className="num">{shortenUrl(getSheetsWebAppUrl())}</span> : 'غير مربوط — أدخل الرابط والرمز'}
+            </div>
+          </div>
+          <ChevronDown open={connOpen} />
+        </button>
+        <div className="grid" style={{ gridTemplateRows: connOpen ? '1fr' : '0fr', transition: 'grid-template-rows 300ms cubic-bezier(0.22,1,0.36,1)' }}>
+          <div className="overflow-hidden">
+            <div className="px-4 pb-4">
+              <Field label="رابط Web App">
+                <input
+                  dir="ltr"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  className="w-full min-w-0 bg-transparent py-3 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
+                />
+              </Field>
+              <Field label="الرمز السري">
+                <input
+                  dir="ltr"
+                  type={showToken ? 'text' : 'password'}
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="نفس الرمز الموضوع بالسكربت"
+                  className="w-full min-w-0 bg-transparent py-3 text-[13px] outline-none placeholder:text-[var(--color-text-3)]"
+                />
+                <button type="button" onClick={() => setShowToken((s) => !s)} className="flex-shrink-0 text-[11.5px] font-semibold text-[var(--color-text-2)]">
+                  {showToken ? 'إخفاء' : 'إظهار'}
+                </button>
+              </Field>
+              <button onClick={handleSaveCredentials} disabled={!canSave} className="qb-btn-primary w-full py-3 text-center text-[13.5px]">
+                {configured ? 'حفظ التغييرات' : 'ربط'}
+              </button>
+              {configured && (
+                <button onClick={() => setConfirmClearOpen(true)} className="block w-full pb-0.5 pt-3 text-center text-[12px] font-semibold text-[var(--color-expense)]">
+                  إزالة الربط من هذا الجهاز
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* النسخة الاحتياطية المحلية */}
+      <SectionHead title="نسخة احتياطية محلية" hint="ملف JSON على جهازك" />
+      <div className="qb-card overflow-hidden">
+        <div className="grid grid-cols-3">
+          {[
+            { v: <span dir="ltr" className="num">{formatBytes(backupSizeBytes)}</span>, k: 'حجم البيانات' },
+            { v: <span className="num">{recordsCount.toLocaleString('en-US')}</span>, k: 'سجل' },
+            { v: lastExported ? formatRelative(lastExported) : 'لم يتم', k: 'آخر تصدير' },
+          ].map((s, i) => (
+            <div key={i} className="border-s border-[var(--color-border)] px-2 py-3.5 text-center first:border-s-0">
+              <div className="truncate text-[15px] font-bold">{s.v}</div>
+              <div className="mt-0.5 text-[10.5px] text-[var(--color-text-3)]">{s.k}</div>
+            </div>
+          ))}
+        </div>
+        <ActionRow
+          icon={<UploadIcon />}
+          iconStyle={{ background: 'var(--color-accent-soft)', color: 'var(--color-text)' }}
+          title="تصدير نسخة احتياطية"
+          desc="يحفظ كل بياناتك في ملف على جهازك"
+          onClick={handleExportBackup}
+        />
+        <ActionRow
+          icon={<DownloadIcon />}
+          iconStyle={{ background: 'rgba(46,230,200,0.12)', color: 'var(--color-owed-to)' }}
+          title="استعادة من ملف"
+          desc="يستبدل بياناتك الحالية بالكامل"
+          onClick={() => fileInputRef.current?.click()}
+        />
+      </div>
       <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={handleFileChosen} className="hidden" />
 
-      <button
-        onClick={handleExportBackup}
-        className="qb-press mb-3 flex w-full items-center gap-3.5 rounded-[24px] border px-4 py-4 text-right"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
-        <div
-          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-full"
-          style={{ width: 42, height: 42, background: 'rgba(124,108,255,0.14)', color: 'var(--color-transfer)' }}
-        >
-          <ExportIcon />
-        </div>
-        <div className="flex-1">
-          <div className="text-[14px] font-medium">تصدير نسخة احتياطية</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">يحفظ كل بياناتك بملف JSON على جهازك</div>
-        </div>
-      </button>
+      <div className="mt-3.5 flex items-start justify-center gap-1.5 px-2 text-center text-[11px] leading-relaxed text-[var(--color-text-3)]">
+        <span className="mt-0.5 flex-shrink-0">
+          <LockIcon />
+        </span>
+        <span>بياناتك تُشفَّر بالكامل قبل الإرسال، وGoogle Sheets لا يخزّن أي بيانات مالية مقروءة.</span>
+      </div>
 
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="qb-press mb-5 flex w-full items-center gap-3.5 rounded-[24px] border px-4 py-4 text-right"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
-        <div
-          className="flex h-10.5 w-10.5 flex-shrink-0 items-center justify-center rounded-full"
-          style={{ width: 42, height: 42, background: 'rgba(45,212,191,0.14)', color: 'var(--color-owed-to)' }}
-        >
-          <ImportIcon />
-        </div>
-        <div className="flex-1">
-          <div className="text-[14px] font-medium">استعادة من نسخة احتياطية</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">يختار ملف JSON صادر من هذا التطبيق ويستبدل بياناتك الحالية</div>
-        </div>
-      </button>
-
+      {/* إشعار عائم بنتيجة آخر عملية */}
       {status.kind !== 'idle' && (
         <div
-          className="mt-2 rounded-full px-4 py-3 text-center text-[12.5px] font-semibold"
           role="status"
-          style={
-            status.kind === 'error'
-              ? { background: 'rgba(255,92,92,0.12)', color: 'var(--color-expense)' }
-              : status.kind === 'busy'
-                ? { background: 'rgba(255,255,255,0.06)', color: 'var(--color-text-2)' }
-                : { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
-          }
+          className="fixed inset-x-4 z-50 mx-auto flex max-w-[420px] items-center gap-2.5 rounded-[18px] border border-[var(--color-border-strong)] bg-[#1c1c21] px-4 py-3 text-[12.5px] font-semibold"
+          style={{
+            bottom: 'calc(20px + env(safe-area-inset-bottom))',
+            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.8)',
+            transform: toastVisible ? 'none' : 'translateY(160%)',
+            opacity: toastVisible ? 1 : 0,
+            transition: 'transform 350ms cubic-bezier(0.22,1,0.36,1), opacity 350ms ease',
+          }}
         >
-          {status.label}
+          <span
+            className="flex flex-shrink-0 items-center justify-center rounded-full"
+            style={{ width: 22, height: 22, background: toastTone.bg, color: toastTone.fg, animation: busy ? 'spin 900ms linear infinite' : undefined }}
+          >
+            {toastTone.icon}
+          </span>
+          <span className="min-w-0 flex-1">{status.label}</span>
         </div>
       )}
     </ScreenScroll>
