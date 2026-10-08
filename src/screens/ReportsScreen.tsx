@@ -13,10 +13,11 @@ import {
   monthRange,
   netWorthTrendEndingAt,
   upcomingObligations,
-  weekdaySpendingForMonth,
 } from '../lib/reportData'
+import { busiestWeekday, categorySpendForMonth, dailyExpenseForMonth, monthIncomeExpense, monthName, monthNotes, pctChange, shiftMonth } from '../lib/reportInsights'
+import { CategoryDonut, FlowChart, MonthNotes, MonthSummary, MonthSwitcher, SpendingCalendar } from '../components/ReportSections'
 import { colorFor } from '../components/Avatar'
-import { HeroCard, HeroLabel, IconBubble, ListGroup, ListItem, ProgressBar, RingProgress, SectionTitle, StatTile } from '../components/ui'
+import { HeroCard, HeroLabel, IconBubble, ListGroup, ListItem, RingProgress, SectionTitle } from '../components/ui'
 import { rise } from '../lib/motion'
 
 function healthLabel(score: number): { text: string; color: string } {
@@ -29,7 +30,7 @@ const UPCOMING_WINDOW_DAYS = 30
 
 export function ReportsScreen() {
   const navigate = useNavigate()
-  const { transactions, categories, incomeSources, accounts, loanTransactions, zakatPayments, subscriptions, commitments, recurringTransactions, totalMonthlySubscriptions } = useData()
+  const { transactions, categories, incomeSources, accounts, loanTransactions, zakatPayments, subscriptions, commitments, recurringTransactions, totalMonthlySubscriptions, monthlyBudgetLimit } = useData()
   const [monthValue, setMonthValue] = useState(currentMonthValue())
 
   const { startISO, endISO, label: periodLabel } = monthRange(monthValue)
@@ -37,14 +38,29 @@ export function ReportsScreen() {
   const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expense = monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   const net = income - expense
-  const savingsRate = income > 0 ? Math.round((net / income) * 100) : null
+
+  const thisMonth = currentMonthValue()
+  const isCurrentMonth = monthValue === thisMonth
+  const prevMonth = shiftMonth(monthValue, -1)
+  const prevName = monthName(prevMonth)
+  const prevTotals = useMemo(() => monthIncomeExpense(prevMonth, transactions), [prevMonth, transactions])
+  const prevCategorySpend = useMemo(() => categorySpendForMonth(prevMonth, transactions), [prevMonth, transactions])
+  const daily = useMemo(() => dailyExpenseForMonth(monthValue, transactions), [monthValue, transactions])
+  const elapsedDays = isCurrentMonth ? new Date().getDate() : daily.length
+  const busiest = useMemo(() => busiestWeekday(monthValue, daily, elapsedDays), [monthValue, daily, elapsedDays])
+  const notes = useMemo(
+    () => monthNotes({ monthValue, transactions, categories, monthlyBudgetLimit, today: new Date() }),
+    [monthValue, transactions, categories, monthlyBudgetLimit],
+  )
 
   const score = income > 0
     ? Math.round(Math.max(0, Math.min(1, net / income)) * 70 + Math.max(0, Math.min(1, 1 - totalMonthlySubscriptions / income)) * 30)
     : null
 
   const trend = useMemo(() => monthlyTrendEndingAt(monthValue, transactions, 6), [monthValue, transactions])
-  const maxTrendValue = Math.max(1, ...trend.flatMap((m) => [m.income, m.expense]))
+  const [flowPick, setFlowPick] = useState<{ month: string; index: number } | null>(null)
+  // الشهر المختار بالرسم يرجع لآخر شهر عند تغيير الشهر من الشريط العلوي.
+  const flowSelected = flowPick && flowPick.month === monthValue ? flowPick.index : trend.length - 1
 
   const netWorth = useMemo(() => netWorthTrendEndingAt(monthValue, accounts, transactions, loanTransactions, zakatPayments, 6), [monthValue, accounts, transactions, loanTransactions, zakatPayments])
   const netWorthMin = Math.min(...netWorth.map((p) => p.total))
@@ -53,8 +69,6 @@ export function ReportsScreen() {
 
   const categoryBreakdown = useMemo(() => categoryBreakdownForMonth(monthValue, transactions, categories), [monthValue, transactions, categories])
   const incomeBreakdown = useMemo(() => incomeBreakdownForMonth(monthValue, transactions, incomeSources), [monthValue, transactions, incomeSources])
-  const weekdaySpending = useMemo(() => weekdaySpendingForMonth(monthValue, transactions), [monthValue, transactions])
-  const maxWeekday = Math.max(1, ...weekdaySpending.map((w) => w.total))
   const avgByCategory = useMemo(() => avgTransactionByCategoryForMonth(monthValue, transactions, categories), [monthValue, transactions, categories])
   const upcoming = useMemo(
     () => upcomingObligations(subscriptions, commitments, recurringTransactions, UPCOMING_WINDOW_DAYS),
@@ -74,16 +88,24 @@ export function ReportsScreen() {
 
   return (
     <ScreenScroll header={<ScreenHeader title="التقارير" onBack={() => navigate(-1)} />}>
-      <label className="mb-5 flex items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[var(--color-text-3)]">
-        <span className="flex-shrink-0 text-[12.5px] font-medium">الشهر</span>
-        <input
-          type="month"
-          value={monthValue}
-          onChange={(e) => setMonthValue(e.target.value)}
-          className="num min-w-0 flex-1 bg-transparent py-3 text-[var(--color-text)] outline-none"
-          style={{ colorScheme: 'dark', boxShadow: 'none' }}
+      <MonthSwitcher
+        label={periodLabel}
+        sub={isCurrentMonth ? `حتى اليوم · مقارنة بـ${prevName}` : `مقارنة بـ${prevName}`}
+        onPrev={() => setMonthValue(shiftMonth(monthValue, -1))}
+        onNext={() => setMonthValue(shiftMonth(monthValue, 1))}
+        nextDisabled={monthValue >= thisMonth}
+      />
+
+      <div className="mb-4 mt-5">
+        <MonthSummary
+          income={income}
+          expense={expense}
+          prevIncome={prevTotals.income}
+          prevExpense={prevTotals.expense}
+          prevName={prevName}
+          pctChange={pctChange}
         />
-      </label>
+      </div>
 
       <HeroCard className="mb-4">
         {score === null ? (
@@ -107,38 +129,10 @@ export function ReportsScreen() {
         )}
       </HeroCard>
 
-      <div className="qb-rise mb-6 grid grid-cols-2 gap-3" style={rise(1)}>
-        <StatTile label="دخل الشهر" value={formatMoney(income)} color="var(--color-income)" />
-        <StatTile label="مصروف الشهر" value={formatMoney(expense)} color="var(--color-expense)" />
-        <StatTile label="صافي التوفير" value={formatMoney(net)} color={net >= 0 ? 'var(--color-accent)' : 'var(--color-expense)'} />
-        <StatTile label="نسبة الادخار" value={savingsRate === null ? '—' : `${savingsRate}%`} color="var(--color-accent)" />
-      </div>
 
-      <SectionTitle title="الدخل والمصروف" hint="آخر 6 أشهر" />
-      <div className="qb-card qb-rise mb-6 p-4" style={rise(2)}>
-        <div dir="ltr" className="relative flex items-end justify-between gap-2" style={{ height: 130 }}>
-          <div className="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-white/[0.06]" />
-          <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-white/[0.06]" />
-          {trend.map((m, i) => (
-            <div key={i} className="relative flex flex-1 flex-col items-center gap-1.5">
-              <div className="flex items-end gap-1" style={{ height: 108 }}>
-                <div className="w-3 rounded-full" style={{ height: `${Math.max(3, (m.income / maxTrendValue) * 108)}px`, background: 'var(--color-income)', transition: 'height 700ms var(--ease-out-expo)' }} />
-                <div className="w-3 rounded-full" style={{ height: `${Math.max(3, (m.expense / maxTrendValue) * 108)}px`, background: 'var(--color-expense)', transition: 'height 700ms var(--ease-out-expo)' }} />
-              </div>
-              <div className="text-[10px] text-[var(--color-text-3)]">{m.label}</div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex justify-center gap-5 text-[11.5px] text-[var(--color-text-2)]">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[var(--color-income)]" />
-            دخل
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[var(--color-expense)]" />
-            مصروف
-          </span>
-        </div>
+      <SectionTitle title="الدخل والمصروف" hint="اضغط أي شهر" />
+      <div className="qb-rise mb-6" style={rise(2)}>
+        <FlowChart trend={trend} selected={flowSelected} onSelect={(index) => setFlowPick({ month: monthValue, index })} />
       </div>
 
       <SectionTitle title="صافي الثروة" hint="آخر 6 أشهر" />
@@ -188,31 +182,31 @@ export function ReportsScreen() {
         </>
       )}
 
-      <SectionTitle title="المصاريف حسب الفئة" hint={periodLabel} />
+      <SectionTitle title="المصاريف حسب الفئة" hint={`مقارنة بـ${prevName}`} />
       {categoryBreakdown.length === 0 ? (
         <div className="qb-card mb-6 px-6 py-10 text-center text-[13px] text-[var(--color-text-3)]">لا توجد مصاريف مسجّلة بهذا الشهر</div>
       ) : (
-        <div className="qb-card mb-6 flex flex-col gap-3.5 p-4">
-          {categoryBreakdown.map((c) => {
-            const overBudget = c.pctOfBudget !== null && c.pctOfBudget >= 100
-            const barPct = c.pctOfBudget !== null ? Math.min(100, c.pctOfBudget) : c.pctOfTotal
-            return (
-              <div key={c.id}>
-                <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
-                  <div className="flex items-center gap-2 font-medium">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: colorFor(c.name) }} />
-                    {c.name}
-                  </div>
-                  <div className="num font-semibold">{formatMoney(c.spent)}</div>
-                </div>
-                <ProgressBar pct={barPct} color={overBudget ? 'var(--color-expense)' : colorFor(c.name)} height={6} />
-                <div className="mt-1 text-[10.5px] text-[var(--color-text-3)]">
-                  {c.budgetLimit ? `${c.pctOfBudget}% من ميزانية ${formatMoney(c.budgetLimit)}` : `${c.pctOfTotal}% من مصروف الشهر`}
-                </div>
-              </div>
-            )
-          })}
+        <div className="mb-6">
+          <CategoryDonut rows={categoryBreakdown} prevSpend={prevCategorySpend} prevName={prevName} onOpen={() => navigate('/categories')} />
         </div>
+      )}
+
+      {expense > 0 && (
+        <>
+          <SectionTitle title="خريطة الإنفاق اليومي" hint={monthName(monthValue)} />
+          <div className="mb-6">
+            <SpendingCalendar monthValue={monthValue} daily={daily} elapsedDays={elapsedDays} busiest={busiest} />
+          </div>
+        </>
+      )}
+
+      {notes.length > 0 && (
+        <>
+          <SectionTitle title="ملاحظات الشهر" />
+          <div className="mb-6">
+            <MonthNotes notes={notes} />
+          </div>
+        </>
       )}
 
       {incomeBreakdown.length > 0 && (
@@ -238,32 +232,6 @@ export function ReportsScreen() {
               />
             ))}
           </ListGroup>
-        </>
-      )}
-
-      {expense > 0 && (
-        <>
-          <SectionTitle title="الإنفاق حسب يوم الأسبوع" hint={periodLabel} />
-          <div className="qb-card mb-6 p-4">
-            <div dir="ltr" className="flex items-end justify-between gap-2" style={{ height: 96 }}>
-              {weekdaySpending.map((w, i) => {
-                const isMax = w.total === maxWeekday && w.total > 0
-                return (
-                  <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-                    <div className="flex w-full items-end justify-center" style={{ height: 74 }}>
-                      <div
-                        className="w-full max-w-[22px] rounded-full"
-                        style={{ height: `${Math.max(4, (w.total / maxWeekday) * 74)}px`, background: isMax ? 'var(--color-accent)' : 'var(--color-surface-high)' }}
-                      />
-                    </div>
-                    <div className="text-[9.5px]" style={{ color: isMax ? 'var(--color-accent)' : 'var(--color-text-3)' }}>
-                      {w.label.slice(0, 3)}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
         </>
       )}
 
