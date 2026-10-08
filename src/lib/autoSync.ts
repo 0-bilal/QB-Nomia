@@ -77,3 +77,29 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void):
       pullIdleTimer = window.setTimeout(() => emit('idle', 'pull'), 3000)
     })
 }
+
+/**
+ * مزامنة فورية يدوية (زر المزامنة بالرئيسية): ترفع البيانات الحالية الآن بدل انتظار الرفع الخلفي،
+ * وتُظهر نفس شريط الحالة العائم (SyncStatusBar). الرفع فقط — السحب يستبدل البيانات المحلية فيبقى من شاشة المزامنة.
+ */
+export async function syncNow(snapshot: DataSnapshot): Promise<boolean> {
+  if (!isSheetsSyncConfigured()) return false
+  if (debounceTimer) window.clearTimeout(debounceTimer)
+  if (idleTimer) window.clearTimeout(idleTimer)
+  if (!navigator.onLine) {
+    emit('offline', 'push')
+    idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
+    return false
+  }
+  emit('syncing', 'push')
+  try {
+    await pushToSheets(snapshot)
+    emit('success', 'push')
+    idleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
+    return true
+  } catch {
+    emit('error', 'push')
+    idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
+    return false
+  }
+}

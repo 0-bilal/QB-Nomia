@@ -34,7 +34,7 @@ export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'p
           <FloatingTitle title={title} visible={scrolled} />
         </div>
       )}
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="pointer-events-auto flex min-w-0 items-center gap-3">
         {onBack &&
           (cancelLabel ? (
             <button
@@ -57,7 +57,7 @@ export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'p
         {!managed && <h1 className="min-w-0 truncate text-[21px] font-semibold tracking-tight">{title}</h1>}
       </div>
 
-      {right}
+      {managed ? <div className="pointer-events-auto">{right}</div> : right}
     </div>
   )
 }
