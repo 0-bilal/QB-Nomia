@@ -11,7 +11,7 @@ import {
 } from './AccountVisuals'
 import type { AccountType } from '../types'
 
-const TYPES: AccountType[] = ['cash', 'bank', 'savings', 'wallet', 'emergency', 'coins', 'fuel']
+const TYPES: AccountType[] = ['cash', 'bank', 'savings', 'wallet', 'emergency', 'coins', 'fuel', 'steam']
 
 describe('account visual records', () => {
   it('defines every value for every account type (no accidental gaps)', () => {

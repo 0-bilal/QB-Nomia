@@ -16,6 +16,7 @@ const TYPE_OPTIONS: [AccountType, string][] = [
   ['emergency', 'طوارئ'],
   ['coins', 'عملات معدنية'],
   ['fuel', 'بطاقة وقود'],
+  ['steam', 'بطاقة Steam'],
 ]
 
 export function AddAccountScreen() {
@@ -212,6 +213,12 @@ export function AddAccountScreen() {
       {type === 'fuel' && (
         <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(255,138,26,0.4)', color: 'var(--color-text-2)' }}>
           بطاقة وقود مسبقة الدفع لتعبئة السيارة — اشحنها بتحويل من الكاش أو البنكي، وسجّل تعبئاتك كمصروف عليها عشان تتابع الرصيد المتبقي ومستوى التعبئة.
+        </div>
+      )}
+
+      {type === 'steam' && (
+        <div className="mb-5 rounded-2xl border border-dashed p-3.5 text-[12px] leading-relaxed" style={{ borderColor: 'rgba(102,192,244,0.4)', color: 'var(--color-text-2)' }}>
+          رصيد محفظة Steam للألعاب — اشحنها بتحويل من الكاش أو البنكي، وسجّل مشترياتك من المتجر كمصروف عليها عشان تتابع الرصيد المتبقي ومشتريات الشهر.
         </div>
       )}
     </ScreenScroll>

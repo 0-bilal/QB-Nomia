@@ -5,7 +5,7 @@ import { formatMoney, formatSigned, formatDate } from '../lib/format'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
 import { BankCardFace, FuelDropIcon } from '../components/BankCardFace'
-import { ACCOUNT_CARD_TEXT_FAINT } from '../components/AccountVisuals'
+import { ACCOUNT_CARD_TEXT_FAINT, GamepadIcon } from '../components/AccountVisuals'
 import { EyeToggleButton } from '../components/EyeToggleButton'
 import { getHideBalancesDefault } from '../lib/privacy'
 
@@ -171,6 +171,20 @@ export function AccountsScreen() {
               >
                 <FuelDropIcon size={14} />
                 شحن البطاقة
+              </button>
+            )}
+
+            {a.type === 'steam' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/add/transaction?type=transfer&to=${a.id}`)
+                }}
+                className="qb-press mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.25 text-[12.5px] font-bold"
+                style={{ background: 'linear-gradient(90deg, #66c0f4, #2a8fd0)', color: '#08131c', boxShadow: '0 6px 16px -6px rgba(102,192,244,0.7)' }}
+              >
+                <GamepadIcon size={15} />
+                شحن الرصيد
               </button>
             )}
 
