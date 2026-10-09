@@ -35,3 +35,13 @@ export function balanceSeries(items: ActivityItem[], included: Set<string>, curr
   }
   return out.reverse()
 }
+
+/** رصيد نهاية كل يوم لمجموعة حسابات (حساب واحد أو كلها) — الأقدم أولًا، والأخير = `current`. */
+export function accountsBalanceValues(items: ActivityItem[], accountIds: string[], current: number, days: number, today: Date): number[] {
+  return balanceSeries(items, new Set(accountIds), current, days, today).map((p) => p.balance)
+}
+
+/** لون الاتجاه: أخضر لو آخر قيمة ≥ أول قيمة، وأحمر لو نازل. */
+export function trendColor(values: number[]): string {
+  return values.length === 0 || values[values.length - 1] >= values[0] ? 'var(--color-income)' : 'var(--color-expense)'
+}

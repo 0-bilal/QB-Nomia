@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ActivityItem } from '../state/DataContext'
-import { balanceSeries, effectOn } from './balanceHistory'
+import { accountsBalanceValues, balanceSeries, effectOn, trendColor } from './balanceHistory'
 
 const mk = (date: string, kind: ActivityItem['kind'], amount: number, accountIds: string[]): ActivityItem => ({ id: date + kind + amount, date, kind, amount, accountIds, title: '', subtitle: '', color: '' })
 const INC = new Set(['a', 'b'])
@@ -28,5 +28,24 @@ describe('balanceHistory', () => {
     const items = [mk('2026-10-20', 'expense', -200, ['a'])]
     const s = balanceSeries(items, INC, 800, 2, new Date(2026, 9, 9))
     expect(s.map((p) => p.balance)).toEqual([1000, 1000])
+  })
+})
+
+describe('accountsBalanceValues / trendColor', () => {
+  const item = (id: string, kind: ActivityItem['kind'], amount: number, date: string, accountIds: string[]): ActivityItem => ({ id, kind, amount, date, accountIds, title: '', subtitle: '', color: '' })
+  const items = [item('1', 'income', 500, '2026-10-08', ['a']), item('2', 'transfer', -200, '2026-10-09', ['a', 'b'])]
+
+  it('رصيد حساب واحد للخلف من رصيده الحالي (التحويل يؤثر على الطرفين)', () => {
+    expect(accountsBalanceValues(items, ['a'], 1000, 3, new Date(2026, 9, 9))).toEqual([700, 1200, 1000])
+    expect(accountsBalanceValues(items, ['b'], 300, 3, new Date(2026, 9, 9))).toEqual([100, 100, 300])
+  })
+
+  it('التحويل بين حسابين ضمن المجموعة لا يغيّر مجموعها', () => {
+    expect(accountsBalanceValues(items, ['a', 'b'], 1300, 2, new Date(2026, 9, 9))).toEqual([1300, 1300])
+  })
+
+  it('لون الاتجاه', () => {
+    expect(trendColor([1, 2])).toBe('var(--color-income)')
+    expect(trendColor([2, 1])).toBe('var(--color-expense)')
   })
 })

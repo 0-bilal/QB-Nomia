@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData } from '../state/DataContext'
-import { formatMoney, formatSigned, formatDate } from '../lib/format'
+import { useData, type ActivityItem } from '../state/DataContext'
+import { formatAmount, formatMoney, formatSigned, formatDate } from '../lib/format'
 import { fuelLevel, fuelLevelColor, lastFuelTopUp } from '../lib/fuelCard'
 import { ActivityIcon } from '../components/ActivityIcon'
 import { activityEditPath } from '../lib/activityNav'
@@ -12,6 +12,11 @@ import { TabHeader, HeaderIconButton, PlusGlyph } from '../components/TabHeader'
 import { BigAmount } from '../components/BigAmount'
 import { getHideBalancesDefault } from '../lib/privacy'
 import type { Account, AccountType } from '../types'
+import { SparkLines } from '../components/SparkLines'
+import { useSparkScrub } from '../hooks/useSparkScrub'
+import { accountsBalanceValues, trendColor } from '../lib/balanceHistory'
+import { MONTHS_AR } from '../lib/txFilters'
+import { haptic } from '../lib/haptics'
 
 type ViewMode = 'list' | 'cards'
 const VIEW_KEY = 'qb-accounts-view'
@@ -45,6 +50,77 @@ function sharePct(value: number, total: number): string {
   if (total <= 0 || value <= 0) return '0%'
   const p = (value / total) * 100
   return p < 1 ? '<1%' : `${Math.round(p)}%`
+}
+
+/** فترات السبارك: آخر 7 / 30 / 90 / 365 يومًا. */
+const SPARK_PERIODS: [number, string, string][] = [
+  [7, 'أسبوع', 'آخر 7 أيام'],
+  [30, 'شهر', 'آخر 30 يوم'],
+  [90, '3 أشهر', 'آخر 3 أشهر'],
+  [365, 'سنة', 'آخر سنة'],
+]
+
+/** «22 سبتمبر» لنقطة `i` من سلسلة طولها `n` تنتهي اليوم. */
+function sparkDayLabel(i: number, n: number): string {
+  if (i === n - 1) return 'اليوم'
+  const d = new Date()
+  d.setDate(d.getDate() - (n - 1 - i))
+  return `${d.getDate()} ${MONTHS_AR[d.getMonth()]}`
+}
+
+/** شارة تغيّر الرصيد بين أول وآخر نقطة: المبلغ والنسبة، أخضر للزيادة وأحمر للنقص. */
+function ChangePill({ values, hidden }: { values: number[]; hidden: boolean }) {
+  if (values.length < 2) return null
+  const first = values[0]
+  const diff = values[values.length - 1] - first
+  const pct = first > 0 ? (diff / first) * 100 : null
+  const color = diff >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
+  return (
+    <span dir="ltr" className="num inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold" style={{ color, background: `color-mix(in srgb, ${color} 13%, transparent)` }}>
+      <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d={diff >= 0 ? 'M12 19V5M6 11l6-6 6 6' : 'M12 5v14M6 13l6 6 6-6'} />
+      </svg>
+      {hidden ? '•••' : formatAmount(Math.round(Math.abs(diff)))}
+      {!hidden && pct !== null && ` · ${Math.abs(pct).toFixed(1)}%`}
+    </span>
+  )
+}
+
+function PeriodChips({ days, onChange }: { days: number; onChange: (d: number) => void }) {
+  return (
+    <div data-own-gesture className="flex gap-1">
+      {SPARK_PERIODS.map(([d, label]) => (
+        <button
+          key={d}
+          onClick={() => {
+            if (d === days) return
+            haptic('tick')
+            onChange(d)
+          }}
+          className="qb-press h-7 flex-1 rounded-full text-[11px] font-semibold"
+          style={d === days ? { background: 'rgba(255,255,255,0.08)', color: 'var(--color-text)' } : { color: 'var(--color-text-3)' }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** تغيّر الرصيد خلال 30 يومًا تحت رصيد الصف. */
+function RowChange({ values, hidden }: { values: number[]; hidden: boolean }) {
+  const diff = values.length > 1 ? values[values.length - 1] - values[0] : 0
+  if (hidden) return <>•••</>
+  if (diff === 0) return <span className="text-[var(--color-text-3)]">بدون تغيّر · 30 يوم</span>
+  return (
+    <span style={{ color: diff > 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
+      <span dir="ltr">
+        {diff > 0 ? '+' : '−'}
+        {formatAmount(Math.round(Math.abs(diff)))}
+      </span>{' '}
+      · 30 يوم
+    </span>
+  )
 }
 
 function EditIcon() {
@@ -149,7 +225,35 @@ function ActionTile({ label, icon, highlight, onClick }: { label: string; icon: 
 }
 
 /** تفاصيل الحساب: إجراءات سريعة + هدف/مستوى تعبئة + آخر الحركات — مشتركة بين عرض القائمة وعرض البطاقات. */
-function AccountDetail({ account, hidden }: { account: Account; hidden: boolean }) {
+/** رصيد الحساب عبر الفترة: سبارك بالاتجاه، والسحب يعرض رصيد أي يوم. */
+function AccountBalanceSpark({ account, items, hidden }: { account: Account; items: ActivityItem[]; hidden: boolean }) {
+  const [days, setDays] = useState(30)
+  const values = useMemo(() => accountsBalanceValues(items, [account.id], account.balance, days, new Date()), [items, account.id, account.balance, days])
+  const axisRef = useRef<HTMLDivElement>(null)
+  const { scrub, handlers } = useSparkScrub(values.length, axisRef)
+  const shown = scrub === null ? account.balance : values[scrub]
+  return (
+    <div className="mb-3">
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <div className="text-[11px] text-[var(--color-text-3)]">{scrub === null ? 'رصيد الحساب' : `الرصيد في ${sparkDayLabel(scrub, values.length)}`}</div>
+          <div className="num mt-0.5 text-[22px] font-bold">
+            {hidden ? '•••••' : formatMoney(shown)}
+          </div>
+        </div>
+        <ChangePill values={scrub === null ? values : values.slice(0, scrub + 1)} hidden={hidden} />
+      </div>
+      <div ref={axisRef} data-own-gesture className="relative -ml-3.5 -mr-1 mt-1 h-[92px] select-none" style={{ touchAction: 'pan-y' }} {...handlers}>
+        <SparkLines series={[{ color: trendColor(values), values }]} scrub={scrub} fit />
+      </div>
+      <div className="mt-1.5">
+        <PeriodChips days={days} onChange={setDays} />
+      </div>
+    </div>
+  )
+}
+
+function AccountDetail({ account, hidden, items }: { account: Account; hidden: boolean; items: ActivityItem[] }) {
   const { accountActivity, setAccountShowOnHome, transactions } = useData()
   const navigate = useNavigate()
   const activity = accountActivity(account.id, 3)
@@ -191,6 +295,7 @@ function AccountDetail({ account, hidden }: { account: Account; hidden: boolean 
 
   return (
     <div>
+      <AccountBalanceSpark account={account} items={items} hidden={hidden} />
       {extra}
       <div className="mb-3 grid grid-cols-4 gap-1.5">
         <ActionTile
@@ -250,13 +355,33 @@ function AccountDetail({ account, hidden }: { account: Account; hidden: boolean 
   )
 }
 
-function AccountRow({ account, hidden, total, open, onToggle }: { account: Account; hidden: boolean; total: number; open: boolean; onToggle: () => void }) {
+function AccountRow({
+  account,
+  hidden,
+  items,
+  open,
+  onToggle,
+}: {
+  account: Account
+  hidden: boolean
+  items: ActivityItem[]
+  open: boolean
+  onToggle: () => void
+}) {
   const goalPct = account.goalAmount ? (account.balance / account.goalAmount) * 100 : null
+  // رصيد آخر 30 يومًا — سبارك خافت خلف الصف (لا يُرسم لو الرصيد ما تغيّر).
+  const values = useMemo(() => accountsBalanceValues(items, [account.id], account.balance, 30, new Date()), [items, account.id, account.balance])
+  const moved = values.some((v) => v !== values[0])
   return (
     <div className="border-t border-[var(--color-border)] first:border-t-0">
-      <button onClick={onToggle} aria-expanded={open} className="flex w-full items-center gap-3 px-3.5 py-3 text-right">
+      <button onClick={onToggle} aria-expanded={open} className="relative flex w-full items-center gap-3 overflow-hidden px-3.5 py-3 text-right">
+        {moved && !open && (
+          <span className="pointer-events-none absolute inset-y-1.5 left-0 right-0">
+            <SparkLines series={[{ color: trendColor(values), values }]} fit fade dots={false} opacity={0.55} />
+          </span>
+        )}
         <CardThumb type={account.type} />
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[14px] font-semibold">{account.name}</span>
             {account.showOnHome === false && (
@@ -272,9 +397,11 @@ function AccountRow({ account, hidden, total, open, onToggle }: { account: Accou
             </div>
           )}
         </div>
-        <div className="flex-shrink-0 text-left">
+        <div className="relative flex-shrink-0 text-left">
           <div dir="ltr" className="num text-[15px] font-bold">{hidden ? '•••••' : formatMoney(account.balance)}</div>
-          <div className="num mt-0.5 text-[10.5px] text-[var(--color-text-3)]">{hidden ? '••' : sharePct(account.balance, total)} من الإجمالي</div>
+          <div className="num mt-0.5 text-[10.5px]">
+            <RowChange values={values} hidden={hidden} />
+          </div>
         </div>
         <ChevronIcon open={open} />
       </button>
@@ -282,13 +409,19 @@ function AccountRow({ account, hidden, total, open, onToggle }: { account: Accou
         className="grid"
         style={{ gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms cubic-bezier(0.22,1,0.36,1)' }}
       >
-        <div className="overflow-hidden">{open && <div className="px-3.5 pb-3.5 pt-0.5"><AccountDetail account={account} hidden={hidden} /></div>}</div>
+        <div className="overflow-hidden">
+          {open && (
+            <div className="px-3.5 pb-3.5 pt-0.5">
+              <AccountDetail account={account} hidden={hidden} items={items} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function ListView({ accounts, hidden, total }: { accounts: Account[]; hidden: boolean; total: number }) {
+function ListView({ accounts, hidden, items }: { accounts: Account[]; hidden: boolean; items: ActivityItem[] }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const grouped = new Set(GROUPS.flatMap((g) => g.types))
   const groups = [
@@ -304,7 +437,7 @@ function ListView({ accounts, hidden, total }: { accounts: Account[]; hidden: bo
           <div key={g.title} className="mb-4">
             <div className="flex items-center justify-between px-1.5 pb-2 text-[11.5px] font-semibold text-[var(--color-text-3)]">
               <span>{g.title}</span>
-              <span className="num">{hidden ? '•••••' : `${formatMoney(sum)} ر.س`}</span>
+              <span className="num">{hidden ? '•••••' : formatMoney(sum)}</span>
             </div>
             <div className="qb-card overflow-hidden" style={{ borderRadius: 24 }}>
               {g.list.map((a) => (
@@ -312,7 +445,7 @@ function ListView({ accounts, hidden, total }: { accounts: Account[]; hidden: bo
                   key={a.id}
                   account={a}
                   hidden={hidden}
-                  total={total}
+                  items={items}
                   open={openId === a.id}
                   onToggle={() => setOpenId((cur) => (cur === a.id ? null : a.id))}
                 />
@@ -325,7 +458,7 @@ function ListView({ accounts, hidden, total }: { accounts: Account[]; hidden: bo
   )
 }
 
-function CardsView({ accounts, hidden }: { accounts: Account[]; hidden: boolean }) {
+function CardsView({ accounts, hidden, items }: { accounts: Account[]; hidden: boolean; items: ActivityItem[] }) {
   const [active, setActive] = useState(0)
   const scrollerRef = useRef<HTMLDivElement>(null)
   const safeActive = Math.min(active, accounts.length - 1)
@@ -404,17 +537,26 @@ function CardsView({ accounts, hidden }: { accounts: Account[]; hidden: boolean 
         </div>
       )}
       <div className="qb-card p-3.5" style={{ borderRadius: 24 }}>
-        <AccountDetail key={account.id} account={account} hidden={hidden} />
+        <AccountDetail key={account.id} account={account} hidden={hidden} items={items} />
       </div>
     </div>
   )
 }
 
 export function AccountsScreen() {
-  const { accounts, totalBalance } = useData()
+  const { accounts, totalBalance, recentActivity } = useData()
   const navigate = useNavigate()
   const [hidden, setHidden] = useState(getHideBalancesDefault)
   const [view, setView] = useState<ViewMode>(readViewMode)
+  const [days, setDays] = useState(30)
+  // كل الحركات مرة واحدة — منها تُحسب أرصدة الأيام السابقة للإجمالي ولكل حساب.
+  const items = useMemo(() => recentActivity(1000000), [recentActivity])
+  const totalValues = useMemo(
+    () => accountsBalanceValues(items, accounts.map((a) => a.id), totalBalance, days, new Date()),
+    [items, accounts, totalBalance, days],
+  )
+  const axisRef = useRef<HTMLDivElement>(null)
+  const { scrub, handlers } = useSparkScrub(totalValues.length, axisRef)
 
   const onHomeCount = accounts.filter((a) => a.showOnHome !== false).length
   // مقام النسب = مجموع الأرصدة الموجبة فقط، حتى لا يشوّه حساب برصيد سالب توزيع الباقي.
@@ -441,10 +583,23 @@ export function AccountsScreen() {
         }
       />
 
-      <div className="qb-card-elevated qb-rise mb-5 p-5">
+      <div className="qb-card-elevated qb-rise mb-5 select-none p-5" data-own-gesture style={{ touchAction: 'pan-y' }} {...handlers}>
         <div className="relative">
-          <div className="mb-2 text-[12.5px] font-medium text-[var(--color-text-2)]">إجمالي الأرصدة</div>
-          <BigAmount value={totalBalance} hidden={hidden} size={36} />
+          <div className="mb-2 text-[12.5px] font-medium text-[var(--color-text-2)]">
+            {scrub === null ? 'إجمالي الأرصدة' : `رصيدك في ${sparkDayLabel(scrub, totalValues.length)}`}
+          </div>
+          <BigAmount value={scrub === null ? totalBalance : totalValues[scrub]} hidden={hidden} size={36} animate={scrub === null} />
+          <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-3)]">
+            <ChangePill values={scrub === null ? totalValues : totalValues.slice(0, scrub + 1)} hidden={hidden} />
+            <span>{scrub === null ? SPARK_PERIODS.find((p) => p[0] === days)?.[2] : 'منذ بداية الفترة'}</span>
+          </div>
+          {/* رصيد كل الحسابات عبر الفترة — يمتد للحافة اليسرى، والسحب الأفقي يختار يومًا. */}
+          <div ref={axisRef} className="relative -ml-5 -mr-1 mt-2.5 h-[84px]">
+            <SparkLines series={[{ color: trendColor(totalValues), values: totalValues }]} scrub={scrub} fit fade />
+          </div>
+          <div className="mt-2">
+            <PeriodChips days={days} onChange={setDays} />
+          </div>
 
           {allocation.length > 0 && (
             <>
@@ -523,9 +678,9 @@ export function AccountsScreen() {
           <div className="text-[11.5px] text-[var(--color-text-3)]">كاش، بنكي، ادخار، أو محفظة رقمية</div>
         </button>
       ) : view === 'list' ? (
-        <ListView accounts={accounts} hidden={hidden} total={positiveTotal} />
+        <ListView accounts={accounts} hidden={hidden} items={items} />
       ) : (
-        <CardsView accounts={accounts} hidden={hidden} />
+        <CardsView accounts={accounts} hidden={hidden} items={items} />
       )}
     </div>
   )
