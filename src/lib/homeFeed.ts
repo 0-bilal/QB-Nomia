@@ -54,12 +54,17 @@ export function upcomingItems(
   return items.filter((i) => i.daysLeft <= withinDays).sort((a, b) => a.daysLeft - b.daysLeft)
 }
 
+/** «3 أيام» حتى 10، و«11 يوم» فما فوق (تمييز العدد). */
+function daysWord(n: number): string {
+  return `${n} ${n <= 10 ? 'أيام' : 'يوم'}`
+}
+
 export function daysLeftLabel(days: number): string {
-  if (days < 0) return days === -1 ? 'متأخر يوم' : `متأخر ${-days} أيام`
+  if (days < 0) return days === -1 ? 'متأخر يوم' : `متأخر ${daysWord(-days)}`
   if (days === 0) return 'اليوم'
   if (days === 1) return 'غدًا'
   if (days === 2) return 'بعد يومين'
-  return `بعد ${days} أيام`
+  return `بعد ${daysWord(days)}`
 }
 
 /** تقسيم عناصر مرتّبة (الأحدث أولًا) حسب اليوم مع الحفاظ على الترتيب. */
