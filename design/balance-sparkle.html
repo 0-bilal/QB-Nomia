@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تأثير لمعان خلف الرصيد</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#050506;--surface:#121215;--surface-hi:#24242a;--border:rgba(255,255,255,.07);--border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6;--on-accent:#0a0a0c;--text:#f4f4f6;--text-2:#a1a1ad;--text-3:#62626d;--income:#3ee08f;--expense:#ff5f6d;--transfer:#8b7bff;
+    --sans:'Readex Pro',system-ui,sans-serif;--num:'Inter',system-ui,sans-serif}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 0 40px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--num);font-variant-numeric:tabular-nums}
+  .panel{width:390px;max-width:100%;padding:0 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+  .grp{background:#0e0e11;border:1px solid #1f1f24;border-radius:18px;padding:10px}
+  .grp h4{font-size:12px;color:#8a8a95;font-weight:600;margin-bottom:7px}
+  .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .opts.c3{grid-template-columns:repeat(3,1fr)}
+  .opts button{padding:8px 2px;border-radius:12px;font-size:11px;font-weight:600;color:#9a9aa5;background:#16161a;border:1px solid #222228;line-height:1.35}
+  .opts button b{display:block;font-size:13px;color:#d6d6dc}
+  .opts button.on{background:#f4f4f6;color:#3a3a42;border-color:transparent}.opts button.on b{color:#0a0a0c}
+  .desc{font-size:11.5px;color:#8f8f99;line-height:1.85;margin-top:8px;padding:0 2px}
+  .sim{display:flex;gap:6px}
+  .sim button{flex:1;padding:9px;border-radius:12px;font-size:12px;font-weight:600;background:#16161a;border:1px solid #26262c;color:#d6d6dc}
+  .phone{width:390px;max-width:100%;height:760px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative}
+  @media (max-width:440px){.phone{border-radius:0;border:0}}
+  .aurora{position:absolute;top:-120px;left:-60px;right:-60px;height:360px;background:radial-gradient(50% 60% at 70% 40%,rgba(139,123,255,.14),transparent 70%);pointer-events:none}
+  .inner{position:relative;padding:12px 20px}
+  .hrow{display:flex;gap:8px;height:52px;align-items:center;justify-content:flex-end}
+  .gb{width:40px;height:40px;border-radius:50%;background:rgba(24,24,28,.62);border:1px solid rgba(255,255,255,.1)}
+  .greet{display:flex;align-items:center;gap:10px;margin:8px 0 18px}
+  .av{width:40px;height:40px;border-radius:50%;background:#8b7bff;color:#0a0a0c;font-weight:700;display:grid;place-items:center}
+  .greet b{font-size:17px;display:block}.greet small{font-size:11.5px;color:var(--text-2)}
+  .hero{position:relative;margin:0 -20px;padding:6px 24px 22px;isolation:isolate}
+  .hero canvas{position:absolute;inset:-30px 0 -10px 0;width:100%;height:calc(100% + 40px);z-index:-1;pointer-events:none}
+  .lbl{font-size:13px;color:var(--text-2);margin-bottom:8px;display:flex;gap:8px;align-items:center}
+  .lbl span{font-size:11.5px;background:rgba(255,255,255,.07);padding:4px 10px;border-radius:99px}
+  .big{font-size:46px;font-weight:800;letter-spacing:-.03em;display:inline-flex;align-items:baseline;gap:8px;position:relative}
+  .big small{font-size:16px;color:var(--text-3);font-weight:600}
+  .big .shine{position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.85) 50%,transparent 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:none;pointer-events:none}
+  .big.sweep .shine{animation:sweep 1.4s ease-out}
+  @keyframes sweep{from{background-position:120% 0}to{background-position:-60% 0}}
+  .net{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-3)}
+  .net b{color:var(--income);background:rgba(62,224,143,.12);padding:4px 10px;border-radius:99px}
+  .qa{display:flex;justify-content:space-between;margin:6px 0 22px}
+  .qa i{width:56px;height:56px;border-radius:20px;background:var(--surface);border:1px solid var(--border);display:block}
+  .qa i:first-child{background:var(--accent)}
+  .ghost{height:180px;border-radius:24px;background:linear-gradient(140deg,#2a2346,#121218 70%);border:1px solid var(--border-strong);margin-bottom:14px}
+  .ghost2{height:120px;border-radius:22px;background:var(--surface);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="grp"><h4>نوع التأثير</h4>
+    <div class="opts" id="o-kind">
+      <button data-v="twinkle" class="on"><b>١</b>نجوم متلألئة</button>
+      <button data-v="dust"><b>٢</b>غبار عائم</button>
+      <button data-v="sweep"><b>٣</b>لمعة تمرّ</button>
+      <button data-v="burst"><b>٤</b>انفجار ثم هدوء</button>
+    </div><div class="desc" id="desc"></div></div>
+  <div class="grp"><h4>اللون</h4>
+    <div class="opts c3" id="o-color">
+      <button data-v="white" class="on"><b>أبيض</b>فضي هادئ</button>
+      <button data-v="gold"><b>ذهبي</b>فخم</button>
+      <button data-v="net"><b>حسب الشهر</b>أخضر / أحمر</button>
+    </div></div>
+  <div class="grp"><h4>الكثافة</h4>
+    <div class="opts c3" id="o-dens">
+      <button data-v="0.5"><b>خفيف</b></button>
+      <button data-v="1" class="on"><b>متوسط</b></button>
+      <button data-v="1.8"><b>كثيف</b></button>
+    </div></div>
+  <div class="sim"><button id="reopen">محاكاة فتح التطبيق</button><button id="change">محاكاة زيادة الرصيد</button><button id="neg">صافي سالب</button></div>
+</div>
+
+<div class="phone">
+  <div class="aurora"></div>
+  <div class="inner">
+    <div class="hrow"><span class="gb"></span><span class="gb"></span><span class="gb"></span></div>
+    <div class="greet"><span class="av">ب</span><div><b>مساء الخير، بلال</b><small>ختام يومك: صرفت 106 ر.س</small></div></div>
+    <div class="hero" id="hero">
+      <canvas id="cv"></canvas>
+      <div class="lbl">إجمالي رصيدك <span class="num">كل الحسابات (3)</span></div>
+      <div class="big num" id="big"><span id="amt">24,380</span><small>ر.س</small><span class="shine" id="shine"></span></div>
+      <div class="net" id="net"><b class="num">+6,440 ر.س</b>صافي هذا الشهر</div>
+    </div>
+    <div class="qa"><i></i><i></i><i></i><i></i></div>
+    <div class="ghost"></div><div class="ghost2"></div>
+  </div>
+</div>
+
+<script>
+const DESC={twinkle:'نجوم صغيرة رباعية تظهر وتختفي بهدوء في أماكن عشوائية خلف الرقم — مثل لمعان الذهب. خفيفة ولا تشتت.',
+ dust:'جزيئات ضوء دقيقة تطفو ببطء للأعلى خلف الرصيد وتتلاشى — إحساس "حي" ومستمر بدون حركة مزعجة.',
+ sweep:'كل بضع ثوانٍ تمرّ لمعة ضوء على الرقم نفسه، ومع مرورها تومض نجمتان أو ثلاث بجانبه. أقل التأثيرات حركة.',
+ burst:'عند فتح التطبيق (أو عند زيادة الرصيد) تنطلق شرارات من الرقم مع عدّ الرقم التصاعدي، ثم تهدأ لتلألؤ خفيف جدًا. مكافأة بصرية لحظية.'};
+const COLORS={white:['255,255,255','220,220,235'],gold:['255,214,120','255,191,71'],net:['62,224,143','140,255,200'],neg:['255,95,109','255,150,160']};
+let st={kind:'twinkle',color:'white',dens:1,negative:false};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');const hero=document.getElementById('hero');
+let W,H,dpr=Math.min(2,devicePixelRatio||1),parts=[],numBox={x:0,y:0,w:0,h:0};
+function resize(){const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  const b=document.getElementById('big').getBoundingClientRect(),c=r;numBox={x:b.left-c.left,y:b.top-c.top,w:b.width,h:b.height};}
+function col(){return COLORS[st.color==='net'?(st.negative?'neg':'net'):st.color]}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function star(x,y,s,a,c){ctx.save();ctx.translate(x,y);ctx.globalAlpha=a;
+  const g=ctx.createRadialGradient(0,0,0,0,0,s*2.2);g.addColorStop(0,`rgba(${c},.55)`);g.addColorStop(1,`rgba(${c},0)`);ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,s*2.2,0,7);ctx.fill();
+  ctx.fillStyle=`rgba(${c},1)`;ctx.beginPath();ctx.moveTo(0,-s);ctx.quadraticCurveTo(0,0,s,0);ctx.quadraticCurveTo(0,0,0,s);ctx.quadraticCurveTo(0,0,-s,0);ctx.quadraticCurveTo(0,0,0,-s);ctx.fill();ctx.restore();}
+function dot(x,y,r,a,c){ctx.globalAlpha=a;ctx.fillStyle=`rgba(${c},1)`;ctx.shadowColor=`rgba(${c},.9)`;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.shadowBlur=0;}
+function nearNumber(){return {x:rnd(numBox.x-30,numBox.x+numBox.w+30),y:rnd(numBox.y-24,numBox.y+numBox.h+18)}}
+function spawn(kind){const c=col();
+  if(kind==='twinkle'){const p=Math.random()<.6?nearNumber():{x:rnd(0,W),y:rnd(0,H)};return {k:'star',x:p.x,y:p.y,s:rnd(2.5,6.5),life:0,max:rnd(1.4,2.8),c:c[Math.random()<.5?0:1]}}
+  if(kind==='dust'){return {k:'dot',x:rnd(0,W),y:rnd(H*.5,H),vx:rnd(-.08,.08),vy:rnd(-.35,-.12),r:rnd(.6,1.8),life:0,max:rnd(3,6),c:c[Math.random()<.5?0:1]}}
+}
+function burst(){const c=col();const cx=numBox.x+numBox.w/2,cy=numBox.y+numBox.h/2;
+  for(let i=0;i<Math.round(46*st.dens);i++){const a=rnd(0,Math.PI*2),sp=rnd(1.2,4.2);parts.push({k:Math.random()<.35?'star':'dot',x:cx+rnd(-numBox.w/3,numBox.w/3),y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1,g:.05,drag:.965,r:rnd(.8,2),s:rnd(3,6),life:0,max:rnd(.9,1.6),c:c[Math.random()<.5?0:1]})}}
+let last=performance.now(),acc=0,sweepT=0;
+function frame(t){const dt=Math.min(.05,(t-last)/1000);last=t;ctx.clearRect(0,0,W,H);
+  const rate={twinkle:5,dust:9,sweep:0,burst:1.2}[st.kind]*st.dens;acc+=dt*rate;
+  while(acc>1){acc--;const k=st.kind==='burst'||st.kind==='twinkle'?'twinkle':st.kind==='dust'?'dust':null;if(k)parts.push(spawn(k));}
+  if(st.kind==='sweep'){sweepT+=dt;if(sweepT>4.2){sweepT=0;doSweep();}}
+  parts=parts.filter(p=>p.life<p.max);
+  for(const p of parts){p.life+=dt;const f=p.life/p.max;
+    if(p.vx!==undefined){p.x+=p.vx;p.y+=p.vy;if(p.g){p.vy+=p.g;p.vx*=p.drag;p.vy*=p.drag;}}
+    const a=p.k==='star'?Math.sin(Math.PI*f):(f<.2?f/.2:1-(f-.2)/.8);
+    if(p.k==='star')star(p.x,p.y,p.s*(.6+.4*Math.sin(Math.PI*f)),a*.95,p.c);else dot(p.x,p.y,p.r,a*.9,p.c);}
+  ctx.globalAlpha=1;requestAnimationFrame(frame);}
+function doSweep(){const b=document.getElementById('big');b.classList.remove('sweep');void b.offsetWidth;b.classList.add('sweep');
+  const c=col();setTimeout(()=>{for(let i=0;i<3;i++){const p=nearNumber();parts.push({k:'star',x:p.x,y:p.y,s:rnd(4,7),life:0,max:rnd(.8,1.3),c:c[0]})}},500);}
+function countUp(to){const el=document.getElementById('amt');const from=Math.max(0,to-to*.18);const t0=performance.now();
+  (function step(t){const k=Math.min(1,(t-t0)/900);const e=1-Math.pow(1-k,3);el.textContent=Math.round(from+(to-from)*e).toLocaleString('en-US');if(k<1)requestAnimationFrame(step)})(t0);}
+let balance=24380;
+function reopen(){parts=[];countUp(balance);if(st.kind==='burst')setTimeout(burst,650);if(st.kind==='sweep')setTimeout(doSweep,700);}
+document.getElementById('shine').textContent='';
+function syncShine(){document.getElementById('shine').textContent=document.getElementById('amt').textContent}
+setInterval(syncShine,100);
+function opt(id,key,num){document.getElementById(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;st[key]=num?+b.dataset.v:b.dataset.v;
+  document.getElementById(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));document.getElementById('desc').textContent=DESC[st.kind];if(key==='kind')reopen();}}
+opt('o-kind','kind');opt('o-color','color');opt('o-dens','dens',true);
+document.getElementById('reopen').onclick=reopen;
+document.getElementById('change').onclick=()=>{balance+=1250;countUp(balance);burst();};
+document.getElementById('neg').onclick=e=>{st.negative=!st.negative;e.target.textContent=st.negative?'صافي موجب':'صافي سالب';
+  const n=document.querySelector('#net b');n.textContent=st.negative?'−1,280 ر.س':'+6,440 ر.س';n.style.color=st.negative?'var(--expense)':'var(--income)';n.style.background=st.negative?'rgba(255,95,109,.12)':'rgba(62,224,143,.12)';};
+document.getElementById('desc').textContent=DESC.twinkle;
+addEventListener('resize',resize);document.fonts.ready.then(()=>{resize();reopen();requestAnimationFrame(frame);});
+</script>
+</body>
+</html>
