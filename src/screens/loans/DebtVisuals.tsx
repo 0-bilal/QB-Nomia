@@ -1,4 +1,8 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
+import { SparkLines, type SparkSeries } from '../../components/SparkLines'
+import { useSparkScrub } from '../../hooks/useSparkScrub'
+import { hasHistory } from '../../lib/debtHistory'
+import { MONTHS_AR } from '../../lib/txFilters'
 import { DEBT_META, softBg, type DebtTab } from './debtTypes'
 
 function Svg({ size, strokeWidth = 1.9, children }: { size: number; strokeWidth?: number; children: ReactNode }) {
@@ -89,19 +93,68 @@ export function DebtKindTag({ kind }: { kind: DebtTab }) {
   )
 }
 
-/** بطاقة "بطل" بتوهّج خافت بلون النوع — رأس كل تبويب. */
-export function DebtHero({ color, children, className = '' }: { color: string; children: ReactNode; className?: string }) {
+export interface HeroSpark {
+  /** القيمة المختارة بالسحب (null = الآن). */
+  scrub: number | null
+  /** عنصر السبارك — يوضع في مكانه داخل البطاقة، أو null لو ما فيه سجل. */
+  chart: ReactNode
+}
+
+/**
+ * بطاقة "بطل" بتوهّج خافت بلون النوع — رأس كل تبويب.
+ * مع `series` يظهر سبارك خلف الأرقام (يمتد لحافتي البطاقة)، والسحب الأفقي على البطاقة يختار أسبوعًا.
+ */
+export function DebtHero({
+  color,
+  children,
+  className = '',
+  series,
+  dates,
+  chartHeight = 64,
+}: {
+  color: string
+  children: ReactNode | ((spark: HeroSpark) => ReactNode)
+  className?: string
+  series?: SparkSeries[]
+  dates?: string[]
+  chartHeight?: number
+}) {
+  const axisRef = useRef<HTMLDivElement>(null)
+  const enabled = !!series && series.length > 0 && hasHistory(...series.map((s) => s.values))
+  const { scrub, handlers } = useSparkScrub(enabled ? series[0].values.length : 0, axisRef)
+  const chart = enabled ? (
+    <div ref={axisRef} className="relative -ml-[18px] -mr-1" style={{ height: chartHeight }}>
+      <SparkLines series={series} scrub={scrub} />
+      {scrub !== null && dates?.[scrub] && (
+        // تاريخ الأسبوع المختار — داخل منطقة الرسم حتى لا يتحرك شيء أثناء السحب.
+        <span
+          className="num absolute bottom-0 left-[18px] rounded-full border border-[var(--color-border)] bg-[rgba(10,10,12,0.75)] px-2.5 py-0.5 text-[10.5px] text-[var(--color-text-2)]"
+          style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+        >
+          {sparkDateLabel(dates[scrub])}
+        </span>
+      )}
+    </div>
+  ) : null
   return (
-    <div className={`qb-card-elevated qb-rise p-[18px] ${className}`}>
+    <div className={`qb-card-elevated qb-rise select-none p-[18px] ${className}`} data-own-gesture={enabled || undefined} style={{ touchAction: 'pan-y' }} {...(enabled ? handlers : {})}>
       <span
         className="pointer-events-none absolute rounded-full"
         style={{ top: '-40%', left: 'auto', right: '-30%', width: 220, height: 220, background: color, filter: 'blur(60px)', opacity: 0.16 }}
         aria-hidden="true"
       />
-      <div className="relative">{children}</div>
+      <div className="relative">{typeof children === 'function' ? children({ scrub, chart }) : children}</div>
     </div>
   )
 }
+
+/** «26 يونيو» لشارة الأسبوع المختار. */
+function sparkDateLabel(iso: string): string {
+  return `${Number(iso.slice(8, 10))} ${MONTHS_AR[Number(iso.slice(5, 7)) - 1]}`
+}
+
+/** ظل نص للأرقام فوق السبارك حتى تبقى مقروءة. */
+export const NUM_SHADOW = '0 2px 14px rgba(5,5,6,0.9)'
 
 export function SectionHead({ title, hint }: { title: string; hint?: string }) {
   return (

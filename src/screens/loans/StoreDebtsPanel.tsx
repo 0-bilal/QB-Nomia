@@ -11,7 +11,8 @@ import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIc
 import type { Account, StoreDebt, StoreDebtPayment } from '../../types'
 import { EmptyState, IconBubble, TintButton } from '../../components/ui'
 import { DEBT_META, softBg } from './debtTypes'
-import { DebtHero, SectionHead } from './DebtVisuals'
+import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
+import { useDebtHistory } from './useDebtHistory'
 
 const color = DEBT_META.stores.color
 
@@ -409,14 +410,18 @@ export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean
   const open = storeDebts.filter((d) => remainingOf(d) > 0)
   const overdueCount = open.filter((d) => d.dueDate && d.dueDate < today).length
   const totalOutstanding = open.reduce((sum, d) => sum + remainingOf(d), 0)
+  const h = useDebtHistory()
+  /** المتبقي الآن، أو في الأسبوع المختار على السبارك. */
+  const outstandingAt = (scrub: number | null) => (scrub === null ? totalOutstanding : h.stores[scrub])
   // المتأخر أولًا، ثم الأقرب استحقاقًا، ثم بدون تاريخ استحقاق، والمسدَّد بالأخير.
   const rank = (d: StoreDebt) => (remainingOf(d) <= 0 ? 3 : d.dueDate ? (d.dueDate < today ? 0 : 1) : 2)
   const sorted = [...storeDebts].sort((a, b) => rank(a) - rank(b) || (a.dueDate ?? '').localeCompare(b.dueDate ?? '') || b.date.localeCompare(a.date))
 
   return (
     <>
-      <DebtHero color={color}>
-        {addingNew ? (
+      <DebtHero color={color} dates={h.dates} series={addingNew ? undefined : [{ color, values: h.stores }]}>
+        {({ scrub, chart }) =>
+        addingNew ? (
           <DebtForm
             onSave={(input) => {
               addStoreDebt(input)
@@ -428,13 +433,15 @@ export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean
           <>
             <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">المتبقي لكل المتاجر</div>
             <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="num text-[34px] font-bold" style={{ color: totalOutstanding > 0 ? color : 'var(--color-text-2)' }}>
-                {formatAmount(totalOutstanding)}
+              <span className="num text-[34px] font-bold" style={{ color: outstandingAt(scrub) > 0 ? color : 'var(--color-text-2)', textShadow: NUM_SHADOW }}>
+                {formatAmount(outstandingAt(scrub))}
               </span>
               <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
             </div>
             <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">
-              {open.length === 0 ? (
+              {scrub !== null ? (
+                'المتبقي في هذا الأسبوع'
+              ) : open.length === 0 ? (
                 'لا توجد ديون قائمة حاليًا'
               ) : (
                 <>
@@ -443,6 +450,7 @@ export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean
                 </>
               )}
             </div>
+            {chart && <div className="-mt-1">{chart}</div>}
             <button
               onClick={() => setAddingNew(true)}
               className="qb-press mt-4 flex w-full items-center justify-center gap-2 rounded-full border py-3 text-[13.5px] font-semibold"
@@ -454,7 +462,8 @@ export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean
               تسجيل دَين جديد
             </button>
           </>
-        )}
+        )
+        }
       </DebtHero>
 
       <SectionHead title="الديون" hint={storeDebts.length ? 'المتأخر ثم الأقرب استحقاقًا' : undefined} />

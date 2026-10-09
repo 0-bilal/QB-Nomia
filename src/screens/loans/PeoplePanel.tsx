@@ -5,13 +5,15 @@ import { Avatar } from '../../components/Avatar'
 import { formatAmount, formatMoney } from '../../lib/format'
 import { ChipRow, EmptyState, ListGroup, ListItem, SearchField } from '../../components/ui'
 import { DEBT_META } from './debtTypes'
-import { DebtHero, SectionHead } from './DebtVisuals'
+import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
+import { useDebtHistory } from './useDebtHistory'
 
 type Filter = 'all' | 'owedToMe' | 'iOwe'
 
 /** محتوى تبويب "أشخاص" داخل شاشة الديون والسلف — بدون رأس خاص به (الرأس + زر الإضافة بالمستوى الأعلى). */
 export function PeoplePanel() {
   const { people, personBalance, totalOwedToMe, totalIOwe } = useData()
+  const h = useDebtHistory()
   const navigate = useNavigate()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
@@ -29,29 +31,41 @@ export function PeoplePanel() {
 
   return (
     <>
-      <DebtHero color={DEBT_META.people.color}>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'لك عند الآخرين', value: totalOwedToMe, color: 'var(--color-owed-to)', icon: <ArrowIn /> },
-            { label: 'عليك للآخرين', value: totalIOwe, color: 'var(--color-owed-by)', icon: <ArrowOut /> },
-          ].map((x) => (
-            <div key={x.label}>
-              <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                <span style={{ color: x.color }}>{x.icon}</span>
-                {x.label}
-              </div>
-              <div className="num mt-1 text-[24px] font-bold" style={{ color: x.color }}>
-                {formatAmount(x.value)}
-              </div>
+      <DebtHero
+        color={DEBT_META.people.color}
+        dates={h.dates}
+        series={[
+          { color: 'var(--color-owed-to)', values: h.owedToMe },
+          { color: 'var(--color-owed-by)', values: h.iOwePeople },
+        ]}
+      >
+        {({ scrub, chart }) => (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'لك عند الآخرين', value: scrub === null ? totalOwedToMe : h.owedToMe[scrub], color: 'var(--color-owed-to)', icon: <ArrowIn /> },
+                { label: 'عليك للآخرين', value: scrub === null ? totalIOwe : h.iOwePeople[scrub], color: 'var(--color-owed-by)', icon: <ArrowOut /> },
+              ].map((x) => (
+                <div key={x.label}>
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+                    <span style={{ color: x.color }}>{x.icon}</span>
+                    {x.label}
+                  </div>
+                  <div className="num mt-1 text-[24px] font-bold" style={{ color: x.color, textShadow: NUM_SHADOW }}>
+                    {formatAmount(x.value)}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <button onClick={() => navigate('/loans/new')} className="qb-btn-primary mt-4 flex w-full items-center justify-center gap-2 py-3 text-[13.5px]">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          إضافة شخص
-        </button>
+            {chart && <div className="-mt-2">{chart}</div>}
+            <button onClick={() => navigate('/loans/new')} className={`qb-btn-primary flex w-full items-center justify-center gap-2 py-3 text-[13.5px] ${chart ? 'mt-1' : 'mt-4'}`}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              إضافة شخص
+            </button>
+          </>
+        )}
       </DebtHero>
 
       <SectionHead title="الأشخاص" hint="اضغط لفتح دفتر الحساب" />
