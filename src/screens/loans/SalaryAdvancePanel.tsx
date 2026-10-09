@@ -10,7 +10,8 @@ import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIc
 import type { AccountType, SalaryAdvance } from '../../types'
 import { EmptyState } from '../../components/ui'
 import { DEBT_META, softBg } from './debtTypes'
-import { DebtHero, SectionHead } from './DebtVisuals'
+import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
+import { useDebtHistory } from './useDebtHistory'
 
 function SalaryAdvanceIcon({ size = 20 }: { size?: number }) {
   return (
@@ -242,10 +243,13 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
   const { salaryAdvances, logSalaryAdvance, updateSalaryAdvance, deleteSalaryAdvance, accounts } = useData()
   const [editingId, setEditingId] = useState<'new' | string | null>(startAdding && accounts.length > 0 ? 'new' : null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const h = useDebtHistory()
 
   const outstanding = salaryAdvances.filter((a) => !a.settled)
   const settled = salaryAdvances.filter((a) => a.settled)
   const outstandingTotal = outstanding.reduce((sum, a) => sum + a.amount, 0)
+  /** المتبقي الآن، أو في الأسبوع المختار على السبارك. */
+  const advanceAt = (scrub: number | null) => (scrub === null ? outstandingTotal : h.advance[scrub])
   const oldestOutstanding = [...outstanding].sort((a, b) => a.date.localeCompare(b.date))[0]
   const color = DEBT_META.advance.color
   const editingAdvance = editingId && editingId !== 'new' ? salaryAdvances.find((a) => a.id === editingId) : undefined
@@ -270,8 +274,9 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
         onCancel={() => setConfirmDeleteId(null)}
       />
 
-      <DebtHero color={color}>
-        {editingId === 'new' ? (
+      <DebtHero color={color} dates={h.dates} series={editingId ? undefined : [{ color, values: h.advance }]}>
+        {({ scrub, chart }) =>
+        editingId === 'new' ? (
           <LogAdvanceForm
             accounts={accounts}
             color={color}
@@ -297,14 +302,21 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
           <>
             <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">المتبقي من سلفة الراتب</div>
             <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="num text-[34px] font-bold" style={{ color: outstandingTotal > 0 ? color : 'var(--color-text-2)' }}>
-                {formatAmount(outstandingTotal)}
+              <span className="num text-[34px] font-bold" style={{ color: advanceAt(scrub) > 0 ? color : 'var(--color-text-2)', textShadow: NUM_SHADOW }}>
+                {formatAmount(advanceAt(scrub))}
               </span>
               <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
             </div>
             <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">
-              {outstandingTotal > 0 ? 'تُخصم تلقائيًا من أول حركة دخل «راتب» تسجّلها' : 'لا توجد سلفة قائمة — سجّل سلفة وبتُخصم من أول راتب بعدها'}
+              {scrub !== null
+                ? advanceAt(scrub) > 0
+                  ? 'كانت عليك سلفة في هذا الأسبوع'
+                  : 'لا توجد سلفة في هذا الأسبوع'
+                : outstandingTotal > 0
+                  ? 'تُخصم تلقائيًا من أول حركة دخل «راتب» تسجّلها'
+                  : 'لا توجد سلفة قائمة — سجّل سلفة وبتُخصم من أول راتب بعدها'}
             </div>
+            {chart && <div className="-mt-1">{chart}</div>}
             {oldestOutstanding && <AdvanceSteps color={color} since={oldestOutstanding.date} />}
             <button
               onClick={() => setEditingId('new')}
@@ -318,7 +330,8 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
               تسجيل سلفة جديدة
             </button>
           </>
-        )}
+        )
+        }
       </DebtHero>
 
       {salaryAdvances.length === 0 ? (

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>السلف والديون — سبارك الحالة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --owed-to:#2ee6c8; --owed-by:#ff9a4d;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .cur{font-family:var(--font-sans);font-size:.4em;color:var(--text-3);font-weight:500;margin-inline-start:6px;letter-spacing:0}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .tg{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:rgba(255,255,255,.05);border:1px solid var(--border)}
+  .tg.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+
+  .phone{width:390px;max-width:100%;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;padding:26px 20px 30px;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:28px;padding:20px 14px 24px}}
+  .h1{font-size:28px;font-weight:700}
+  .h1s{font-size:12px;color:var(--text-3);margin-top:2px}
+
+  /* شريط الأنواع — كما في التطبيق */
+  .types{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:18px 0 16px}
+  .type{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;border-radius:18px;border:1px solid var(--border);background:var(--surface);padding:10px 2px 8px;transition:background .25s,border-color .25s}
+  .type i{width:30px;height:30px;border-radius:11px;display:grid;place-items:center;transition:background .25s,color .25s}
+  .type span{font-size:10px;font-weight:600;color:var(--text-2);white-space:nowrap}
+  .type.on span{color:var(--text)}
+
+  /* بطاقة البطل */
+  .hero{position:relative;overflow:hidden;border-radius:28px;border:1px solid rgba(255,255,255,.09);padding:18px;touch-action:pan-y;user-select:none;
+    background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.07),transparent 55%),linear-gradient(165deg,var(--surface-el),var(--void));animation:rise .55s var(--expo) both}
+  .glow{position:absolute;top:-40%;right:-30%;width:220px;height:220px;border-radius:50%;filter:blur(60px);opacity:.16;pointer-events:none}
+  .chart{position:absolute;pointer-events:none}
+  .chart svg{position:absolute;inset:0;overflow:visible}
+  .veil{position:absolute;inset:0;pointer-events:none}
+  .rel{position:relative;pointer-events:none}
+  .rel .act{pointer-events:auto}
+  .lbl{font-size:12.5px;font-weight:500;color:var(--text-2)}
+  .big{font-size:34px;font-weight:700;margin-top:4px;text-shadow:0 2px 14px rgba(5,5,6,.9);transition:color .2s}
+  .hint{font-size:11.5px;color:var(--text-3);margin-top:2px}
+  .fig{font-size:16px;font-weight:700;margin-top:2px;text-shadow:0 2px 12px rgba(5,5,6,.9)}
+  .lg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-3)}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);direction:ltr;margin-top:6px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:16px;padding:12px;border-radius:999px;font-size:13.5px;font-weight:600;border:1px solid}
+  .when{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--text-2);background:rgba(10,10,12,.7);border:1px solid var(--border);border-radius:999px;padding:3px 9px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+
+  .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .area{animation:fade .9s .7s both}
+  @keyframes fade{from{opacity:0}}
+  .pulse{animation:pulse 1.8s 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes pulse{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(3.2)}}
+  .popin{animation:pop .5s var(--spring) both;transform-box:fill-box;transform-origin:center}
+  @keyframes pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes rise{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+
+  .sec{display:flex;justify-content:space-between;align-items:baseline;margin:24px 6px 10px}
+  .sec b{font-size:14px;font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kc{position:relative;overflow:hidden;min-height:138px;display:flex;flex-direction:column;border-radius:22px;border:1px solid var(--border);background:var(--surface);padding:14px;text-align:right;animation:rise .55s var(--expo) both}
+  .kc .bub{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;position:relative}
+  .kc .t{font-size:13px;font-weight:600;margin-top:10px;position:relative}
+  .kc .a{font-size:17px;font-weight:700;margin-top:2px;position:relative}
+  .kc .s{font-size:10.5px;color:var(--text-3);margin-top:auto;padding-top:8px;position:relative;line-height:1.6}
+  .kc .mini{position:absolute;left:14px;top:16px;width:46%;height:38px;pointer-events:none}
+
+  .vbars{direction:ltr;display:flex;align-items:flex-end;gap:10px;height:90px;margin-top:16px;padding:0 4px}
+  .vbars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+  .vbars span{width:100%;border-radius:8px 8px 4px 4px;transform-origin:bottom;animation:grow .8s var(--expo) both}
+  .vbars small{font-size:10px;color:var(--text-3)}
+  @keyframes grow{from{transform:scaleY(0)}}
+
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>السلف والديون — سبارك الحالة</h1>
+  <p>نفس سبارك «تدفّق هذا الشهر» خلف أرقام بطاقة الحالة في كل قسم، وسبارك صغير في بطاقات «حسب النوع». اسحب إصبعك على بطاقة الحالة لترى موقفك في أي أسبوع.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">بطاقة الخصومات: ماذا نفعل بأعمدة الأشهر؟</div>
+    <div class="seg" id="segV">
+      <button data-v="0" class="on"><span class="num">1</span> · سبارك بدل الأعمدة</button>
+      <button data-v="1"><span class="num">2</span> · سبارك + الأعمدة</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="tg press" id="tgEmpty">قسم بدون سجل</button>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="h1">السلف والديون</div>
+  <div class="h1s" id="sub">موقفك من كل الأنواع بمكان واحد</div>
+  <div class="types" id="types"></div>
+  <div id="content"></div>
+</div>
+
+<div class="note" id="note"></div>
+
+<script>
+/* ===== الأنواع ===== */
+const META = {
+  overview:{label:'الكل',title:'نظرة عامة',sub:'موقفك من كل الأنواع بمكان واحد',color:'var(--accent)'},
+  people:{label:'أشخاص',title:'سلف الأشخاص',sub:'سلف بينك وبين الأشخاص',color:'var(--owed-to)'},
+  advance:{label:'سلفة راتب',title:'سلفة الراتب',sub:'سلفة من الراتب تُخصم تلقائيًا',color:'var(--transfer)'},
+  violations:{label:'خصومات',title:'خصومات المخالفات',sub:'خصومات مخالفات العمل من الراتب',color:'var(--expense)'},
+  stores:{label:'متاجر',title:'ديون المتاجر',sub:'مشتريات بالآجل من المتاجر',color:'var(--sub)'},
+}
+const TABS = Object.keys(META)
+const svg = (p,s=18,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const ICON = {
+  overview:'<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>',
+  people:'<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/><circle cx="17" cy="9" r="2.3"/><path d="M15.3 14.2c2.5.4 4.2 1.9 4.2 4.8"/>',
+  advance:'<rect x="2.5" y="6" width="14" height="10" rx="2"/><circle cx="9.5" cy="11" r="2"/><path d="M19 8.5 22 11.5 19 14.5"/><path d="M22 11.5h-5"/>',
+  violations:'<path d="M12 3.5 22 20.5H2Z"/><path d="M12 9.5V14"/><path d="M12 17h.01"/>',
+  stores:'<path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5h16v1a3 3 0 0 1-5.3 1.9A3 3 0 0 1 12 13.5a3 3 0 0 1-2.7-1.1A3 3 0 0 1 4 10.5Z"/><path d="M5.5 13v7h13v-7"/><path d="M10 20v-4h4v4"/>',
+}
+const soft = (c,p=15) => `color-mix(in srgb,${c} ${p}%,transparent)`
+const plus = svg('<path d="M12 5v14M5 12h14"/>',16,2.4)
+
+/* ===== البيانات: 26 أسبوعًا (نصف سنة) — الرصيد في نهاية كل أسبوع ===== */
+const W = 26
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const today = new Date(2026,9,9)
+const dateAt = i => { const d=new Date(today); d.setDate(d.getDate()-(W-1-i)*7); return d }
+const dLabel = i => i===W-1 ? 'اليوم' : `${dateAt(i).getDate()} ${MONTHS[dateAt(i).getMonth()]}`
+const steps = (pts) => Array.from({length:W},(_,i)=>{let v=0;for(const [w,x] of pts) if(i>=w) v=x; return v})   // قيمة ثابتة تتغيّر عند أسابيع معيّنة
+
+const S = { tab:'overview', vMode:0, empty:false, scrub:null }
+function D(){
+  const owedTo = steps([[3,500],[8,1200],[12,800],[17,1512]])
+  const iOwe = steps([[5,2000],[10,5000],[19,7800]])
+  const advance = steps([[9,2000],[13,0]])
+  const stores = steps([[4,650],[7,400],[11,150],[14,0]])
+  const advNow = 0, storesNow = 0
+  // الخصومات: مجموع السنة تراكميًا
+  const viol = steps([[6,150],[15,450],[22,750]])
+  const months = [['مايو',0],['يونيو',150],['يوليو',0],['أغسطس',300],['سبتمبر',0],['أكتوبر',300]]
+  const iOweAll = iOwe.map((v,i)=>v+advance[i]+stores[i])
+  return { owedTo, iOwe, advance, stores, viol, months, iOweAll, advNow, storesNow }
+}
+const fmt = n => Math.round(Math.abs(n)).toLocaleString('en-US')
+
+/* ===== السبارك (الزمن من اليسار للأقدم إلى اليمين لليوم) ===== */
+function spark(series, {box, pad=8, dots=true, mini=false}={}){
+  const {w,h} = box, top = Math.max(1,...series.flatMap(s=>s.data))*1.1
+  const X = i => i/(W-1)*w, Y = v => h-pad-v/top*(h-pad*2)
+  const id = Math.random().toString(36).slice(2,7)
+  let out = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>${series.map((s,k)=>`<linearGradient id="g${id}${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.c}" stop-opacity="${mini?.25:.2}"/><stop offset="1" stop-color="${s.c}" stop-opacity="0"/></linearGradient>`).join('')}</defs>`
+  series.forEach((s,k)=>{
+    const d = s.data.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('')
+    out += `<path class="area" d="${d}L${w},${h}L0,${h}Z" fill="url(#g${id}${k})" style="animation-delay:${.7+k*.15}s"/>`
+    out += `<path class="ln draw" d="${d}" stroke="${s.c}" style="opacity:${mini?.85:1}" data-delay="${250+k*160}"/>`
+  })
+  if(dots){
+    if(S.scrub===null) series.forEach((s,k)=>{const cx=X(W-1),cy=Y(s.data[W-1]);out+=`<circle class="pulse" cx="${cx}" cy="${cy}" r="4" fill="${s.c}" opacity=".5" style="animation-delay:${1.6+k*.15}s"/><circle class="popin" cx="${cx}" cy="${cy}" r="3.5" fill="${s.c}" stroke="var(--bg)" stroke-width="2" style="animation-delay:${1.3+k*.15}s"/>`})
+    else { const i=S.scrub; out+=`<line x1="${X(i)}" x2="${X(i)}" y1="-6" y2="${h+6}" stroke="rgba(255,255,255,.3)"/>`; series.forEach(s=>out+=`<circle cx="${X(i)}" cy="${Y(s.data[i])}" r="4.5" fill="#fff" stroke="${s.c}" stroke-width="2.5"/>`) }
+  }
+  return out+'</svg>'
+}
+
+/* ===== بطاقات الحالة لكل قسم ===== */
+const heroShell = (tab, inner, chartInset='54px 0 74px 0') => `
+  <div class="hero" data-hero data-inset="${chartInset}">
+    <span class="glow" style="background:${META[tab].color}"></span>
+    <div class="chart" data-chart style="inset:${chartInset};right:14px"></div>
+    <div class="veil" style="background:radial-gradient(48% 46% at 78% 34%,rgba(18,18,21,.85),rgba(18,18,21,.4) 60%,transparent 100%)"></div>
+    <div class="rel">${inner}</div>
+  </div>`
+const when = () => S.scrub===null ? '' : `<span class="when num">${dLabel(S.scrub)}</span>`
+const at = arr => arr[S.scrub ?? W-1]
+
+const HERO = {
+  overview(d){ const o=at(d.owedTo), b=at(d.iOweAll), net=o-b, c=net>=0?'var(--income)':'var(--expense)'
+    return { series:[{c:'var(--income)',data:d.owedTo},{c:'var(--expense)',data:d.iOweAll}], inset:'60px 0 66px 0', html: heroShell('overview',`
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lbl">صافي موقفك</div>${when()}</div>
+      <div class="big num" style="color:${c}"><span dir="ltr">${net<0?'−':''}${fmt(net)}</span><span class="cur">ر.س</span></div>
+      <div class="hint">${net>=0?'لك أكثر مما عليك':'عليك أكثر مما لك'}</div>
+      <div style="height:62px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="lg"><span class="dot" style="background:var(--income)"></span>مستحق لك</div><div class="fig num">${fmt(o)}</div></div>
+        <div><div class="lg"><span class="dot" style="background:var(--expense)"></span>إجمالي عليك</div><div class="fig num">${fmt(b)}</div></div>
+      </div>`,'60px 0 66px 0') } },
+
+  people(d){ const o=at(d.owedTo), b=at(d.iOwe)
+    return { series:[{c:'var(--owed-to)',data:d.owedTo},{c:'var(--owed-by)',data:d.iOwe}], html: heroShell('people',`
+      <div style="display:flex;justify-content:flex-end;min-height:20px">${when()}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div class="lg"><span style="color:var(--owed-to)">${svg('<path d="M12 5v14M6 13l6 6 6-6"/>',13,2.4)}</span>لك عند الآخرين</div><div class="num" style="font-size:24px;font-weight:700;margin-top:4px;color:var(--owed-to);text-shadow:0 2px 12px rgba(5,5,6,.9)">${fmt(o)}</div></div>
+        <div><div class="lg"><span style="color:var(--owed-by)">${svg('<path d="M12 19V5M6 11l6-6 6 6"/>',13,2.4)}</span>عليك للآخرين</div><div class="num" style="font-size:24px;font-weight:700;margin-top:4px;color:var(--owed-by);text-shadow:0 2px 12px rgba(5,5,6,.9)">${fmt(b)}</div></div>
+      </div>
+      <div style="height:58px"></div>
+      <button class="btn act press" style="background:var(--accent);color:var(--on-accent);border-color:transparent">${plus}إضافة شخص</button>`,'44px 0 66px 0'), inset:'44px 0 66px 0' } },
+
+  advance(d){ const v=at(d.advance), c=META.advance.color
+    return { series:[{c,data:d.advance}], html: heroShell('advance',`
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lbl">المتبقي من سلفة الراتب</div>${when()}</div>
+      <div class="big num" style="color:${v>0?c:'var(--text-2)'}">${fmt(v)}<span class="cur">ر.س</span></div>
+      <div class="hint">${S.scrub!==null?(v>0?'كانت قائمة في هذا الأسبوع':'لا توجد سلفة في هذا الأسبوع'):v>0?'تُخصم تلقائيًا من أول حركة دخل «راتب» تسجّلها':'لا توجد سلفة قائمة — آخر سلفة انسدّت من الراتب'}</div>
+      <div style="height:58px"></div>
+      <button class="btn act press" style="background:${soft(c)};color:${c};border-color:${soft(c,30)}">${plus}تسجيل سلفة جديدة</button>`,'92px 0 66px 0'), inset:'92px 0 66px 0' } },
+
+  violations(d){ const v=at(d.viol), c=META.violations.color, bars=S.vMode===1
+    return { series:[{c,data:d.viol}], html: heroShell('violations',`
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lbl">خصومات هذه السنة</div>${when()}</div>
+      <div class="big num" style="color:${v>0?c:'var(--text-2)'}">${fmt(v)}<span class="cur">ر.س</span></div>
+      <div class="hint">${S.scrub!==null?'مجموع الخصومات حتى هذا الأسبوع':'<span class="num">3</span> خصومات · آخرها <span class="num">2026/10/02</span>'}</div>
+      ${bars?`<div class="vbars">${d.months.map(([m,t],i)=>`<div><span style="height:${Math.max(3,t/300*66)}px;background:${i===5?c:soft(c,35)};opacity:${t?1:.5};animation-delay:${.15+i*.05}s"></span><small>${m}</small></div>`).join('')}</div>`
+        :`<div style="height:70px"></div><div class="axis"><span>${MONTHS[dateAt(0).getMonth()]}</span><span>اليوم</span></div>`}`, bars?'108px 0 30px 0':'92px 0 26px 0'), inset: bars?'108px 0 30px 0':'92px 0 26px 0', bg:bars } },
+
+  stores(d){ const v=at(d.stores), c=META.stores.color
+    return { series:[{c,data:d.stores}], html: heroShell('stores',`
+      <div style="display:flex;justify-content:space-between;align-items:center"><div class="lbl">المتبقي لكل المتاجر</div>${when()}</div>
+      <div class="big num" style="color:${v>0?c:'var(--text-2)'}">${fmt(v)}<span class="cur">ر.س</span></div>
+      <div class="hint">${S.scrub!==null?'المتبقي في هذا الأسبوع':v>0?'ديون قائمة':'لا توجد ديون قائمة حاليًا'}</div>
+      <div style="height:58px"></div>
+      <button class="btn act press" style="background:${soft(c)};color:${c};border-color:${soft(c,30)}">${plus}تسجيل دَين جديد</button>`,'92px 0 66px 0'), inset:'92px 0 66px 0' } },
+}
+
+/* ===== بطاقات «حسب النوع» بسبارك صغير ===== */
+function kindCards(d){
+  const cards = [
+    ['people',`<span dir="ltr" style="display:inline-block"><span style="color:var(--income)">+${fmt(d.owedTo[W-1])}</span> / <span style="color:var(--owed-by)">−${fmt(d.iOwe[W-1])}</span></span>`,'8 أشخاص · 7 بحساب مفتوح',[{c:'var(--owed-to)',data:d.owedTo},{c:'var(--owed-by)',data:d.iOwe}]],
+    ['advance',fmt(0),'لا توجد سلفة قائمة',[{c:META.advance.color,data:d.advance}]],
+    ['violations',fmt(300),'آخر خصم · 2026/10/02 · السنة 750',[{c:META.violations.color,data:d.viol}]],
+    ['stores',fmt(0),'لا توجد ديون قائمة',[{c:META.stores.color,data:d.stores}]],
+  ]
+  const html = `<div class="sec"><b>حسب النوع</b></div><div class="grid">${cards.map(([k,a,s,ser],i)=>{
+    const empty = S.empty && k==='stores'
+    return `<button class="kc press" data-open="${k}" style="animation-delay:${.1+i*.05}s">
+      ${empty?`<span style="position:absolute;left:-30px;bottom:-40px;width:110px;height:110px;border-radius:50%;background:${META[k].color};filter:blur(30px);opacity:.16"></span>`:`<div class="mini" data-mini="${i}"></div>`}
+      <span class="bub" style="background:${soft(META[k].color)};color:${META[k].color}">${svg(ICON[k],19)}</span>
+      <span class="t">${META[k].title}</span><span class="a num">${a}</span><span class="s">${s}</span></button>`}).join('')}</div>`
+  return [html, cards.map(c=>c[3])]
+}
+
+/* ===== العرض ===== */
+const content = document.getElementById('content')
+let cur = null
+function render(full=true){
+  const d = D(), tab = S.tab
+  const h = HERO[tab](d)
+  if(S.empty && tab==='stores') h.series = []
+  let html = h.html, minis = []
+  if(tab==='overview'){ const [kc,ms]=kindCards(d); html+=kc; minis=ms }
+  content.innerHTML = html
+  cur = h
+  draw(full)
+  const box = content.querySelector('[data-hero]')
+  // سبارك صغير لكل بطاقة نوع
+  content.querySelectorAll('[data-mini]').forEach(el=>{const r=el.getBoundingClientRect();el.innerHTML=spark(minis[+el.dataset.mini],{box:{w:r.width,h:r.height},pad:4,dots:false,mini:true});animateLines(el,true)})
+  bindScrub(box)
+  document.getElementById('sub').textContent = META[tab].sub
+  document.querySelectorAll('.type').forEach(b=>{const on=b.dataset.t===tab,c=META[b.dataset.t].color;b.classList.toggle('on',on);b.style.background=on?soft(c):'var(--surface)';b.style.borderColor=on?c:'var(--border)';const i=b.querySelector('i');i.style.background=on?c:soft(c);i.style.color=on?'#0a0a0c':c})
+  document.getElementById('note').innerHTML = NOTES[tab]
+}
+function draw(animate){
+  const el = content.querySelector('[data-chart]'); if(!el || !cur.series.length){ if(el) el.innerHTML=''; return }
+  const r = el.getBoundingClientRect()
+  el.innerHTML = spark(cur.series,{box:{w:r.width,h:r.height}})
+  animateLines(el,animate)
+}
+function animateLines(el,animate){
+  el.querySelectorAll('.draw').forEach(p=>{const L=p.getTotalLength();p.style.strokeDasharray=L;if(!animate){p.style.strokeDashoffset=0;return}
+    p.style.strokeDashoffset=L;p.getBoundingClientRect();p.style.transition=`stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1) ${p.dataset.delay}ms`;p.style.strokeDashoffset=0})
+  if(!animate) el.querySelectorAll('.area,.popin,.pulse').forEach(e=>{e.style.animation='none';if(e.classList.contains('pulse'))e.style.opacity=0})
+}
+/* السحب الأفقي على بطاقة الحالة يختار أسبوعًا */
+function bindScrub(card){
+  let start=null, active=false
+  const pick = e => { const ch=card.querySelector('[data-chart]').getBoundingClientRect(); const i=Math.max(0,Math.min(W-1,Math.round((e.clientX-ch.left)/ch.width*(W-1))))
+    if(i!==S.scrub){ S.scrub=i; const d=D(); const h=HERO[S.tab](d); card.querySelector('.rel').innerHTML = new DOMParser().parseFromString(h.html,'text/html').querySelector('.rel').innerHTML; draw(false) } }
+  card.onpointerdown = e => { start=e.clientX; active=false }
+  card.onpointermove = e => { if(!cur.series.length) return
+    if(e.pointerType==='mouse' && start===null) return pick(e)
+    if(start===null) return
+    if(!active){ if(Math.abs(e.clientX-start)<6) return; active=true; card.setPointerCapture(e.pointerId) }
+    pick(e) }
+  const end = () => { start=null; active=false; if(S.scrub!==null){ S.scrub=null; const h=HERO[S.tab](D()); card.querySelector('.rel').innerHTML = new DOMParser().parseFromString(h.html,'text/html').querySelector('.rel').innerHTML; draw(false) } }
+  card.onpointerup = card.onpointercancel = card.onpointerleave = end
+}
+
+const NOTES = {
+  overview:'<span class="k">الكل — صافي موقفك</span>خطّان خلف الأرقام: الأخضر «مستحق لك» والأحمر «إجمالي عليك» (أشخاص + سلفة راتب + متاجر) لآخر 6 أشهر. شريط النسبة الأفقي استُبدل بالسبارك لأنه يقول نفس الشيء ويضيف الزمن. وفي «حسب النوع» كل بطاقة فيها سبارك صغير بلونها في الأسفل بدل التوهّج.',
+  people:'<span class="k">أشخاص</span>خطّان بلون السلف: «لك عند الآخرين» و«عليك للآخرين» عبر الأسابيع. السحب يغيّر الرقمين، وزر الإضافة يبقى يعمل.',
+  advance:'<span class="k">سلفة راتب</span>خط واحد للمتبقي من السلفة: يصعد عند أخذ السلفة وينزل للصفر عند خصمها من الراتب، فتظهر سلفاتك السابقة حتى لو الرصيد الحالي صفر. خطوات «السلفة ← الراتب» تبقى كما هي تحت الرقم لما تكون فيه سلفة قائمة.',
+  violations:'<span class="k">خصومات</span>خط تراكمي لمجموع خصومات السنة. جرّب من اللوحة: (١) السبارك بدل أعمدة الأشهر، أو (٢) السبارك فوق أعمدة الأشهر. في الخيار ٢ صار ترتيب الأعمدة من اليسار (الأقدم) لليمين (الآن) حتى يطابق اتجاه الخط.',
+  stores:'<span class="k">متاجر</span>خط المتبقي لكل المتاجر: يصعد مع كل دَين وينزل مع كل سداد. جرّب «قسم بدون سجل» من اللوحة: بدون أي حركة لا يظهر خط، وتبقى البطاقة كما هي اليوم.',
+}
+
+document.getElementById('types').innerHTML = TABS.map(t=>`<button class="type press" data-t="${t}"><i>${svg(ICON[t],16,2)}</i><span>${META[t].label}</span></button>`).join('')
+document.getElementById('types').onclick = e => { const b=e.target.closest('.type'); if(!b) return; S.tab=b.dataset.t; S.scrub=null; render() }
+content.addEventListener('click', e => { const b=e.target.closest('[data-open]'); if(b){ S.tab=b.dataset.open; render() } })
+document.getElementById('segV').onclick = e => { const b=e.target.closest('button'); if(!b) return; S.vMode=+b.dataset.v; document.querySelectorAll('#segV button').forEach(x=>x.classList.toggle('on',x===b)); S.tab='violations'; render() }
+document.getElementById('tgEmpty').onclick = e => { S.empty=!S.empty; e.currentTarget.classList.toggle('on',S.empty); S.tab = S.tab==='overview'?'overview':'stores'; render() }
+render()
+</script>
+</body>
+</html>

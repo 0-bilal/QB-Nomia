@@ -5,7 +5,9 @@ import { AmountPad } from '../../components/AmountPad'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/ui'
 import { softBg } from './debtTypes'
-import { DebtHero, SectionHead } from './DebtVisuals'
+import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
+import { useDebtHistory } from './useDebtHistory'
+import { MONTHS_AR } from '../../lib/txFilters'
 
 const color = 'var(--color-expense)'
 
@@ -80,22 +82,6 @@ function EditViolationForm({
   )
 }
 
-const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
-
-/** مجموع الخصومات لآخر 6 أشهر (الأقدم أولًا) — للرسم البياني بالبطاقة. */
-function lastSixMonths(violations: { date: string; amount: number }[]): { label: string; total: number; current: boolean }[] {
-  const now = new Date()
-  return Array.from({ length: 6 }, (_, k) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - k), 1)
-    const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    return {
-      label: MONTHS_AR[d.getMonth()],
-      total: violations.filter((v) => v.date.startsWith(prefix)).reduce((s, v) => s + v.amount, 0),
-      current: k === 5,
-    }
-  })
-}
-
 /** محتوى تبويب "خصومات المخالفات" داخل شاشة الديون والسلف. */
 export function SalaryViolationsPanel() {
   const { salaryViolations, updateSalaryViolation, deleteSalaryViolation } = useData()
@@ -105,8 +91,9 @@ export function SalaryViolationsPanel() {
   const year = String(new Date().getFullYear())
   const sorted = [...salaryViolations].sort((a, b) => b.date.localeCompare(a.date))
   const yearTotal = salaryViolations.filter((v) => v.date.startsWith(year)).reduce((sum, v) => sum + v.amount, 0)
-  const months = lastSixMonths(salaryViolations)
-  const maxMonth = Math.max(1, ...months.map((m) => m.total))
+  const h = useDebtHistory()
+  /** مجموع السنة الآن، أو حتى الأسبوع المختار على السبارك. */
+  const shownAt = (scrub: number | null) => (scrub === null ? yearTotal : h.violations[scrub])
   const editingViolation = editingId ? salaryViolations.find((v) => v.id === editingId) : undefined
 
   return (
@@ -125,8 +112,9 @@ export function SalaryViolationsPanel() {
         onCancel={() => setConfirmDeleteId(null)}
       />
 
-      <DebtHero color={color}>
-        {editingViolation ? (
+      <DebtHero color={color} dates={h.dates} series={editingViolation ? undefined : [{ color, values: h.violations }]} chartHeight={84}>
+        {({ scrub, chart }) =>
+        editingViolation ? (
           <EditViolationForm
             initial={{ amount: editingViolation.amount, note: editingViolation.note }}
             onSave={(amount, note) => {
@@ -140,13 +128,15 @@ export function SalaryViolationsPanel() {
           <>
             <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">خصومات هذه السنة</div>
             <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="num text-[34px] font-bold" style={{ color: yearTotal > 0 ? color : 'var(--color-text-2)' }}>
-                {formatAmount(yearTotal)}
+              <span className="num text-[34px] font-bold" style={{ color: shownAt(scrub) > 0 ? color : 'var(--color-text-2)', textShadow: NUM_SHADOW }}>
+                {formatAmount(shownAt(scrub))}
               </span>
               <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
             </div>
             <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">
-              {sorted.length === 0 ? (
+              {scrub !== null ? (
+                'مجموع خصومات السنة حتى هذا الأسبوع'
+              ) : sorted.length === 0 ? (
                 'لا توجد خصومات مسجَّلة بعد'
               ) : (
                 <>
@@ -154,25 +144,19 @@ export function SalaryViolationsPanel() {
                 </>
               )}
             </div>
-            <div className="mt-4 flex items-end gap-2.5 px-1" style={{ height: 90 }} aria-label="الخصومات لآخر 6 أشهر">
-              {months.map((m) => (
-                <div key={m.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
-                  <span
-                    className="w-full"
-                    title={formatMoney(m.total)}
-                    style={{
-                      height: Math.max(3, (m.total / maxMonth) * 66),
-                      borderRadius: '8px 8px 4px 4px',
-                      background: m.current ? color : softBg(color, 35),
-                      opacity: m.total === 0 ? 0.5 : 1,
-                    }}
-                  />
-                  <span className="text-[10px] text-[var(--color-text-3)]">{m.label}</span>
+            {chart && (
+              // السبارك بدل أعمدة الأشهر: مجموع السنة تراكميًا، الأقدم يسارًا واليوم يمينًا.
+              <>
+                <div className="mt-1">{chart}</div>
+                <div dir="ltr" className="mt-1 flex justify-between text-[10px] text-[var(--color-text-3)]">
+                  <span>{MONTHS_AR[Number(h.dates[0].slice(5, 7)) - 1]}</span>
+                  <span>اليوم</span>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </>
-        )}
+        )
+        }
       </DebtHero>
 
       <div className="mx-1 mt-3 flex items-center gap-2.5 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[11.5px] text-[var(--color-text-2)]">

@@ -11,7 +11,10 @@ import { useScrolledPast } from '../../hooks/useScrolledPast'
 import { SheetHandle } from '../../components/SheetHandle'
 import { haptic } from '../../lib/haptics'
 import { DEBT_KINDS, DEBT_META, isDebtTab, softBg, type DebtKind, type DebtTab } from './debtTypes'
-import { DebtHero, DebtKindBubble, DebtKindIcon, DebtKindTag, SectionHead } from './DebtVisuals'
+import { DebtHero, DebtKindBubble, DebtKindIcon, DebtKindTag, NUM_SHADOW, SectionHead } from './DebtVisuals'
+import { useDebtHistory } from './useDebtHistory'
+import { SparkLines, type SparkSeries } from '../../components/SparkLines'
+import { hasHistory } from '../../lib/debtHistory'
 
 const TABS: DebtTab[] = ['overview', ...DEBT_KINDS]
 
@@ -190,11 +193,12 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: DebtTab) => void }) {
   const navigate = useNavigate()
   const { people, loanTransactions, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments } = useData()
   const s = useDebtSummary()
+  const h = useDebtHistory()
   const iOweAll = s.iOwePeople + s.advanceOutstanding + s.storeOutstanding
   const net = s.owedToMe - iOweAll
   const netColor = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
 
-  const cards: { kind: DebtKind; amount: ReactNode; sub: ReactNode }[] = [
+  const cards: { kind: DebtKind; amount: ReactNode; sub: ReactNode; spark: SparkSeries[] }[] = [
     {
       kind: 'people',
       amount: (
@@ -203,16 +207,22 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: DebtTab) => void }) {
         </span>
       ),
       sub: s.peopleCount === 0 ? 'لا يوجد أشخاص بعد' : `${s.peopleCount} أشخاص · ${s.openPeople} بحساب مفتوح`,
+      spark: [
+        { color: 'var(--color-owed-to)', values: h.owedToMe },
+        { color: 'var(--color-owed-by)', values: h.iOwePeople },
+      ],
     },
     {
       kind: 'advance',
       amount: formatAmount(s.advanceOutstanding),
       sub: s.advanceOutstanding > 0 ? 'تُخصم من راتبك القادم' : 'لا توجد سلفة قائمة',
+      spark: [{ color: DEBT_META.advance.color, values: h.advance }],
     },
     {
       kind: 'violations',
       amount: formatAmount(s.lastViolation?.amount ?? 0),
       sub: s.lastViolation ? `آخر خصم · ${formatDate(s.lastViolation.date)} · السنة ${formatAmount(s.violationsYear)}` : 'لا توجد خصومات',
+      spark: [{ color: DEBT_META.violations.color, values: h.violations }],
     },
     {
       kind: 'stores',
@@ -226,6 +236,7 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: DebtTab) => void }) {
             {s.overdueStores > 0 && <b style={{ color: 'var(--color-expense)' }}> · {s.overdueStores} متأخر</b>}
           </>
         ),
+      spark: [{ color: DEBT_META.stores.color, values: h.stores }],
     },
   ]
 
@@ -299,34 +310,50 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: DebtTab) => void }) {
 
   return (
     <>
-      <DebtHero color={netColor}>
-        <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">صافي موقفك</div>
-        <div className="mt-1 flex items-baseline gap-1.5" style={{ color: netColor }}>
-          <span dir="ltr" className="num text-[34px] font-bold">
-            {net < 0 ? '−' : ''}
-            {formatAmount(Math.abs(net))}
-          </span>
-          <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
-        </div>
-        <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">{net >= 0 ? 'لك أكثر مما عليك' : 'عليك أكثر مما لك'}</div>
-        <div className="my-3.5 flex h-2 gap-[3px] overflow-hidden rounded-full bg-white/[0.05]">
-          {s.owedToMe > 0 && <span className="h-full rounded-full bg-[var(--color-income)]" style={{ flexGrow: s.owedToMe }} />}
-          {iOweAll > 0 && <span className="h-full rounded-full bg-[var(--color-expense)]" style={{ flexGrow: iOweAll }} />}
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {[
-            { label: 'مستحق لك', value: s.owedToMe, color: 'var(--color-income)' },
-            { label: 'إجمالي عليك', value: iOweAll, color: 'var(--color-expense)' },
-          ].map((x) => (
-            <div key={x.label}>
-              <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                <span className="rounded-full" style={{ width: 7, height: 7, background: x.color }} />
-                {x.label}
+      <DebtHero
+        color={netColor}
+        dates={h.dates}
+        series={[
+          { color: 'var(--color-income)', values: h.owedToMe },
+          { color: 'var(--color-expense)', values: h.iOweAll },
+        ]}
+      >
+        {({ scrub, chart }) => {
+          const owed = scrub === null ? s.owedToMe : h.owedToMe[scrub]
+          const owe = scrub === null ? iOweAll : h.iOweAll[scrub]
+          const shownNet = owed - owe
+          const color = shownNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
+          return (
+            <>
+              <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">صافي موقفك</div>
+              <div className="mt-1 flex items-baseline gap-1.5" style={{ color, textShadow: NUM_SHADOW }}>
+                <span dir="ltr" className="num text-[34px] font-bold">
+                  {shownNet < 0 ? '−' : ''}
+                  {formatAmount(Math.abs(shownNet))}
+                </span>
+                <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
               </div>
-              <div className="num mt-0.5 text-[16px] font-bold">{formatAmount(x.value)}</div>
-            </div>
-          ))}
-        </div>
+              <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">{shownNet >= 0 ? 'لك أكثر مما عليك' : 'عليك أكثر مما لك'}</div>
+              {chart ? <div className="mb-1 mt-1">{chart}</div> : <div className="h-3.5" />}
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { label: 'مستحق لك', value: owed, color: 'var(--color-income)' },
+                  { label: 'إجمالي عليك', value: owe, color: 'var(--color-expense)' },
+                ].map((x) => (
+                  <div key={x.label}>
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+                      <span className="rounded-full" style={{ width: 7, height: 7, background: x.color }} />
+                      {x.label}
+                    </div>
+                    <div className="num mt-0.5 text-[16px] font-bold" style={{ textShadow: NUM_SHADOW }}>
+                      {formatAmount(x.value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )
+        }}
       </DebtHero>
 
       <SectionHead title="حسب النوع" />
@@ -339,7 +366,14 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: DebtTab) => void }) {
               onClick={() => onOpenTab(c.kind)}
               className="qb-press relative flex min-h-[138px] flex-col overflow-hidden rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 text-right"
             >
-              <span className="pointer-events-none absolute rounded-full" style={{ left: -30, bottom: -40, width: 110, height: 110, background: color, filter: 'blur(30px)', opacity: 0.16 }} />
+              {hasHistory(...c.spark.map((x) => x.values)) ? (
+                // سبارك صغير بلون النوع في المساحة الفارغة مقابل الأيقونة.
+                <span className="pointer-events-none absolute left-3.5 top-4 h-[38px] w-[46%]">
+                  <SparkLines series={c.spark} dots={false} opacity={0.9} />
+                </span>
+              ) : (
+                <span className="pointer-events-none absolute rounded-full" style={{ left: -30, bottom: -40, width: 110, height: 110, background: color, filter: 'blur(30px)', opacity: 0.16 }} />
+              )}
               <span className="relative">
                 <DebtKindBubble kind={c.kind} size={40} iconSize={19} />
               </span>

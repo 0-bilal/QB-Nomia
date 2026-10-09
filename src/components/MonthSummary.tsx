@@ -1,17 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useRef, type CSSProperties, type ReactNode } from 'react'
 import { formatAmount } from '../lib/format'
-import { haptic } from '../lib/haptics'
 import { MONTHS_AR } from '../lib/txFilters'
 import { useCountUp } from '../hooks/useCountUp'
 import { categoryColor } from '../lib/categoryStats'
 import type { CategoryShare, MonthFlow } from '../lib/monthFlow'
 import type { Category } from '../types'
 import { CategoryIconBox } from './CategoryVisual'
+import { SparkLines } from './SparkLines'
+import { useSparkScrub } from '../hooks/useSparkScrub'
 
 const INCOME = 'var(--color-income)'
 const EXPENSE = 'var(--color-expense)'
-const RIGHT_PAD = 14
-const CHART_PAD = 6
 
 /** مبلغ بعدّاد تصاعدي عند الظهور، والعملة بجانبه بخط أصغر. أثناء التمرير على السبارك يتغيّر فورًا. */
 function Amount({ value, hidden, instant, size, color }: { value: number; hidden: boolean; instant: boolean; size: number; color?: string }) {
@@ -57,48 +56,13 @@ function Column({ value, max, color, delay }: { value: number; max: number; colo
  */
 export function MonthFlowCard({ flow, hidden, monthIndex }: { flow: MonthFlow; hidden: boolean; monthIndex: number }) {
   const n = flow.income.length
-  const [scrub, setScrub] = useState<number | null>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const { scrub, handlers } = useSparkScrub(n, chartRef)
   const i = scrub ?? n - 1
   const income = flow.income[i] ?? 0
   const expense = flow.expense[i] ?? 0
   const net = income - expense
   const colMax = Math.max(income, expense)
-
-  const chartRef = useRef<HTMLDivElement>(null)
-  const drag = useRef({ active: false, x: 0, scrubbing: false })
-
-  function indexAt(clientX: number): number {
-    const r = chartRef.current!.getBoundingClientRect()
-    const idx = Math.round(((clientX - r.left) / Math.max(1, r.width - RIGHT_PAD)) * (n - 1))
-    return Math.max(0, Math.min(n - 1, idx))
-  }
-  function pick(idx: number | null) {
-    setScrub((prev) => {
-      if (idx !== null && idx !== prev) haptic('select')
-      return idx
-    })
-  }
-  function onDown(e: ReactPointerEvent) {
-    drag.current = { active: true, x: e.clientX, scrubbing: false }
-  }
-  function onMove(e: ReactPointerEvent) {
-    if (n < 2) return
-    if (e.pointerType === 'mouse' && !drag.current.active) return pick(indexAt(e.clientX))
-    const d = drag.current
-    if (!d.active) return
-    // يبدأ الاختيار بعد سحب أفقي واضح — حتى يبقى التمرير العمودي للشاشة طبيعيًا.
-    if (!d.scrubbing) {
-      if (Math.abs(e.clientX - d.x) < 6) return
-      d.scrubbing = true
-      e.currentTarget.setPointerCapture?.(e.pointerId)
-    }
-    pick(indexAt(e.clientX))
-  }
-  function onEnd() {
-    drag.current.active = false
-    drag.current.scrubbing = false
-    setScrub(null)
-  }
 
   const netColor = net < 0 ? EXPENSE : INCOME
   return (
@@ -110,15 +74,19 @@ export function MonthFlowCard({ flow, hidden, monthIndex }: { flow: MonthFlow; h
         background: 'radial-gradient(90% 70% at 100% 0%, rgba(255,255,255,0.06), transparent 60%), linear-gradient(165deg, var(--color-surface-elevated), var(--color-bg))',
         touchAction: 'pan-y',
       }}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onEnd}
-      onPointerCancel={onEnd}
-      onPointerLeave={onEnd}
+      {...handlers}
     >
       {/* السبارك ينتهي قبل العمودين مباشرة: نقطة «اليوم» تلتقي بالعمودين اللي يمثّلان قيمة اليوم. */}
       <div ref={chartRef} className="pointer-events-none absolute left-0 right-[92px] top-[52px] bottom-[50px]">
-        {n > 1 && <FlowSpark flow={flow} scrub={scrub} />}
+        {n > 1 && (
+          <SparkLines
+            series={[
+              { color: INCOME, values: flow.income },
+              { color: EXPENSE, values: flow.expense },
+            ]}
+            scrub={scrub}
+          />
+        )}
       </div>
       {/* تعتيم بيضاوي خلف الأرقام فقط حتى تبقى مقروءة فوق الخطوط */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(34% 42% at 62% 46%, rgba(18,18,21,0.82), rgba(18,18,21,0.4) 60%, transparent 100%)' }} />
@@ -174,90 +142,6 @@ export function MonthFlowCard({ flow, hidden, monthIndex }: { flow: MonthFlow; h
           </span>
         </div>
       </div>
-    </div>
-  )
-}
-
-/** الخطّان التراكميان: الزمن من اليسار (أول الشهر) لليمين (اليوم)، بمقياس مشترك. */
-function FlowSpark({ flow, scrub }: { flow: MonthFlow; scrub: number | null }) {
-  const boxRef = useRef<HTMLDivElement>(null)
-  const incRef = useRef<SVGPathElement>(null)
-  const expRef = useRef<SVGPathElement>(null)
-  const [size, setSize] = useState({ w: 0, h: 0 })
-
-  useLayoutEffect(() => {
-    const el = boxRef.current
-    if (!el) return
-    const update = () => setSize({ w: el.clientWidth, h: el.clientHeight })
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  const n = flow.income.length
-  const { w, h } = size
-  const top = Math.max(1, ...flow.income, ...flow.expense) * 1.08
-  const x = (i: number) => (i / (n - 1)) * w
-  const y = (v: number) => h - CHART_PAD - (v / top) * (h - CHART_PAD * 2)
-  const pathOf = (vals: number[]) => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('')
-  const incPath = pathOf(flow.income)
-  const expPath = pathOf(flow.expense)
-  const key = `${n}-${flow.income[n - 1]}-${flow.expense[n - 1]}-${w}`
-
-  // رسم الخطّين بالتتابع: الدخل ثم المصروف بعده بلحظة.
-  useEffect(() => {
-    if (!w) return
-    ;[incRef.current, expRef.current].forEach((line, k) => {
-      if (!line) return
-      const len = line.getTotalLength()
-      line.style.strokeDasharray = `${len}`
-      line.style.setProperty('--qb-len', `${len}`)
-      line.style.animation = 'none'
-      void line.getBoundingClientRect()
-      line.style.animation = `qb-line-draw 1.3s cubic-bezier(0.22,1,0.36,1) ${250 + k * 160}ms both`
-    })
-  }, [key, w])
-
-  const dot = (vals: number[], idx: number, color: string, pulse: boolean, delay: number) => (
-    <g key={`${color}-${idx}-${pulse}`} style={{ animation: pulse ? `qb-pop 500ms var(--ease-spring) ${delay}ms both` : undefined, transformOrigin: `${x(idx)}px ${y(vals[idx])}px` }}>
-      {pulse && <circle cx={x(idx)} cy={y(vals[idx])} r={4} fill={color} opacity={0.5} style={{ animation: `qb-dot-pulse 1.8s ease-out ${delay + 400}ms infinite` }} />}
-      <circle cx={x(idx)} cy={y(vals[idx])} r={pulse ? 3.5 : 4.5} fill={pulse ? color : '#fff'} stroke={pulse ? 'var(--color-bg)' : color} strokeWidth={pulse ? 2 : 2.5} />
-    </g>
-  )
-
-  return (
-    <div ref={boxRef} className="absolute inset-0" aria-hidden="true">
-      {w > 0 && (
-        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="absolute inset-0 overflow-visible">
-          <defs>
-            <linearGradient id="qb-flow-inc" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="rgba(62,224,143,0.2)" />
-              <stop offset="1" stopColor="rgba(62,224,143,0)" />
-            </linearGradient>
-            <linearGradient id="qb-flow-exp" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="rgba(255,95,109,0.2)" />
-              <stop offset="1" stopColor="rgba(255,95,109,0)" />
-            </linearGradient>
-          </defs>
-          <path key={`ai-${key}`} d={`${incPath}L${w},${h}L0,${h}Z`} fill="url(#qb-flow-inc)" style={{ animation: 'fade-in 900ms 700ms both' }} />
-          <path key={`ae-${key}`} d={`${expPath}L${w},${h}L0,${h}Z`} fill="url(#qb-flow-exp)" style={{ animation: 'fade-in 900ms 850ms both' }} />
-          <path ref={incRef} d={incPath} fill="none" stroke={INCOME} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          <path ref={expRef} d={expPath} fill="none" stroke={EXPENSE} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          {scrub === null ? (
-            <>
-              {dot(flow.income, n - 1, INCOME, true, 1300)}
-              {dot(flow.expense, n - 1, EXPENSE, true, 1450)}
-            </>
-          ) : (
-            <>
-              <line x1={x(scrub)} x2={x(scrub)} y1={-8} y2={h + 8} stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
-              {dot(flow.income, scrub, INCOME, false, 0)}
-              {dot(flow.expense, scrub, EXPENSE, false, 0)}
-            </>
-          )}
-        </svg>
-      )}
     </div>
   )
 }
