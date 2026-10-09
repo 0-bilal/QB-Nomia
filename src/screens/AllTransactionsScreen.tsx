@@ -271,10 +271,15 @@ export function AllTransactionsScreen() {
   const { recentActivity, accounts, categories, transactions, deleteTransactions, setTransactionsCategory, categorySpentThisMonth } = useData()
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
-  // ?category=<اسم> — يفتح القائمة مفلترة على فئة واحدة (من تفاصيل الفئة بشاشة الفئات).
+  // ?category=<اسم>&period=month|last — يفتح القائمة مفلترة على فئة واحدة وفترتها (من تفاصيل الفئة بشاشة الفئات).
   const [filters, setFilters] = useState<TxFilters>(() => {
     const category = searchParams.get('category')
-    return category ? { ...EMPTY_TX_FILTERS, categories: [category] } : EMPTY_TX_FILTERS
+    const period = searchParams.get('period')
+    return {
+      ...EMPTY_TX_FILTERS,
+      ...(category ? { categories: [category] } : {}),
+      ...(period === 'month' || period === 'last' ? { period } : {}),
+    }
   })
   const [sheetOpen, setSheetOpen] = useState(false)
   const [limit, setLimit] = useState(PAGE)
