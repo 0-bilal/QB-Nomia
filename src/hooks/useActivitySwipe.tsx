@@ -13,7 +13,7 @@ import { PencilIcon, RepeatIcon, TrashIcon, type SwipeAction } from '../componen
  */
 export function useActivitySwipe() {
   const navigate = useNavigate()
-  const { transactions, deleteTransaction } = useData()
+  const { transactions, deleteTransaction, contributions, deleteContribution } = useData()
 
   return function swipeFor(item: ActivityItem): { leftSwipe?: SwipeAction; rightSwipe?: SwipeAction } {
     const isLoan = item.kind === 'loan-given' || item.kind === 'loan-received'
@@ -24,6 +24,24 @@ export function useActivitySwipe() {
           icon: <PencilIcon />,
           color: 'var(--color-transfer)',
           onTrigger: () => navigate(activityEditPath(item)),
+        },
+      }
+    }
+
+    // المساهمة (دفعها غيرك): حذف مع تراجع فقط — «كرّرها» لا يناسبها.
+    if (item.kind === 'contribution') {
+      const c = contributions.find((x) => x.id === item.id)
+      if (!c) return {}
+      return {
+        leftSwipe: {
+          label: 'حذف',
+          icon: <TrashIcon />,
+          color: 'var(--color-expense)',
+          onTrigger: () => {
+            deleteContribution(c.id)
+            haptic('warning')
+            showUndoToast('تم حذف المساهمة', (data) => data.addContribution({ personId: c.personId, amount: c.amount, date: c.date, categoryId: c.categoryId, note: c.note }))
+          },
         },
       }
     }

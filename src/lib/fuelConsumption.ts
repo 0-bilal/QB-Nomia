@@ -100,6 +100,10 @@ export interface VehicleCostStats {
   drivenKm: number
   /** التكلفة الإجمالية (وقود + زيت) مقسومة على المسافة المقطوعة منذ أول قراءة عداد مسجَّلة — null لو ما فيه مسافة كافية أو تكلفة مسجَّلة. */
   costPerKm: number | null
+  /** وقود دفعه أشخاص آخرون (مساهمات) — ضمن fuelCostTotal. */
+  paidByOthers: number
+  /** تكلفة الكيلومتر مما دفعته أنت فقط (بدون المساهمات) — null بنفس شروط costPerKm. */
+  ownCostPerKm: number | null
 }
 
 /**
@@ -116,5 +120,8 @@ export function computeVehicleCostStats(fuelLogs: FuelLog[], oilChanges: OilChan
   const drivenKm = odometerReadings.length >= 2 ? Math.max(...odometerReadings) - Math.min(...odometerReadings) : 0
   const costPerKm = drivenKm > 0 && totalCost > 0 ? totalCost / drivenKm : null
 
-  return { fuelCostTotal, oilCostTotal, totalCost, drivenKm, costPerKm }
+  const paidByOthers = fuelLogs.reduce((s, l) => s + (l.paidByPersonId ? (l.cost ?? 0) : 0), 0)
+  const ownCostPerKm = costPerKm !== null ? (totalCost - paidByOthers) / drivenKm : null
+
+  return { fuelCostTotal, oilCostTotal, totalCost, drivenKm, costPerKm, paidByOthers, ownCostPerKm }
 }

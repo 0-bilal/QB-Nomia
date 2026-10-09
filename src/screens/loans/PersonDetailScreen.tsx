@@ -1,8 +1,11 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
+import { ToggleRow } from '../../components/ToggleRow'
+import { CategoryIconBox } from '../../components/CategoryVisual'
+import { haptic } from '../../lib/haptics'
 import { Avatar } from '../../components/Avatar'
 import { ScreenScroll } from '../../components/ScreenScroll'
-import { formatDate, formatSigned } from '../../lib/format'
+import { formatDate, formatMoney, formatSigned } from '../../lib/format'
 import { ScreenHeader } from '../../components/ScreenHeader'
 import { BigAmount } from '../../components/BigAmount'
 import { Badge, EmptyState, HeroCard, IconBubble, ListGroup, ListItem, SectionTitle, TintButton } from '../../components/ui'
@@ -10,7 +13,7 @@ import { rise } from '../../lib/motion'
 
 export function PersonDetailScreen() {
   const { personId } = useParams<{ personId: string }>()
-  const { people, personBalance, personTransactions, accounts } = useData()
+  const { people, personBalance, personTransactions, accounts, contributions, categories, setPersonContributor } = useData()
   const navigate = useNavigate()
 
   const person = people.find((p) => p.id === personId)
@@ -29,6 +32,13 @@ export function PersonDetailScreen() {
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? ''
 
   const today = new Date().toISOString().slice(0, 10)
+  // المساهمات: مصاريف دفعها عنك — للتذكّر فقط، لا تدخل في رصيد السلف.
+  const theirContributions = contributions
+    .filter((c) => c.personId === person.id)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+  const year = today.slice(0, 4)
+  const yearContributions = theirContributions.filter((c) => c.date.startsWith(year))
+  const yearTotal = yearContributions.reduce((s, c) => s + c.amount, 0)
 
   return (
     <ScreenScroll
@@ -91,6 +101,63 @@ export function PersonDetailScreen() {
           استلم منه
         </TintButton>
       </div>
+
+      <div className="qb-rise" style={rise(2)}>
+        <ToggleRow
+          icon={
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.8 8.6a5 5 0 0 0-8.8-3.2 5 5 0 0 0-8.8 3.2c0 5.4 8.8 10.4 8.8 10.4s8.8-5 8.8-10.4z" />
+            </svg>
+          }
+          label="مساهم"
+          desc={person.isContributor ? 'يظهر عند اختيار الحساب لتسجيل مصروف دفعه عنك' : 'فعّله لتسجّل مصاريف دفعها عنك (للتذكّر فقط)'}
+          enabled={!!person.isContributor}
+          onToggle={() => {
+            haptic('tick')
+            setPersonContributor(person.id, !person.isContributor)
+          }}
+          className="mb-6"
+        />
+      </div>
+
+      {theirContributions.length > 0 && (
+        <div className="qb-rise mb-6" style={rise(3)}>
+          <div className="mb-2.5 flex items-baseline justify-between px-1">
+            <span className="text-[14px] font-semibold">المساهمات</span>
+            <span className="text-[11px] text-[var(--color-text-3)]">للتذكّر · لا تدخل في الرصيد</span>
+          </div>
+          <div className="qb-card p-3.5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[14px] bg-white/[0.06] text-[var(--color-text)]">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.8 8.6a5 5 0 0 0-8.8-3.2 5 5 0 0 0-8.8 3.2c0 5.4 8.8 10.4 8.8 10.4s8.8-5 8.8-10.4z" />
+                </svg>
+              </span>
+              <div>
+                <div className="text-[11.5px] text-[var(--color-text-3)]">دفع عنك هذه السنة</div>
+                <div className="num text-[20px] font-bold">
+                  {formatMoney(yearTotal)}
+                  <span className="font-sans text-[11px] font-medium text-[var(--color-text-3)]"> · {yearContributions.length} {yearContributions.length === 1 ? 'مرة' : 'مرات'}</span>
+                </div>
+              </div>
+            </div>
+            <div className="mb-1 mt-3 border-t border-[var(--color-border)]" />
+            {theirContributions.slice(0, 10).map((c) => {
+              const category = c.categoryId ? categories.find((x) => x.id === c.categoryId) : undefined
+              return (
+                <button key={c.id} onClick={() => navigate(`/add/transaction/${c.id}`)} className="qb-press flex w-full items-center gap-2.5 py-2 text-right">
+                  {category ? <CategoryIconBox category={category} size={34} radius={12} iconSize={16} /> : <span className="h-[34px] w-[34px] rounded-[12px] bg-white/[0.06]" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-semibold">{c.note?.trim() || category?.name || 'مصروف'}</div>
+                    <div className="num text-[10.5px] text-[var(--color-text-3)]">{formatDate(c.date)}</div>
+                  </div>
+                  <span className="num flex-shrink-0 text-[13px] font-bold">{formatMoney(c.amount)}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <SectionTitle title="سجل الحركات" />
       {txns.length === 0 ? (

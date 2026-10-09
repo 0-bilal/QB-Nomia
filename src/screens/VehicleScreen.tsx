@@ -108,6 +108,7 @@ export function VehicleScreen() {
     setFuelTankCapacityL,
     fuelLogs,
     accounts,
+    people,
   } = useData()
 
   const [activeType, setActiveType] = useState<OperationType>('oil')
@@ -305,12 +306,29 @@ export function VehicleScreen() {
 
       {costStats.costPerKm !== null && (
         <div className="qb-rise mb-6 grid grid-cols-2 gap-3" style={rise(1)}>
-          <StatTile
-            className="col-span-2"
-            label={`تكلفة الكيلومتر (آخر ${Math.round(costStats.drivenKm).toLocaleString('en-US')} كم)`}
-            value={`${costStats.costPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم`}
-            color={vColor}
-          />
+          {costStats.paidByOthers > 0 && costStats.ownCostPerKm !== null ? (
+            // فيه مساهمات: رقمان — اللي دفعته أنت، والتكلفة الحقيقية للسيارة.
+            <>
+              <StatTile
+                label={`اللي دفعته أنت (آخر ${Math.round(costStats.drivenKm).toLocaleString('en-US')} كم)`}
+                value={`${costStats.ownCostPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم`}
+                color={vColor}
+              />
+              <StatTile
+                label="التكلفة الحقيقية للسيارة"
+                value={`${costStats.costPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم`}
+                color={vColor}
+                sub={`منها ${formatMoney(costStats.paidByOthers)} دفعها غيرك`}
+              />
+            </>
+          ) : (
+            <StatTile
+              className="col-span-2"
+              label={`تكلفة الكيلومتر (آخر ${Math.round(costStats.drivenKm).toLocaleString('en-US')} كم)`}
+              value={`${costStats.costPerKm.toLocaleString('en-US', { maximumFractionDigits: 2 })} ر.س/كم`}
+              color={vColor}
+            />
+          )}
           <StatTile label="الوقود" value={formatMoney(costStats.fuelCostTotal)} color="var(--color-fuel)" icon={<FuelIcon size={17} />} />
           <StatTile label="الزيت" value={formatMoney(costStats.oilCostTotal)} color={vColor} icon={<CarIcon size={17} />} sub={`الإجمالي ${formatMoney(costStats.totalCost)}`} />
         </div>
@@ -329,6 +347,7 @@ export function VehicleScreen() {
               gap ? `قطعت ${Math.round(gap.drivenKm).toLocaleString('en-US')} كم` : '',
               gap && gap.kmPerLiter !== null ? `${gap.kmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })} كم/لتر` : '',
               entry.log.cost && account ? account.name : '',
+              entry.kind === 'fuel' && entry.log.paidByPersonId ? `دفعها ${people.find((p) => p.id === entry.log.paidByPersonId)?.name ?? 'شخص'}` : '',
             ]
               .filter(Boolean)
               .join(' · ')

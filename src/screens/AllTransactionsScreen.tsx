@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useData, type ActivityItem } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { ActivityIcon } from '../components/ActivityIcon'
+import { ActivityAmount, ActivityIcon } from '../components/ActivityIcon'
 import { CategoryIconBox } from '../components/CategoryVisual'
 import { CategoryPickerSheet } from '../components/CategoryPickerSheet'
 import { CalendarIcon, TxFilterSheet } from '../components/TxFilterSheet'
@@ -12,7 +12,7 @@ import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { activityEditPath } from '../lib/activityNav'
 import { mostUsedCategories } from '../lib/categoryStats'
-import { formatAmount, formatSigned } from '../lib/format'
+import { formatAmount } from '../lib/format'
 import { dayLabel, localIso } from '../lib/homeFeed'
 import { haptic } from '../lib/haptics'
 import { notify } from '../lib/notify'
@@ -300,6 +300,8 @@ export function AllTransactionsScreen() {
   const noCat = useMemo(() => filterActivity(all, filters, query, today, { ignoreCategory: true }), [all, filters, query, today])
   const filtered = useMemo(() => sortActivity(filterActivity(all, filters, query, today), filters.sort), [all, filters, query, today])
   const totals = useMemo(() => totalsOf(filtered), [filtered])
+  // مساهمات (دفعها غيرك) ضمن النتائج — خارج المجاميع، تُذكر بسطر صغير.
+  const contributedTotal = useMemo(() => filtered.reduce((s, i) => s + (i.kind === 'contribution' ? (i.paidAmount ?? 0) : 0), 0), [filtered])
 
   // بطاقات الفئات: مجموع كل فئة ضمن باقي الفلاتر — الأعلى إنفاقًا أولًا.
   const categoryTiles = useMemo(() => {
@@ -375,18 +377,18 @@ export function AllTransactionsScreen() {
     setSelected(new Set())
   }
   const selItems = [...selected].map((id) => byId.get(id)).filter((x): x is ActivityItem => !!x)
-  const selTxnIds = selItems.filter((i) => i.kind !== 'loan-given' && i.kind !== 'loan-received').map((i) => i.id)
+  const selTxnIds = selItems.filter((i) => i.kind !== 'loan-given' && i.kind !== 'loan-received' && i.kind !== 'contribution').map((i) => i.id)
   const selExpenseIds = selItems.filter((i) => i.kind === 'expense').map((i) => i.id)
 
   function bulkDelete() {
     if (selTxnIds.length === 0) {
-      notify('info', 'حركات السلف تُحذف من شاشة الشخص')
+      notify('info', 'السلف والمساهمات تُحذف من صفحتها أو بالسحب')
       return
     }
     const removed = deleteTransactions(selTxnIds)
     haptic('warning')
     const skipped = selItems.length - removed.length
-    showUndoToast(skipped > 0 ? `حُذفت ${removed.length} · تُرك ${skipped} سلف` : `تم حذف ${removed.length} ${removed.length === 1 ? 'حركة' : 'حركات'}`, (data) => data.restoreTransactions(removed))
+    showUndoToast(skipped > 0 ? `حُذفت ${removed.length} · تُرك ${skipped} سلف ومساهمات` : `تم حذف ${removed.length} ${removed.length === 1 ? 'حركة' : 'حركات'}`, (data) => data.restoreTransactions(removed))
     exitSelect()
   }
 
@@ -405,7 +407,7 @@ export function AllTransactionsScreen() {
   }
 
   function renderRow(item: ActivityItem, i: number) {
-    const category = item.kind === 'expense' && item.categoryId ? categories.find((c) => c.id === item.categoryId) : undefined
+    const category = (item.kind === 'expense' || item.kind === 'contribution') && item.categoryId ? categories.find((c) => c.id === item.categoryId) : undefined
     const sel = selected.has(item.id)
     const row = (
       <button
@@ -449,9 +451,7 @@ export function AllTransactionsScreen() {
             {!byDate && <span className="num"> · {item.date.slice(5).replace('-', '/')}</span>}
           </div>
         </div>
-        <div dir="ltr" className="num flex-shrink-0 text-[14px] font-bold" style={{ color: item.amount > 0 ? 'var(--color-income)' : 'var(--color-text)' }}>
-          {formatSigned(item.amount)}
-        </div>
+        <ActivityAmount item={item} />
       </button>
     )
     const border = i > 0 ? 'border-t qb-divider' : ''
@@ -744,6 +744,11 @@ export function AllTransactionsScreen() {
               </div>
             ))}
           </div>
+          {contributedTotal > 0 && (
+            <div className="mt-2 text-[10.5px] text-[var(--color-text-3)]">
+              لا يشمل <span className="num">{formatAmount(contributedTotal)}</span> ر.س دفعها غيرك
+            </div>
+          )}
           {totals.income + totals.expense > 0 && (
             <div className="mt-2.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full bg-white/[0.05]">
               <span style={{ flex: totals.income, background: 'var(--color-income)' }} />

@@ -152,3 +152,16 @@ describe('computeFuelGaps', () => {
     expect(gaps.size).toBe(0)
   })
 })
+
+describe('computeVehicleCostStats — المساهمات', () => {
+  it('يفصل ما دفعه غيرك ويحسب تكلفة الكيلومتر برقمين', () => {
+    const fuelLogs = [log('f1', 1000, 40, true), log('f2', 1500, 40, true)]
+    fuelLogs[0].cost = 100
+    fuelLogs[1].cost = 50
+    fuelLogs[1].paidByPersonId = 'p1'
+    const stats = computeVehicleCostStats(fuelLogs, [])
+    expect(stats.paidByOthers).toBe(50)
+    expect(stats.costPerKm).toBeCloseTo(0.3)
+    expect(stats.ownCostPerKm).toBeCloseTo(0.2)
+  })
+})

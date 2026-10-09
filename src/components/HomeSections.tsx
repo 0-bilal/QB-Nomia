@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ActivityIcon } from './ActivityIcon'
+import { ActivityAmount, ActivityIcon } from './ActivityIcon'
 import { CategoryIconBox } from './CategoryVisual'
 import { SwipeableRow, type SwipeAction } from './SwipeableRow'
 import { formatAmount, formatDate, formatSigned } from '../lib/format'
@@ -165,9 +165,7 @@ export function GroupedActivity({
                           {item.subtitle}
                         </div>
                       </div>
-                      <div dir="ltr" className="num flex-shrink-0 text-[14px] font-bold" style={{ color: item.amount > 0 ? 'var(--color-income)' : 'var(--color-text)' }}>
-                        {hidden ? '•••' : formatSigned(item.amount)}
-                      </div>
+                      <ActivityAmount item={item} hidden={hidden} />
                     </button>
                   </SwipeableRow>
                 )

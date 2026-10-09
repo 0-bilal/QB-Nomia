@@ -8,6 +8,8 @@ import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { formatMoney } from '../lib/format'
+import { colorFor } from '../components/Avatar'
+import { ContributorPicker } from '../components/ContributorPicker'
 
 type FieldKey = 'odometer' | 'liters' | 'cost'
 
@@ -20,7 +22,7 @@ export function LogVehicleScreen() {
   const navigate = useNavigate()
   const { type: rawType } = useParams<{ type: string }>()
   const type: 'oil' | 'fuel' = rawType === 'fuel' ? 'fuel' : 'oil'
-  const { accounts, vehicleOdometerKm, logOilChange, logFuel } = useData()
+  const { accounts, people, vehicleOdometerKm, logOilChange, logFuel } = useData()
 
   const [odometerKm, setOdometerKm] = useState(vehicleOdometerKm !== null ? String(vehicleOdometerKm) : '')
   const [liters, setLiters] = useState('')
@@ -29,13 +31,16 @@ export function LogVehicleScreen() {
   const [activeField, setActiveField] = useState<FieldKey>('odometer')
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
   const [accountSheetOpen, setAccountSheetOpen] = useState(false)
+  // تعبئة دفعها شخص آخر (مساهمة): التكلفة تُحفظ بدون خصم من أي حساب.
+  const [paidBy, setPaidBy] = useState<string | null>(null)
+  const payer = type === 'fuel' && paidBy ? people.find((p) => p.id === paidBy) : undefined
 
   const numericOdometer = Number(odometerKm)
   const numericLiters = Number(liters)
   const numericCost = Number(cost)
   const hasCost = numericCost > 0
   const selectedAccount = accounts.find((a) => a.id === accountId)
-  const canSave = numericOdometer > 0 && (type !== 'fuel' || numericLiters > 0) && (!hasCost || !!accountId)
+  const canSave = numericOdometer > 0 && (type !== 'fuel' || numericLiters > 0) && (!hasCost || !!accountId || !!payer)
 
   function handleSave() {
     if (!canSave) return
@@ -47,7 +52,8 @@ export function LogVehicleScreen() {
         liters: numericLiters,
         isFullTank,
         cost: hasCost ? numericCost : undefined,
-        accountId: hasCost ? accountId : undefined,
+        accountId: hasCost && !payer ? accountId : undefined,
+        paidByPersonId: hasCost && payer ? payer.id : undefined,
       })
     }
     navigate('/vehicle', { replace: true })
@@ -165,14 +171,26 @@ export function LogVehicleScreen() {
                 ),
               }),
             )}
-            selectedId={accountId}
+            selectedId={payer ? undefined : accountId}
             onSelect={(v) => {
               setAccountId(v)
+              setPaidBy(null)
               setAccountSheetOpen(false)
             }}
             onClose={() => setAccountSheetOpen(false)}
             emptyLabel="لا توجد حسابات بعد"
             footer={
+              <>
+              {type === 'fuel' && (
+                <ContributorPicker
+                  people={people.filter((p) => p.isContributor)}
+                  selectedId={paidBy}
+                  onPick={(pid) => {
+                    setPaidBy(pid)
+                    setAccountSheetOpen(false)
+                  }}
+                />
+              )}
               <button
                 onClick={() => {
                   setAccountSheetOpen(false)
@@ -183,9 +201,21 @@ export function LogVehicleScreen() {
               >
                 + إضافة حساب جديد
               </button>
+              </>
             }
           />
 
+          {payer ? (
+            <PickerField
+              label="من دفع؟"
+              icon={<span className="text-[15px] font-bold">{payer.name.trim().charAt(0) || '؟'}</span>}
+              iconColor={colorFor(payer.name)}
+              iconBg={`${colorFor(payer.name)}22`}
+              title={`دفعها ${payer.name}`}
+              subtitle="لن تُخصم من أي حساب · تظهر في «المساهمات»"
+              onClick={() => setAccountSheetOpen(true)}
+            />
+          ) : (
           <PickerField
             label="يُخصم من حساب"
             icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
@@ -201,8 +231,9 @@ export function LogVehicleScreen() {
                 </span>
               ) : undefined
             }
-            onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
+            onClick={() => (accounts.length === 0 && !(type === 'fuel' && people.some((p) => p.isContributor)) ? navigate('/accounts/new') : setAccountSheetOpen(true))}
           />
+          )}
         </div>
       )}
     </ScreenScroll>

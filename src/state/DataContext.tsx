@@ -16,6 +16,7 @@ import type {
   Commitment,
   CommitmentIntervalUnit,
   CommitmentStatus,
+  Contribution,
   FuelLog,
   IncomeSource,
   LoanDirection,
@@ -60,6 +61,7 @@ export const SALARY_INCOME_SOURCE_ID = 'src-salary'
 const SALARY_VIOLATIONS_KEY = 'qbnomia.salaryViolations'
 const STORE_DEBTS_KEY = 'qbnomia.storeDebts'
 const STORE_DEBT_PAYMENTS_KEY = 'qbnomia.storeDebtPayments'
+const CONTRIBUTIONS_KEY = 'qbnomia.contributions'
 /** فئة مخصَّصة لحركات سداد ديون المتاجر — نفس مبدأ REQUIRED_DEFAULT_CATEGORIES. */
 const STORE_DEBT_CATEGORY_ID = 'cat-store-debt'
 
@@ -185,6 +187,15 @@ interface AddPersonInput {
   name: string
   phone?: string
   note?: string
+  isContributor?: boolean
+}
+
+export interface ContributionInput {
+  personId: string
+  amount: number
+  date: string
+  categoryId?: string
+  note?: string
 }
 
 interface AddLoanInput {
@@ -273,7 +284,8 @@ interface AddAccountInput {
 export interface ActivityItem {
   id: string
   date: string
-  kind: 'expense' | 'income' | 'transfer' | 'loan-given' | 'loan-received'
+  /** contribution: مصروف دفعه شخص آخر — amount = 0 دائمًا (لا يدخل في أي مجموع)، والمبلغ الفعلي في paidAmount. */
+  kind: 'expense' | 'income' | 'transfer' | 'loan-given' | 'loan-received' | 'contribution'
   title: string
   subtitle: string
   amount: number
@@ -284,6 +296,8 @@ export interface ActivityItem {
   personId?: string
   note?: string
   createdAt?: string
+  /** مبلغ المساهمة (للعرض فقط). */
+  paidAmount?: number
 }
 
 /** يختم وقت الإنشاء على العناصر الجديدة فقط (اللي ما كانت بالقائمة السابقة) — مصدر واحد بدل تكراره بكل دالة إضافة. */
@@ -335,7 +349,7 @@ interface DataContextValue {
   fuelTankCapacityL: number | null
   setFuelTankCapacityL: (liters: number) => void
   fuelLogs: FuelLog[]
-  logFuel: (input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string }) => void
+  logFuel: (input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string; paidByPersonId?: string }) => void
   salaryAdvances: SalaryAdvance[]
   logSalaryAdvance: (input: { amount: number; accountId: string }) => void
   updateSalaryAdvance: (id: string, input: { amount: number; accountId: string }) => void
@@ -345,6 +359,11 @@ interface DataContextValue {
   deleteSalaryViolation: (id: string) => void
   storeDebts: StoreDebt[]
   storeDebtPayments: StoreDebtPayment[]
+  contributions: Contribution[]
+  addContribution: (input: ContributionInput) => Contribution
+  updateContribution: (id: string, input: ContributionInput) => void
+  deleteContribution: (id: string) => void
+  setPersonContributor: (id: string, isContributor: boolean) => void
   addStoreDebt: (input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) => StoreDebt
   updateStoreDebt: (id: string, input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) => void
   deleteStoreDebt: (id: string) => void
@@ -438,6 +457,7 @@ export interface DataSnapshot {
   salaryViolations?: SalaryViolationDeduction[]
   storeDebts?: StoreDebt[]
   storeDebtPayments?: StoreDebtPayment[]
+  contributions?: Contribution[]
   /** الملف الشخصي (الاسم، المخاطبة، تاريخ الميلاد...) — محفوظ خارج حالة البيانات (lib/profile). */
   profile?: UserProfile | null
 }
@@ -550,6 +570,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [salaryViolations, setSalaryViolations] = useState<SalaryViolationDeduction[]>(() => loadJSON(SALARY_VIOLATIONS_KEY, []))
   const [storeDebts, setStoreDebts] = useState<StoreDebt[]>(() => loadJSON(STORE_DEBTS_KEY, []))
   const [storeDebtPayments, setStoreDebtPayments] = useState<StoreDebtPayment[]>(() => loadJSON(STORE_DEBT_PAYMENTS_KEY, []))
+  const [contributions, setContributions] = useState<Contribution[]>(() => loadJSON(CONTRIBUTIONS_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -637,6 +658,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setStoreDebtPayments(next)
     saveJSON(STORE_DEBT_PAYMENTS_KEY, next)
   }
+  function persistContributions(next: Contribution[]) {
+    setContributions(next)
+    saveJSON(CONTRIBUTIONS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -676,9 +701,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       salaryViolations,
       storeDebts,
       storeDebtPayments,
+      contributions,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -820,7 +846,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // حركات السلف بمصفوفة منفصلة، فبدون وقت الإنشاء كانت تنزل دائمًا تحت كل حركات نفس اليوم
       // وتختفي من "آخر الحركات" — compareActivityDesc يرتّب بالتاريخ ثم بوقت الإنشاء.
-      return [...fromTxns, ...fromLoans].sort(compareActivityDesc)
+      // المساهمات: تظهر في القوائم للتذكّر، بمبلغ صفر حتى لا تدخل في أي مجموع أو رصيد.
+      const fromContributions: ActivityItem[] = contributions.map((c) => ({
+        id: c.id,
+        date: c.date,
+        kind: 'contribution',
+        title: categoryName(c.categoryId),
+        subtitle: `دفعها ${personName(c.personId)}`,
+        amount: 0,
+        paidAmount: c.amount,
+        color: 'var(--color-text-2)',
+        accountIds: [],
+        categoryId: c.categoryId,
+        personId: c.personId,
+        note: c.note,
+        createdAt: c.createdAt,
+      }))
+
+      return [...fromTxns, ...fromLoans, ...fromContributions].sort(compareActivityDesc)
     }
 
     function recentActivity(limit = 5): ActivityItem[] {
@@ -1120,7 +1163,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fuelTankCapacityL,
       setFuelTankCapacityL: persistFuelTankCapacityL,
       fuelLogs,
-      logFuel(input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string }) {
+      logFuel(input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string; paidByPersonId?: string }) {
+        const paidByOther = !!input.paidByPersonId
         const log: FuelLog = {
           id: makeId(),
           date: new Date().toISOString().slice(0, 10),
@@ -1128,13 +1172,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
           liters: input.liters,
           isFullTank: input.isFullTank,
           cost: input.cost,
-          accountId: input.accountId,
+          accountId: paidByOther ? undefined : input.accountId,
+          paidByPersonId: input.paidByPersonId,
         }
         persistFuelLogs([log, ...fuelLogs])
+        // دفعها شخص آخر: تُسجَّل مساهمة للتذكّر فقط — بدون مصروف ولا خصم من أي حساب.
+        if (paidByOther && input.cost) {
+          const c: Contribution = {
+            id: makeId(),
+            personId: input.paidByPersonId!,
+            amount: input.cost,
+            date: log.date,
+            categoryId: 'cat-fuel',
+            note: 'تعبئة وقود',
+            createdAt: new Date().toISOString(),
+            fuelLogId: log.id,
+          }
+          persistContributions([c, ...contributions])
+        }
         // تعبئة الوقود أكثر تكرارًا من تغيير الزيت، فنحدّث عداد السيارة العام
         // منها أيضًا — يبقي حساب ممشى تغيير الزيت محدَّثًا بدون إدخال منفصل.
         persistVehicleOdometerKm(input.odometerKm)
-        if (input.cost && input.accountId) {
+        if (!paidByOther && input.cost && input.accountId) {
           const txn: Transaction = {
             id: makeId(),
             type: 'expense',
@@ -1333,6 +1392,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           phone: input.phone?.trim() || undefined,
           note: input.note?.trim() || undefined,
           createdAt: new Date().toISOString(),
+          isContributor: input.isContributor || undefined,
         }
         persistPeople([person, ...people])
         return person
@@ -1341,7 +1401,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistPeople(
           people.map((p) =>
             p.id === id
-              ? { ...p, name: input.name.trim(), phone: input.phone?.trim() || undefined, note: input.note?.trim() || undefined }
+              ? {
+                  ...p,
+                  name: input.name.trim(),
+                  phone: input.phone?.trim() || undefined,
+                  note: input.note?.trim() || undefined,
+                  isContributor: input.isContributor === undefined ? p.isContributor : input.isContributor || undefined,
+                }
               : p,
           ),
         )
@@ -1353,7 +1419,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
         for (const t of theirLoans) nextAccounts = withLoanEffect(nextAccounts, t, -1)
         persistAccounts(nextAccounts)
         persistLoans(loanTransactions.filter((t) => t.personId !== id))
+        persistContributions(contributions.filter((c) => c.personId !== id))
         persistPeople(people.filter((p) => p.id !== id))
+      },
+      setPersonContributor(id: string, isContributor: boolean) {
+        persistPeople(people.map((p) => (p.id === id ? { ...p, isContributor: isContributor || undefined } : p)))
+      },
+      contributions,
+      addContribution(input: ContributionInput) {
+        const c: Contribution = {
+          id: makeId(),
+          personId: input.personId,
+          amount: input.amount,
+          date: input.date,
+          categoryId: input.categoryId,
+          note: input.note?.trim() || undefined,
+          createdAt: new Date().toISOString(),
+        }
+        persistContributions([c, ...contributions])
+        return c
+      },
+      updateContribution(id: string, input: ContributionInput) {
+        persistContributions(
+          contributions.map((c) =>
+            c.id === id ? { ...c, personId: input.personId, amount: input.amount, date: input.date, categoryId: input.categoryId, note: input.note?.trim() || undefined } : c,
+          ),
+        )
+      },
+      deleteContribution(id: string) {
+        persistContributions(contributions.filter((c) => c.id !== id))
       },
       addLoanTransaction(input: AddLoanInput) {
         const txn: LoanTransaction = {
@@ -1782,6 +1876,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           salaryViolations,
           storeDebts,
           storeDebtPayments,
+          contributions,
           profile: getProfile(),
         }
       },
@@ -1808,12 +1903,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistSalaryViolations(snapshot.salaryViolations ?? [])
         persistStoreDebts(snapshot.storeDebts ?? [])
         persistStoreDebtPayments(snapshot.storeDebtPayments ?? [])
+        persistContributions(snapshot.contributions ?? [])
         // نسخة قديمة بدون ملف شخصي ما تمسح الملف الحالي.
         if (snapshot.profile) saveProfile(snapshot.profile)
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
