@@ -4,7 +4,40 @@
  * نستخدم نجاح "التحقق البيومتري المحلي" (navigator.credentials.get لا
  * يرفض) كإثبات كافٍ لفتح القفل، بدون تحقق تشفيري من توقيع من طرف خادم —
  * السرّ المحمي محلي فقط (بيانات التطبيق)، مو حساب على خادم بعيد.
+ *
+ * داخل تطبيق الأندرويد (Capacitor) لا يدعم WebView بصمة WebAuthn، فنستخدم
+ * BiometricPrompt الأصلي عبر @capgo/capacitor-native-biometric بنفس الواجهة.
  */
+import { Capacitor } from '@capacitor/core'
+import { NativeBiometric } from '@capgo/capacitor-native-biometric'
+
+const isNative = () => Capacitor.isNativePlatform()
+
+// نافذة البصمة الأصلية تُخفي الصفحة (visibilitychange) — AuthContext يتجاهلها حتى لا تُحسب مغادرة.
+let prompting = false
+let promptEndedAt = 0
+export function biometricPromptActive(): boolean {
+  return prompting || Date.now() - promptEndedAt < 1500
+}
+
+async function nativeVerify(): Promise<boolean> {
+  prompting = true
+  try {
+    await NativeBiometric.verifyIdentity({
+      reason: 'افتح QB-Nomia',
+      title: 'فتح QB-Nomia',
+      subtitle: 'استخدم بصمتك للمتابعة',
+      negativeButtonText: 'الرقم السري',
+      maxAttempts: 3,
+    })
+    return true
+  } catch {
+    return false
+  } finally {
+    prompting = false
+    promptEndedAt = Date.now()
+  }
+}
 
 const CRED_ID_KEY = 'qbnomia.biometric.credentialId'
 const ENABLED_KEY = 'qbnomia.biometric.enabled'
@@ -28,6 +61,13 @@ function hasWebAuthn(): boolean {
 }
 
 export async function isBiometricSupported(): Promise<boolean> {
+  if (isNative()) {
+    try {
+      return (await NativeBiometric.isAvailable({ useFallback: false })).isAvailable
+    } catch {
+      return false
+    }
+  }
   if (!hasWebAuthn()) return false
   try {
     return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -37,10 +77,18 @@ export async function isBiometricSupported(): Promise<boolean> {
 }
 
 export function isBiometricEnabled(): boolean {
-  return localStorage.getItem(ENABLED_KEY) === '1' && Boolean(localStorage.getItem(CRED_ID_KEY))
+  if (localStorage.getItem(ENABLED_KEY) !== '1') return false
+  // الأصلي لا يحتاج معرّف WebAuthn — يكفي التفعيل.
+  return isNative() || Boolean(localStorage.getItem(CRED_ID_KEY))
 }
 
 export async function enableBiometric(): Promise<boolean> {
+  if (isNative()) {
+    // تأكيد البصمة مرة عند التفعيل — نفس شعور تسجيل WebAuthn.
+    const ok = await nativeVerify()
+    if (ok) localStorage.setItem(ENABLED_KEY, '1')
+    return ok
+  }
   if (!hasWebAuthn()) return false
   try {
     const challenge = crypto.getRandomValues(new Uint8Array(32))
@@ -74,6 +122,7 @@ export function disableBiometric(): void {
 }
 
 export async function verifyBiometric(): Promise<boolean> {
+  if (isNative()) return localStorage.getItem(ENABLED_KEY) === '1' && nativeVerify()
   const credId = localStorage.getItem(CRED_ID_KEY)
   if (!credId || !hasWebAuthn()) return false
   try {

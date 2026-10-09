@@ -566,3 +566,110 @@ textarea:focus {
     opacity: 0;
   }
 }
+
+/* ===== خلفيات شاشة القفل (LockBackground) ===== */
+.qb-lock-aurora-a,
+.qb-lock-aurora-b {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+}
+.qb-lock-aurora-a {
+  width: 120%;
+  height: 45%;
+  top: -15%;
+  right: -25%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.24), transparent 70%);
+  animation: qb-lock-drift-a 16s ease-in-out infinite alternate;
+}
+.qb-lock-aurora-b {
+  width: 120%;
+  height: 45%;
+  bottom: -20%;
+  left: -35%;
+  background: radial-gradient(circle, rgba(139, 123, 255, 0.22), transparent 70%);
+  animation: qb-lock-drift-b 19s ease-in-out infinite alternate;
+}
+@keyframes qb-lock-drift-a {
+  to { transform: translate(-15%, 18%) scale(1.15); }
+}
+@keyframes qb-lock-drift-b {
+  to { transform: translate(18%, -14%) scale(1.1); }
+}
+.qb-lock-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.qb-lock-ring {
+  position: absolute;
+  left: 50%;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.03);
+  transform: translate(-50%, -50%);
+  animation: qb-lock-ripple 6s cubic-bezier(0.22, 1, 0.36, 1) infinite backwards;
+}
+@keyframes qb-lock-ripple {
+  0% { width: 18%; opacity: 0; }
+  15% { opacity: 1; }
+  100% { width: 200%; opacity: 0; }
+}
+.qb-lock-curve {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.24);
+  stroke-width: 1.6;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: qb-lock-curve-draw 3.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+.qb-lock-curve-run {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 1;
+  opacity: 0;
+  animation: qb-lock-curve-run 5s linear 3s infinite;
+}
+@keyframes qb-lock-curve-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes qb-lock-curve-run {
+  0% { opacity: 1; stroke-dashoffset: 0.06; }
+  100% { opacity: 1; stroke-dashoffset: -1; }
+}
+/* زر البصمة الكبير: هالة تنبض، وقوس يدور أثناء التحقق. */
+.qb-bio-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  animation: qb-bio-halo 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes qb-bio-halo {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+.qb-bio-arc {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--color-accent);
+  animation: spin 1s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .qb-lock-aurora-a,
+  .qb-lock-aurora-b,
+  .qb-lock-ring,
+  .qb-lock-curve-run,
+  .qb-bio-halo {
+    animation: none;
+  }
+  .qb-lock-curve {
+    animation-duration: 1ms;
+  }
+}

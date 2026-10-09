@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { hasPinConfigured, resetPin, setupPin, verifyPin } from '../lib/auth'
 import { resumedFromUpdate } from '../lib/appUpdate'
+import { shouldLockAfter } from '../lib/lockPrefs'
+import { biometricPromptActive } from '../lib/biometric'
 
 interface AuthContextValue {
   hasPin: boolean
@@ -16,9 +18,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-// مهلة سماح قبل القفل التلقائي عند مغادرة التطبيق: خروج/تبديل تطبيقات سريع
-// (لحظات) ما يطلب الرقم السري من جديد، بعكس غياب أطول فعليًا عن التطبيق.
-const LOCK_AFTER_HIDDEN_MS = 5 * 60 * 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasPin, setHasPin] = useState(hasPinConfigured)
@@ -27,15 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let hiddenAt: number | null = null
+    // مهلة القفل (يختارها المستخدم من الأمان): الرجوع خلالها يفتح التطبيق مباشرة بدون تحقق.
+    // نافذة البصمة الأصلية بالأندرويد تُخفي الصفحة لحظيًا — لا تُحسب مغادرة.
     function onVisibilityChange() {
       if (document.hidden) {
-        hiddenAt = Date.now()
+        hiddenAt = biometricPromptActive() ? null : Date.now()
         return
       }
       if (hiddenAt !== null) {
         const elapsed = Date.now() - hiddenAt
         hiddenAt = null
-        if (elapsed >= LOCK_AFTER_HIDDEN_MS) setUnlocked(false)
+        if (shouldLockAfter(elapsed)) setUnlocked(false)
       }
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
