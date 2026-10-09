@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>خط الرصيد خلف الإجمالي</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#050506;--surface:#121215;--surface-hi:#24242a;--border:rgba(255,255,255,.07);--border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6;--on-accent:#0a0a0c;--text:#f4f4f6;--text-2:#a1a1ad;--text-3:#62626d;--income:#3ee08f;--expense:#ff5f6d;
+    --sans:'Readex Pro',system-ui,sans-serif;--num:'Inter',system-ui,sans-serif;--ease:cubic-bezier(.22,1,.36,1)}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 0 40px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--num);font-variant-numeric:tabular-nums}
+  .panel{width:390px;max-width:100%;padding:0 12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+  .grp{background:#0e0e11;border:1px solid #1f1f24;border-radius:18px;padding:10px}
+  .grp h4{font-size:12px;color:#8a8a95;font-weight:600;margin-bottom:7px}
+  .opts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .opts.c2{grid-template-columns:repeat(2,1fr)}
+  .opts button{padding:8px 2px;border-radius:12px;font-size:11px;font-weight:600;color:#9a9aa5;background:#16161a;border:1px solid #222228;line-height:1.35}
+  .opts button b{display:block;font-size:13px;color:#d6d6dc}
+  .opts button.on{background:#f4f4f6;color:#3a3a42;border-color:transparent}.opts button.on b{color:#0a0a0c}
+  .desc{font-size:11.5px;color:#8f8f99;line-height:1.85;margin-top:8px;padding:0 2px}
+  .phone{width:390px;max-width:100%;height:740px;background:var(--bg);border-radius:44px;border:1px solid #1d1d22;overflow:hidden;position:relative}
+  @media (max-width:440px){.phone{border-radius:0;border:0}}
+  .inner{position:relative;padding:12px 20px}
+  .hrow{display:flex;gap:8px;height:52px;align-items:center;justify-content:flex-end}
+  .gb{width:40px;height:40px;border-radius:50%;background:rgba(24,24,28,.62);border:1px solid rgba(255,255,255,.1)}
+  .greet{display:flex;align-items:center;gap:10px;margin:8px 0 18px}
+  .av{width:40px;height:40px;border-radius:50%;background:#8b7bff;color:#0a0a0c;font-weight:700;display:grid;place-items:center}
+  .greet b{font-size:17px;display:block}.greet small{font-size:11.5px;color:var(--text-2)}
+  .hero{position:relative;margin:0 -20px;padding:22px 24px 26px;isolation:isolate;touch-action:pan-y;min-height:196px;overflow:hidden}
+  .hero svg.bg{position:absolute;left:0;top:0;width:100%;height:100%;z-index:-1;overflow:visible}
+  .hero .veil{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70% 60% at 85% 45%,rgba(5,5,6,.55),transparent 75%)}
+  .hero .lbl,.hero .big,.hero .chg{text-shadow:0 2px 14px rgba(0,0,0,.85)}
+  .lbl{font-size:13px;color:var(--text-2);margin-bottom:8px;display:flex;gap:8px;align-items:center;min-height:24px}
+  .lbl span{font-size:11.5px;background:rgba(255,255,255,.07);padding:4px 10px;border-radius:99px}
+  .big{font-size:46px;font-weight:800;letter-spacing:-.03em;display:inline-flex;align-items:baseline;gap:8px}
+  .big small{font-size:16px;color:var(--text-3);font-weight:600}
+  .chg{margin-top:10px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-3);min-height:26px}
+  .chg b{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:11.5px}
+  .per{display:flex;gap:4px;margin:10px 0 0;position:relative;z-index:2;justify-content:flex-start}
+  .per button{padding:5px 11px;border-radius:99px;font-size:11px;font-weight:600;color:var(--text-3)}
+  .per button.on{background:rgba(255,255,255,.09);color:var(--text)}
+  .qa{display:flex;justify-content:space-between;margin:14px 0 22px}
+  .qa i{width:56px;height:56px;border-radius:20px;background:var(--surface);border:1px solid var(--border);display:block}
+  .qa i:first-child{background:var(--accent)}
+  .ghost{height:180px;border-radius:24px;background:linear-gradient(140deg,#2a2346,#121218 70%);border:1px solid var(--border-strong)}
+  .scrub{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35);pointer-events:none;display:none}
+  .hint{font-size:10.5px;color:var(--text-3);text-align:center;margin-top:6px}
+  @keyframes draw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+  @keyframes fadeA{from{opacity:0}to{opacity:1}}
+  @keyframes run{from{stroke-dashoffset:0}to{stroke-dashoffset:var(--runlen)}}
+  @keyframes pulse{0%{r:4;opacity:.7}100%{r:14;opacity:0}}
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="grp"><h4>شكل الخط</h4>
+    <div class="opts" id="o-kind">
+      <button data-v="area" class="on"><b>١</b>مساحة خلفية</button>
+      <button data-v="line"><b>٢</b>خط مضيء</button>
+      <button data-v="bars"><b>٣</b>أعمدة يومية</button>
+      <button data-v="scrub"><b>٤</b>تفاعلي (مثل الأسهم)</button>
+    </div><div class="desc" id="desc"></div></div>
+  <div class="grp"><h4>جرّب الاتجاه</h4>
+    <div class="opts c2" id="o-trend"><button data-v="up" class="on"><b>صاعد</b>الرصيد زاد</button><button data-v="down"><b>نازل</b>الرصيد نقص</button></div></div>
+</div>
+
+<div class="phone">
+  <div class="inner">
+    <div class="hrow"><span class="gb"></span><span class="gb"></span><span class="gb"></span></div>
+    <div class="greet"><span class="av">ب</span><div><b>مساء الخير، بلال</b><small>ختام يومك: صرفت 106 ر.س</small></div></div>
+    <div class="hero" id="hero">
+      <svg class="bg" id="chart"></svg>
+      <div class="veil"></div>
+      <div class="scrub" id="scrubLine"></div>
+      <div class="lbl" id="lbl">إجمالي رصيدك <span class="num">كل الحسابات (3)</span></div>
+      <div class="big num"><span id="amt">24,380</span><small>ر.س</small></div>
+      <div class="chg" id="chg"></div>
+    </div>
+    <div class="per" id="per"><button data-v="7">أسبوع</button><button data-v="30" class="on">شهر</button><button data-v="90">3 أشهر</button><button data-v="365">سنة</button></div>
+    <div class="hint" id="hint"></div>
+    <div class="qa"><i></i><i></i><i></i><i></i></div>
+    <div class="ghost"></div>
+  </div>
+</div>
+
+<script>
+const DESC={area:'المنحنى صار خلفية كاملة لقسم الرصيد والرقم فوقه: يُرسم بحركة عند الفتح، وبعدها تجري ومضة ضوء على الخط كل بضع ثوانٍ. تعبئة متدرّجة خفيفة (أخضر لو زاد، أحمر لو نقص).',
+ line:'نفس الفكرة بخط مضيء فقط بدون تعبئة — الرقم فوقه أوضح، والومضة الجارية تعطي إحساس شاشة الأسهم الحيّة.',
+ bars:'أعمدة صافي كل يوم كخلفية للرقم (فوق = دخل، تحت = صرف) — تظهر بالتتابع عند الفتح.',
+ scrub:'المنحنى خلف الرقم + تفاعل الأسهم: مرّر إصبعك على المنطقة فيتغيّر الرقم لرصيدك في ذلك اليوم مع التاريخ، ويرجع لما ترفع إصبعك. (جرّبه بالماوس)'};
+const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+let st={kind:'area',trend:'up',days:30};
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+function series(days,trend){let seed=days*7+(trend==='up'?1:5);const r=()=>{seed=(seed*9301+49297)%233280;return seed/233280};
+  // نمشي للأمام: مصروف يومي + راتب يوم 27، ثم نزيح السلسلة لتنتهي برصيدك الحالي.
+  const salary=trend==='up'?9500:5200;const pts=[];let v=0;const start=new Date(2026,9,9);start.setDate(start.getDate()-(days-1));
+  for(let i=0;i<days;i++){const d=new Date(start);d.setDate(d.getDate()+i);v-=60+r()*260+(r()<.08?r()*900:0);if(d.getDate()===27)v+=salary;pts.push(v)}
+  const shift=24380-pts[days-1];return pts.map(x=>x+shift);}
+function dateOf(i,n){const d=new Date(2026,9,9);d.setDate(d.getDate()-(n-1-i));return `${d.getDate()} ${MONTHS[d.getMonth()]}`}
+function render(){
+  const hero=$('hero'),svg=$('chart');const W=hero.clientWidth,H=hero.clientHeight;
+  const data=series(st.days,st.trend);const n=data.length;const min=Math.min(...data),max=Math.max(...data);
+  const up=data[n-1]>=data[0];const col=up?'var(--income)':'var(--expense)';const hex=up?'62,224,143':'255,95,109';
+  const x=i=>i/(n-1)*(W-14), y=v=>H*.28+(1-(v-min)/(max-min||1))*(H*.62);
+  // الزمن من اليسار (الأقدم) لليمين (الآن) مثل الرسوم المالية — ونقطة "الآن" تقع تحت بداية الرقم.
+  const X=i=>x(i);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('height',H);svg.style.height=H+'px';
+  let path=data.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  let h='';
+  if(st.kind==='bars'){const nets=data.map((v,i)=>i?v-data[i-1]:0);const sorted=nets.map(Math.abs).sort((a,b)=>a-b);const m=sorted[Math.floor(sorted.length*.9)]||1;const bw=Math.max(2,W/n*.55);const mid=H*.8;
+    h=`<line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="rgba(255,255,255,.08)" stroke-dasharray="2 4"/>`+nets.map((d,i)=>{const hh=Math.max(1.5,Math.min(1,Math.abs(d)/m)*(H*.17));const c=d>=0?'62,224,143':'255,95,109';return `<rect x="${(X(i)-bw/2).toFixed(1)}" y="${(d>=0?mid-hh:mid).toFixed(1)}" width="${bw.toFixed(1)}" height="${hh.toFixed(1)}" rx="${Math.min(2,bw/2)}" fill="rgba(${c},${.35+.5*Math.min(1,Math.abs(d)/m)})" style="transform-origin:${X(i)}px ${mid}px;animation:fadeA .5s ${i*8}ms both"/>`}).join('');}
+  else{
+    const area=path+`L${X(n-1)},${H}L${X(0)},${H}Z`;
+    h=`<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(${hex},${st.kind==='line'?0:.22})"/><stop offset="1" stop-color="rgba(${hex},0)"/></linearGradient>
+      <linearGradient id="fadeX" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".15"/><stop offset=".3" stop-color="#fff" stop-opacity="1"/></linearGradient>
+      <mask id="m"><rect width="${W}" height="${H}" fill="url(#fadeX)"/></mask>
+      <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <g mask="url(#m)"><path d="${area}" fill="url(#g)" style="animation:fadeA .9s .3s both"/>
+      <path id="ln" d="${path}" fill="none" stroke="rgba(${hex},${st.kind==='area'?.7:.95})" stroke-width="${st.kind==='line'?1.8:2}" stroke-linejoin="round" stroke-linecap="round" ${st.kind==='line'?'filter="url(#glow)"':''}/>
+      <path id="run" d="${path}" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.4" stroke-linecap="round" filter="url(#glow)" opacity="0"/></g>
+      <circle cx="${X(n-1)}" cy="${y(data[n-1])}" r="4" fill="rgba(${hex},.5)" style="animation:pulse 1.8s ease-out infinite"/>
+      <circle cx="${X(n-1)}" cy="${y(data[n-1])}" r="3.5" fill="rgb(${hex})" stroke="#050506" stroke-width="2"/>
+      <circle id="dot" r="5" fill="#fff" stroke="rgb(${hex})" stroke-width="2.5" style="display:none"/>`;}
+  svg.innerHTML=h;
+  const ln=document.getElementById('ln');if(ln){const L=ln.getTotalLength();ln.style.strokeDasharray=L;ln.style.setProperty('--len',L);ln.style.animation='draw 1.4s cubic-bezier(.22,1,.36,1) both';
+    // ومضة ضوء تجري على الخط باتجاه الزمن كل بضع ثوانٍ — إحساس "حي" مثل شاشات الأسهم.
+    const run=document.getElementById('run');const seg=Math.min(90,L*.18);run.style.strokeDasharray=`${seg} ${L}`;run.style.setProperty('--runlen',-(L+seg));
+    setTimeout(()=>{run.setAttribute('opacity','1');run.style.animation='run 2.6s cubic-bezier(.45,0,.2,1) .2s infinite';},1400);}
+  const diff=data[n-1]-data[0],pct=diff/data[0]*100;
+  const per={7:'هذا الأسبوع',30:'هذا الشهر',90:'آخر 3 أشهر',365:'هذه السنة'}[st.days];
+  const chg=()=>{$('chg').innerHTML=`<b class="num" style="color:${col};background:rgba(${hex},.12)">${up?'▲':'▼'} ${fmt(Math.abs(diff))} ر.س · ${Math.abs(pct).toFixed(1)}%</b>${per}`;};
+  chg();$('amt').textContent=fmt(data[n-1]);$('lbl').innerHTML='إجمالي رصيدك <span class="num">كل الحسابات (3)</span>';
+  $('hint').textContent=st.kind==='scrub'?'مرّر على الخط لترى رصيدك بأي يوم':'';
+  // التفاعل
+  hero.onpointermove=hero.onpointerdown=e=>{if(st.kind!=='scrub'||(e.type==='pointermove'&&e.buttons===0&&e.pointerType!=='mouse'))return;
+    const r=hero.getBoundingClientRect();const px=e.clientX-r.left;const i=Math.max(0,Math.min(n-1,Math.round(px/(W-14)*(n-1))));
+    const dot=document.getElementById('dot');if(dot){dot.style.display='';dot.setAttribute('cx',X(i));dot.setAttribute('cy',y(data[i]));}
+    const sl=$('scrubLine');sl.style.display='block';sl.style.left=X(i)+'px';sl.style.top=(r.height-H)+'px';
+    $('amt').textContent=fmt(data[i]);$('lbl').innerHTML=`رصيدك في <span class="num">${dateOf(i,n)}</span>`;
+    const d2=data[i]-data[0];$('chg').innerHTML=`<b class="num" style="color:${d2>=0?'var(--income)':'var(--expense)'};background:rgba(${d2>=0?'62,224,143':'255,95,109'},.12)">${d2>=0?'▲':'▼'} ${fmt(Math.abs(d2))} ر.س</b>منذ بداية الفترة`;};
+  hero.onpointerleave=hero.onpointerup=()=>{if(st.kind!=='scrub')return;$('scrubLine').style.display='none';const dot=document.getElementById('dot');if(dot)dot.style.display='none';$('amt').textContent=fmt(data[n-1]);$('lbl').innerHTML='إجمالي رصيدك <span class="num">كل الحسابات (3)</span>';chg();};
+}
+function opt(id,key,num){$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;st[key]=num?+b.dataset.v:b.dataset.v;$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));$('desc').textContent=DESC[st.kind];render();}}
+opt('o-kind','kind');opt('o-trend','trend');opt('per','days',true);
+$('desc').textContent=DESC.area;document.fonts.ready.then(render);addEventListener('resize',render);
+</script>
+</body>
+</html>
