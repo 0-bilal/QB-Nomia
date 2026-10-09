@@ -1,7 +1,7 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData, SALARY_INCOME_SOURCE_ID } from '../state/DataContext'
-import { formatAmount, formatMoney, formatSigned, formatDate } from '../lib/format'
+import { formatAmount, formatMoney, formatDate } from '../lib/format'
 import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
 import { AccountCardStack, CARD_HEIGHT } from '../components/AccountCardStack'
@@ -11,6 +11,9 @@ import { useProfile } from '../hooks/useProfile'
 import { greetingSubline } from '../lib/greeting'
 import { currentOccasion, recordOpenAndGetPrevious } from '../lib/profile'
 import { BigAmount } from '../components/BigAmount'
+import { BalanceChart } from '../components/BalanceChart'
+import { balanceSeries } from '../lib/balanceHistory'
+import { MONTHS_AR } from '../lib/txFilters'
 import { TotalAccountsSheet } from '../components/TotalAccountsSheet'
 import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
 import { useScrolledPast } from '../hooks/useScrolledPast'
@@ -102,6 +105,14 @@ function StoreIcon() {
   )
 }
 
+const CHART_DAYS_KEY = 'qbnomia.home.chartDays'
+const CHART_PERIODS: [number, string, string][] = [
+  [7, 'أسبوع', 'آخر 7 أيام'],
+  [30, 'شهر', 'آخر 30 يوم'],
+  [90, '3 أشهر', 'آخر 3 أشهر'],
+  [365, 'سنة', 'آخر سنة'],
+]
+
 /** ترتيب ظهور متتابع (stagger) لكتل الشاشة. */
 function rise(i: number): CSSProperties {
   return { '--i': i } as CSSProperties
@@ -160,6 +171,11 @@ export function HomeScreen() {
   const profile = useProfile()
   // وقت آخر فتح قبل هذه الجلسة — لبطاقة "الرجوع بعد غياب" (يُقرأ مرة لكل تركيب).
   const [prevOpenAt] = useState(() => recordOpenAndGetPrevious())
+  const [chartDays, setChartDays] = useState<number>(() => {
+    const v = Number(localStorage.getItem(CHART_DAYS_KEY))
+    return CHART_PERIODS.some((p) => p[0] === v) ? v : 30
+  })
+  const [scrubIndex, setScrubIndex] = useState<number | null>(null)
   const navigate = useNavigate()
   const swipeFor = useActivitySwipe()
   const [hidden, setHidden] = useState(getHideBalancesDefault)
@@ -198,6 +214,16 @@ export function HomeScreen() {
   const monthBudgetLeft = monthlyBudgetLimit ? monthlyBudgetLimit - monthExpense : null
   const dailyBudget = monthBudgetLeft !== null ? Math.max(0, Math.round((monthBudgetLeft + todaySpent) / (totalDaysInMonth - daysElapsedInMonth + 1))) : null
   const salaryToday = transactions.some((x) => x.type === 'income' && x.incomeSourceId === SALARY_INCOME_SOURCE_ID && x.date === todayIso)
+  // منحنى الرصيد خلف الإجمالي: رصيد نهاية كل يوم لفترة مختارة، والتمرير عليه يعرض رصيد يوم معيّن.
+  const chartSeries = useMemo(() => {
+    const included = new Set(accounts.filter((a) => a.includeInTotal !== false).map((a) => a.id))
+    return balanceSeries(recentActivity(1000000), included, homeTotalBalance, chartDays, new Date())
+  }, [accounts, recentActivity, homeTotalBalance, chartDays])
+  const chartValues = useMemo(() => chartSeries.map((p) => p.balance), [chartSeries])
+  const scrubPoint = scrubIndex !== null ? chartSeries[scrubIndex] : null
+  const periodChange = chartValues.length > 1 ? chartValues[chartValues.length - 1] - chartValues[0] : 0
+  const changePct = chartValues.length > 1 && chartValues[0] > 0 ? (periodChange / chartValues[0]) * 100 : null
+  const shownChange = scrubPoint ? scrubPoint.balance - chartValues[0] : periodChange
   const hour = now.getHours()
   const occasion = currentOccasion(profile, now, { salaryToday, prevOpenAt })
 
@@ -339,37 +365,72 @@ export function HomeScreen() {
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
       <TotalAccountsSheet open={totalSheetOpen} onClose={() => setTotalSheetOpen(false)} />
 
-      {/* الرصيد الإجمالي — العنصر البطل بالشاشة */}
-      <section className="qb-rise mb-6 px-1" style={rise(0)}>
-        <button
-          onClick={() => setTotalSheetOpen(true)}
-          className="qb-press mb-2 flex items-center gap-2 rounded-full py-1 text-[13px] font-medium text-[var(--color-text-2)]"
-          aria-label="اختيار الحسابات المحسوبة بالإجمالي"
-        >
-          إجمالي رصيدك
-          <span className="num inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-2.5 py-1 text-[11.5px] text-[var(--color-text-2)]">
-            {includedCount === accounts.length ? `كل الحسابات (${accounts.length})` : `${includedCount} من ${accounts.length} حسابات`}
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6,9 12,15 18,9" />
-            </svg>
-          </span>
-        </button>
-        <BigAmount value={homeTotalBalance} hidden={hidden} size={46} />
-        {flowTotal > 0 && (
-          <div className="mt-3 flex items-center gap-2">
-            <span
-              className="num inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
-              style={{
-                background: monthNet >= 0 ? 'rgba(62,224,143,0.12)' : 'rgba(255,95,109,0.12)',
-                color: monthNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)',
-              }}
+      {/* الرصيد الإجمالي — العنصر البطل بالشاشة، فوق منحنى الرصيد (مثل شاشات الأسهم) */}
+      <section className="qb-rise relative -mx-5 overflow-hidden px-6 pb-6 pt-3" style={{ ...rise(0), minHeight: 190 }}>
+        <BalanceChart values={chartValues} onScrub={setScrubIndex} />
+        <div
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{ background: 'radial-gradient(70% 60% at 85% 45%, rgba(5,5,6,0.55), transparent 75%)' }}
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none relative z-10 [text-shadow:0_2px_14px_rgba(0,0,0,0.85)]">
+          {scrubPoint ? (
+            <div className="mb-2 flex items-center gap-2 py-1 text-[13px] font-medium text-[var(--color-text-2)]">
+              رصيدك في
+              <span className="num rounded-full bg-white/[0.07] px-2.5 py-1 text-[11.5px]">
+                {Number(scrubPoint.date.slice(8, 10))} {MONTHS_AR[Number(scrubPoint.date.slice(5, 7)) - 1]} {scrubPoint.date.slice(0, 4)}
+              </span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setTotalSheetOpen(true)}
+              className="qb-press pointer-events-auto mb-2 flex items-center gap-2 rounded-full py-1 text-[13px] font-medium text-[var(--color-text-2)]"
+              aria-label="اختيار الحسابات المحسوبة بالإجمالي"
             >
-              {mask(formatSigned(monthNet))}
-            </span>
-            <span className="text-[11.5px] text-[var(--color-text-3)]">صافي هذا الشهر</span>
-          </div>
-        )}
+              إجمالي رصيدك
+              <span className="num inline-flex items-center gap-1 rounded-full bg-white/[0.07] px-2.5 py-1 text-[11.5px] text-[var(--color-text-2)]">
+                {includedCount === accounts.length ? `كل الحسابات (${accounts.length})` : `${includedCount} من ${accounts.length} حسابات`}
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,9 12,15 18,9" />
+                </svg>
+              </span>
+            </button>
+          )}
+          <BigAmount value={scrubPoint ? scrubPoint.balance : homeTotalBalance} hidden={hidden} size={46} animate={!scrubPoint} />
+          {chartValues.length > 1 && (
+            <div className="mt-3 flex items-center gap-2">
+              <span
+                dir="ltr"
+                className="num inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
+                style={{ background: shownChange >= 0 ? 'rgba(62,224,143,0.12)' : 'rgba(255,95,109,0.12)', color: shownChange >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}
+              >
+                {shownChange >= 0 ? '▲' : '▼'} {mask(`${formatAmount(Math.abs(shownChange))} ر.س`)}
+                {!scrubPoint && changePct !== null && <span className="opacity-80">· {Math.abs(changePct).toFixed(1)}%</span>}
+              </span>
+              <span className="text-[11.5px] text-[var(--color-text-3)]">{scrubPoint ? 'منذ بداية الفترة' : CHART_PERIODS.find((p) => p[0] === chartDays)?.[2]}</span>
+            </div>
+          )}
+        </div>
       </section>
+      <div className="-mt-3 mb-5 flex gap-1 px-1">
+        {CHART_PERIODS.map(([d, label]) => (
+          <button
+            key={d}
+            onClick={() => {
+              setChartDays(d)
+              try {
+                localStorage.setItem(CHART_DAYS_KEY, String(d))
+              } catch {
+                /* تفضيل عرض فقط */
+              }
+            }}
+            className="qb-press rounded-full px-3 py-1.5 text-[11px] font-semibold"
+            style={chartDays === d ? { background: 'rgba(255,255,255,0.09)', color: 'var(--color-text)' } : { color: 'var(--color-text-3)' }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div ref={balanceEndRef} aria-hidden="true" />
 
