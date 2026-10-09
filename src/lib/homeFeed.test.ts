@@ -35,6 +35,8 @@ describe('labels and grouping', () => {
     expect(daysLeftLabel(1)).toBe('غدًا')
     expect(daysLeftLabel(6)).toBe('بعد 6 أيام')
     expect(daysLeftLabel(-3)).toBe('متأخر 3 أيام')
+    expect(daysLeftLabel(12)).toBe('بعد 12 يوم')
+    expect(daysLeftLabel(-14)).toBe('متأخر 14 يوم')
     expect(dayLabel('2026-10-08', '2026-10-08')).toBe('اليوم')
     expect(dayLabel('2026-10-07', '2026-10-08')).toBe('أمس')
     expect(dayLabel('2026-10-01', '2026-10-08')).toBe('')

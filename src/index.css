@@ -513,9 +513,30 @@ textarea:focus {
     animation: none;
   }
   .qb-screen-enter,
-  .qb-rise {
+  .qb-rise,
+  .qb-col-grow,
+  .qb-ring-fill {
     animation-duration: 1ms;
   }
+}
+
+/* «تدفّق هذا الشهر»: العمودان ينموان من الأسفل، ويتغيّر ارتفاعهما بهدوء أثناء اختيار يوم على السبارك. */
+.qb-col-grow {
+  transform-origin: bottom;
+  animation: qb-col-grow 900ms var(--ease-out-expo) backwards;
+  transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes qb-col-grow {
+  from { transform: scaleY(0); }
+}
+
+/* حلقات الفئات: تمتلئ الحلقة لنسبتها عند الظهور. */
+.qb-ring-fill {
+  animation: qb-ring-fill 1100ms var(--ease-out-expo) backwards;
+}
+@keyframes qb-ring-fill {
+  from { stroke-dashoffset: var(--qb-ring-len); }
+  to { stroke-dashoffset: 0; }
 }
 
 /* خط الرصيد خلف الإجمالي: رسم الخط عند الظهور، ثم ومضة ضوء تجري عليه. */

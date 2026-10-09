@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData, SALARY_INCOME_SOURCE_ID } from '../state/DataContext'
-import { formatAmount, formatMoney, formatDate } from '../lib/format'
+import { formatAmount, formatDate } from '../lib/format'
 import { activityEditPath } from '../lib/activityNav'
 import { NotificationBellButton, NotificationsSheet } from '../components/NotificationsSheet'
 import { AccountCardStack, CARD_HEIGHT } from '../components/AccountCardStack'
@@ -19,7 +19,9 @@ import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { QuickSyncButton } from '../components/QuickSyncButton'
 import { BalanceCapsule, GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
-import { localIso, upcomingItems } from '../lib/homeFeed'
+import { daysBetween, daysLeftLabel, localIso, upcomingItems } from '../lib/homeFeed'
+import { categoryShares, monthFlowSeries } from '../lib/monthFlow'
+import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
@@ -194,13 +196,11 @@ export function HomeScreen() {
   const monthNet = monthIncome - monthExpense
   const flowTotal = monthIncome + monthExpense
 
-  const topCategories = categories
-    .filter((c) => c.kind === 'expense')
-    .map((c) => ({ ...c, spent: categorySpentThisMonth(c.id) }))
-    .filter((c) => c.spent > 0)
-    .sort((a, b) => b.spent - a.spent)
-    .slice(0, 5)
-  const maxCategorySpent = topCategories[0]?.spent ?? 0
+  const categoryRows = categoryShares(
+    categories.filter((c) => c.kind === 'expense').map((c) => ({ ...c, spent: categorySpentThisMonth(c.id) })),
+    monthExpense,
+  )
+  const monthFlow = useMemo(() => monthFlowSeries(transactions, new Date()), [transactions])
 
   const activeCommitments = commitments.filter((c) => c.status === 'active')
 
@@ -241,6 +241,8 @@ export function HomeScreen() {
     .sort((a, b) => Math.max(b.pct, b.projectedPct) - Math.max(a.pct, a.projectedPct))
 
   const today = localIso(now)
+  const nextSubscription = subscriptions.filter((x) => x.status === 'active').sort((a, b) => a.nextRenewalDate.localeCompare(b.nextRenewalDate))[0]
+  const nextCommitment = activeCommitments.slice().sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate))[0]
   const upcoming = upcomingItems(subscriptions, commitments, recurringTransactions, today, 14).slice(0, 4)
 
   /** "يحتاج انتباهك": الميزانيات، المسموح يوميًا من السقف، اشتراكات تتجدد خلال يومين، وديون متاجر متأخرة. */
@@ -465,65 +467,47 @@ export function HomeScreen() {
         </section>
       )}
 
-      {/* شبكة Bento — ملخص الشهر */}
-      <section className="qb-rise mb-4 grid grid-cols-2 gap-3" style={rise(4)}>
-        <div className="qb-card col-span-2 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-[13px] font-medium text-[var(--color-text-2)]">تدفّق هذا الشهر</div>
-            <div className="text-[11px] text-[var(--color-text-3)]">دخل مقابل مصروف</div>
-          </div>
-          <div className="mb-3 flex h-2.5 gap-1 overflow-hidden rounded-full bg-white/[0.04]">
-            {flowTotal > 0 && (
-              <>
-                <div className="h-full rounded-full" style={{ width: `${(monthIncome / flowTotal) * 100}%`, background: 'var(--color-income)', transition: 'width 600ms var(--ease-out-expo)' }} />
-                <div className="h-full rounded-full" style={{ width: `${(monthExpense / flowTotal) * 100}%`, background: 'var(--color-expense)', transition: 'width 600ms var(--ease-out-expo)' }} />
-              </>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
-                <span className="h-2 w-2 rounded-full bg-[var(--color-income)]" />
-                الدخل
-              </div>
-              <div className="num text-[18px] font-bold" style={{ color: 'var(--color-income)' }}>
-                {mask(formatMoney(monthIncome))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-[var(--color-text-3)]">
-                <span className="h-2 w-2 rounded-full bg-[var(--color-expense)]" />
-                المصروف
-              </div>
-              <div className="num text-[18px] font-bold" style={{ color: 'var(--color-expense)' }}>
-                {formatMoney(monthExpense)}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {totalMonthlySubscriptions > 0 && (
-          <button onClick={() => navigate('/subscriptions')} className={`qb-card qb-press p-4 text-right ${activeCommitments.length === 0 ? 'col-span-2' : ''}`}>
-            <span className="mb-5 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(255,191,71,0.14)', color: 'var(--color-subscription)' }}>
-              <SubscriptionIcon />
-            </span>
-            <div className="mb-0.5 text-[12px] text-[var(--color-text-3)]">الاشتراكات شهريًا</div>
-            <div className="num text-[17px] font-bold">{formatMoney(totalMonthlySubscriptions)}</div>
-          </button>
-        )}
-        {activeCommitments.length > 0 && (
-          <button onClick={() => navigate('/commitments')} className={`qb-card qb-press p-4 text-right ${totalMonthlySubscriptions <= 0 ? 'col-span-2' : ''}`}>
-            <span className="mb-5 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(95,179,255,0.14)', color: 'var(--color-commitment)' }}>
-              <CommitmentIcon />
-            </span>
-            <div className="mb-0.5 text-[12px] text-[var(--color-text-3)]">التزامات نشطة</div>
-            <div className="num text-[17px] font-bold">{activeCommitments.length}</div>
-          </button>
-        )}
+      {/* ملخص الشهر: التدفّق مع السبارك، ثم الاشتراكات والالتزامات */}
+      <section className="qb-rise mb-3" style={rise(4)}>
+        <MonthFlowCard flow={monthFlow} hidden={hidden} monthIndex={now.getMonth()} />
       </section>
 
-      {topCategories.length > 0 && (
-        <section className="qb-card qb-rise mb-6 p-4" style={rise(5)}>
+      {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (
+        <section className="qb-rise mb-4 grid grid-cols-2 gap-3" style={rise(5)}>
+          {totalMonthlySubscriptions > 0 && (
+            <SummaryTile
+              color="var(--color-subscription)"
+              icon={<SubscriptionIcon />}
+              label="الاشتراكات شهريًا"
+              value={
+                <>
+                  {mask(formatAmount(totalMonthlySubscriptions))}
+                  <span className="font-sans text-[0.62em] font-medium text-[var(--color-text-3)]" style={{ marginInlineStart: 4 }}>
+                    ر.س
+                  </span>
+                </>
+              }
+              footer={nextSubscription ? `${nextSubscription.name} ${daysLeftLabel(daysBetween(today, nextSubscription.nextRenewalDate))}` : 'لا يوجد تجديد قريب'}
+              onClick={() => navigate('/subscriptions')}
+              wide={activeCommitments.length === 0}
+            />
+          )}
+          {activeCommitments.length > 0 && (
+            <SummaryTile
+              color="var(--color-commitment)"
+              icon={<CommitmentIcon />}
+              label="التزامات نشطة"
+              value={activeCommitments.length}
+              footer={nextCommitment ? `${nextCommitment.name} ${daysLeftLabel(daysBetween(today, nextCommitment.nextDueDate))}` : 'لا يوجد استحقاق قريب'}
+              onClick={() => navigate('/commitments')}
+              wide={totalMonthlySubscriptions <= 0}
+            />
+          )}
+        </section>
+      )}
+
+      {categoryRows.length > 0 && (
+        <section className="qb-card qb-rise mb-6 p-4" style={rise(6)}>
           <div className="mb-4 flex items-center justify-between">
             <div className="text-[14px] font-semibold">أين ذهبت أموالك</div>
             <button onClick={() => navigate('/categories')} className="qb-press flex items-center gap-0.5 text-[12px] font-medium text-[var(--color-accent)]">
@@ -531,31 +515,12 @@ export function HomeScreen() {
               <ChevronIcon />
             </button>
           </div>
-          <div className="flex flex-col gap-3.5">
-            {topCategories.map((c, i) => (
-              <div key={c.id}>
-                <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
-                  <div className="font-medium">{c.name}</div>
-                  <div className="num font-semibold text-[var(--color-text-2)]">{formatMoney(c.spent)}</div>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${maxCategorySpent ? (c.spent / maxCategorySpent) * 100 : 0}%`,
-                      background: i === 0 ? 'var(--color-accent)' : `color-mix(in srgb, var(--color-accent) ${70 - i * 12}%, var(--color-surface-high))`,
-                      transition: 'width 700ms var(--ease-out-expo)',
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          <CategoryRings rows={categoryRows} hidden={hidden} />
         </section>
       )}
 
       {upcoming.length > 0 && (
-        <section className="qb-rise mb-6" style={rise(6)}>
+        <section className="qb-rise mb-6" style={rise(7)}>
           <SectionTitle title="القادم خلال 14 يوم" />
           <UpcomingList
             items={upcoming}
@@ -565,7 +530,7 @@ export function HomeScreen() {
         </section>
       )}
 
-      <section className="qb-rise" style={rise(7)}>
+      <section className="qb-rise" style={rise(8)}>
         <SectionTitle title="آخر الحركات" action={activity.length > 0 ? 'عرض الكل' : undefined} onAction={() => navigate('/transactions')} />
 
         {activity.length === 0 ? (

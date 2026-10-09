@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ملخص الشهر — خيارات العرض</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --commit:#5fb3ff;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .cur{font-family:var(--font-sans);font-size:.62em;color:var(--text-3);font-weight:500;margin-inline-start:4px;letter-spacing:0}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+
+  /* لوحة التحكم */
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .prow{display:flex;flex-direction:column;gap:7px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;display:flex;justify-content:space-between}
+  .plbl b{color:var(--text-2);font-weight:600}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .toggles{display:flex;gap:8px;flex-wrap:wrap}
+  .tg{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:rgba(255,255,255,.05);border:1px solid var(--border)}
+  .tg.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+
+  /* إطار الشاشة */
+  .phone{width:390px;max-width:100%;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;padding:22px 16px 26px;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:28px;padding:18px 12px 22px}}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .rise{animation:rise .55s var(--expo) both;animation-delay:calc(var(--i,0) * 60ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:16px;position:relative;overflow:hidden}
+  .card.sum{background:radial-gradient(90% 70% at 100% 0%,rgba(255,255,255,.06),transparent 60%),linear-gradient(165deg,var(--surface-el),var(--bg))}
+  .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .ttl{font-size:14px;font-weight:600}
+  .sub{font-size:11px;color:var(--text-3)}
+  .link{display:flex;align-items:center;gap:2px;font-size:12px;font-weight:500;color:var(--accent)}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .lab{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3)}
+  .div{border-top:1px solid var(--border);margin:14px 0}
+  .track{height:8px;border-radius:999px;background:rgba(255,255,255,.05);overflow:hidden;position:relative}
+  .fill{height:100%;border-radius:999px;width:0;transition:width .8s var(--expo)}
+  .grow{transform-origin:bottom;transform:scaleY(0);transition:transform .8s var(--expo)}
+  .ready .grow{transform:scaleY(1)}
+  .tile{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
+  .chev{color:var(--text-3)}
+
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note b{color:var(--text);font-weight:600}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:2px}
+  .note + .note{margin-top:-8px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>ملخص الشهر في الرئيسية</h1>
+  <p>ثلاثة أقسام: تدفّق الشهر، والاشتراكات والالتزامات، وأين ذهبت أموالك. اختر رقمًا لكل قسم، وجرّب الإخفاء وحالة الفائض. الأرقام من لقطة الشاشة الحالية.</p>
+</div>
+
+<div class="panel">
+  <div class="prow">
+    <div class="plbl">١ — تدفّق هذا الشهر <b id="nFlow"></b></div>
+    <div class="seg" id="segFlow"></div>
+  </div>
+  <div class="prow">
+    <div class="plbl">٢ — الاشتراكات والالتزامات <b id="nTiles"></b></div>
+    <div class="seg" id="segTiles"></div>
+  </div>
+  <div class="prow">
+    <div class="plbl">٣ — أين ذهبت أموالك <b id="nCats"></b></div>
+    <div class="seg" id="segCats"></div>
+  </div>
+  <div class="toggles">
+    <button class="tg press" id="tgHide">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      إخفاء المبالغ
+    </button>
+    <button class="tg press" id="tgSurplus">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      حالة فائض
+    </button>
+  </div>
+</div>
+
+<div class="phone"><div class="stack" id="root"></div></div>
+
+<div class="note" id="noteFlow"></div>
+<div class="note" id="noteTiles"></div>
+<div class="note" id="noteCats"></div>
+
+<script>
+/* ===== البيانات ===== */
+const PALETTE = ['#45C8FF','#A1A1AD','#FFBF47','#2EE6C8','#FF9A4D','#FF5F6D','#E4E4EA']
+function colorFor(seed){let h=0;for(let i=0;i<seed.length;i++)h=(h<<5)-h+seed.charCodeAt(i);return PALETTE[Math.abs(h|0)%PALETTE.length]}
+
+const ICONS = {
+  'ترفيه':'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
+  'صحة':'<path d="M20.8 8.6a5 5 0 0 0-8.8-3.2 5 5 0 0 0-8.8 3.2c0 5.4 8.8 10.4 8.8 10.4s8.8-5 8.8-10.4z"/>',
+  'هدايا':'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M12 8S10.5 3 8 3.5 7.5 8 12 8zm0 0s1.5-5 4-4.5S16.5 8 12 8z"/>',
+  'مطاعم':'<path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1-3 4-3 7h3"/>',
+  'اشتراكات':'<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="m7 22-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
+  'أخرى':'<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>'
+}
+const svg = (p,s=18,w=2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I = {
+  chevron: svg('<path d="m15 18-6-6 6-6"/>',14,2.6),
+  sub: svg('<path d="m8 5 11 7-11 7z"/>',18,2),
+  commit: svg('<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h4"/>',18,1.9),
+  up: svg('<path d="M7 17 17 7M9 7h8v8"/>',12,2.6),
+  down: svg('<path d="M7 7l10 10M17 9v8H9"/>',12,2.6),
+  cal: svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',13,2.2),
+}
+
+const S = { flow:0, tiles:0, cats:0, hide:false, surplus:false, focus:-1 }
+const DAY = 9, DAYS = 31
+
+function data(){
+  const income = S.surplus ? 8500 : 3900
+  const cats = [['ترفيه',3690],['صحة',405],['هدايا',362],['مطاعم',282],['اشتراكات',206]]
+  const top = cats.reduce((a,c)=>a+c[1],0)
+  const expense = 5283
+  return {
+    income, expense, net: income-expense,
+    subs: { total:225, count:3, paid:2, next:'نتفليكس', in:4 },
+    commits: { count:1, monthly:1150, next:'قسط السيارة', in:12, paidOf:[8,36] },
+    cats: [...cats.map(([n,v])=>({n,v,c:colorFor(n)})), {n:'أخرى',v:expense-top,c:'#62626d',other:true}],
+  }
+}
+
+/* ===== التنسيق ===== */
+const fmt = n => Math.round(Math.abs(n)).toLocaleString('en-US')
+const money = (n, cls='') => S.hide ? `<span class="num ${cls}">•••</span>` : `<span class="num ${cls}">${fmt(n)}<span class="cur">ر.س</span></span>`
+const signed = n => S.hide ? '<span class="num">•••</span>' : `<span class="num" dir="ltr">${n>=0?'+':'−'}${fmt(n)}</span><span class="cur">ر.س</span>`
+const pct = (a,b) => b ? Math.round(a/b*100) : 0
+const rise = i => `class="rise" style="--i:${i}"`
+
+/* ===== ١ — التدفّق ===== */
+const FLOW = [
+  { name:'الصافي أولًا', note:'الرقم الأهم صار هو الصافي (فائض أو عجز) بلونه الدلالي، وتحته نسبة «صرفت كم من دخلك». الدخل والمصروف شريطان منفصلان يُقارنان بنفس المقياس، فيظهر الفرق بدون حساب.', render(d){
+    const max = Math.max(d.income,d.expense), over = d.net<0
+    const col = over?'var(--expense)':'var(--income)'
+    return `<div class="card sum">
+      <div class="hd" style="margin-bottom:6px"><div class="ttl" style="font-size:13px;color:var(--text-2);font-weight:500">تدفّق هذا الشهر</div>
+        <span class="badge" style="background:color-mix(in srgb,${col} 15%,transparent);color:${col}">${over?I.down:I.up}${over?'عجز':'فائض'}</span></div>
+      <div style="font-size:30px;font-weight:700;color:${col}">${signed(d.net)}</div>
+      <div class="sub" style="margin-top:2px">${S.hide?'':`صرفت <span class="num" style="color:var(--text-2)">${pct(d.expense,d.income)}%</span> من دخلك هذا الشهر`}</div>
+      <div class="div"></div>
+      ${[['الدخل',d.income,'var(--income)'],['المصروف',d.expense,'var(--expense)']].map(([l,v,c])=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <div class="lab" style="width:58px"><span class="dot" style="background:${c}"></span>${l}</div>
+          <div class="track" style="flex:1;height:6px"><div class="fill" data-w="${v/max*100}" style="background:${c}"></div></div>
+          <div style="font-size:13px;font-weight:600;min-width:86px;text-align:left">${money(v)}</div>
+        </div>`).join('')}
+    </div>` }},
+
+  { name:'العدّاد', note:'نصف دائرة تقيس المصروف من الدخل. لو تجاوز الدخل يكتمل القوس ويظهر الجزء الزائد بالأحمر. الرقمان تحتها كما هما اليوم، فالبطاقة تحتفظ بنفس المعلومات بشكل أوضح.', render(d){
+    const r = 78, L = Math.PI*r, ratio = d.expense/d.income
+    const main = Math.min(ratio,1), over = Math.max(0, Math.min(ratio-1, 1))
+    const c = ratio>1 ? 'var(--expense)' : ratio>.85 ? 'var(--sub)' : 'var(--income)'
+    return `<div class="card sum">
+      <div class="hd"><div class="ttl" style="font-size:13px;color:var(--text-2);font-weight:500">تدفّق هذا الشهر</div><div class="sub">المصروف من الدخل</div></div>
+      <div style="position:relative;width:200px;height:112px;margin:0 auto">
+        <svg width="200" height="112" viewBox="0 0 200 112" style="overflow:visible">
+          <path d="M22 100a78 78 0 0 1 156 0" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12" stroke-linecap="round"/>
+          <path class="arc" d="M22 100a78 78 0 0 1 156 0" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L}" data-off="${L*(1-main)}" style="transition:stroke-dashoffset 1s var(--expo)"/>
+          ${over>0?`<path class="arc" d="M22 100a78 78 0 0 1 156 0" fill="none" stroke="var(--expense)" stroke-opacity=".45" stroke-width="20" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L}" data-off="${L*(1-over)}" style="transition:stroke-dashoffset 1s .35s var(--expo)"/>`:''}
+        </svg>
+        <div style="position:absolute;inset:auto 0 0;text-align:center">
+          <div class="num" style="font-size:30px;font-weight:700;color:${c}">${S.hide?'•••':pct(d.expense,d.income)+'%'}</div>
+          <div class="sub">${d.net<0?'تجاوزت دخلك':'من دخلك'}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+        ${[['الدخل',d.income,'var(--income)'],['المصروف',d.expense,'var(--expense)']].map(([l,v,c2])=>`
+          <div style="background:color-mix(in srgb,${c2} 8%,transparent);border:1px solid color-mix(in srgb,${c2} 22%,transparent);border-radius:16px;padding:10px 12px">
+            <div class="lab"><span class="dot" style="background:${c2}"></span>${l}</div>
+            <div style="font-size:17px;font-weight:700;color:${c2};margin-top:3px">${money(v)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` }},
+
+  { name:'الوتيرة', note:'شريط واحد للمصروف، عليه خط «حدّ الدخل» وخط «اليوم 9 من 31». يجاوب على سؤالين معًا: هل تجاوزت دخلك؟ وهل أنت أسرع من المتوقع لهذا الوقت من الشهر؟', render(d){
+    const max = Math.max(d.income,d.expense)*1.04
+    const incX = d.income/max*100, expW = d.expense/max*100, dayX = d.income*(DAY/DAYS)/max*100
+    const over = d.net<0
+    return `<div class="card sum">
+      <div class="hd"><div class="ttl" style="font-size:13px;color:var(--text-2);font-weight:500">تدفّق هذا الشهر</div><div class="sub num">اليوم ${DAY} من ${DAYS}</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div><div class="lab"><span class="dot" style="background:var(--expense)"></span>المصروف</div><div style="font-size:24px;font-weight:700;color:var(--expense);margin-top:2px">${money(d.expense)}</div></div>
+        <div style="text-align:left"><div class="lab" style="justify-content:flex-end"><span class="dot" style="background:var(--income)"></span>الدخل</div><div style="font-size:15px;font-weight:600;color:var(--income);margin-top:4px">${money(d.income)}</div></div>
+      </div>
+      <div style="position:relative;margin:26px 0 22px">
+        <div class="track" style="height:14px">
+          <div class="fill" data-w="${Math.min(expW,incX)}" style="background:var(--expense);border-radius:999px 0 0 999px;position:absolute;right:0"></div>
+          ${over?`<div class="fill" data-w="${expW-incX}" style="position:absolute;right:${incX}%;border-radius:0;background:repeating-linear-gradient(135deg,var(--expense) 0 4px,color-mix(in srgb,var(--expense) 45%,transparent) 4px 8px);transition-delay:.5s"></div>`:''}
+        </div>
+        <div style="position:absolute;top:-8px;bottom:-8px;right:${incX}%;width:2px;background:var(--income);border-radius:2px"></div>
+        <div style="position:absolute;top:-22px;right:${incX}%;transform:translateX(50%);font-size:10px;color:var(--income);white-space:nowrap">حدّ الدخل</div>
+        <div style="position:absolute;top:-6px;bottom:-6px;right:${dayX}%;width:0;border-right:1.5px dashed var(--text-3)"></div>
+        <div style="position:absolute;bottom:-22px;right:${dayX}%;transform:translateX(50%);font-size:10px;color:var(--text-3);white-space:nowrap">المتوقع لليوم</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,${over?'var(--expense)':'var(--income)'} 10%,transparent)">
+        <span style="color:${over?'var(--expense)':'var(--income)'}">${over?I.down:I.up}</span>
+        <div style="font-size:12px;color:var(--text-2)">${over?'تجاوزت دخلك بـ':'باقي من دخلك'} <b style="color:var(--text);font-weight:600">${money(Math.abs(d.net))}</b></div>
+      </div>
+    </div>` }},
+
+  { name:'عمودان', note:'مقارنة بصرية مباشرة بعمودين متجاورين بارتفاع نسبي، والأرقام بجانبهما. مضغوط وأقل ارتفاعًا من الحالي، والصافي في الأسفل كسطر واحد.', render(d){
+    const max = Math.max(d.income,d.expense)
+    const col = (v,c)=>`<div style="width:30px;height:96px;border-radius:10px;background:rgba(255,255,255,.04);display:flex;align-items:flex-end;overflow:hidden"><div class="grow" style="width:100%;height:${v/max*100}%;border-radius:10px;background:linear-gradient(180deg,${c},color-mix(in srgb,${c} 55%,transparent))"></div></div>`
+    return `<div class="card sum">
+      <div class="hd"><div class="ttl" style="font-size:13px;color:var(--text-2);font-weight:500">تدفّق هذا الشهر</div><div class="sub">دخل مقابل مصروف</div></div>
+      <div style="display:flex;align-items:flex-end;gap:16px">
+        <div style="display:flex;gap:8px;align-items:flex-end">${col(d.income,'var(--income)')}${col(d.expense,'var(--expense)')}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+          <div><div class="lab"><span class="dot" style="background:var(--income)"></span>الدخل</div><div style="font-size:20px;font-weight:700;color:var(--income)">${money(d.income)}</div></div>
+          <div><div class="lab"><span class="dot" style="background:var(--expense)"></span>المصروف</div><div style="font-size:20px;font-weight:700;color:var(--expense)">${money(d.expense)}</div></div>
+        </div>
+      </div>
+      <div class="div" style="margin:14px 0 12px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="sub" style="font-size:12px">الصافي</div>
+        <div style="font-size:15px;font-weight:700;color:${d.net<0?'var(--expense)':'var(--income)'}">${signed(d.net)}</div>
+      </div>
+    </div>` }},
+]
+
+/* ===== ٢ — الاشتراكات والالتزامات ===== */
+const tile = (c, icon) => `<span class="tile" style="background:color-mix(in srgb,${c} 15%,transparent);color:${c}">${icon}</span>`
+const TILES = [
+  { name:'صفّان', note:'بطاقة واحدة بصفّين بدل بلاطتين فيهما فراغ كبير. كل صف: أيقونة بلونها الدلالي، والاسم مع وصف قصير، والرقم على اليسار، وسهم للدخول.', render(d){
+    const row = (c,ic,t,s,v)=>`<button class="press" style="display:flex;align-items:center;gap:12px;width:100%;text-align:right;padding:4px 0">
+      ${tile(c,ic)}<div style="flex:1"><div style="font-size:13.5px;font-weight:600">${t}</div><div class="sub" style="margin-top:2px">${s}</div></div>
+      <div style="font-size:15px;font-weight:700">${v}</div><span class="chev">${I.chevron}</span></button>`
+    return `<div class="card" style="padding:12px 16px">
+      ${row('var(--sub)',I.sub,'الاشتراكات',`<span class="num">${d.subs.count}</span> اشتراكات · ${d.subs.next} بعد <span class="num">${d.subs.in}</span> أيام`,money(d.subs.total)+'<span class="cur">/ شهر</span>')}
+      <div class="div" style="margin:10px 0 10px 52px;margin-inline-start:52px"></div>
+      ${row('var(--commit)',I.commit,'الالتزامات',`${d.commits.next} بعد <span class="num">${d.commits.in}</span> يوم`,`<span class="num">${d.commits.count}</span><span class="cur">نشط</span>`)}
+    </div>` }},
+
+  { name:'بلاطات مضغوطة', note:'نفس البلاطتين لكن بنصف الارتفاع: الأيقونة بجانب الرقم بدل فوقه، وسطر صغير تحت يعطي معلومة مفيدة بدل الفراغ.', render(d){
+    const t = (c,ic,l,v,s)=>`<button class="card press" style="padding:14px;text-align:right">
+      <div style="display:flex;align-items:center;gap:10px">${tile(c,ic)}<div><div class="sub" style="font-size:11.5px">${l}</div><div style="font-size:17px;font-weight:700;margin-top:1px">${v}</div></div></div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:12px;font-size:11px;color:var(--text-3)"><span style="color:${c}">${I.cal}</span>${s}</div></button>`
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${t('var(--sub)',I.sub,'الاشتراكات شهريًا',money(d.subs.total),`${d.subs.next} بعد <span class="num">${d.subs.in}</span> أيام`)}
+      ${t('var(--commit)',I.commit,'التزامات نشطة',`<span class="num">${d.commits.count}</span>`,`القادم بعد <span class="num">${d.commits.in}</span> يوم`)}
+    </div>` }},
+
+  { name:'بلاطات بالتقدّم', note:'كل بلاطة فيها تقدّم هذا الشهر: كم اشتراك انخصم من أصل كم، وكم قسط انسدّ من الالتزام. الألوان دلالية (أصفر للاشتراكات، أزرق للالتزامات).', render(d){
+    const segs = (n,done,c)=>`<div style="display:flex;gap:3px;margin-top:10px">${Array.from({length:n},(_,i)=>`<span style="flex:1;height:5px;border-radius:99px;background:${i<done?c:'rgba(255,255,255,.07)'}"></span>`).join('')}</div>`
+    const [p,t] = d.commits.paidOf
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button class="card press" style="padding:14px;text-align:right">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">${tile('var(--sub)',I.sub)}<span class="chev">${I.chevron}</span></div>
+        <div class="sub" style="font-size:11.5px;margin-top:12px">الاشتراكات شهريًا</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px">${money(d.subs.total)}</div>
+        ${segs(d.subs.count,d.subs.paid,'var(--sub)')}
+        <div class="sub" style="margin-top:6px"><span class="num">${d.subs.paid}</span> من <span class="num">${d.subs.count}</span> انخصمت</div>
+      </button>
+      <button class="card press" style="padding:14px;text-align:right">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">${tile('var(--commit)',I.commit)}<span class="chev">${I.chevron}</span></div>
+        <div class="sub" style="font-size:11.5px;margin-top:12px">التزامات نشطة</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px"><span class="num">${d.commits.count}</span><span class="cur">· ${S.hide?'•••':fmt(d.commits.monthly)+' ر.س/شهر'}</span></div>
+        <div class="track" style="height:5px;margin-top:10px"><div class="fill" data-w="${p/t*100}" style="background:var(--commit)"></div></div>
+        <div class="sub" style="margin-top:6px"><span class="num">${p}</span> من <span class="num">${t}</span> قسط</div>
+      </button>
+    </div>` }},
+]
+
+/* ===== ٣ — أين ذهبت أموالك ===== */
+const catHead = `<div class="hd"><div class="ttl">أين ذهبت أموالك</div><button class="link press">الفئات ${I.chevron}</button></div>`
+const ibox = (c,n,s=42) => `<span style="width:${s}px;height:${s}px;border-radius:14px;display:grid;place-items:center;flex-shrink:0;background:color-mix(in srgb,${c} 15%,transparent);color:${c}">${svg(ICONS[n]||ICONS['أخرى'],s*.45,2)}</span>`
+const dim = i => S.focus>=0 && S.focus!==i ? 'opacity:.35;' : ''
+const CATS = [
+  { name:'شريط مقسّم', note:'شريط واحد يقسم كل المصروف بألوان الفئات (من categoryColor)، فيظهر حجم كل فئة من الكل. تحته قائمة مختصرة بالنسبة والمبلغ. الضغط على فئة يبرزها في الشريط.', render(d){
+    const tot = d.expense
+    return `<div class="card">${catHead}
+      <div style="font-size:24px;font-weight:700">${money(tot)}</div><div class="sub" style="margin:2px 0 12px">مجموع مصروف الشهر</div>
+      <div style="display:flex;gap:3px;height:12px">${d.cats.map((c,i)=>`<div class="fill" data-w="${c.v/tot*100}" style="height:100%;border-radius:4px;background:${c.c};${dim(i)}transition:width .8s var(--expo),opacity .25s"></div>`).join('')}</div>
+      <div style="display:flex;flex-direction:column;gap:2px;margin-top:14px">${d.cats.map((c,i)=>`
+        <button class="press" data-f="${i}" style="display:flex;align-items:center;gap:10px;padding:8px 0;${dim(i)}transition:opacity .25s">
+          <span class="dot" style="background:${c.c};width:8px;height:8px"></span>
+          <span style="flex:1;text-align:right;font-size:13.5px;font-weight:${c.other?400:600};color:${c.other?'var(--text-2)':'var(--text)'}">${c.n}</span>
+          <span class="num" style="font-size:11.5px;color:var(--text-3);width:34px;text-align:left">${pct(c.v,tot)}%</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text-2);min-width:78px;text-align:left">${money(c.v)}</span>
+        </button>`).join('')}</div>
+    </div>` }},
+
+  { name:'حلقة', note:'حلقة بألوان الفئات، وفي وسطها المجموع. الضغط على أي فئة في القائمة يبرز قطعتها ويعرض مبلغها ونسبتها في الوسط.', render(d){
+    const tot = d.expense, R=56, C=2*Math.PI*R, gap=3
+    let acc=0
+    const arcs = d.cats.map((c,i)=>{const len=c.v/tot*C; const a=`<circle class="ring" cx="70" cy="70" r="${R}" fill="none" stroke="${c.c}" stroke-width="${S.focus===i?18:14}" stroke-dasharray="0 ${C}" data-da="${Math.max(len-gap,1)} ${C}" stroke-dashoffset="${-acc}" style="${dim(i)}transition:stroke-dasharray .9s var(--expo),stroke-width .3s var(--spring),opacity .25s"/>`; acc+=len; return a}).join('')
+    const f = S.focus>=0 ? d.cats[S.focus] : null
+    return `<div class="card">${catHead}
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="position:relative;width:140px;height:140px;flex-shrink:0">
+          <svg width="140" height="140" style="transform:rotate(-90deg) scaleY(-1)"><circle cx="70" cy="70" r="${R}" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="14"/>${arcs}</svg>
+          <div style="position:absolute;inset:0;display:grid;place-items:center;text-align:center"><div>
+            <div class="sub">${f?f.n:'المصروف'}</div>
+            <div style="font-size:${f?17:16}px;font-weight:700;margin-top:2px">${money(f?f.v:tot)}</div>
+            ${f?`<div class="num sub" style="color:${f.c}">${pct(f.v,tot)}%</div>`:''}
+          </div></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:1px">${d.cats.map((c,i)=>`
+          <button class="press" data-f="${i}" style="display:flex;align-items:center;gap:8px;padding:6px 0;${dim(i)}transition:opacity .25s">
+            <span class="dot" style="background:${c.c}"></span>
+            <span style="flex:1;text-align:right;font-size:12.5px;font-weight:500;color:${c.other?'var(--text-2)':'var(--text)'}">${c.n}</span>
+            <span class="num" style="font-size:12px;color:var(--text-2)">${pct(c.v,tot)}%</span>
+          </button>`).join('')}</div>
+      </div>
+    </div>` }},
+
+  { name:'صفوف بالأيقونة', note:'نفس فكرة القائمة الحالية لكن كل فئة بأيقونتها (CategoryIconBox) ولونها، والشريط بلون الفئة بدل درجات الرمادي، مع النسبة من المصروف. أوضح للتمييز بين الفئات.', render(d){
+    const max = d.cats[0].v, tot=d.expense
+    return `<div class="card">${catHead}
+      <div style="display:flex;flex-direction:column;gap:14px">${d.cats.filter(c=>!c.other).map((c,i)=>`
+        <div style="display:flex;align-items:center;gap:12px">
+          ${ibox(c.c,c.n)}
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <div style="font-size:13.5px;font-weight:600">${c.n} <span class="num sub" style="margin-inline-start:4px">${pct(c.v,tot)}%</span></div>
+              <div style="font-size:13px;font-weight:600;color:var(--text-2)">${money(c.v)}</div>
+            </div>
+            <div class="track" style="height:5px;margin-top:7px"><div class="fill" data-w="${c.v/max*100}" style="background:${c.c};transition-delay:${i*60}ms"></div></div>
+          </div>
+        </div>`).join('')}</div>
+    </div>` }},
+
+  { name:'بلاطات نسبية', note:'مساحة كل بلاطة على قدر صرفها (treemap). الفئة المسيطرة تأخذ نصيبها الواضح، والباقي يتوزّع بجانبها. يعطي إحساسًا فوريًا بالحجم بدون قراءة أرقام.', render(d){
+    const tot=d.expense, [first,...rest]=d.cats, fw=Math.max(first.v/tot*100,45)
+    const restTot = rest.reduce((a,c)=>a+c.v,0)
+    const blk = (c,big)=>`<div class="press" style="flex:${big?'none':c.v/restTot};${big?`width:${fw}%;`:''}min-height:${big?0:30}px;border-radius:14px;padding:${big?14:'7px 10px'};background:color-mix(in srgb,${c.c} ${big?18:14}%,transparent);border:1px solid color-mix(in srgb,${c.c} 30%,transparent);display:flex;${big?'flex-direction:column;justify-content:space-between':'align-items:center;justify-content:space-between;gap:6px'};overflow:hidden">
+      ${big?`<span style="color:${c.c}">${svg(ICONS[c.n],22,2)}</span><div><div style="font-size:13.5px;font-weight:600">${c.n}</div><div style="font-size:20px;font-weight:700;color:${c.c};margin-top:2px">${money(c.v)}</div><div class="num sub">${pct(c.v,tot)}% من المصروف</div></div>`
+        :`<span style="font-size:11.5px;font-weight:600;white-space:nowrap;color:${c.other?'var(--text-2)':'var(--text)'}">${c.n}</span><span class="num" style="font-size:11px;color:${c.c}">${pct(c.v,tot)}%</span>`}
+    </div>`
+    return `<div class="card">${catHead}
+      <div style="display:flex;gap:6px;height:220px">${blk(first,true)}<div style="flex:1;display:flex;flex-direction:column;gap:6px">${rest.map(c=>blk(c,false)).join('')}</div></div>
+    </div>` }},
+]
+
+/* ===== العرض ===== */
+const root = document.getElementById('root')
+function render(animate=true){
+  const d = data()
+  root.innerHTML = `<div ${rise(0)}>${FLOW[S.flow].render(d)}</div><div ${rise(1)}>${TILES[S.tiles].render(d)}</div><div ${rise(2)}>${CATS[S.cats].render(d)}</div>`
+  root.classList.remove('ready')
+  const go = () => {
+    root.classList.add('ready')
+    root.querySelectorAll('.fill[data-w]').forEach(e=>e.style.width=e.dataset.w+'%')
+    root.querySelectorAll('.arc').forEach(e=>e.style.strokeDashoffset=e.dataset.off)
+    root.querySelectorAll('.ring').forEach(e=>e.setAttribute('stroke-dasharray',e.dataset.da))
+  }
+  if(animate) requestAnimationFrame(()=>requestAnimationFrame(go))
+  else { root.querySelectorAll('.fill,.arc,.ring,.grow').forEach(e=>e.style.transition='none'); go() }
+  if(!animate) root.querySelectorAll('.rise').forEach(e=>e.style.animation='none')
+  root.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{const i=+b.dataset.f;S.focus=S.focus===i?-1:i;render(false)})
+  syncPanel()
+}
+function seg(id, list, key){
+  const el = document.getElementById(id)
+  el.innerHTML = list.map((o,i)=>`<button class="press" data-i="${i}"><span class="num">${i+1}</span> · ${o.name}</button>`).join('')
+  el.onclick = e => { const b=e.target.closest('button'); if(!b) return; S[key]=+b.dataset.i; S.focus=-1; render() }
+}
+function syncPanel(){
+  [['segFlow','flow',FLOW,'nFlow','noteFlow','التدفّق'],['segTiles','tiles',TILES,'nTiles','noteTiles','الاشتراكات والالتزامات'],['segCats','cats',CATS,'nCats','noteCats','الفئات']].forEach(([s,k,L,n,nt,lbl])=>{
+    document.querySelectorAll(`#${s} button`).forEach((b,i)=>b.classList.toggle('on',i===S[k]))
+    document.getElementById(n).textContent = `خيار ${S[k]+1}`
+    document.getElementById(nt).innerHTML = `<span class="k">${lbl} — خيار ${S[k]+1}: ${L[S[k]].name}</span>${L[S[k]].note}`
+  })
+  document.getElementById('tgHide').classList.toggle('on',S.hide)
+  document.getElementById('tgSurplus').classList.toggle('on',S.surplus)
+}
+seg('segFlow',FLOW,'flow'); seg('segTiles',TILES,'tiles'); seg('segCats',CATS,'cats')
+document.getElementById('tgHide').onclick=()=>{S.hide=!S.hide;render(false)}
+document.getElementById('tgSurplus').onclick=()=>{S.surplus=!S.surplus;render()}
+render()
+</script>
+</body>
+</html>
