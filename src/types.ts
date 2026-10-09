@@ -43,6 +43,8 @@ export interface FuelLog {
   isFullTank: boolean
   cost?: number
   accountId?: string
+  /** دفعها شخص آخر (مساهمة) — التكلفة تُحفظ بدون حركة مالية. */
+  paidByPersonId?: string
 }
 
 /** سلفة راتب — مبلغ يُستلم مقدَّمًا (يُسجَّل كدخل بحسابه فورًا) ويُخصم تلقائيًا من أول حركة دخل "راتب" تُسجَّل بعدها. */
@@ -95,6 +97,24 @@ export interface Person {
   phone?: string
   note?: string
   createdAt: string
+  /** مساهم: يظهر في قائمة «دفعها عنك شخص» عند اختيار حساب المصروف. undefined = لا. */
+  isContributor?: boolean
+}
+
+/**
+ * مصروف يخصّك لكن دفعه شخص آخر (مثل صديق عبّى بنزين سيارتك) — للتذكّر فقط:
+ * لا يُخصم من أي حساب، ولا يدخل في المصاريف أو الميزانيات، وليس دَينًا.
+ */
+export interface Contribution {
+  id: string
+  personId: string
+  amount: number
+  date: string
+  categoryId?: string
+  note?: string
+  createdAt?: string
+  /** سجل الوقود المرتبط لو سُجّلت من شاشة السيارة. */
+  fuelLogId?: string
 }
 
 export type LoanDirection = 'given' | 'received'

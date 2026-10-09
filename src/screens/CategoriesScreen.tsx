@@ -264,9 +264,11 @@ function CategoryDetailSheet({
   onClose: () => void
   onEditBudget: () => void
 }) {
-  const { transactions } = useData()
+  const { transactions, contributions } = useData()
   const navigate = useNavigate()
   const now = new Date()
+  // مساهمات (دفعها غيرك) على الفئة ضمن الفترة — خارج المصروف والميزانية، تُذكر بسطر.
+  const contributed = contributions.filter((c) => c.categoryId === category.id && inPeriod(c.date, period, now)).reduce((sum, c) => sum + c.amount, 0)
   const allTx = transactions.filter((t) => t.type === 'expense' && t.categoryId === category.id)
   const categoryTx = allTx
     .filter((t) => inPeriod(t.date, period, now))
@@ -350,6 +352,17 @@ function CategoryDetailSheet({
               </>
             ) : (
               <div className="mt-2 text-[12px] text-[var(--color-text-3)]">لا توجد ميزانية لهذه الفئة</div>
+            )}
+            {contributed > 0 && (
+              <div className="mt-3 flex items-center gap-2 rounded-[14px] bg-white/[0.04] px-3 py-2 text-[11.5px] text-[var(--color-text-2)]">
+                <Svg size={14}>
+                  <circle cx="12" cy="8" r="3.5" />
+                  <path d="M5 20c0-3.9 3.1-6 7-6s7 2.1 7 6" />
+                </Svg>
+                <span>
+                  ودفع عنك غيرك <b className="num font-semibold text-[var(--color-text)]">{formatAmount(contributed)}</b> ر.س — خارج المصروف والميزانية
+                </span>
+              </div>
             )}
           </div>
 

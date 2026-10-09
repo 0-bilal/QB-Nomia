@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ToggleRow } from '../../components/ToggleRow'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
@@ -26,6 +27,7 @@ export function AddPersonScreen() {
   const [name, setName] = useState(existing?.name ?? '')
   const [phone, setPhone] = useState(existing?.phone ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
+  const [isContributor, setIsContributor] = useState(!!existing?.isContributor)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const contactsSupported = getContactsAPI() !== null
 
@@ -46,10 +48,10 @@ export function AddPersonScreen() {
   function handleSave() {
     if (!name.trim()) return
     if (isEditing && personId) {
-      updatePerson(personId, { name, phone, note })
+      updatePerson(personId, { name, phone, note, isContributor })
       navigate(`/loans/${personId}`, { replace: true })
     } else {
-      const person = addPerson({ name, phone, note })
+      const person = addPerson({ name, phone, note, isContributor })
       navigate(`/loans/${person.id}`, { replace: true })
     }
   }
@@ -152,7 +154,20 @@ export function AddPersonScreen() {
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="مثال: زميل العمل"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+        className="mb-5 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+      />
+
+      <ToggleRow
+        icon={
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.8 8.6a5 5 0 0 0-8.8-3.2 5 5 0 0 0-8.8 3.2c0 5.4 8.8 10.4 8.8 10.4s8.8-5 8.8-10.4z" />
+          </svg>
+        }
+        label="مساهم"
+        desc="يظهر عند اختيار الحساب لتسجيل مصروف دفعه عنك (للتذكّر فقط)"
+        enabled={isContributor}
+        onToggle={() => setIsContributor((v) => !v)}
+        className="mb-4"
       />
     </ScreenScroll>
   )

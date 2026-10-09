@@ -17,6 +17,7 @@ import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import { haptic } from '../lib/haptics'
 import type { TransactionType } from '../types'
+import { ContributorPicker } from '../components/ContributorPicker'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -68,19 +69,38 @@ export function AddTransactionScreen() {
   const { id } = useParams<{ id?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { accounts, categories, incomeSources, transactions, addTransaction, updateTransaction, deleteTransaction, categorySpentThisMonth } = useData()
+  const {
+    accounts,
+    categories,
+    incomeSources,
+    transactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    categorySpentThisMonth,
+    people,
+    contributions,
+    addContribution,
+    updateContribution,
+    deleteContribution,
+  } = useData()
 
   const existing = id ? transactions.find((t) => t.id === id) : undefined
-  const isEditing = Boolean(existing)
+  // مساهمة (مصروف دفعه غيرك) تُفتح للتعديل بنفس الشاشة.
+  const existingContribution = id && !existing ? contributions.find((c) => c.id === id) : undefined
+  const isEditing = Boolean(existing || existingContribution)
+  /** الأشخاص المفعّل لهم «مساهم» — يظهرون في ورقة الحساب تحت «أو دفعها عنك شخص». */
+  const contributors = people.filter((p) => p.isContributor || p.id === existingContribution?.personId)
 
-  const initialType = existing?.type ?? ((searchParams.get('type') as TransactionType) || 'expense')
+  const initialType = existing?.type ?? (existingContribution ? 'expense' : (searchParams.get('type') as TransactionType) || 'expense')
   const toParam = searchParams.get('to') ?? undefined
   const fromParam = searchParams.get('from') ?? undefined
   const amountParam = searchParams.get('amount') ?? undefined
   const categoryParam = searchParams.get('category') ?? undefined
 
   const [type, setType] = useState<TransactionType>(initialType)
-  const [amount, setAmount] = useState(existing ? String(existing.amount) : (amountParam ?? ''))
+  const [amount, setAmount] = useState(existing ? String(existing.amount) : existingContribution ? String(existingContribution.amount) : (amountParam ?? ''))
+  const [paidBy, setPaidBy] = useState<string | null>(existingContribution?.personId ?? null)
   const [accountId, setAccountId] = useState(
     () => existing?.accountId ?? fromParam ?? accounts.find((a) => a.id !== toParam)?.id ?? accounts[0]?.id ?? '',
   )
@@ -94,11 +114,11 @@ export function AddTransactionScreen() {
       '',
   )
   const [categoryId, setCategoryId] = useState(
-    existing?.categoryId ?? (categoryParam && categories.some((c) => c.id === categoryParam) ? categoryParam : categories.find((c) => c.kind === 'expense')?.id) ?? '',
+    existing?.categoryId ?? existingContribution?.categoryId ?? (categoryParam && categories.some((c) => c.id === categoryParam) ? categoryParam : categories.find((c) => c.kind === 'expense')?.id) ?? '',
   )
   const [incomeSourceId, setIncomeSourceId] = useState(existing?.incomeSourceId ?? incomeSources[0]?.id ?? '')
-  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10))
-  const [note, setNote] = useState(existing?.note ?? '')
+  const [date, setDate] = useState(existing?.date ?? existingContribution?.date ?? new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState(existing?.note ?? existingContribution?.note ?? '')
   const [hasViolation, setHasViolation] = useState(false)
   const [violationAmount, setViolationAmount] = useState('')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -109,6 +129,9 @@ export function AddTransactionScreen() {
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
 
   const color = TYPE_COLOR[type]
+  const payer = type === 'expense' && paidBy ? people.find((p) => p.id === paidBy) : undefined
+  // دفعها غيرك: المبلغ وزر الحفظ بالأبيض بدل أحمر المصروف — ليس مصروفًا عليك.
+  const amountColor = payer ? 'var(--color-accent)' : color
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
   const numericAmount = Number(amount)
   const selectedAccount = accounts.find((a) => a.id === accountId)
@@ -138,6 +161,9 @@ export function AddTransactionScreen() {
 
   function changeType(next: TransactionType) {
     if (next === type) return
+    // المساهمة مصروف فقط — تعديلها لا يغيّر النوع.
+    if (existingContribution) return
+    if (next !== 'expense') setPaidBy(null)
     haptic('select')
     setType(next)
   }
@@ -160,7 +186,7 @@ export function AddTransactionScreen() {
 
   const canSave =
     numericAmount > 0 &&
-    accountId &&
+    (accountId || payer) &&
     (type !== 'expense' || categoryId) &&
     (type !== 'income' || incomeSourceId) &&
     (type !== 'transfer' || (transferToId && transferToId !== accountId)) &&
@@ -168,6 +194,27 @@ export function AddTransactionScreen() {
 
   function handleSave() {
     if (!canSave) return
+    // مصروف دفعه شخص آخر: مساهمة للتذكّر فقط — بدون حركة مالية.
+    if (payer) {
+      const cInput = { personId: payer.id, amount: numericAmount, date, categoryId, note }
+      if (existingContribution) updateContribution(existingContribution.id, cInput)
+      else {
+        if (existing) deleteTransaction(existing.id)
+        addContribution(cInput)
+      }
+      haptic('success')
+      if (isEditing) navigate(-1)
+      else navigate('/', { replace: true })
+      return
+    }
+    if (existingContribution) {
+      // تحويل مساهمة إلى مصروف عادي من حساب.
+      deleteContribution(existingContribution.id)
+      addTransaction({ type, amount: numericAmount, date, accountId, categoryId, note })
+      haptic('success')
+      navigate(-1)
+      return
+    }
     const input = {
       type,
       amount: numericAmount,
@@ -190,6 +237,13 @@ export function AddTransactionScreen() {
   }
 
   function handleDelete() {
+    if (existingContribution) {
+      const c = existingContribution
+      deleteContribution(c.id)
+      navigate('/', { replace: true })
+      showUndoToast('تم حذف المساهمة', (data) => data.addContribution({ personId: c.personId, amount: c.amount, date: c.date, categoryId: c.categoryId, note: c.note }))
+      return
+    }
     if (!id || !existing) return
     const { type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note } = existing
     deleteTransaction(id)
@@ -259,9 +313,9 @@ export function AddTransactionScreen() {
             onClick={handleSave}
             disabled={!canSave}
             className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-            style={{ background: color, boxShadow: canSave ? `0 16px 34px -14px ${color}` : 'none', transition: 'background 240ms ease, box-shadow 240ms ease, opacity 200ms ease' }}
+            style={{ background: amountColor, boxShadow: canSave ? `0 16px 34px -14px ${amountColor}` : 'none', transition: 'background 240ms ease, box-shadow 240ms ease, opacity 200ms ease' }}
           >
-            {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
+            {isEditing ? 'حفظ التعديلات' : payer ? `حفظ · دفعها ${payer.name}` : 'حفظ الحركة'}
           </button>
         </div>
       }
@@ -280,14 +334,27 @@ export function AddTransactionScreen() {
         open={fromSheetOpen}
         title={type === 'transfer' ? 'من حساب' : 'اختر الحساب'}
         items={accountSheetItems()}
-        selectedId={accountId}
+        selectedId={payer ? undefined : accountId}
         onSelect={(v) => {
           setAccountId(v)
+          setPaidBy(null)
           setFromSheetOpen(false)
         }}
         onClose={() => setFromSheetOpen(false)}
         emptyLabel="لا توجد حسابات بعد"
         footer={
+          <>
+          {type === 'expense' && (
+            <ContributorPicker
+              people={contributors}
+              selectedId={paidBy}
+              onPick={(pid) => {
+                haptic('tick')
+                setPaidBy(pid)
+                setFromSheetOpen(false)
+              }}
+            />
+          )}
           <button
             onClick={() => {
               setFromSheetOpen(false)
@@ -298,6 +365,7 @@ export function AddTransactionScreen() {
           >
             + إضافة حساب جديد
           </button>
+          </>
         }
       />
 
@@ -425,6 +493,17 @@ export function AddTransactionScreen() {
         </div>
       ) : (
         <div className="mb-6">
+          {payer ? (
+            <PickerField
+              label="الحساب"
+              icon={<span className="text-[15px] font-bold">{payer.name.trim().charAt(0) || '؟'}</span>}
+              iconColor={colorFor(payer.name)}
+              iconBg={`${colorFor(payer.name)}22`}
+              title={`دفعها ${payer.name}`}
+              subtitle="لن تُخصم من أي حساب"
+              onClick={() => setFromSheetOpen(true)}
+            />
+          ) : (
           <PickerField
             label="الحساب"
             icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
@@ -440,8 +519,9 @@ export function AddTransactionScreen() {
                 </span>
               ) : undefined
             }
-            onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setFromSheetOpen(true))}
+            onClick={() => (accounts.length === 0 && contributors.length === 0 ? navigate('/accounts/new') : setFromSheetOpen(true))}
           />
+          )}
         </div>
       )}
 
@@ -453,8 +533,8 @@ export function AddTransactionScreen() {
         onPointerUp={onAmountPointerUp}
         onPointerCancel={() => (amountSwipe.current.active = false)}
       >
-        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
-        <div dir="ltr" className="num inline-flex items-baseline justify-center gap-2 font-bold" style={{ color, transition: 'color 240ms ease' }}>
+        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{payer ? `كم دفع ${payer.name} عنك؟` : type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
+        <div dir="ltr" className="num inline-flex items-baseline justify-center gap-2 font-bold" style={{ color: amountColor, transition: 'color 240ms ease' }}>
           <span key={amount} className="text-[52px] leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
             {amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-US') + (amount.includes('.') ? '.' + (amount.split('.')[1] ?? '') : '') : '0'}
           </span>
@@ -469,14 +549,29 @@ export function AddTransactionScreen() {
           mostUsed={mostUsed}
           selectedId={categoryId}
           spentOf={spentExcludingThis}
-          amount={numericAmount}
+          // المساهمة لا تدخل في ميزانية الفئة — فلا نعرض «بعد هذا المصروف».
+          amount={payer ? 0 : numericAmount}
           onSelect={setCategoryId}
           onOpenAll={() => (expenseCategories.length === 0 ? navigate('/categories/new') : setCategoryPickerOpen(true))}
         />
       )}
 
+      {payer && (
+        <div className="mb-5 flex items-start gap-2.5 rounded-[18px] border border-[var(--color-border)] bg-white/[0.04] px-3.5 py-3 text-[11.5px] leading-relaxed text-[var(--color-text-2)]" style={{ animation: 'qb-rise 380ms var(--ease-out-expo) both' }}>
+          <span className="mt-0.5 flex-shrink-0 text-[var(--color-text-3)]">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v6M12 7.5h.01" />
+            </svg>
+          </span>
+          <span>
+            تُسجَّل للتذكّر فقط: <b className="font-semibold text-[var(--color-text)]">لا تُخصم من حسابك</b>، ولا تدخل في مصاريفك أو ميزانياتك، وليست دَينًا على {payer.name}. تظهر في صفحته ضمن «المساهمات».
+          </span>
+        </div>
+      )}
+
       <div className="mb-6">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
+        <AmountPad value={amount} onChange={setAmount} color={amountColor} />
       </div>
 
       {type === 'income' && (

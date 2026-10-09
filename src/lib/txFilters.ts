@@ -5,7 +5,10 @@ import { localIso } from './homeFeed'
 export type TxType = 'expense' | 'income' | 'transfer' | 'loan'
 
 export function txTypeOf(kind: ActivityItem['kind']): TxType {
-  return kind === 'loan-given' || kind === 'loan-received' ? 'loan' : kind
+  if (kind === 'loan-given' || kind === 'loan-received') return 'loan'
+  // المساهمة مصروف دفعه غيرك — تظهر تحت «مصروف» (بمبلغ صفر فلا تغيّر المجاميع).
+  if (kind === 'contribution') return 'expense'
+  return kind
 }
 
 /** فترة جاهزة، أو `m:YYYY-MM` لشهر محدد (متنقّل الأشهر)، أو `custom` بتاريخي from/to. */
@@ -123,7 +126,7 @@ export function filterActivity(items: ActivityItem[], f: TxFilters, query: strin
   const max = f.maxAmount ? Number(f.maxAmount) : null
   return items.filter((item) => {
     if (!opts.ignoreType && f.type && txTypeOf(item.kind) !== f.type) return false
-    if (!opts.ignoreCategory && f.categories.length > 0 && !(item.kind === 'expense' && f.categories.includes(item.title))) return false
+    if (!opts.ignoreCategory && f.categories.length > 0 && !((item.kind === 'expense' || item.kind === 'contribution') && f.categories.includes(item.title))) return false
     if (from && item.date < from) return false
     if (to && item.date > to) return false
     if (f.accountIds.length > 0 && !item.accountIds.some((id) => f.accountIds.includes(id))) return false
