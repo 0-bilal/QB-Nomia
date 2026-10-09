@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الفئات — فلترة الفترة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --sub:#ffbf47;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px;display:flex;justify-content:space-between}
+  .plbl b{color:var(--text-2);font-weight:600}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:28px;height:88vh}}
+  .scroll{position:absolute;inset:0;overflow-y:auto;padding:0 20px 120px;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .hdr{position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:6;pointer-events:none}
+  .gb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(28,28,33,.75);border:1px solid var(--border-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);pointer-events:auto}
+  .title{font-size:28px;font-weight:700;margin-top:70px}
+
+  /* الكبسولة الذكية — مواصفات DESIGN-SYSTEM القسم 7 */
+  .capsule{position:relative;display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 12px 30px -12px rgba(0,0,0,.8)}
+  .capsule::before{content:'';position:absolute;inset:-12px -16px;z-index:-1;background:rgba(5,5,6,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);-webkit-mask-image:radial-gradient(closest-side,#000 60%,transparent 100%);mask-image:radial-gradient(closest-side,#000 60%,transparent 100%);border-radius:999px}
+  .capsule button{position:relative;z-index:1;height:34px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:color .25s}
+  .capsule button.on{color:var(--on-accent)}
+  .capsule .pill{position:absolute;top:4px;bottom:4px;border-radius:999px;background:var(--accent);transition:right .45s var(--spring),width .45s var(--spring)}
+  .stick{position:sticky;top:12px;z-index:5;display:flex;justify-content:center;margin:16px 0 4px}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:14px}
+  .hero{position:relative;overflow:hidden;border-radius:28px;border:1px solid rgba(255,255,255,.09);padding:18px;background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.07),transparent 55%),linear-gradient(165deg,var(--surface-el),var(--void))}
+  .fade{animation:fade .45s var(--expo) both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .row{display:flex;align-items:center;justify-content:space-between}
+  .lbl{font-size:12.5px;font-weight:500;color:var(--text-2)}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:rgba(255,255,255,.07);padding:4px 10px;font-size:11px;font-weight:600;color:var(--text-2)}
+  .big{font-size:32px;font-weight:700}
+  .meter{position:relative;height:10px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:999px;transition:width .7s var(--expo)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+  .stats div{border-radius:16px;background:rgba(255,255,255,.04);padding:10px 6px;text-align:center}
+  .stats b{display:block;font-size:14.5px;font-weight:700}
+  .stats small{display:block;font-size:10.5px;color:var(--text-3);margin-top:2px}
+  .delta{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px}
+
+  .h2{margin:24px 6px 10px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+  .h2 small{font-size:11px;color:var(--text-3);font-weight:400}
+  .dist{display:flex;height:12px;gap:2px;border-radius:999px;overflow:hidden}
+  .dist span{height:100%;transition:flex-grow .6s var(--expo)}
+  .legend{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:12px}
+  .legend div{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2);min-width:0}
+  .legend i{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+  .legend span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .filters{display:flex;gap:6px;margin:0 -20px 12px;padding:0 20px;overflow-x:auto;scrollbar-width:none}
+  .filters button{flex-shrink:0;display:flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);padding:6px 12px;font-size:12px;font-weight:600}
+  .filters button.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .tile{position:relative;overflow:hidden;min-height:132px;display:flex;flex-direction:column;border-radius:22px;border:1px solid var(--border);background:var(--surface);padding:14px;text-align:right}
+  .tile .glow{position:absolute;left:-30px;bottom:-40px;width:110px;height:110px;border-radius:50%;filter:blur(30px);opacity:.16;pointer-events:none}
+  .ib{width:40px;height:40px;border-radius:14px;display:grid;place-items:center}
+  .tile .n{margin-top:10px;font-size:13.5px;font-weight:600}
+  .tile .a{font-size:16px;font-weight:700;margin-top:1px}
+  .tile .foot{margin-top:auto;padding-top:10px;font-size:10.5px;color:var(--text-3)}
+  .bar{height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:999px;transition:width .6s var(--expo)}
+  .cur{font-family:var(--font-sans);font-size:10.5px;font-weight:500;color:var(--text-3)}
+
+  /* الخيار ٢: متنقّل الأشهر داخل البطاقة */
+  .stepper{display:flex;align-items:center;gap:6px}
+  .stepper .arw{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--text-2)}
+  .stepper .arw:disabled{opacity:.3}
+
+  /* الورقة */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:20;animation:fadein .18s both}
+  @keyframes fadein{from{opacity:0}}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:82%;overflow-y:auto;border-radius:32px 32px 0 0;border:1px solid var(--border-strong);border-bottom:0;background:var(--surface-el);padding:10px 16px 26px;animation:sheetin .42s var(--expo) both}
+  @keyframes sheetin{from{transform:translateY(100%)}}
+  .handle{width:38px;height:5px;border-radius:999px;background:rgba(255,255,255,.18);margin:0 auto 14px}
+  .tx{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border)}
+  .tx:first-child{border-top:0}
+
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>فئات المصاريف — اختيار الفترة</h1>
+  <p>فلتر للفترة: هذا الشهر · الشهر الماضي · الكل. يغيّر بطاقة الشهر، و«أين تذهب مصاريفك»، وبطاقات الفئات، وتفاصيل الفئة. اضغط أي فئة لترى الورقة.</p>
+</div>
+
+<div class="panel">
+  <div class="plbl">مكان الفلتر <b id="nOpt"></b></div>
+  <div class="seg" id="segOpt">
+    <button data-v="0" class="on"><span class="num">1</span> · كبسولة لاصقة</button>
+    <button data-v="1"><span class="num">2</span> · داخل بطاقة الشهر</button>
+    <button data-v="2"><span class="num">3</span> · تبويبات تحت العنوان</button>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="hdr">
+    <span class="gb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></span>
+    <span class="gb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+  </div>
+  <div class="scroll" id="scroll"></div>
+  <div id="sheetHost"></div>
+</div>
+
+<div class="note" id="note"></div>
+
+<script>
+/* ===== البيانات: 3 أشهر لكل فئة ===== */
+const PALETTE = ['#45C8FF','#A1A1AD','#FFBF47','#2EE6C8','#FF9A4D','#FF5F6D','#E4E4EA']
+function colorFor(seed){let h=0;for(let i=0;i<seed.length;i++)h=(h<<5)-h+seed.charCodeAt(i);return PALETTE[Math.abs(h|0)%PALETTE.length]}
+const svg = (p,s=18,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const ICONS = {
+  'ترفيه':'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>',
+  'صحة':'<path d="M20.8 8.6a5 5 0 0 0-8.8-3.2 5 5 0 0 0-8.8 3.2c0 5.4 8.8 10.4 8.8 10.4s8.8-5 8.8-10.4z"/>',
+  'هدايا':'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7M12 8S10.5 3 8 3.5 7.5 8 12 8zm0 0s1.5-5 4-4.5S16.5 8 12 8z"/>',
+  'مطاعم':'<path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1-3 4-3 7h3"/>',
+  'اشتراكات':'<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="m7 22-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
+  'مواصلات':'<rect x="3" y="11" width="18" height="6" rx="2"/><path d="M5 11l2-5h10l2 5M7 17v2M17 17v2"/>',
+  'تسوق':'<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+}
+// [الاسم، الميزانية، [قبل شهرين، الشهر الماضي، هذا الشهر]]
+const CATS = [
+  ['ترفيه',2000,[1100,1240,3690]],['صحة',500,[300,520,405]],['هدايا',400,[0,150,362]],['مطاعم',600,[690,640,282]],
+  ['اشتراكات',250,[206,206,206]],['مواصلات',null,[410,380,144]],['تسوق',null,[920,1310,0]],
+].map(([n,b,m])=>({n,budget:b,m,c:colorFor(n)}))
+const MONTH_BUDGET = 6000
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const NOW = { m:9, day:9, days:31 }               // 9 أكتوبر
+const MONTH_N = 3                                  // أشهر فيها حركات (لمتوسط «الكل»)
+
+const S = { opt:0, period:'cur', filter:'all', sheet:null }
+const PERIODS = [['cur','هذا الشهر'],['last','الشهر الماضي'],['all','الكل']]
+const fmt = n => Math.round(Math.abs(n)).toLocaleString('en-US')
+const spentOf = (c,p=S.period) => p==='cur'?c.m[2]:p==='last'?c.m[1]:c.m.reduce((a,b)=>a+b,0)
+const prevOf = (c,p=S.period) => p==='cur'?c.m[1]:p==='last'?c.m[0]:null
+const periodName = (p=S.period) => p==='cur'?MONTHS[NOW.m]:p==='last'?MONTHS[NOW.m-1]:'كل الوقت'
+const prevName = (p=S.period) => p==='cur'?MONTHS[NOW.m-1]:MONTHS[NOW.m-2]
+const state = (spent,limit) => !limit?'none':spent>limit?'over':spent===limit?'reached':spent>=limit*.8?'near':'ok'
+const SCOL = {none:'var(--text-3)',ok:'var(--income)',near:'var(--sub)',reached:'var(--expense)',over:'var(--expense)'}
+
+/* شارة التغيّر: المصروف الأعلى أحمر والأقل أخضر */
+function delta(cur,prev,small=false){
+  if(prev===null) return ''
+  if(!prev && !cur) return ''
+  if(!prev) return `<span class="delta" style="background:rgba(255,95,109,.13);color:var(--expense)">جديد</span>`
+  const p = Math.round((cur-prev)/prev*100), up=p>0, col = p===0?'var(--text-3)':up?'var(--expense)':'var(--income)'
+  return `<span class="delta num" dir="ltr" style="background:color-mix(in srgb,${col} 13%,transparent);color:${col};${small?'font-size:10px;padding:2px 6px':''}">${p===0?'':svg(up?'<path d="M12 19V5M6 11l6-6 6 6"/>':'<path d="M12 5v14M6 13l6 6 6-6"/>',small?9:10,2.8)}${Math.abs(p)}%</span>`
+}
+
+/* ===== فلتر الفترة بأشكاله الثلاثة ===== */
+function capsule(){
+  return `<div class="capsule">${PERIODS.map(([k,l])=>`<button class="press ${S.period===k?'on':''}" data-p="${k}">${l}</button>`).join('')}<span class="pill" id="pill"></span></div>`
+}
+function placePill(){
+  document.querySelectorAll('.capsule').forEach(cap=>{
+    const on=cap.querySelector('button.on'), r=cap.getBoundingClientRect(), b=on.getBoundingClientRect(), pill=cap.querySelector('.pill')
+    pill.style.right=(r.right-b.right)+'px'; pill.style.width=b.width+'px'
+  })
+}
+function tabs(){
+  return `<div style="display:flex;gap:18px;margin:12px 4px 4px;border-bottom:1px solid var(--border)">${PERIODS.map(([k,l])=>`<button class="press" data-p="${k}" style="position:relative;padding:8px 0 10px;font-size:13.5px;font-weight:${S.period===k?700:500};color:${S.period===k?'var(--text)':'var(--text-3)'}">${l}${S.period===k?'<span style="position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)"></span>':''}</button>`).join('')}</div>`
+}
+
+/* ===== بطاقة الفترة ===== */
+function hero(){
+  const total = CATS.reduce((s,c)=>s+spentOf(c),0)
+  const prev = S.period==='all'?null:CATS.reduce((s,c)=>s+prevOf(c),0)
+  const head = S.opt===1
+    ? `<div class="stepper"><button class="arw press" data-step="-1" ${S.period==='last'?'disabled':''}>${svg('<path d="m9 6 6 6-6 6"/>',14,2.4)}</button>
+        <span class="lbl" style="min-width:92px;text-align:center">${S.period==='all'?'كل الوقت':'مصروف '+periodName()}</span>
+        <button class="arw press" data-step="1" ${S.period==='cur'?'disabled':''}>${svg('<path d="m15 6-6 6 6 6"/>',14,2.4)}</button></div>`
+    : `<span class="lbl">${S.period==='all'?'كل مصاريفك':'مصروف '+periodName()}</span>`
+  const right = S.opt===1
+    ? `<button class="chip press" data-p="${S.period==='all'?'cur':'all'}" style="${S.period==='all'?'background:var(--accent);color:var(--on-accent)':''}">الكل</button>`
+    : `<span class="chip">${svg('<path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/>',12)}السقف الشهري</span>`
+  let body = ''
+  if(S.period==='cur'){
+    const pct = total/MONTH_BUDGET*100, st=state(total,MONTH_BUDGET), left=Math.max(0,MONTH_BUDGET-total), dl=NOW.days-NOW.day+1
+    body = `<div style="display:flex;align-items:baseline;gap:6px;margin-top:6px"><span class="big num">${fmt(total)}</span><span class="num" style="font-size:13px;color:var(--text-3)">/ ${fmt(MONTH_BUDGET)} ر.س</span>${delta(total,prev)}</div>
+      <div class="meter" style="margin-top:14px"><i style="width:${Math.min(100,pct)}%;background:${SCOL[st]}"></i><span style="position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.5);right:${NOW.day/NOW.days*100}%"></span></div>
+      <div class="row" style="margin-top:8px;font-size:11px;color:var(--text-3)"><span><b class="num" style="color:${SCOL[st]}">${Math.round(pct)}%</b> من السقف</span><span>مقارنة بأول ${NOW.day} أيام من ${prevName()}</span></div>
+      <div class="stats"><div><b class="num">${fmt(left)}</b><small>متبقي</small></div><div><b class="num">${fmt(Math.floor(left/dl))}</b><small>مسموح يوميًا</small></div><div><b class="num">${dl}</b><small>يوم متبقي</small></div></div>`
+  } else if(S.period==='last'){
+    const pct = total/MONTH_BUDGET*100, st=state(total,MONTH_BUDGET), over=total>MONTH_BUDGET
+    body = `<div style="display:flex;align-items:baseline;gap:6px;margin-top:6px"><span class="big num">${fmt(total)}</span><span class="num" style="font-size:13px;color:var(--text-3)">/ ${fmt(MONTH_BUDGET)} ر.س</span>${delta(total,prev)}</div>
+      <div class="meter" style="margin-top:14px"><i style="width:${Math.min(100,pct)}%;background:${SCOL[st]}"></i></div>
+      <div class="row" style="margin-top:8px;font-size:11px;color:var(--text-3)"><span><b class="num" style="color:${SCOL[st]}">${Math.round(pct)}%</b> من السقف</span><span>شهر مكتمل · مقارنة بـ${prevName()}</span></div>
+      <div class="stats"><div><b class="num" style="color:${over?'var(--expense)':'var(--income)'}">${fmt(Math.abs(MONTH_BUDGET-total))}</b><small>${over?'تجاوزت السقف':'وفّرت من السقف'}</small></div><div><b class="num">${fmt(total/30)}</b><small>متوسط يومي</small></div><div><b class="num">${CATS.filter(c=>c.m[1]>0).length}</b><small>فئة صرفت عليها</small></div></div>`
+  } else {
+    body = `<div style="display:flex;align-items:baseline;gap:6px;margin-top:6px"><span class="big num">${fmt(total)}</span><span style="font-size:13px;color:var(--text-3)">ر.س</span></div>
+      <div style="font-size:11.5px;color:var(--text-3);margin-top:2px">من <span class="num">1 أغسطس 2026</span> حتى اليوم · <span class="num">${MONTH_N}</span> أشهر</div>
+      <div class="stats"><div><b class="num">${fmt(total/MONTH_N)}</b><small>متوسط شهري</small></div><div><b class="num">${fmt(Math.max(...[0,1,2].map(i=>CATS.reduce((s,c)=>s+c.m[i],0))))}</b><small>أعلى شهر</small></div><div><b>${MONTHS[NOW.m-1]}</b><small>الشهر الأعلى</small></div></div>`
+  }
+  return `<div class="hero fade"><div class="row">${head}${right}</div>${body}</div>`
+}
+
+function distribution(){
+  const list = CATS.map(c=>({...c,s:spentOf(c)})).filter(c=>c.s>0).sort((a,b)=>b.s-a.s), tot=list.reduce((a,c)=>a+c.s,0)
+  return `<div class="h2">أين تذهب مصاريفك <small>${periodName()}</small></div><div class="card fade">
+    <div class="dist">${list.map(c=>`<span style="flex-grow:${c.s};background:${c.c}"></span>`).join('')}</div>
+    <div class="legend">${list.slice(0,6).map(c=>`<div><i style="background:${c.c}"></i><span>${c.n}</span><b class="num" style="color:var(--text);font-weight:600">${Math.round(c.s/tot*100)}%</b></div>`).join('')}</div></div>`
+}
+
+function tiles(){
+  const list = CATS.filter(c=>{const st=state(spentOf(c),S.period==='all'?null:c.budget);return S.filter==='all'||(S.filter==='over'&&(st==='over'||st==='reached'))||(S.filter==='near'&&st==='near')||(S.filter==='none'&&!c.budget)})
+  const filt = [['all','الكل'],['over','تجاوزت'],['near','قاربت'],['none','بدون ميزانية']]
+  return `<div class="h2">الفئات <small>${S.period==='all'?'مرتبة بالأعلى صرفًا':'مرتبة بالأعلى صرفًا · '+periodName()}</small></div>
+    ${S.period==='all'?'':`<div class="filters">${filt.map(([k,l])=>`<button class="press ${S.filter===k?'on':''}" data-f="${k}">${l}</button>`).join('')}</div>`}
+    <div class="grid">${list.sort((a,b)=>spentOf(b)-spentOf(a)).map((c,i)=>{
+      const s=spentOf(c), st=state(s,c.budget), pct=c.budget?s/c.budget*100:0
+      let foot
+      if(S.period==='all') foot = `<div style="display:flex;justify-content:space-between"><span>متوسط شهري</span><span class="num" style="color:var(--text-2)">${fmt(s/MONTH_N)}</span></div>`
+      else if(c.budget) foot = `<div class="bar"><i style="width:${Math.min(100,pct)}%;background:${SCOL[st]}"></i></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span style="color:${st==='ok'?'':SCOL[st]}">${st==='over'?'تجاوز '+fmt(s-c.budget):'متبقي '+fmt(c.budget-s)}</span><span class="num">${fmt(c.budget)}</span></div>`
+      else foot = 'بدون ميزانية'
+      return `<button class="tile press fade" data-c="${c.n}" style="animation-delay:${i*40}ms"><span class="glow" style="background:${c.c}"></span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative"><span class="ib" style="background:color-mix(in srgb,${c.c} 15%,transparent);color:${c.c}">${svg(ICONS[c.n],19)}</span>${S.period==='all'?'':delta(s,prevOf(c),true)}</div>
+        <div class="n" style="position:relative">${c.n}</div><div class="a num" style="position:relative;color:${s?'var(--text)':'var(--text-3)'}">${fmt(s)} <span class="cur">ر.س</span></div>
+        <div class="foot" style="position:relative">${foot}</div></button>`}).join('')}</div>`
+}
+
+/* ===== ورقة تفاصيل الفئة: تتبع الفترة ===== */
+function sheet(){
+  const c = CATS.find(x=>x.n===S.sheet); if(!c) return ''
+  const s=spentOf(c), prev=prevOf(c), st=state(s,c.budget)
+  // [الشهر، اليوم] لكل حركة حسب الفترة
+  const days = S.period==='cur'?[[9,8],[9,6],[9,5],[9,3],[9,1]]:S.period==='last'?[[8,27],[8,22],[8,15],[8,9],[8,2]]:[[9,6],[8,22],[8,9],[7,28],[7,4]]
+  const txs = s ? [Math.round(s*.42),Math.round(s*.25),Math.round(s*.18),Math.round(s*.1),s-Math.round(s*.42)-Math.round(s*.25)-Math.round(s*.18)-Math.round(s*.1)].filter(v=>v>0) : []
+  const dateFor = (k) => `2026/${String(days[k][0]+1).padStart(2,'0')}/${String(days[k][1]).padStart(2,'0')}`
+  return `<div class="scrim" data-close></div><div class="sheet"><div class="handle"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span class="ib" style="width:52px;height:52px;border-radius:18px;background:color-mix(in srgb,${c.c} 15%,transparent);color:${c.c}">${svg(ICONS[c.n],24)}</span>
+      <div style="flex:1"><div style="font-size:17px;font-weight:700">${c.n}</div><div style="font-size:12px;color:var(--text-3)"><span class="num">${txs.length}</span> حركة · ${periodName()}</div></div></div>
+    <div style="display:flex;justify-content:center;margin-bottom:12px">${S.opt===2?tabs():capsule()}</div>
+    <div class="card"><div class="row"><span class="lbl">${S.period==='all'?'كل المصروف':'مصروف '+periodName()}</span><span style="display:flex;align-items:center;gap:6px">${delta(s,prev)}<span class="num" style="font-size:22px;font-weight:700">${fmt(s)}</span><span class="cur">ر.س</span></span></div>
+      ${S.period!=='all'&&c.budget?`<div class="meter" style="margin-top:12px;height:8px"><i style="width:${Math.min(100,s/c.budget*100)}%;background:${SCOL[st]}"></i></div><div class="row" style="margin-top:6px;font-size:11px;color:var(--text-3)"><span style="color:${SCOL[st]}">${st==='over'?'تجاوز '+fmt(s-c.budget)+' ر.س':'متبقي '+fmt(c.budget-s)+' ر.س'}</span><span class="num">الميزانية ${fmt(c.budget)} ر.س</span></div>`
+        :S.period==='all'?`<div style="margin-top:8px;font-size:12px;color:var(--text-3)">متوسط شهري <b class="num" style="color:var(--text-2)">${fmt(s/MONTH_N)}</b> ر.س</div>`:`<div style="margin-top:8px;font-size:12px;color:var(--text-3)">${prev!==null?`${prevName()}: <b class="num" style="color:var(--text-2)">${fmt(prev)}</b> ر.س`:''}</div>`}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0">${['تعديل الميزانية','كل الحركات','تعديل الفئة'].map(l=>`<button class="press" style="border-radius:18px;border:1px solid var(--border);background:var(--surface);padding:12px 4px;font-size:11px;font-weight:600;color:var(--text-2)">${l}${l==='كل الحركات'&&S.period!=='all'?`<small style="display:block;font-size:9.5px;color:var(--text-3);font-weight:500;margin-top:2px">${periodName()}</small>`:''}</button>`).join('')}</div>
+    <div style="font-size:11.5px;font-weight:600;color:var(--text-3);margin:0 4px 8px">حركات ${periodName()}</div>
+    ${txs.length?`<div class="card" style="padding:4px 14px">${txs.map((v,k)=>`<div class="tx"><div style="flex:1"><div style="font-size:12.5px;font-weight:600">${c.n}</div><div class="num" style="font-size:10.5px;color:var(--text-3)">${dateFor(k)}</div></div><div class="num" dir="ltr" style="font-size:13px;font-weight:700">−${fmt(v)} ر.س</div></div>`).join('')}</div>`
+      :`<div class="card" style="text-align:center;padding:22px;font-size:12px;color:var(--text-3)">لا مصاريف على ${c.n} في ${periodName()}</div>`}
+  </div>`
+}
+
+/* ===== العرض ===== */
+const scroll = document.getElementById('scroll'), sheetHost = document.getElementById('sheetHost')
+function render(){
+  const top = S.opt===0 ? `<div class="stick">${capsule()}</div>` : S.opt===2 ? tabs() : '<div style="height:16px"></div>'
+  scroll.innerHTML = `<div class="title">فئات المصاريف</div>${top}${hero()}${distribution()}${tiles()}`
+  sheetHost.innerHTML = S.sheet ? sheet() : ''
+  requestAnimationFrame(placePill)
+  document.getElementById('nOpt').textContent = 'خيار '+(S.opt+1)
+  document.querySelectorAll('#segOpt button').forEach(b=>b.classList.toggle('on',+b.dataset.v===S.opt))
+  document.getElementById('note').innerHTML = NOTES[S.opt]
+}
+const NOTES = [
+  '<span class="k">خيار 1 — كبسولة لاصقة</span>كبسولة زجاجية (مواصفات الكبسولة الذكية) تحت العنوان، تبقى لاصقة أثناء التمرير، والحبّة البيضاء تنزلق بين الفترات بحركة نابضة. نفس الكبسولة داخل ورقة الفئة، والفترة مشتركة بينهما.',
+  '<span class="k">خيار 2 — داخل بطاقة الشهر</span>أسهم للتنقل بين هذا الشهر والشهر الماضي في رأس البطاقة، وزر «الكل» صغير بجانبها. أهدأ بصريًا، لكن الفلتر يختفي مع التمرير.',
+  '<span class="k">خيار 3 — تبويبات تحت العنوان</span>ثلاث تبويبات نصية بخط سفلي للنشط. بسيطة ومألوفة، لكنها أقل من أسلوب الكبسولات في باقي التطبيق.',
+]
+
+document.getElementById('segOpt').onclick = e => { const b=e.target.closest('button'); if(!b) return; S.opt=+b.dataset.v; render() }
+document.querySelector('.phone').addEventListener('click', e => {
+  const p=e.target.closest('[data-p]'); if(p){ S.period=p.dataset.p; if(S.period==='all') S.filter='all'; render(); return }
+  const st=e.target.closest('[data-step]'); if(st){ S.period = +st.dataset.step<0 ? 'last' : 'cur'; render(); return }
+  const f=e.target.closest('[data-f]'); if(f){ S.filter=f.dataset.f; render(); return }
+  const c=e.target.closest('[data-c]'); if(c){ S.sheet=c.dataset.c; render(); return }
+  if(e.target.closest('[data-close]')){ S.sheet=null; render() }
+})
+render()
+</script>
+</body>
+</html>
