@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الدخول السريع وشاشة القفل</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.96)}
+
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px;display:flex;justify-content:space-between}
+  .plbl b{color:var(--text-2);font-weight:600}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .tg{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:rgba(255,255,255,.05);border:1px solid var(--border)}
+
+  .phone{width:390px;max-width:100%;height:820px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:28px;height:86vh}}
+  .layer{position:absolute;inset:0}
+
+  /* ===== الخلفيات ===== */
+  .bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+  /* ١ هالة + حبيبات */
+  .bg-aurora::before,.bg-aurora::after{content:'';position:absolute;border-radius:50%;filter:blur(70px)}
+  .bg-aurora::before{width:360px;height:320px;top:-120px;right:-80px;background:radial-gradient(circle,rgba(255,255,255,.26),transparent 70%);animation:driftA 16s ease-in-out infinite alternate}
+  .bg-aurora::after{width:380px;height:340px;bottom:-160px;left:-120px;background:radial-gradient(circle,rgba(139,123,255,.24),transparent 70%);animation:driftB 19s ease-in-out infinite alternate}
+  .grain{position:absolute;inset:0;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+  @keyframes driftA{to{transform:translate(-60px,80px) scale(1.15)}}
+  @keyframes driftB{to{transform:translate(70px,-60px) scale(1.1)}}
+  /* ٢ حلقات */
+  .ring{position:absolute;left:50%;top:var(--cy,38%);border-radius:50%;border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 0 40px rgba(255,255,255,.03);transform:translate(-50%,-50%);animation:ripple 6s var(--calm) infinite}
+  @keyframes ripple{0%{width:120px;height:120px;opacity:0}15%{opacity:1}100%{width:760px;height:760px;opacity:0}}
+  /* ٣ منحنى الرصيد (الشكل فقط) */
+  .bg-curve svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:58%}
+  .curve-line{fill:none;stroke:rgba(255,255,255,.22);stroke-width:1.6;stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 3.2s var(--calm) .3s forwards}
+  .curve-run{fill:none;stroke:rgba(255,255,255,.75);stroke-width:2;stroke-linecap:round;stroke-dasharray:70 1400;stroke-dashoffset:0;animation:run 5s linear 3s infinite;opacity:0}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes run{0%{opacity:1;stroke-dashoffset:0}100%{opacity:1;stroke-dashoffset:-1470}}
+  /* ٤ شبكة نقاط تتموّج */
+  .bg-dots canvas{position:absolute;inset:0;width:100%;height:100%}
+
+  .veil{position:absolute;inset:0;background:radial-gradient(70% 50% at 50% 38%,transparent,rgba(5,5,6,.55) 100%)}
+
+  /* ===== شاشة القفل ===== */
+  .lock{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;padding:70px 28px 30px}
+  .logo{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent);box-shadow:0 14px 34px -10px rgba(255,255,255,.35)}
+  .hi{font-size:21px;font-weight:600;margin-top:22px}
+  .sub{font-size:13px;color:var(--text-2);margin-top:4px;height:18px}
+  .clock{font-size:64px;font-weight:700;letter-spacing:-.04em;margin-top:6px;line-height:1}
+  .date{font-size:13px;color:var(--text-2);margin-top:6px}
+
+  .bio{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .bioBtn{position:relative;width:110px;height:110px;border-radius:50%;display:grid;place-items:center;color:var(--text)}
+  .bioBtn .disc{position:absolute;inset:0;border-radius:50%;background:rgba(28,28,33,.75);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 20px 50px -20px rgba(0,0,0,.9)}
+  .bioBtn svg{position:relative}
+  .bioBtn .arc{position:absolute;inset:-8px;border-radius:50%;border:2px solid transparent;border-top-color:var(--accent);opacity:0}
+  .bioBtn.scan .arc{opacity:1;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bioBtn .halo{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);animation:halo 2.4s var(--expo) infinite}
+  @keyframes halo{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
+  .hint{font-size:12.5px;color:var(--text-2)}
+  .usePin{margin-top:18px;font-size:12.5px;font-weight:600;color:var(--text);padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+
+  .dots{display:flex;gap:14px;direction:ltr;margin-top:26px}
+  .dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);transition:background .2s,transform .3s var(--spring),border-color .2s}
+  .dots i.f{background:var(--accent);border-color:transparent;transform:scale(1.1)}
+  .dots.err{animation:shake .42s ease both}.dots.err i{border-color:var(--expense)}.dots.err i.f{background:var(--expense)}
+  @keyframes shake{20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+  .pad{display:grid;grid-template-columns:repeat(3,76px);gap:16px 26px;margin-top:auto;direction:ltr}
+  .key{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-num);font-size:28px;font-weight:500;background:rgba(28,28,33,.55);border:1px solid var(--border);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .15s var(--spring),background .15s}
+  .key:active{transform:scale(.9);background:rgba(255,255,255,.12)}
+  .key.ghost{background:none;border-color:transparent;backdrop-filter:none}
+  .foot{display:flex;justify-content:space-between;width:100%;margin-top:22px;font-size:12px;color:var(--text-2)}
+
+  .sheetPin{position:absolute;left:0;right:0;bottom:0;z-index:5;border-radius:34px 34px 0 0;border:1px solid var(--border-strong);border-bottom:0;background:rgba(18,18,22,.86);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);padding:10px 28px 28px;display:flex;flex-direction:column;align-items:center;animation:sheetin .45s var(--expo) both}
+  @keyframes sheetin{from{transform:translateY(100%)}}
+  .handle{width:38px;height:5px;border-radius:99px;background:rgba(255,255,255,.18);margin-bottom:14px}
+
+  .ok{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--bg);animation:fadein .2s both}
+  @keyframes fadein{from{opacity:0}}
+  .okc{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:var(--accent);box-shadow:0 0 60px -6px rgba(255,255,255,.35);animation:pop .52s var(--spring) both}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
+
+  /* ===== الإعدادات ===== */
+  .scr{position:relative;z-index:2;height:100%;overflow-y:auto;padding:22px 20px 40px;scrollbar-width:none}
+  .scr::-webkit-scrollbar{display:none}
+  .h1{font-size:26px;font-weight:700;margin:16px 0 18px}
+  .sec{font-size:12px;font-weight:600;color:var(--text-3);margin:18px 4px 10px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .row{display:flex;align-items:center;gap:12px}
+  .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);flex-shrink:0}
+  .rt{font-size:14px;font-weight:500}
+  .rd{font-size:11px;color:var(--text-3);margin-top:1px;line-height:1.6}
+  .sw{width:50px;height:30px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;flex-shrink:0;transition:background .25s}
+  .sw::after{content:'';position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:right .35s var(--spring)}
+  .sw.on{background:var(--accent)}.sw.on::after{right:23px;background:var(--on-accent)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .chip{height:32px;padding:0 13px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:rgba(255,255,255,.05);border:1px solid var(--border);transition:background .25s,color .2s}
+  .chip.on{background:var(--accent);color:var(--on-accent);border-color:transparent}
+  .bgs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .bgs button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10.5px;font-weight:600;color:var(--text-2)}
+  .bgs .th{width:100%;aspect-ratio:9/14;border-radius:14px;border:1.5px solid var(--border);position:relative;overflow:hidden;background:var(--bg)}
+  .bgs button.on .th{border-color:var(--accent)}
+  .bgs button.on{color:var(--text)}
+  .island{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:8;display:flex;align-items:center;gap:8px;height:40px;padding:0 16px 0 8px;border-radius:999px;background:rgba(28,28,33,.92);border:1px solid var(--border-strong);backdrop-filter:blur(20px);font-size:12px;font-weight:600;white-space:nowrap;animation:islandin .42s var(--spring) both}
+  .island i{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on-accent)}
+  @keyframes islandin{from{opacity:0;transform:translate(-50%,-8px) scale(.6)}}
+  .home{position:relative;z-index:2;padding:70px 22px}
+  .home .big{font-size:40px;font-weight:700}
+
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:2px}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>الدخول السريع وشاشة القفل</h1>
+  <p>طريقتان للدخول بدون المرور بلوحة الرقم السري: «البصمة أولًا» و«مهلة القفل». وشاشة قفل جديدة بأربع خلفيات. جرّب من اللوحة.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">الشاشة <b id="nScr"></b></div>
+    <div class="seg" id="segScr">
+      <button data-v="lock" class="on">شاشة القفل</button>
+      <button data-v="settings">إعدادات الأمان</button>
+      <button data-v="resume">رجوع داخل المهلة</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">طريقة الفتح <b id="nMode"></b></div>
+    <div class="seg" id="segMode">
+      <button data-v="bio" class="on">البصمة أولًا</button>
+      <button data-v="pin">الرقم السري</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">خلفية شاشة القفل <b id="nBg"></b></div>
+    <div class="seg" id="segBg">
+      <button data-v="0" class="on"><span class="num">1</span> · هالة وحبيبات</button>
+      <button data-v="1"><span class="num">2</span> · حلقات تنبض</button>
+      <button data-v="2"><span class="num">3</span> · منحنى الرصيد</button>
+      <button data-v="3"><span class="num">4</span> · نقاط تتموّج</button>
+    </div>
+  </div>
+  <div class="acts">
+    <button class="tg press" id="tgClock">ساعة كبيرة</button>
+    <button class="tg press" id="tgReplay">إعادة العرض</button>
+  </div>
+</div>
+
+<div class="phone" id="phone"></div>
+
+<div class="note" id="note"></div>
+
+<script>
+const svg = (p,s=18,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const FINGER = '<path d="M12 3a7 7 0 0 1 7 7c0 2.5-.5 4-1 5"/><path d="M12 3a7 7 0 0 0-7 7c0 1.2.1 2.2.3 3"/><path d="M12 7a6 6 0 0 1 6 6c0 2-.4 3.5-1 4.7"/><path d="M12 7a6 6 0 0 0-6 6c0 2.8.7 4.5 1.5 5.7"/><path d="M12 11a2.5 2.5 0 0 1 2.5 2.5c0 2.3-.7 4-1.8 5.5"/><path d="M9.5 20c-.6-1-1-2.3-1-4a3.5 3.5 0 0 1 3.5-3.5"/>'
+const LOGO = '<path d="M4 17 9 11l4 3 7-8"/><path d="M15 6h5v5"/>'
+const S = { scr:'lock', mode:'bio', bg:0, clock:true, pinSheet:false, pin:'', err:false, scanning:false, ok:false, grace:5, autoBio:true, lockNow:true, dotsRaf:0 }
+const GRACE = [[0,'فوري'],[1,'دقيقة'],[5,'5 دقائق'],[15,'15 دقيقة'],[60,'ساعة']]
+const BGS = ['هالة وحبيبات','حلقات تنبض','منحنى الرصيد','نقاط تتموّج']
+
+/* ===== الخلفيات ===== */
+function bgHTML(i, mini=false){
+  if(i===0) return `<div class="bg bg-aurora"></div><div class="bg grain"></div>`
+  if(i===1) return `<div class="bg" style="--cy:${mini?'40%':S.mode==='bio'&&S.scr==='lock'?'75%':'36%'}">${[0,1,2,3].map(k=>`<span class="ring" style="animation-delay:${k*1.5}s"></span>`).join('')}</div><div class="bg bg-aurora" style="opacity:.5"></div>`
+  if(i===2){ // شكل الرصيد فقط — بدون أي رقم
+    const pts=[60,58,62,55,57,52,54,49,51,47,50,44,46,40,43,37,41,34,30,33,26,29,22,24,18]
+    const d=pts.map((v,k)=>`${k?'L':'M'}${(k/(pts.length-1)*400).toFixed(1)},${v*3}`).join('')
+    return `<div class="bg bg-curve"><svg viewBox="0 0 400 220" preserveAspectRatio="none"><defs><linearGradient id="cg${mini?'m':''}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".09"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+      <path d="${d}L400,220L0,220Z" fill="url(#cg${mini?'m':''})"/><path class="curve-line" d="${d}"/><path class="curve-run" d="${d}"/></svg></div><div class="bg bg-aurora" style="opacity:.6"></div>`
+  }
+  return `<div class="bg bg-dots"><canvas data-dots></canvas></div>`
+}
+function startDots(root){
+  cancelAnimationFrame(S.dotsRaf)
+  const cvs=[...root.querySelectorAll('canvas[data-dots]')]; if(!cvs.length) return
+  const t0=performance.now()
+  const frame=t=>{
+    for(const c of cvs){
+      const r=c.getBoundingClientRect(), dpr=2; if(c.width!==r.width*dpr){c.width=r.width*dpr;c.height=r.height*dpr}
+      const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height)
+      const gap=(r.width<120?9:22)*dpr, cx=c.width/2, cy=c.height*.38, time=(t-t0)/1000
+      for(let y=gap/2;y<c.height;y+=gap) for(let x=gap/2;x<c.width;x+=gap){
+        const d=Math.hypot(x-cx,y-cy)/dpr, wave=(Math.sin(d/(r.width<120?10:26)-time*2.2)+1)/2, fall=Math.max(0,1-d/(r.width*.9))
+        g.fillStyle=`rgba(255,255,255,${(.05+wave*.22)*fall+.03})`; g.beginPath(); g.arc(x,y,(1+wave*1.1)*dpr*(r.width<120?.6:1),0,7); g.fill()
+      }
+    }
+    S.dotsRaf=requestAnimationFrame(frame)
+  }
+  S.dotsRaf=requestAnimationFrame(frame)
+}
+
+/* ===== شاشة القفل ===== */
+function header(){
+  const now=new Date(), hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0')
+  return S.clock
+    ? `<div class="num clock">${hh}:${mm}</div><div class="date">الخميس، 9 أكتوبر</div><div class="sub" style="margin-top:14px">${S.err?'<span style="color:var(--expense)">رقم غير صحيح</span>':S.scanning?'جارٍ التحقق…':'مرحبًا بعودتك'}</div>`
+    : `<span class="logo">${svg(LOGO,26,2.4)}</span><div class="hi">مساء الخير</div><div class="sub">${S.err?'<span style="color:var(--expense)">رقم غير صحيح، حاول مرة أخرى</span>':S.scanning?'جارٍ التحقق…':S.mode==='bio'?'افتح ببصمتك':'أدخل رقمك السري للمتابعة'}</div>`
+}
+const dots = () => `<div class="dots ${S.err?'err':''}">${[0,1,2,3].map(i=>`<i class="${i<S.pin.length?'f':''}"></i>`).join('')}</div>`
+const pad = (bio) => `<div class="pad">${['1','2','3','4','5','6','7','8','9',bio?'bio':'', '0','del'].map(k=>k==='bio'?`<button class="key ghost press" data-bio>${svg(FINGER,30,1.6)}</button>`:k===''?'<span></span>':k==='del'?`<button class="key ghost press" data-del>${svg('<path d="M21 5H9l-6 7 6 7h12z"/><path d="m16 9-5 6M11 9l5 6"/>',24,1.8)}</button>`:`<button class="key press" data-k="${k}">${k}</button>`).join('')}</div>`
+function lockScreen(){
+  const bio = S.mode==='bio'
+  const body = bio
+    ? `<div class="bio"><button class="bioBtn press ${S.scanning?'scan':''}" data-bio><span class="halo"></span><span class="disc"></span><span class="arc"></span>${svg(FINGER,42,1.5)}</button><div class="hint">${S.scanning?'ضع إصبعك على المستشعر':'المس للفتح'}</div><button class="usePin press" data-usepin>استخدم الرقم السري</button></div>`
+    : `${dots()}${pad(true)}`
+  return `${bgHTML(S.bg)}<div class="veil"></div>
+    <div class="lock">${header()}${body}
+      <div class="foot"><button>نسيت الرقم السري؟</button><span class="num" style="color:var(--text-3)">v2.20.0</span></div></div>
+    ${bio&&S.pinSheet?`<div class="layer" style="background:rgba(0,0,0,.35);z-index:4" data-closepin></div><div class="sheetPin"><div class="handle"></div><div class="sub" style="margin:0">${S.err?'<span style="color:var(--expense)">رقم غير صحيح</span>':'أدخل رقمك السري'}</div>${dots()}<div style="height:26px"></div>${pad(false)}</div>`:''}
+    ${S.ok?`<div class="ok"><div class="okc">${svg('<polyline points="5,13 10,18 19,6"/>',38,2.6).replace('stroke="currentColor"','stroke="#0a0a0c"')}</div><div style="font-size:17px;font-weight:600">أهلًا بعودتك</div></div>`:''}`
+}
+
+/* ===== الإعدادات ===== */
+function settings(){
+  return `<div class="scr">
+    <div style="display:flex;justify-content:space-between"><span class="ic" style="width:40px;height:40px">${svg('<path d="m9 6 6 6-6 6"/>',18,2.2)}</span></div>
+    <div class="h1">الأمان والخصوصية</div>
+    <div class="sec">الدخول السريع</div>
+    <div class="card">
+      <div class="row"><span class="ic">${svg(FINGER,19,1.7)}</span><div style="flex:1"><div class="rt">البصمة أولًا</div><div class="rd">شاشة القفل تطلب البصمة مباشرة بدون لوحة الأرقام، والرقم السري متاح بزر صغير</div></div><button class="sw ${S.mode==='bio'?'on':''}" data-setmode></button></div>
+      <div style="border-top:1px solid var(--border);margin:14px 0"></div>
+      <div class="row"><span class="ic">${svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',19,1.9)}</span><div style="flex:1"><div class="rt">مهلة القفل</div><div class="rd">لو رجعت للتطبيق خلال المهلة يفتح مباشرة بدون أي تحقق</div></div></div>
+      <div class="chips">${GRACE.map(([m,l])=>`<button class="chip press ${S.grace===m?'on':''}" data-grace="${m}">${l}</button>`).join('')}</div>
+      <div style="border-top:1px solid var(--border);margin:14px 0"></div>
+      <div class="row"><span class="ic">${svg('<rect x="5" y="11" width="14" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',19,1.9)}</span><div style="flex:1"><div class="rt">زر «قفل الآن»</div><div class="rd">في رأس الرئيسية — يقفل فورًا متجاوزًا المهلة</div></div><button class="sw ${S.lockNow?'on':''}" data-locknow></button></div>
+    </div>
+    <div class="sec">شاشة القفل</div>
+    <div class="card">
+      <div class="rt" style="font-size:13px">الخلفية</div>
+      <div class="bgs">${BGS.map((n,i)=>`<button class="press ${S.bg===i?'on':''}" data-bgpick="${i}"><span class="th">${bgHTML(i,true)}</span>${n}</button>`).join('')}</div>
+      <div style="border-top:1px solid var(--border);margin:14px 0"></div>
+      <div class="row"><span class="ic">${svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5"/>',19,1.9)}</span><div style="flex:1"><div class="rt">ساعة كبيرة</div><div class="rd">الوقت والتاريخ بدل الشعار والترحيب</div></div><button class="sw ${S.clock?'on':''}" data-setclock></button></div>
+    </div>
+    <div class="sec">الدخول للتطبيق</div>
+    <div class="card"><div class="row"><span class="ic">${svg('<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M17 6l2 2M15 8l2 2"/>',19,1.9)}</span><div style="flex:1"><div class="rt">تغيير الرقم السري</div><div class="rd">يتطلّب إدخال رقمك السري الحالي أولًا</div></div></div></div>
+  </div>`
+}
+
+/* ===== الرجوع داخل المهلة ===== */
+function resume(){
+  return `<div class="bg bg-aurora" style="opacity:.6"></div><div class="island">${'<i>'+svg('<path d="M8 11V8a4 4 0 0 1 7.5-2"/><rect x="5" y="11" width="14" height="10" rx="3"/>',14,2.2)+'</i>'}فُتح مباشرة · داخل مهلة ${GRACE.find(g=>g[0]===S.grace)?.[1]??''}</div>
+    <div class="home"><div style="font-size:13px;color:var(--text-2)">إجمالي رصيدك</div><div class="big num">25,860<span style="font-size:18px;opacity:.5">.00</span></div>
+      <div style="margin-top:30px;font-size:12px;color:var(--text-3);line-height:1.8">رجعت للتطبيق بعد دقيقتين — أقل من المهلة (${GRACE.find(g=>g[0]===S.grace)?.[1]}) — فما ظهرت شاشة القفل أبدًا. بعد المهلة تظهر شاشة القفل، ومع «البصمة أولًا» يُطلب التحقق تلقائيًا.</div></div>`
+}
+
+const NOTES = {
+  lock: () => S.mode==='bio'
+    ? '<span class="k">البصمة أولًا</span>لا تظهر لوحة الأرقام: زر بصمة كبير زجاجي يطلب التحقق تلقائيًا عند الفتح (اضغطه للتجربة). «استخدم الرقم السري» يفتح اللوحة في ورقة سفلية زجاجية فوق الخلفية. الرقم السري يبقى الأساس دائمًا (احتياط لو فشلت البصمة).'
+    : '<span class="k">الرقم السري</span>نفس الشاشة الحالية بتصميم أنظف: أزرار زجاجية فوق الخلفية، نقاط أكبر، وزر البصمة داخل اللوحة. جرّب الرقم <b>1234</b>.',
+  settings: () => '<span class="k">إعدادات الأمان — قسم «الدخول السريع»</span><b>البصمة أولًا</b>: تشغيل/إيقاف. <b>مهلة القفل</b>: بدل 5 دقائق ثابتة صارت قابلة للاختيار (فوري، دقيقة، 5، 15، ساعة) — داخلها يفتح التطبيق مباشرة. <b>قفل الآن</b>: زر يقفل فورًا. وقسم «شاشة القفل» لاختيار الخلفية والساعة الكبيرة.',
+  resume: () => '<span class="k">الرجوع داخل المهلة</span>هذا هو «الدخول بدون المرور بشاشة الرقم السري»: التطبيق يفتح مباشرة، وتظهر الجزيرة لثوانٍ تذكّر بأنه فُتح داخل المهلة.',
+}
+
+/* ===== العرض ===== */
+const phone=document.getElementById('phone')
+function render(){
+  phone.innerHTML = S.scr==='lock'?lockScreen():S.scr==='settings'?settings():resume()
+  startDots(phone)
+  const sel=(id,v)=>document.querySelectorAll(`#${id} button`).forEach(b=>b.classList.toggle('on',b.dataset.v===String(v)))
+  sel('segScr',S.scr); sel('segMode',S.mode); sel('segBg',S.bg)
+  document.getElementById('nScr').textContent={lock:'شاشة القفل',settings:'إعدادات الأمان',resume:'رجوع داخل المهلة'}[S.scr]
+  document.getElementById('nMode').textContent=S.mode==='bio'?'البصمة أولًا':'الرقم السري'
+  document.getElementById('nBg').textContent='خيار '+(S.bg+1)
+  document.getElementById('tgClock').style.cssText=S.clock?'background:var(--accent);color:var(--on-accent);border-color:transparent':''
+  document.getElementById('note').innerHTML=NOTES[S.scr]()
+}
+function success(){ S.ok=true; render(); setTimeout(()=>{S.ok=false;S.pin='';S.pinSheet=false;S.scanning=false;render()},1600) }
+function scan(){ if(S.scanning) return; S.scanning=true; render(); setTimeout(()=>{S.scanning=false;success()},1400) }
+function digit(k){
+  if(S.pin.length>=4||S.err) return; S.pin+=k; render()
+  if(S.pin.length===4) setTimeout(()=>{ if(S.pin==='1234') success(); else { S.err=true; render(); setTimeout(()=>{S.err=false;S.pin='';render()},700) } },180)
+}
+phone.addEventListener('click',e=>{
+  const t=e.target.closest('button,[data-closepin]'); if(!t) return
+  if(t.dataset.k) return digit(t.dataset.k)
+  if(t.hasAttribute('data-del')){S.pin=S.pin.slice(0,-1);return render()}
+  if(t.hasAttribute('data-bio')) return scan()
+  if(t.hasAttribute('data-usepin')){S.pinSheet=true;return render()}
+  if(t.hasAttribute('data-closepin')){S.pinSheet=false;S.pin='';return render()}
+  if(t.dataset.grace!==undefined){S.grace=+t.dataset.grace;return render()}
+  if(t.hasAttribute('data-setmode')){S.mode=S.mode==='bio'?'pin':'bio';return render()}
+  if(t.hasAttribute('data-locknow')){S.lockNow=!S.lockNow;return render()}
+  if(t.hasAttribute('data-setclock')){S.clock=!S.clock;return render()}
+  if(t.dataset.bgpick!==undefined){S.bg=+t.dataset.bgpick;return render()}
+})
+const seg=(id,key,num)=>document.getElementById(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;S[key]=num?+b.dataset.v:b.dataset.v;S.pinSheet=false;S.pin='';render()}
+seg('segScr','scr'); seg('segMode','mode'); seg('segBg','bg',true)
+document.getElementById('tgClock').onclick=()=>{S.clock=!S.clock;render()}
+document.getElementById('tgReplay').onclick=()=>render()
+render()
+if(S.mode==='bio') setTimeout(scan,900)
+</script>
+</body>
+</html>
