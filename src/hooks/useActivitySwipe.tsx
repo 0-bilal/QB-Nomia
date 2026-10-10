@@ -13,7 +13,7 @@ import { PencilIcon, RepeatIcon, TrashIcon, type SwipeAction } from '../componen
  */
 export function useActivitySwipe() {
   const navigate = useNavigate()
-  const { transactions, deleteTransaction, contributions, deleteContribution } = useData()
+  const { transactions, deleteTransaction, contributions, deleteContribution, loanTransactions } = useData()
 
   return function swipeFor(item: ActivityItem): { leftSwipe?: SwipeAction; rightSwipe?: SwipeAction } {
     const isLoan = item.kind === 'loan-given' || item.kind === 'loan-received'
@@ -55,8 +55,16 @@ export function useActivitySwipe() {
         icon: <TrashIcon />,
         color: 'var(--color-expense)',
         onTrigger: () => {
+          const loan = txn.loanId ? loanTransactions.find((l) => l.id === txn.loanId) : undefined
           deleteTransaction(txn.id)
           haptic('warning')
+          // مصروف بسلفة: يُحذف مع سلفته، والتراجع يرجّعهما معًا.
+          if (loan) {
+            showUndoToast('تم حذف المصروف والسلفة المربوطة', (data) =>
+              data.addLoanFundedExpense({ personId: loan.personId, amount: txn.amount, date: txn.date, categoryId: txn.categoryId ?? '', note: txn.note, dueDate: loan.dueDate }),
+            )
+            return
+          }
           showUndoToast('تم حذف الحركة', (data) =>
             data.addTransaction({
               type: txn.type,

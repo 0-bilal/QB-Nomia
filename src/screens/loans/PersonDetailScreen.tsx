@@ -13,7 +13,7 @@ import { rise } from '../../lib/motion'
 
 export function PersonDetailScreen() {
   const { personId } = useParams<{ personId: string }>()
-  const { people, personBalance, personTransactions, accounts, contributions, categories, setPersonContributor } = useData()
+  const { people, personBalance, personTransactions, accounts, contributions, categories, setPersonContributor, transactions } = useData()
   const navigate = useNavigate()
 
   const person = people.find((p) => p.id === personId)
@@ -30,6 +30,10 @@ export function PersonDetailScreen() {
   const label = balance === 0 ? 'متعادل' : balance > 0 ? 'لك عنده' : 'عليك له'
   const color = balance === 0 ? 'var(--color-text-3)' : balance > 0 ? 'var(--color-owed-to)' : 'var(--color-owed-by)'
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? ''
+  const expenseCategoryName = (expenseId: string) => {
+    const exp = transactions.find((x) => x.id === expenseId)
+    return categories.find((c) => c.id === exp?.categoryId)?.name ?? 'مصروف'
+  }
 
   const today = new Date().toISOString().slice(0, 10)
   // المساهمات: مصاريف دفعها عنك — للتذكّر فقط، لا تدخل في رصيد السلف.
@@ -171,7 +175,8 @@ export function PersonDetailScreen() {
               <ListItem
                 key={t.id}
                 divider={i > 0}
-                onClick={() => navigate(`/loans/${person.id}/edit/${t.id}`)}
+                // سلفة صُرفت مباشرة: تُعدَّل من المصروف المربوط بها (يعدّلهما معًا).
+                onClick={() => navigate(t.expenseId ? `/add/transaction/${t.expenseId}` : `/loans/${person.id}/edit/${t.id}`)}
                 leading={
                   <IconBubble color={c}>
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -180,7 +185,7 @@ export function PersonDetailScreen() {
                   </IconBubble>
                 }
                 title={t.direction === 'given' ? 'أعطيته' : 'استلمت منه'}
-                subtitle={`${formatDate(t.date)} · ${accountName(t.accountId)}${t.note ? ` · ${t.note}` : ''}`}
+                subtitle={`${formatDate(t.date)} · ${t.expenseId ? `صُرفت على ${expenseCategoryName(t.expenseId)}` : accountName(t.accountId)}${t.note ? ` · ${t.note}` : ''}`}
                 trailing={
                   <span className="num text-[14px] font-bold" style={{ color: c }}>
                     {formatSigned(t.direction === 'given' ? t.amount : -t.amount)}

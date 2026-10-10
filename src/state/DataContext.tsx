@@ -190,6 +190,16 @@ interface AddPersonInput {
   isContributor?: boolean
 }
 
+export interface LoanExpenseInput {
+  personId: string
+  amount: number
+  date: string
+  categoryId: string
+  note?: string
+  /** موعد إرجاع السلفة (اختياري). */
+  dueDate?: string
+}
+
 export interface ContributionInput {
   personId: string
   amount: number
@@ -361,6 +371,9 @@ interface DataContextValue {
   storeDebtPayments: StoreDebtPayment[]
   contributions: Contribution[]
   addContribution: (input: ContributionInput) => Contribution
+  /** مصروف بسلفة من شخص: سلفة «استلمت منه» + مصروف بنفس المبلغ مربوطان، بدون أي أثر على الأرصدة. */
+  addLoanFundedExpense: (input: LoanExpenseInput) => void
+  updateLoanFundedExpense: (expenseId: string, input: LoanExpenseInput) => void
   updateContribution: (id: string, input: ContributionInput) => void
   deleteContribution: (id: string) => void
   setPersonContributor: (id: string, isContributor: boolean) => void
@@ -786,14 +799,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     function buildActivity(): ActivityItem[] {
+      const loanById = new Map(loanTransactions.map((l) => [l.id, l]))
       const fromTxns: ActivityItem[] = transactions.map((t) => {
         if (t.type === 'expense') {
+          // مصروف بسلفة: الوصف «بسلفة من فلان» بدل اسم الحساب (لا حساب له).
+          const loan = t.loanId ? loanById.get(t.loanId) : undefined
           return {
             id: t.id,
             date: t.date,
             kind: 'expense',
             title: categoryName(t.categoryId),
-            subtitle: accountName(t.accountId),
+            subtitle: t.loanId ? `بسلفة من ${loan ? personName(loan.personId) : 'شخص'}` : accountName(t.accountId),
+            personId: loan?.personId,
             amount: -t.amount,
             color: 'var(--color-expense)',
             accountIds: [t.accountId],
@@ -830,7 +847,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       })
 
-      const fromLoans: ActivityItem[] = loanTransactions.map((t) => ({
+      // السلفة المربوطة بمصروف لا تظهر سطرًا منفصلًا — المصروف يمثّلها (حتى لا يتكرر المبلغ).
+      const fromLoans: ActivityItem[] = loanTransactions.filter((t) => !t.expenseId).map((t) => ({
         id: t.id,
         date: t.date,
         kind: t.direction === 'given' ? 'loan-given' : 'loan-received',
@@ -1419,6 +1437,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         for (const t of theirLoans) nextAccounts = withLoanEffect(nextAccounts, t, -1)
         persistAccounts(nextAccounts)
         persistLoans(loanTransactions.filter((t) => t.personId !== id))
+        // مصاريفهم بسلفة تبقى (صرف حقيقي) لكن بدون ربط بسلفة محذوفة.
+        const theirLoanIds = new Set(theirLoans.map((t) => t.id))
+        if (transactions.some((t) => t.loanId && theirLoanIds.has(t.loanId))) {
+          persistTransactions(transactions.map((t) => (t.loanId && theirLoanIds.has(t.loanId) ? { ...t, loanId: undefined } : t)))
+        }
         persistContributions(contributions.filter((c) => c.personId !== id))
         persistPeople(people.filter((p) => p.id !== id))
       },
@@ -1579,6 +1602,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!txn) return
         persistAccounts(withTransactionEffect(accounts, txn, -1))
         persistTransactions(transactions.filter((t) => t.id !== id))
+        // مصروف بسلفة: تُحذف السلفة المربوطة معه (بلا حساب — لا أثر على الأرصدة).
+        if (txn.loanId) persistLoans(loanTransactions.filter((l) => l.id !== txn.loanId))
+      },
+      addLoanFundedExpense(input: LoanExpenseInput) {
+        const expenseId = makeId()
+        const loanId = makeId()
+        const createdAt = new Date().toISOString()
+        const loan: LoanTransaction = {
+          id: loanId,
+          personId: input.personId,
+          direction: 'received',
+          amount: input.amount,
+          accountId: '',
+          date: input.date,
+          dueDate: input.dueDate || undefined,
+          note: input.note?.trim() || undefined,
+          createdAt,
+          expenseId,
+        }
+        const txn: Transaction = {
+          id: expenseId,
+          type: 'expense',
+          amount: input.amount,
+          date: input.date,
+          accountId: '',
+          categoryId: input.categoryId,
+          note: input.note?.trim() || undefined,
+          createdAt,
+          loanId,
+        }
+        persistLoans([loan, ...loanTransactions])
+        persistTransactions([txn, ...transactions])
+      },
+      updateLoanFundedExpense(expenseId: string, input: LoanExpenseInput) {
+        const txn = transactions.find((t) => t.id === expenseId)
+        if (!txn?.loanId) return
+        const note = input.note?.trim() || undefined
+        persistTransactions(transactions.map((t) => (t.id === expenseId ? { ...t, amount: input.amount, date: input.date, categoryId: input.categoryId, note } : t)))
+        persistLoans(
+          loanTransactions.map((l) =>
+            l.id === txn.loanId ? { ...l, personId: input.personId, amount: input.amount, date: input.date, dueDate: input.dueDate || undefined, note } : l,
+          ),
+        )
       },
       deleteTransactions(ids: string[]) {
         const idSet = new Set(ids)

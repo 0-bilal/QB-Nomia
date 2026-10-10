@@ -130,6 +130,8 @@ export interface LoanTransaction {
   note?: string
   /** وقت إنشاء حركة السلفة (ISO) — يرتّبها مع باقي حركات نفس اليوم بقائمة "آخر الحركات". غائب بالحركات القديمة. */
   createdAt?: string
+  /** سلفة صُرفت مباشرة: المصروف المربوط بها (بدون حساب — لا أثر على أي رصيد). */
+  expenseId?: string
 }
 
 export type CategoryKind = 'expense' | 'income'
@@ -162,6 +164,8 @@ export interface Transaction {
   transferToAccountId?: string
   /** وقت إنشاء الحركة (ISO) — يرتّب حركات نفس اليوم مع حركات السلف بقائمة "آخر الحركات". غائب بالحركات القديمة. */
   createdAt?: string
+  /** مصروف بسلفة من شخص: السلفة المربوطة (accountId فارغ — لا أثر على أي رصيد). */
+  loanId?: string
 }
 
 export type BillingCycle = 'monthly' | 'yearly'

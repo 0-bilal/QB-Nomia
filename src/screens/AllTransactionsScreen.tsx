@@ -377,12 +377,14 @@ export function AllTransactionsScreen() {
     setSelected(new Set())
   }
   const selItems = [...selected].map((id) => byId.get(id)).filter((x): x is ActivityItem => !!x)
-  const selTxnIds = selItems.filter((i) => i.kind !== 'loan-given' && i.kind !== 'loan-received' && i.kind !== 'contribution').map((i) => i.id)
+  // المصروف بسلفة يُحذف وحده (بالسحب أو من شاشته) حتى تُحذف سلفته معه ويُتراجع عنهما معًا.
+  const loanFundedIds = useMemo(() => new Set(transactions.filter((t) => t.loanId).map((t) => t.id)), [transactions])
+  const selTxnIds = selItems.filter((i) => i.kind !== 'loan-given' && i.kind !== 'loan-received' && i.kind !== 'contribution' && !loanFundedIds.has(i.id)).map((i) => i.id)
   const selExpenseIds = selItems.filter((i) => i.kind === 'expense').map((i) => i.id)
 
   function bulkDelete() {
     if (selTxnIds.length === 0) {
-      notify('info', 'السلف والمساهمات تُحذف من صفحتها أو بالسحب')
+      notify('info', 'السلف والمساهمات والمصاريف بسلفة تُحذف من صفحتها أو بالسحب')
       return
     }
     const removed = deleteTransactions(selTxnIds)
