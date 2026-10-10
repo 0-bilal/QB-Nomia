@@ -25,6 +25,40 @@ const TYPE_COLOR: Record<TransactionType, string> = {
   transfer: 'var(--color-transfer)',
 }
 
+/** بعد اختيار شخص في ورقة الحساب: «دفعها عني (مساهمة)» أو «سلفة (أرجّعها)» — حبّة تنزلق بحركة نابضة. */
+function PayerKindSwitch({ kind, onChange }: { kind: 'contrib' | 'loan'; onChange: (k: 'contrib' | 'loan') => void }) {
+  const loan = kind === 'loan'
+  return (
+    <div data-own-gesture className="relative mt-3 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+      <span
+        className="absolute bottom-1 top-1 rounded-full"
+        style={{
+          width: 'calc(50% - 4px)',
+          right: loan ? '50%' : 4,
+          background: loan ? 'var(--color-owed-by)' : 'var(--color-accent)',
+          transition: 'right 420ms var(--ease-spring), background 240ms ease',
+        }}
+      />
+      {(
+        [
+          ['contrib', 'دفعها عني (مساهمة)'],
+          ['loan', 'سلفة (أرجّعها)'],
+        ] as const
+      ).map(([k, label]) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => onChange(k)}
+          className="relative z-10 h-9 flex-1 rounded-full text-[12.5px] font-semibold"
+          style={{ color: kind === k ? 'var(--color-on-accent)' : 'var(--color-text-3)', transition: 'color 200ms ease' }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function ExpenseTypeIcon() {
   return (
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -83,14 +117,19 @@ export function AddTransactionScreen() {
     addContribution,
     updateContribution,
     deleteContribution,
+    loanTransactions,
+    addLoanFundedExpense,
+    updateLoanFundedExpense,
   } = useData()
 
   const existing = id ? transactions.find((t) => t.id === id) : undefined
   // مساهمة (مصروف دفعه غيرك) تُفتح للتعديل بنفس الشاشة.
   const existingContribution = id && !existing ? contributions.find((c) => c.id === id) : undefined
   const isEditing = Boolean(existing || existingContribution)
-  /** الأشخاص المفعّل لهم «مساهم» — يظهرون في ورقة الحساب تحت «أو دفعها عنك شخص». */
-  const contributors = people.filter((p) => p.isContributor || p.id === existingContribution?.personId)
+  // مصروف بسلفة من شخص: السلفة المربوطة به.
+  const linkedLoan = existing?.loanId ? loanTransactions.find((l) => l.id === existing.loanId) : undefined
+  /** كل الأشخاص تحت «أو من شخص» في ورقة الحساب — المساهمون أولًا. بعد الاختيار: مساهمة أو سلفة. */
+  const sheetPeople = [...people.filter((p) => p.isContributor), ...people.filter((p) => !p.isContributor)]
 
   const initialType = existing?.type ?? (existingContribution ? 'expense' : (searchParams.get('type') as TransactionType) || 'expense')
   const toParam = searchParams.get('to') ?? undefined
@@ -100,7 +139,10 @@ export function AddTransactionScreen() {
 
   const [type, setType] = useState<TransactionType>(initialType)
   const [amount, setAmount] = useState(existing ? String(existing.amount) : existingContribution ? String(existingContribution.amount) : (amountParam ?? ''))
-  const [paidBy, setPaidBy] = useState<string | null>(existingContribution?.personId ?? null)
+  const [paidBy, setPaidBy] = useState<string | null>(existingContribution?.personId ?? linkedLoan?.personId ?? null)
+  /** contrib = دفعها عني (للتذكّر فقط)، loan = سلفة منه صُرفت مباشرة (تصير عليّ له). */
+  const [payerKind, setPayerKind] = useState<'contrib' | 'loan'>(linkedLoan ? 'loan' : 'contrib')
+  const [dueDate, setDueDate] = useState(linkedLoan?.dueDate ?? '')
   const [accountId, setAccountId] = useState(
     () => existing?.accountId ?? fromParam ?? accounts.find((a) => a.id !== toParam)?.id ?? accounts[0]?.id ?? '',
   )
@@ -130,8 +172,9 @@ export function AddTransactionScreen() {
 
   const color = TYPE_COLOR[type]
   const payer = type === 'expense' && paidBy ? people.find((p) => p.id === paidBy) : undefined
-  // دفعها غيرك: المبلغ وزر الحفظ بالأبيض بدل أحمر المصروف — ليس مصروفًا عليك.
-  const amountColor = payer ? 'var(--color-accent)' : color
+  const isLoanFunded = !!payer && payerKind === 'loan'
+  // مساهمة: المبلغ وزر الحفظ بالأبيض — ليست مصروفًا عليك. السلفة مصروف حقيقي فتبقى بالأحمر.
+  const amountColor = payer && !isLoanFunded ? 'var(--color-accent)' : color
   const expenseCategories = categories.filter((c) => c.kind === 'expense')
   const numericAmount = Number(amount)
   const selectedAccount = accounts.find((a) => a.id === accountId)
@@ -194,6 +237,20 @@ export function AddTransactionScreen() {
 
   function handleSave() {
     if (!canSave) return
+    // مصروف بسلفة من شخص: سلفة + مصروف مربوطان بدون أثر على أي رصيد.
+    if (isLoanFunded && payer) {
+      const lInput = { personId: payer.id, amount: numericAmount, date, categoryId, note, dueDate: dueDate || undefined }
+      if (existing?.loanId) updateLoanFundedExpense(existing.id, lInput)
+      else {
+        if (existing) deleteTransaction(existing.id)
+        if (existingContribution) deleteContribution(existingContribution.id)
+        addLoanFundedExpense(lInput)
+      }
+      haptic('success')
+      if (isEditing) navigate(-1)
+      else navigate('/', { replace: true })
+      return
+    }
     // مصروف دفعه شخص آخر: مساهمة للتذكّر فقط — بدون حركة مالية.
     if (payer) {
       const cInput = { personId: payer.id, amount: numericAmount, date, categoryId, note }
@@ -207,9 +264,10 @@ export function AddTransactionScreen() {
       else navigate('/', { replace: true })
       return
     }
-    if (existingContribution) {
-      // تحويل مساهمة إلى مصروف عادي من حساب.
-      deleteContribution(existingContribution.id)
+    if (existingContribution || existing?.loanId) {
+      // تحويل مساهمة أو مصروف بسلفة إلى مصروف عادي من حساب.
+      if (existingContribution) deleteContribution(existingContribution.id)
+      if (existing) deleteTransaction(existing.id)
       addTransaction({ type, amount: numericAmount, date, accountId, categoryId, note })
       haptic('success')
       navigate(-1)
@@ -245,6 +303,17 @@ export function AddTransactionScreen() {
       return
     }
     if (!id || !existing) return
+    if (linkedLoan) {
+      // حذف المصروف بسلفة يحذف السلفة المربوطة معه — والتراجع يرجّعهما معًا.
+      const { amount, date, categoryId, note } = existing
+      const { personId, dueDate: due } = linkedLoan
+      deleteTransaction(id)
+      navigate('/', { replace: true })
+      showUndoToast('تم حذف المصروف والسلفة المربوطة', (data) =>
+        data.addLoanFundedExpense({ personId, amount, date, categoryId: categoryId ?? '', note, dueDate: due }),
+      )
+      return
+    }
     const { type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note } = existing
     deleteTransaction(id)
     navigate('/', { replace: true })
@@ -315,7 +384,7 @@ export function AddTransactionScreen() {
             className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
             style={{ background: amountColor, boxShadow: canSave ? `0 16px 34px -14px ${amountColor}` : 'none', transition: 'background 240ms ease, box-shadow 240ms ease, opacity 200ms ease' }}
           >
-            {isEditing ? 'حفظ التعديلات' : payer ? `حفظ · دفعها ${payer.name}` : 'حفظ الحركة'}
+            {isEditing ? 'حفظ التعديلات' : payer ? (isLoanFunded ? `حفظ · سلفة من ${payer.name}` : `حفظ · دفعها ${payer.name}`) : 'حفظ الحركة'}
           </button>
         </div>
       }
@@ -346,10 +415,14 @@ export function AddTransactionScreen() {
           <>
           {type === 'expense' && (
             <ContributorPicker
-              people={contributors}
+              people={sheetPeople}
+              title="أو من شخص"
+              emptyHint="أضف أشخاصًا من شاشة السلف، وتقدر تسجّل مصروفًا دفعوه عنك أو صرفته من سلفة منهم."
               selectedId={paidBy}
               onPick={(pid) => {
                 haptic('tick')
+                // النوع الافتراضي: مساهمة للمفعّل لهم «مساهم»، وسلفة لغيرهم — يتغيّر بالمفتاح في النموذج.
+                if (pid !== paidBy) setPayerKind(people.find((p) => p.id === pid)?.isContributor ? 'contrib' : 'loan')
                 setPaidBy(pid)
                 setFromSheetOpen(false)
               }}
@@ -494,15 +567,25 @@ export function AddTransactionScreen() {
       ) : (
         <div className="mb-6">
           {payer ? (
+            <>
             <PickerField
               label="الحساب"
               icon={<span className="text-[15px] font-bold">{payer.name.trim().charAt(0) || '؟'}</span>}
               iconColor={colorFor(payer.name)}
               iconBg={`${colorFor(payer.name)}22`}
-              title={`دفعها ${payer.name}`}
-              subtitle="لن تُخصم من أي حساب"
+              title={isLoanFunded ? `سلفة من ${payer.name}` : `دفعها ${payer.name}`}
+              subtitle={isLoanFunded ? 'تصير عليك له · لا تُخصم من أي حساب' : 'لن تُخصم من أي حساب'}
               onClick={() => setFromSheetOpen(true)}
             />
+            <PayerKindSwitch
+              kind={payerKind}
+              onChange={(k) => {
+                if (k === payerKind) return
+                haptic('select')
+                setPayerKind(k)
+              }}
+            />
+            </>
           ) : (
           <PickerField
             label="الحساب"
@@ -519,7 +602,7 @@ export function AddTransactionScreen() {
                 </span>
               ) : undefined
             }
-            onClick={() => (accounts.length === 0 && contributors.length === 0 ? navigate('/accounts/new') : setFromSheetOpen(true))}
+            onClick={() => (accounts.length === 0 && people.length === 0 ? navigate('/accounts/new') : setFromSheetOpen(true))}
           />
           )}
         </div>
@@ -533,7 +616,7 @@ export function AddTransactionScreen() {
         onPointerUp={onAmountPointerUp}
         onPointerCancel={() => (amountSwipe.current.active = false)}
       >
-        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{payer ? `كم دفع ${payer.name} عنك؟` : type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
+        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{payer ? (isLoanFunded ? `كم صرفت من سلفة ${payer.name}؟` : `كم دفع ${payer.name} عنك؟`) : type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
         <div dir="ltr" className="num inline-flex items-baseline justify-center gap-2 font-bold" style={{ color: amountColor, transition: 'color 240ms ease' }}>
           <span key={amount} className="text-[52px] leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
             {amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-US') + (amount.includes('.') ? '.' + (amount.split('.')[1] ?? '') : '') : '0'}
@@ -550,23 +633,36 @@ export function AddTransactionScreen() {
           selectedId={categoryId}
           spentOf={spentExcludingThis}
           // المساهمة لا تدخل في ميزانية الفئة — فلا نعرض «بعد هذا المصروف».
-          amount={payer ? 0 : numericAmount}
+          amount={payer && !isLoanFunded ? 0 : numericAmount}
           onSelect={setCategoryId}
           onOpenAll={() => (expenseCategories.length === 0 ? navigate('/categories/new') : setCategoryPickerOpen(true))}
         />
       )}
 
       {payer && (
-        <div className="mb-5 flex items-start gap-2.5 rounded-[18px] border border-[var(--color-border)] bg-white/[0.04] px-3.5 py-3 text-[11.5px] leading-relaxed text-[var(--color-text-2)]" style={{ animation: 'qb-rise 380ms var(--ease-out-expo) both' }}>
-          <span className="mt-0.5 flex-shrink-0 text-[var(--color-text-3)]">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 11v6M12 7.5h.01" />
-            </svg>
-          </span>
-          <span>
-            تُسجَّل للتذكّر فقط: <b className="font-semibold text-[var(--color-text)]">لا تُخصم من حسابك</b>، ولا تدخل في مصاريفك أو ميزانياتك، وليست دَينًا على {payer.name}. تظهر في صفحته ضمن «المساهمات».
-          </span>
+        <div className="mb-5" style={{ animation: 'qb-rise 380ms var(--ease-out-expo) both' }}>
+          {isLoanFunded && (
+            <div className="mb-3">
+              <DatePicker value={dueDate} onChange={setDueDate} color="var(--color-owed-by)" fieldLabel="موعد إرجاع السلفة" placeholder="اختياري — للتذكير" />
+            </div>
+          )}
+          <div className="flex items-start gap-2.5 rounded-[18px] border border-[var(--color-border)] bg-white/[0.04] px-3.5 py-3 text-[11.5px] leading-relaxed text-[var(--color-text-2)]">
+            <span className="mt-0.5 flex-shrink-0 text-[var(--color-text-3)]">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v6M12 7.5h.01" />
+              </svg>
+            </span>
+            {isLoanFunded ? (
+              <span>
+                تُسجَّل <b className="font-semibold text-[var(--color-text)]">عمليتان مربوطتان</b>: سلفة استلمتها من {payer.name}، ومصروف بنفس المبلغ على فئته. المصروف يدخل في مصاريفك وميزانيتك، والمبلغ يصير عليك لـ{payer.name} — ولا يتغيّر رصيد أي حساب.
+              </span>
+            ) : (
+              <span>
+                تُسجَّل للتذكّر فقط: <b className="font-semibold text-[var(--color-text)]">لا تُخصم من حسابك</b>، ولا تدخل في مصاريفك أو ميزانياتك، وليست دَينًا على {payer.name}. تظهر في صفحته ضمن «المساهمات».
+              </span>
+            )}
+          </div>
         </div>
       )}
 

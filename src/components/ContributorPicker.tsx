@@ -1,14 +1,29 @@
 import { colorFor } from './Avatar'
 import type { Person } from '../types'
 
-/** «أو دفعها عنك شخص» داخل ورقة الحساب — الأشخاص المفعّل لهم «مساهم» في السلف. */
-export function ContributorPicker({ people, selectedId, onPick }: { people: Person[]; selectedId: string | null; onPick: (id: string) => void }) {
+/**
+ * أشخاص داخل ورقة الحساب: في المصروف «أو من شخص» (كل الأشخاص — بعدها مساهمة أو سلفة)،
+ * وفي الوقود «أو دفعها عنك شخص» (المساهمون فقط).
+ */
+export function ContributorPicker({
+  people,
+  selectedId,
+  onPick,
+  title = 'أو دفعها عنك شخص',
+  emptyHint = 'فعّل «مساهم» لأي شخص من صفحته في السلف، ويظهر هنا لتسجيل مصروف دفعه عنك.',
+}: {
+  people: Person[]
+  selectedId: string | null
+  onPick: (id: string) => void
+  title?: string
+  emptyHint?: string
+}) {
   return (
     <div className="mb-3 mt-1">
-      <div className="mx-1 mb-2 text-[11.5px] font-semibold text-[var(--color-text-3)]">أو دفعها عنك شخص</div>
+      <div className="mx-1 mb-2 text-[11.5px] font-semibold text-[var(--color-text-3)]">{title}</div>
       {people.length === 0 ? (
         <div className="rounded-[18px] border border-dashed border-[var(--color-border-strong)] px-3.5 py-3 text-[11.5px] leading-relaxed text-[var(--color-text-3)]">
-          فعّل «مساهم» لأي شخص من صفحته في السلف، ويظهر هنا لتسجيل مصروف دفعه عنك.
+          {emptyHint}
         </div>
       ) : (
         <div data-own-gesture className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
