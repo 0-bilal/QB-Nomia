@@ -49,3 +49,11 @@ describe('accountsBalanceValues / trendColor', () => {
     expect(trendColor([2, 1])).toBe('var(--color-expense)')
   })
 })
+
+describe('التسوية في منحنى الرصيد', () => {
+  it('تغيّر رصيد الحساب في يومها', () => {
+    const adj: ActivityItem = { id: 'r', kind: 'adjustment', amount: -40, date: '2026-10-09', accountIds: ['a'], title: '', subtitle: '', color: '' }
+    expect(effectOn(adj, new Set(['a']))).toBe(-40)
+    expect(balanceSeries([adj], new Set(['a']), 580, 2, new Date(2026, 9, 9)).map((p) => p.balance)).toEqual([620, 580])
+  })
+})

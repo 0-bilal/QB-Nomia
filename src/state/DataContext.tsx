@@ -8,6 +8,8 @@ import { getLastBackupExportedAt, getOrInitFirstSeenAt } from '../lib/backup'
 import { getProfile, saveProfile, type UserProfile } from '../lib/profile'
 import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
 import { formatMoney } from '../lib/format'
+import { localIso } from '../lib/homeFeed'
+import { reconcileDiff } from '../lib/reconcile'
 import type {
   Account,
   BillingCycle,
@@ -23,6 +25,7 @@ import type {
   LoanTransaction,
   OilChangeLog,
   Person,
+  Reconciliation,
   RecurringStatus,
   RecurringTransaction,
   SalaryAdvance,
@@ -62,6 +65,7 @@ const SALARY_VIOLATIONS_KEY = 'qbnomia.salaryViolations'
 const STORE_DEBTS_KEY = 'qbnomia.storeDebts'
 const STORE_DEBT_PAYMENTS_KEY = 'qbnomia.storeDebtPayments'
 const CONTRIBUTIONS_KEY = 'qbnomia.contributions'
+const RECONCILIATIONS_KEY = 'qbnomia.reconciliations'
 /** فئة مخصَّصة لحركات سداد ديون المتاجر — نفس مبدأ REQUIRED_DEFAULT_CATEGORIES. */
 const STORE_DEBT_CATEGORY_ID = 'cat-store-debt'
 
@@ -208,6 +212,20 @@ export interface ContributionInput {
   note?: string
 }
 
+/**
+ * اعتماد مطابقة حساب. لو فيه فرق:
+ *  - adjust: تسوية تعدّل الرصيد مباشرة.
+ *  - expense/income: حركة منسية بالفرق (فئة المصروف أو مصدر الدخل).
+ */
+export interface ReconcileInput {
+  accountId: string
+  actualBalance: number
+  resolution: 'adjust' | 'expense' | 'income'
+  categoryId?: string
+  incomeSourceId?: string
+  note?: string
+}
+
 interface AddLoanInput {
   personId: string
   direction: LoanDirection
@@ -295,7 +313,8 @@ export interface ActivityItem {
   id: string
   date: string
   /** contribution: مصروف دفعه شخص آخر — amount = 0 دائمًا (لا يدخل في أي مجموع)، والمبلغ الفعلي في paidAmount. */
-  kind: 'expense' | 'income' | 'transfer' | 'loan-given' | 'loan-received' | 'contribution'
+  /** adjustment: تسوية مطابقة — تغيّر رصيد الحساب فقط، ولا تدخل الدخل والمصروف ولا الصافي (مثل التحويل). */
+  kind: 'expense' | 'income' | 'transfer' | 'loan-given' | 'loan-received' | 'contribution' | 'adjustment'
   title: string
   subtitle: string
   amount: number
@@ -370,6 +389,13 @@ interface DataContextValue {
   storeDebts: StoreDebt[]
   storeDebtPayments: StoreDebtPayment[]
   contributions: Contribution[]
+  reconciliations: Reconciliation[]
+  /** يعتمد مطابقة حساب ويرجّع سجلها — بدون فرق يحفظ التاريخ فقط. */
+  reconcileAccount: (input: ReconcileInput) => Reconciliation | null
+  /** يحذف سجل مطابقة — التسوية يُعكس أثرها على الرصيد. */
+  deleteReconciliation: (id: string) => void
+  /** إرجاع سجل مطابقة محذوف كما كان (للتراجع) مع إعادة أثر التسوية. */
+  restoreReconciliation: (rec: Reconciliation) => void
   addContribution: (input: ContributionInput) => Contribution
   /** مصروف بسلفة من شخص: سلفة «استلمت منه» + مصروف بنفس المبلغ مربوطان، بدون أي أثر على الأرصدة. */
   addLoanFundedExpense: (input: LoanExpenseInput) => void
@@ -471,6 +497,7 @@ export interface DataSnapshot {
   storeDebts?: StoreDebt[]
   storeDebtPayments?: StoreDebtPayment[]
   contributions?: Contribution[]
+  reconciliations?: Reconciliation[]
   /** الملف الشخصي (الاسم، المخاطبة، تاريخ الميلاد...) — محفوظ خارج حالة البيانات (lib/profile). */
   profile?: UserProfile | null
 }
@@ -584,6 +611,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [storeDebts, setStoreDebts] = useState<StoreDebt[]>(() => loadJSON(STORE_DEBTS_KEY, []))
   const [storeDebtPayments, setStoreDebtPayments] = useState<StoreDebtPayment[]>(() => loadJSON(STORE_DEBT_PAYMENTS_KEY, []))
   const [contributions, setContributions] = useState<Contribution[]>(() => loadJSON(CONTRIBUTIONS_KEY, []))
+  const [reconciliations, setReconciliations] = useState<Reconciliation[]>(() => loadJSON(RECONCILIATIONS_KEY, []))
 
   function persistAccounts(next: Account[]) {
     setAccounts(next)
@@ -675,6 +703,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setContributions(next)
     saveJSON(CONTRIBUTIONS_KEY, next)
   }
+  function persistReconciliations(next: Reconciliation[]) {
+    setReconciliations(next)
+    saveJSON(RECONCILIATIONS_KEY, next)
+  }
 
   // يرفع نسخة خلفية تلقائيًا لجوجل شيت بعد أي تعديل حقيقي على البيانات —
   // بلا حاجة لفتح "المزيد" والضغط "رفع" يدويًا. يُستثنى أول تحميل للتطبيق
@@ -715,9 +747,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       storeDebts,
       storeDebtPayments,
       contributions,
+      reconciliations,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions, reconciliations])
 
   const value = useMemo<DataContextValue>(() => {
     function personBalance(personId: string): number {
@@ -881,7 +914,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
         createdAt: c.createdAt,
       }))
 
-      return [...fromTxns, ...fromLoans, ...fromContributions].sort(compareActivityDesc)
+      // التسوية: تغيّر رصيد الحساب فقط — تظهر في السجل وتدخل منحنى الرصيد، وتُستثنى من الدخل والمصروف والصافي.
+      const fromAdjustments: ActivityItem[] = reconciliations
+        .filter((r) => r.resolution === 'adjust')
+        .map((r) => ({
+          id: r.id,
+          date: r.date,
+          kind: 'adjustment',
+          title: 'تسوية مطابقة',
+          subtitle: accountName(r.accountId),
+          amount: r.difference,
+          color: 'var(--color-text-2)',
+          accountIds: [r.accountId],
+          note: r.note,
+          createdAt: r.createdAt,
+        }))
+
+      return [...fromTxns, ...fromLoans, ...fromContributions, ...fromAdjustments].sort(compareActivityDesc)
     }
 
     function recentActivity(limit = 5): ActivityItem[] {
@@ -1472,6 +1521,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteContribution(id: string) {
         persistContributions(contributions.filter((c) => c.id !== id))
       },
+      reconciliations,
+      reconcileAccount(input: ReconcileInput) {
+        const account = accounts.find((a) => a.id === input.accountId)
+        if (!account) return null
+        const difference = reconcileDiff(account.balance, input.actualBalance)
+        const date = localIso(new Date())
+        const now = new Date().toISOString()
+        const note = input.note?.trim() || undefined
+        const base = { id: makeId(), accountId: account.id, date, appBalance: account.balance, actualBalance: input.actualBalance, difference, note, createdAt: now }
+        let rec: Reconciliation
+        if (difference === 0) {
+          rec = { ...base, resolution: 'matched' }
+        } else if (input.resolution === 'adjust') {
+          rec = { ...base, resolution: 'adjust' }
+          persistAccounts(accounts.map((a) => (a.id === account.id ? { ...a, balance: input.actualBalance } : a)))
+        } else {
+          // الحركة المنسية بنوع الفرق نفسه: النقص مصروف، والزيادة دخل.
+          const type: TransactionType = difference < 0 ? 'expense' : 'income'
+          const txn: Transaction = {
+            id: makeId(),
+            type,
+            amount: Math.abs(difference),
+            date,
+            accountId: account.id,
+            categoryId: type === 'expense' ? input.categoryId : undefined,
+            incomeSourceId: type === 'income' ? input.incomeSourceId : undefined,
+            note: note ?? 'من المطابقة',
+            createdAt: now,
+          }
+          rec = { ...base, resolution: 'transaction', transactionId: txn.id }
+          persistTransactions([txn, ...transactions])
+          persistAccounts(withTransactionEffect(accounts, txn, 1))
+        }
+        persistReconciliations([rec, ...reconciliations])
+        return rec
+      },
+      deleteReconciliation(id: string) {
+        const rec = reconciliations.find((r) => r.id === id)
+        if (!rec) return
+        if (rec.resolution === 'adjust') {
+          persistAccounts(accounts.map((a) => (a.id === rec.accountId ? { ...a, balance: a.balance - rec.difference } : a)))
+        }
+        persistReconciliations(reconciliations.filter((r) => r.id !== id))
+      },
+      restoreReconciliation(rec: Reconciliation) {
+        if (reconciliations.some((r) => r.id === rec.id)) return
+        if (rec.resolution === 'adjust') {
+          persistAccounts(accounts.map((a) => (a.id === rec.accountId ? { ...a, balance: a.balance + rec.difference } : a)))
+        }
+        persistReconciliations([rec, ...reconciliations])
+      },
       addLoanTransaction(input: AddLoanInput) {
         const txn: LoanTransaction = {
           id: makeId(),
@@ -1911,6 +2011,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       deleteAccount(id: string) {
         persistAccounts(accounts.filter((a) => a.id !== id))
+        if (reconciliations.some((r) => r.accountId === id)) persistReconciliations(reconciliations.filter((r) => r.accountId !== id))
       },
       setAccountShowOnHome(id: string, showOnHome: boolean) {
         persistAccounts(accounts.map((a) => (a.id === id ? { ...a, showOnHome } : a)))
@@ -1943,6 +2044,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           storeDebts,
           storeDebtPayments,
           contributions,
+          reconciliations,
           profile: getProfile(),
         }
       },
@@ -1970,12 +2072,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistStoreDebts(snapshot.storeDebts ?? [])
         persistStoreDebtPayments(snapshot.storeDebtPayments ?? [])
         persistContributions(snapshot.contributions ?? [])
+        persistReconciliations(snapshot.reconciliations ?? [])
         // نسخة قديمة بدون ملف شخصي ما تمسح الملف الحالي.
         if (snapshot.profile) saveProfile(snapshot.profile)
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions, reconciliations])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

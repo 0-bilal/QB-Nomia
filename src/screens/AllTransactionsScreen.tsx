@@ -23,6 +23,7 @@ import {
   filterActivity,
   monthKey,
   monthLabel,
+  countsInNet,
   netOf,
   periodLabel,
   sheetFilterCount,
@@ -322,7 +323,7 @@ export function AllTransactionsScreen() {
   }, [filtered])
   const dayNet = useMemo(() => {
     const m = new Map<string, number>()
-    for (const i of filtered) if (i.kind !== 'transfer') m.set(i.date, (m.get(i.date) ?? 0) + i.amount)
+    for (const i of filtered) if (countsInNet(i.kind)) m.set(i.date, (m.get(i.date) ?? 0) + i.amount)
     return m
   }, [filtered])
 
@@ -379,7 +380,7 @@ export function AllTransactionsScreen() {
   const selItems = [...selected].map((id) => byId.get(id)).filter((x): x is ActivityItem => !!x)
   // المصروف بسلفة يُحذف وحده (بالسحب أو من شاشته) حتى تُحذف سلفته معه ويُتراجع عنهما معًا.
   const loanFundedIds = useMemo(() => new Set(transactions.filter((t) => t.loanId).map((t) => t.id)), [transactions])
-  const selTxnIds = selItems.filter((i) => i.kind !== 'loan-given' && i.kind !== 'loan-received' && i.kind !== 'contribution' && !loanFundedIds.has(i.id)).map((i) => i.id)
+  const selTxnIds = selItems.filter((i) => i.kind !== 'loan-given' && i.kind !== 'loan-received' && i.kind !== 'contribution' && i.kind !== 'adjustment' && !loanFundedIds.has(i.id)).map((i) => i.id)
   const selExpenseIds = selItems.filter((i) => i.kind === 'expense').map((i) => i.id)
 
   function bulkDelete() {

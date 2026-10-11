@@ -1,7 +1,18 @@
 import type { ActivityItem } from '../state/DataContext'
 import { formatMoney, formatSigned } from '../lib/format'
 
+/** ميزان المطابقة — زر «مطابقة» وصفوف التسوية. */
+export function ScaleIcon({ size = 19, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 4v16M8 20h8M5 7h14" />
+      <path d="M5 7l-3 6.5a3 3 0 0 0 6 0zM19 7l-3 6.5a3 3 0 0 0 6 0z" />
+    </svg>
+  )
+}
+
 export function ActivityIcon({ kind }: { kind: ActivityItem['kind'] }) {
+  if (kind === 'adjustment') return <ScaleIcon />
   if (kind === 'expense') {
     return (
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

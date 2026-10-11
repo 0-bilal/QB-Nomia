@@ -13,7 +13,7 @@ import { PencilIcon, RepeatIcon, TrashIcon, type SwipeAction } from '../componen
  */
 export function useActivitySwipe() {
   const navigate = useNavigate()
-  const { transactions, deleteTransaction, contributions, deleteContribution, loanTransactions } = useData()
+  const { transactions, deleteTransaction, contributions, deleteContribution, loanTransactions, reconciliations, deleteReconciliation } = useData()
 
   return function swipeFor(item: ActivityItem): { leftSwipe?: SwipeAction; rightSwipe?: SwipeAction } {
     const isLoan = item.kind === 'loan-given' || item.kind === 'loan-received'
@@ -41,6 +41,24 @@ export function useActivitySwipe() {
             deleteContribution(c.id)
             haptic('warning')
             showUndoToast('تم حذف المساهمة', (data) => data.addContribution({ personId: c.personId, amount: c.amount, date: c.date, categoryId: c.categoryId, note: c.note }))
+          },
+        },
+      }
+    }
+
+    // تسوية المطابقة: حذف يعكس أثرها على الرصيد، والتراجع يرجّعها.
+    if (item.kind === 'adjustment') {
+      const rec = reconciliations.find((r) => r.id === item.id)
+      if (!rec) return {}
+      return {
+        leftSwipe: {
+          label: 'حذف',
+          icon: <TrashIcon />,
+          color: 'var(--color-expense)',
+          onTrigger: () => {
+            deleteReconciliation(rec.id)
+            haptic('warning')
+            showUndoToast('تم حذف التسوية', (data) => data.restoreReconciliation(rec))
           },
         },
       }

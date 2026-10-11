@@ -4,6 +4,7 @@ import { CategoryIconBox } from './CategoryVisual'
 import { SwipeableRow, type SwipeAction } from './SwipeableRow'
 import { formatAmount, formatDate, formatSigned } from '../lib/format'
 import { dayLabel, daysLeftLabel, groupByDay, type UpcomingItem, type UpcomingKind } from '../lib/homeFeed'
+import { netOf } from '../lib/txFilters'
 import type { ActivityItem } from '../state/DataContext'
 import type { Category } from '../types'
 
@@ -130,8 +131,8 @@ export function GroupedActivity({
   return (
     <>
       {groupByDay(items).map((group) => {
-        // صافي اليوم بدون التحويلات (لا تغيّر إجمالي ما تملكه).
-        const net = group.items.filter((i) => i.kind !== 'transfer').reduce((s, i) => s + i.amount, 0)
+        // صافي اليوم بدون التحويلات والتسويات.
+        const net = netOf(group.items)
         return (
           <div key={group.date}>
             <div className="mx-1.5 mb-2 mt-3.5 flex justify-between text-[11.5px] font-semibold text-[var(--color-text-3)]">

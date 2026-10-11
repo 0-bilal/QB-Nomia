@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useData, type ActivityItem } from '../state/DataContext'
 import { formatAmount, formatMoney, formatSigned, formatDate } from '../lib/format'
 import { fuelLevel, fuelLevelColor, lastFuelTopUp } from '../lib/fuelCard'
-import { ActivityIcon } from '../components/ActivityIcon'
+import { ActivityIcon, ScaleIcon } from '../components/ActivityIcon'
+import { ReconcileSheet } from '../components/ReconcileSheet'
+import { daysSinceReconciled, lastReconciledDate, reconciledLabel } from '../lib/reconcile'
 import { activityEditPath } from '../lib/activityNav'
 import { BankCardFace } from '../components/BankCardFace'
 import { ACCOUNT_CARD_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS } from '../components/AccountVisuals'
@@ -256,6 +258,7 @@ function AccountBalanceSpark({ account, items, hidden }: { account: Account; ite
 function AccountDetail({ account, hidden, items }: { account: Account; hidden: boolean; items: ActivityItem[] }) {
   const { accountActivity, setAccountShowOnHome, transactions } = useData()
   const navigate = useNavigate()
+  const [reconciling, setReconciling] = useState(false)
   const activity = accountActivity(account.id, 3)
   const isPrepaid = PREPAID.includes(account.type)
   const onHome = account.showOnHome !== false
@@ -297,7 +300,7 @@ function AccountDetail({ account, hidden, items }: { account: Account; hidden: b
     <div>
       <AccountBalanceSpark account={account} items={items} hidden={hidden} />
       {extra}
-      <div className="mb-3 grid grid-cols-4 gap-1.5">
+      <div className="mb-3 grid grid-cols-5 gap-1.5">
         <ActionTile
           label={isPrepaid ? 'شحن' : 'إيداع'}
           icon={<PlusIcon />}
@@ -305,6 +308,14 @@ function AccountDetail({ account, hidden, items }: { account: Account; hidden: b
           onClick={() => navigate(isPrepaid ? `/add/transaction?type=transfer&to=${account.id}` : `/add/transaction?type=income&from=${account.id}`)}
         />
         <ActionTile label="تحويل" icon={<TransferIcon />} onClick={() => navigate(`/add/transaction?type=transfer&from=${account.id}`)} />
+        <ActionTile
+          label="مطابقة"
+          icon={<ScaleIcon size={17} />}
+          onClick={() => {
+            haptic('tick')
+            setReconciling(true)
+          }}
+        />
         <ActionTile
           label={onHome ? 'بالرئيسية' : 'مخفي'}
           icon={<HomeVisibilityIcon active={onHome} />}
@@ -351,8 +362,26 @@ function AccountDetail({ account, hidden, items }: { account: Account; hidden: b
           </button>
         </>
       )}
+      {reconciling && <ReconcileSheet account={account} hidden={hidden} onClose={() => setReconciling(false)} />}
     </div>
   )
+}
+
+/** تاريخ آخر مطابقة تحت اسم الحساب — «طابقته اليوم» بشارة خضراء. */
+function ReconciledMark({ accountId }: { accountId: string }) {
+  const { reconciliations } = useData()
+  const days = daysSinceReconciled(lastReconciledDate(reconciliations, accountId), new Date())
+  if (days === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 text-[10.5px] font-semibold" style={{ color: 'var(--color-income)', background: 'color-mix(in srgb, var(--color-income) 14%, transparent)' }}>
+        <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+        {reconciledLabel(days)}
+      </span>
+    )
+  }
+  return <span>{reconciledLabel(days)}</span>
 }
 
 function AccountRow({
@@ -389,7 +418,7 @@ function AccountRow({
             )}
           </div>
           <div className="mt-0.5 truncate text-[11px] text-[var(--color-text-3)]">
-            {account.goalLabel ? `هدف: ${account.goalLabel}` : ACCOUNT_TYPE_LABELS[account.type]}
+            {account.goalLabel ? `هدف: ${account.goalLabel}` : ACCOUNT_TYPE_LABELS[account.type]} · <ReconciledMark accountId={account.id} />
           </div>
           {goalPct !== null && (
             <div className="mt-1.5">
