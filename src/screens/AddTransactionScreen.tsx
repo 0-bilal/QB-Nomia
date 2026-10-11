@@ -19,8 +19,7 @@ import { haptic } from '../lib/haptics'
 import type { TransactionType } from '../types'
 import { ContributorPicker } from '../components/ContributorPicker'
 import { SheetHandle } from '../components/SheetHandle'
-import { FixedPadDock, NoteChip } from '../components/FixedPadDock'
-import type { Account } from '../types'
+import { AccountMiniField, FixedPadDock, NoteChip } from '../components/FixedPadDock'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -95,27 +94,6 @@ function SwapIcon() {
     </svg>
   )
 }
-/** حساب «من» أو «إلى» في التحويل — بطاقتان جنب بعض بدل صفّين، عشان تبقى الشاشة بدون تمرير. */
-function AccountMiniField({ label, account, onClick }: { label: string; account?: Account; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="qb-card qb-press flex min-w-0 flex-col items-start gap-1.5 px-3 py-2.5 text-right">
-      <span className="text-[11px] font-medium text-[var(--color-text-3)]">{label}</span>
-      <span className="flex w-full min-w-0 items-center gap-2">
-        <span
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
-          style={{ background: account ? ACCOUNT_ICON_BG[account.type] : 'rgba(255,255,255,0.08)', color: account ? ACCOUNT_ICON_COLOR[account.type] : 'var(--color-text-3)' }}
-        >
-          <AccountTypeIcon type={account?.type ?? 'cash'} size={15} />
-        </span>
-        <span className="min-w-0">
-          <span className={`block truncate text-[13px] font-semibold ${account ? '' : 'text-[var(--color-text-3)]'}`}>{account?.name ?? 'اختر حسابًا'}</span>
-          {account && <span className="num block truncate text-[11px] text-[var(--color-text-3)]">{formatAmount(account.balance)}</span>}
-        </span>
-      </span>
-    </button>
-  )
-}
-
 /** خصم مخالفة من الراتب — ورقة بلوحتها الخاصة بدل لوحة ثانية داخل الشاشة. */
 function ViolationSheet({ value, onChange, onApply, onRemove, onClose }: { value: string; onChange: (v: string) => void; onApply: () => void; onRemove: () => void; onClose: () => void }) {
   return (
@@ -132,21 +110,15 @@ function ViolationSheet({ value, onChange, onApply, onRemove, onClose }: { value
           {value ? Number(value.split('.')[0] || 0).toLocaleString('en-US') + (value.includes('.') ? '.' + (value.split('.')[1] ?? '') : '') : '0'}
         </div>
         <div className="safe-bottom">
-          <AmountPad value={value} onChange={onChange} color="var(--color-expense)" compact />
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={onRemove} className="qb-press h-[50px] rounded-full border border-[var(--color-border-strong)] text-[14px] font-semibold text-[var(--color-text-2)]">
-              بدون خصم
-            </button>
-            <button
-              type="button"
-              onClick={onApply}
-              disabled={!(Number(value) > 0)}
-              className="qb-press h-[50px] rounded-full text-[14px] font-semibold text-[var(--color-on-accent)] disabled:opacity-35"
-              style={{ background: 'var(--color-expense)' }}
-            >
-              اعتمد الخصم
-            </button>
-          </div>
+          <AmountPad
+            value={value}
+            onChange={onChange}
+            color="var(--color-expense)"
+            action={{ label: 'اعتمد', color: 'var(--color-expense)', disabled: !(Number(value) > 0), onPress: onApply }}
+          />
+          <button type="button" onClick={onRemove} className="qb-press mt-2 block w-full py-2 text-center text-[12.5px] font-semibold text-[var(--color-text-2)]">
+            بدون خصم
+          </button>
         </div>
       </div>
     </div>

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
+import { AccountMiniField, FixedPadDock, NoteChip } from '../components/FixedPadDock'
+import { SheetHandle } from '../components/SheetHandle'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { AmountPad } from '../components/AmountPad'
 import { DatePicker } from '../components/DatePicker'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { PickerField } from '../components/PickerField'
@@ -50,9 +51,18 @@ function TransferTypeIcon() {
 }
 function SwapIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="7,10 12,15 17,10" />
-      <line x1="12" y1="3" x2="12" y2="15" />
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h12l-3-3M17 17H5l3 3" />
+    </svg>
+  )
+}
+function RepeatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11V9a3 3 0 0 1 3-3h15" />
+      <path d="M7 22l-4-4 4-4" />
+      <path d="M21 13v2a3 3 0 0 1-3 3H3" />
     </svg>
   )
 }
@@ -77,6 +87,78 @@ const UNIT_OPTIONS: [CommitmentIntervalUnit, string][] = [
   ['month', 'شهر'],
   ['year', 'سنة'],
 ]
+
+/** «يتكرر كل…» — ورقة صغيرة بدل حقلين داخل الشاشة، عشان تبقى لوحة الأرقام ثابتة. */
+function RepeatSheet({
+  open,
+  color,
+  unit,
+  count,
+  onUnit,
+  onCount,
+  onClose,
+}: {
+  open: boolean
+  color: string
+  unit: CommitmentIntervalUnit
+  count: number
+  onUnit: (u: CommitmentIntervalUnit) => void
+  onCount: (n: number) => void
+  onClose: () => void
+}) {
+  if (!open) return null
+  return (
+    <div dir="rtl" className="fixed inset-0 z-[65] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
+      <div
+        className="relative w-full max-w-[480px] rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] px-5 pb-4 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
+      >
+        <SheetHandle onDismiss={onClose} />
+        <div className="mb-4 text-[17px] font-semibold">يتكرر</div>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {UNIT_OPTIONS.map(([u, label]) => (
+            <button
+              key={u}
+              onClick={() => onUnit(u)}
+              className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
+              style={unit === u ? { background: `color-mix(in srgb, ${color} 16%, transparent)`, color } : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="mb-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onCount(Math.max(1, count - 1))}
+            className="qb-press flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[18px] font-bold"
+            aria-label="إنقاص"
+          >
+            −
+          </button>
+          <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] py-2.5 text-center">
+            <div className="num text-[17px] font-bold">{count}</div>
+            <div className="text-[11px] text-[var(--color-text-3)]">{intervalLabel(unit, count)}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onCount(Math.min(99, count + 1))}
+            className="qb-press flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[18px] font-bold"
+            aria-label="زيادة"
+          >
+            +
+          </button>
+        </div>
+        <div className="safe-bottom">
+          <button onClick={onClose} className="qb-press h-[50px] w-full rounded-full text-[14px] font-semibold text-[var(--color-on-accent)]" style={{ background: color }}>
+            تم
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function defaultDueDate(): string {
   const d = new Date()
@@ -114,6 +196,9 @@ export function AddRecurringScreen() {
   const [nextDueDate, setNextDueDate] = useState(existing?.nextDueDate ?? defaultDueDate())
   const [note, setNote] = useState(existing?.note ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  // حركة جديدة تبدأ بكتابة الاسم — ثم «تم» يرجّع لوحة الأرقام.
+  const [editing, setEditing] = useState<'name' | 'note' | null>(existing ? null : 'name')
+  const [repeatSheetOpen, setRepeatSheetOpen] = useState(false)
 
   const [fromSheetOpen, setFromSheetOpen] = useState(false)
   const [toSheetOpen, setToSheetOpen] = useState(false)
@@ -222,6 +307,8 @@ export function AddRecurringScreen() {
 
   return (
     <ScreenScroll
+      largeTitle={false}
+      contentClassName="px-5"
       header={
         <ScreenHeader
           title={isEditing ? 'تعديل حركة متكررة' : 'حركة متكررة جديدة'}
@@ -240,16 +327,37 @@ export function AddRecurringScreen() {
         />
       }
       footer={
-        <div className="px-5 pb-6 pt-3">
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-            style={{ background: color }}
-          >
-            {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة المتكررة'}
-          </button>
-        </div>
+        <FixedPadDock
+          amount={amount}
+          onAmountChange={setAmount}
+          color={color}
+          canSave={!!canSave}
+          onSave={handleSave}
+          saveLabel={isEditing ? 'حفظ التعديل' : 'حفظ'}
+          editor={
+            editing === 'name'
+              ? { value: name, onChange: setName, placeholder: 'مثال: راتب الشهر', onDone: () => setEditing(null) }
+              : editing === 'note'
+                ? { value: note, onChange: setNote, placeholder: 'مثال: قد يختلف المبلغ بسبب الخصومات', onDone: () => setEditing(null) }
+                : null
+          }
+          chips={
+            <>
+              <button
+                type="button"
+                onClick={() => setRepeatSheetOpen(true)}
+                className="qb-press flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[12px] font-semibold"
+              >
+                <span style={{ color }}>
+                  <RepeatIcon />
+                </span>
+                <span className="num">{intervalLabel(intervalUnit, intervalCount)}</span>
+              </button>
+              <DatePicker chip value={nextDueDate} onChange={setNextDueDate} color={color} placeholder="الموعد القادم" />
+              <NoteChip note={note} onClick={() => setEditing('note')} />
+            </>
+          }
+        />
       }
     >
       <ConfirmDialog
@@ -314,15 +422,27 @@ export function AddRecurringScreen() {
         emptyLabel={type === 'expense' ? 'لا توجد فئات — أضف واحدة من "المزيد ← فئات المصاريف"' : 'لا توجد مصادر دخل بعد'}
       />
 
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم الحركة</label>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="مثال: راتب الشهر"
-        className="mb-6 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+      <RepeatSheet
+        open={repeatSheetOpen}
+        color={color}
+        unit={intervalUnit}
+        count={intervalCount}
+        onUnit={setIntervalUnit}
+        onCount={setIntervalCount}
+        onClose={() => setRepeatSheetOpen(false)}
       />
 
-      <div data-own-gesture className="relative mb-5 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+      <button
+        type="button"
+        onClick={() => setEditing('name')}
+        className="qb-press mb-3 flex h-[50px] w-full items-center gap-2 rounded-[18px] border bg-[var(--color-surface)] px-4 text-right text-[14px]"
+        style={{ borderColor: editing === 'name' ? 'var(--color-accent-line)' : 'var(--color-border)' }}
+      >
+        <span className="flex-shrink-0 text-[12px] text-[var(--color-text-3)]">الاسم</span>
+        <span className={`truncate font-semibold ${name ? '' : 'font-normal text-[var(--color-text-3)]'}`}>{name || 'مثال: راتب الشهر'}</span>
+      </button>
+
+      <div data-own-gesture className="relative mb-3 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
         <div
           className="absolute bottom-1 top-1 rounded-full"
           style={{
@@ -345,41 +465,23 @@ export function AddRecurringScreen() {
         ))}
       </div>
 
+      <AmountHero amount={amount} color={color} label="المبلغ التقديري — تقدر تعدّله عند التأكيد" className="mb-3" />
+
       {type === 'transfer' ? (
-        <div className="mb-6 flex flex-col gap-2">
-          <PickerField
-            label="من حساب"
-            icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
-            iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
-            iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
-            title={selectedAccount?.name ?? 'اختر حسابًا'}
-            placeholder={!selectedAccount}
-            subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
-            onClick={() => setFromSheetOpen(true)}
-          />
-          <div className="flex items-center justify-center">
-            <button
-              onClick={swapAccounts}
-              aria-label="تبديل الحسابين"
-              disabled={accounts.length < 2}
-              className="qb-press flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)] disabled:opacity-30"
-            >
-              <SwapIcon />
-            </button>
-          </div>
-          <PickerField
-            label="إلى حساب"
-            icon={selectedTransferToAccount ? <AccountTypeIcon type={selectedTransferToAccount.type} /> : <AccountTypeIcon type="cash" />}
-            iconColor={selectedTransferToAccount ? ACCOUNT_ICON_COLOR[selectedTransferToAccount.type] : 'var(--color-text-3)'}
-            iconBg={selectedTransferToAccount ? ACCOUNT_ICON_BG[selectedTransferToAccount.type] : 'rgba(255,255,255,0.08)'}
-            title={selectedTransferToAccount?.name ?? 'اختر حسابًا'}
-            placeholder={!selectedTransferToAccount}
-            subtitle={selectedTransferToAccount ? ACCOUNT_TYPE_LABELS[selectedTransferToAccount.type] : undefined}
-            onClick={() => setToSheetOpen(true)}
-          />
+        <div className="mb-3 grid items-center gap-1.5" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+          <AccountMiniField label="من" account={selectedAccount} onClick={() => setFromSheetOpen(true)} />
+          <button
+            onClick={swapAccounts}
+            aria-label="تبديل الحسابين"
+            disabled={accounts.length < 2}
+            className="qb-press flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-surface-high)] text-[var(--color-text)] disabled:opacity-30"
+          >
+            <SwapIcon />
+          </button>
+          <AccountMiniField label="إلى" account={selectedTransferToAccount} onClick={() => setToSheetOpen(true)} />
         </div>
       ) : (
-        <div className="mb-6">
+        <div className="mb-3">
           <PickerField
             label="الحساب"
             icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
@@ -400,14 +502,8 @@ export function AddRecurringScreen() {
         </div>
       )}
 
-      <AmountHero amount={amount} color={color} label="المبلغ التقديري — تقدر تعدّله عند التأكيد" />
-
-      <div className="mb-6">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
-
       {type !== 'transfer' && (
-        <div className="mb-5">
+        <div className="mb-3">
           <PickerField
             label={type === 'expense' ? 'الفئة' : 'مصدر الدخل'}
             icon={
@@ -462,57 +558,6 @@ export function AddRecurringScreen() {
         </div>
       )}
 
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">يتكرر</label>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {UNIT_OPTIONS.map(([u, label]) => (
-          <button
-            key={u}
-            onClick={() => setIntervalUnit(u)}
-            className="qb-press rounded-full px-4 py-2 text-[12.5px] font-semibold"
-            style={
-              intervalUnit === u
-                ? { background: `${color}26`, color }
-                : { background: 'var(--color-surface)', color: 'var(--color-text-2)', border: '1px solid var(--color-border)' }
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <div className="mb-5 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setIntervalCount((n) => Math.max(1, n - 1))}
-          className="qb-press flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[18px] font-bold"
-          aria-label="إنقاص"
-        >
-          −
-        </button>
-        <div className="flex-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-void)] py-2.5 text-center">
-          <div className="num text-[15px] font-bold">{intervalCount}</div>
-          <div className="text-[11px] text-[var(--color-text-3)]">{intervalLabel(intervalUnit, intervalCount)}</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIntervalCount((n) => Math.min(99, n + 1))}
-          className="qb-press flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[18px] font-bold"
-          aria-label="زيادة"
-        >
-          +
-        </button>
-      </div>
-
-      <div className="mb-5">
-        <DatePicker value={nextDueDate} onChange={setNextDueDate} color={color} fieldLabel="موعد الاستحقاق القادم" />
-      </div>
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="مثال: قد يختلف المبلغ بسبب الخصومات"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
     </ScreenScroll>
   )
 }

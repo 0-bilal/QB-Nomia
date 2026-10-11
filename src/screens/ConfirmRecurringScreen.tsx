@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { AmountPad } from '../components/AmountPad'
+import { FixedPadDock, NoteChip } from '../components/FixedPadDock'
 import { DatePicker } from '../components/DatePicker'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
 import { colorFor } from '../components/Avatar'
@@ -27,6 +27,7 @@ export function ConfirmRecurringScreen() {
   const [amount, setAmount] = useState(recurring ? String(recurring.amount) : '')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [note, setNote] = useState(recurring?.note ?? '')
+  const [noteEditing, setNoteEditing] = useState(false)
 
   if (!recurring) {
     return (
@@ -52,42 +53,32 @@ export function ConfirmRecurringScreen() {
 
   return (
     <ScreenScroll
+      largeTitle={false}
+      contentClassName="px-5"
       header={<ScreenHeader title="مراجعة وتأكيد" onBack={() => navigate(-1)} cancelLabel="إغلاق" className="pt-8 pb-6" />}
       footer={
-        <div className="flex flex-col gap-2.5 px-5 pb-6 pt-3">
-          <button
-            onClick={handleConfirm}
-            disabled={!canConfirm}
-            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-            style={{ background: color }}
-          >
-            تأكيد وتسجيل الحركة
-          </button>
-          <button
-            onClick={() => navigate(-1)}
-            className="qb-press w-full rounded-full bg-white/[0.06] py-3.5 text-center text-[13.5px] font-medium text-[var(--color-text)]"
-          >
-            لم تحدث بعد — ذكّرني لاحقًا
-          </button>
-        </div>
+        <FixedPadDock
+          amount={amount}
+          onAmountChange={setAmount}
+          color={color}
+          canSave={!!canConfirm}
+          onSave={handleConfirm}
+          saveLabel="تأكيد"
+          editor={noteEditing ? { value: note, onChange: setNote, placeholder: 'مثال: خصم سلفة قديمة من الراتب', onDone: () => setNoteEditing(false) } : null}
+          chips={
+            <>
+              <DatePicker chip value={date} onChange={setDate} color={color} />
+              <NoteChip note={note} onClick={() => setNoteEditing(true)} />
+            </>
+          }
+        />
       }
     >
-      <div className="mb-5 rounded-[20px] bg-[var(--color-accent-soft)] p-4 text-[12.5px] leading-relaxed text-[var(--color-text-2)]">
-        راجع تفاصيل "{recurring.name}" وعدّل المبلغ أو التاريخ لو اختلف عن المعتاد قبل ما تسجّلها كحركة فعلية.
-      </div>
+      <div className="mb-0.5 text-center text-[16px] font-semibold">{recurring.name}</div>
+      <div className="mb-2 text-center text-[11.5px] text-[var(--color-text-3)]">عدّل المبلغ أو التاريخ لو اختلف عن المعتاد قبل ما تسجّلها</div>
+      <AmountHero amount={amount} color={color} label="المبلغ الفعلي هذي المرة" className="mb-3" />
 
-      <div className="mb-1 text-center text-[16px] font-semibold">{recurring.name}</div>
-      <AmountHero amount={amount} color={color} label="المبلغ الفعلي هذي المرة" />
-
-      <div className="mb-6">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
-
-      <div className="mb-5">
-        <DatePicker value={date} onChange={setDate} color={color} fieldLabel="تاريخ الحركة" />
-      </div>
-
-      <div className="qb-card mb-5 flex flex-col overflow-hidden [&>*+*]:border-t [&>*+*]:border-white/5">
+      <div className="qb-card mb-3 flex flex-col overflow-hidden [&>*+*]:border-t [&>*+*]:border-white/5">
         <div className="flex items-center gap-3 px-4 py-3.5">
           <div
             className="flex h-9.5 w-9.5 flex-shrink-0 items-center justify-center rounded-full"
@@ -98,10 +89,11 @@ export function ConfirmRecurringScreen() {
           <div className="min-w-0 flex-1">
             <div className="text-[11px] text-[var(--color-text-3)]">{recurring.type === 'transfer' ? 'من حساب' : 'الحساب'}</div>
             <div className="truncate text-[14px] font-medium">{account?.name ?? '—'}</div>
+            {account && <div className="text-[11px] text-[var(--color-text-3)]">{ACCOUNT_TYPE_LABELS[account.type]} · الرصيد الحالي</div>}
           </div>
           {account && (
             <span className="num text-[12.5px] font-semibold" style={{ color: ACCOUNT_ICON_COLOR[account.type] }}>
-              {ACCOUNT_TYPE_LABELS[account.type]}
+              {formatMoney(account.balance)}
             </span>
           )}
         </div>
@@ -152,17 +144,9 @@ export function ConfirmRecurringScreen() {
         )}
       </div>
 
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="مثال: خصم سلفة قديمة من الراتب"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
-
-      <div className="mb-2 text-center text-[11px] text-[var(--color-text-3)]">
-        الرصيد الحالي: {account ? formatMoney(account.balance) : '—'}
-      </div>
+      <button onClick={() => navigate(-1)} className="qb-press mb-2 block w-full py-2 text-center text-[12.5px] font-semibold text-[var(--color-text-2)]">
+        لم تحدث بعد — ذكّرني لاحقًا
+      </button>
     </ScreenScroll>
   )
 }

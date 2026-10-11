@@ -319,20 +319,31 @@ export function ReconcileSheet({ account, hidden, onClose }: { account: Account;
 
             <div className="flex-shrink-0 px-5 pb-4 pt-3">
               <div className="safe-bottom">
-                <button
-                  type="button"
-                  disabled={status === null}
-                  onClick={next}
-                  className="qb-press flex h-[52px] w-full items-center justify-center gap-2 rounded-[17px] text-[14.5px] font-semibold text-[var(--color-on-accent)] disabled:opacity-35"
-                  style={{ background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent-b))' }}
-                >
-                  {status === 'matched' && <Icon d={CHECK} size={18} w={2.6} />}
-                  {status === 'matched' ? 'تأكيد المطابقة' : 'التالي'}
-                </button>
-                {mode === 'amount' && (
-                  <div className="mt-3">
-                    <AmountPad value={typed} onChange={setTyped} color="var(--color-text)" compact />
-                  </div>
+                {mode === 'amount' ? (
+                  // نفس اللوحة الثابتة بباقي الشاشات: زر «التالي / تأكيد» داخل اللوحة.
+                  <AmountPad
+                    value={typed}
+                    onChange={setTyped}
+                    color="var(--color-text)"
+                    action={{
+                      label: status === 'matched' ? 'تأكيد' : 'التالي',
+                      icon: status === 'matched' ? <Icon d={CHECK} size={22} w={2.6} /> : undefined,
+                      color: 'var(--color-accent)',
+                      disabled: status === null,
+                      onPress: next,
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    disabled={status === null}
+                    onClick={next}
+                    className="qb-press flex h-[52px] w-full items-center justify-center gap-2 rounded-[17px] text-[14.5px] font-semibold text-[var(--color-on-accent)] disabled:opacity-35"
+                    style={{ background: 'linear-gradient(150deg, var(--color-accent-a), var(--color-accent-b))' }}
+                  >
+                    {status === 'matched' && <Icon d={CHECK} size={18} w={2.6} />}
+                    {status === 'matched' ? 'تأكيد المطابقة' : 'التالي'}
+                  </button>
                 )}
               </div>
             </div>

@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
-import { formatMoney } from '../lib/format'
+import type { Account } from '../types'
+import { formatAmount, formatMoney } from '../lib/format'
 import { AmountPad } from './AmountPad'
 import { PickerField } from './PickerField'
 import { SelectSheet, type SelectSheetItem } from './SelectSheet'
@@ -169,5 +170,26 @@ export function AccountSelectField({ label, sheetTitle, accountId, onChange, cla
         onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setOpen(true))}
       />
     </div>
+  )
+}
+
+/** حساب «من» أو «إلى» في التحويل — بطاقتان جنب بعض بدل صفّين، عشان تبقى الشاشة بدون تمرير. */
+export function AccountMiniField({ label, account, onClick }: { label: string; account?: Account; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="qb-card qb-press flex min-w-0 flex-col items-start gap-1.5 px-3 py-2.5 text-right">
+      <span className="text-[11px] font-medium text-[var(--color-text-3)]">{label}</span>
+      <span className="flex w-full min-w-0 items-center gap-2">
+        <span
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
+          style={{ background: account ? ACCOUNT_ICON_BG[account.type] : 'rgba(255,255,255,0.08)', color: account ? ACCOUNT_ICON_COLOR[account.type] : 'var(--color-text-3)' }}
+        >
+          <AccountTypeIcon type={account?.type ?? 'cash'} size={15} />
+        </span>
+        <span className="min-w-0">
+          <span className={`block truncate text-[13px] font-semibold ${account ? '' : 'text-[var(--color-text-3)]'}`}>{account?.name ?? 'اختر حسابًا'}</span>
+          {account && <span className="num block truncate text-[11px] text-[var(--color-text-3)]">{formatAmount(account.balance)}</span>}
+        </span>
+      </span>
+    </button>
   )
 }
