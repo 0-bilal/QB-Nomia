@@ -13,11 +13,13 @@ import { colorFor } from '../components/Avatar'
 import { CategoryPickerSheet } from '../components/CategoryPickerSheet'
 import { ExpenseCategoryField } from '../components/ExpenseCategoryField'
 import { mostUsedCategories } from '../lib/categoryStats'
-import { formatMoney } from '../lib/format'
+import { formatAmount, formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import { haptic } from '../lib/haptics'
 import type { TransactionType } from '../types'
 import { ContributorPicker } from '../components/ContributorPicker'
+import { SheetHandle } from '../components/SheetHandle'
+import type { Account } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -87,10 +89,82 @@ function TransferTypeIcon() {
 }
 function SwapIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="7,10 12,15 17,10" />
-      <line x1="12" y1="3" x2="12" y2="15" />
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h12l-3-3M17 17H5l3 3" />
     </svg>
+  )
+}
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  )
+}
+function NoteIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+      <path d="M5 5h14v10l-5 5H5z" />
+      <path d="M14 20v-5h5" />
+    </svg>
+  )
+}
+
+/** حساب «من» أو «إلى» في التحويل — بطاقتان جنب بعض بدل صفّين، عشان تبقى الشاشة بدون تمرير. */
+function AccountMiniField({ label, account, onClick }: { label: string; account?: Account; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="qb-card qb-press flex min-w-0 flex-col items-start gap-1.5 px-3 py-2.5 text-right">
+      <span className="text-[11px] font-medium text-[var(--color-text-3)]">{label}</span>
+      <span className="flex w-full min-w-0 items-center gap-2">
+        <span
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px]"
+          style={{ background: account ? ACCOUNT_ICON_BG[account.type] : 'rgba(255,255,255,0.08)', color: account ? ACCOUNT_ICON_COLOR[account.type] : 'var(--color-text-3)' }}
+        >
+          <AccountTypeIcon type={account?.type ?? 'cash'} size={15} />
+        </span>
+        <span className="min-w-0">
+          <span className={`block truncate text-[13px] font-semibold ${account ? '' : 'text-[var(--color-text-3)]'}`}>{account?.name ?? 'اختر حسابًا'}</span>
+          {account && <span className="num block truncate text-[11px] text-[var(--color-text-3)]">{formatAmount(account.balance)}</span>}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+/** خصم مخالفة من الراتب — ورقة بلوحتها الخاصة بدل لوحة ثانية داخل الشاشة. */
+function ViolationSheet({ value, onChange, onApply, onRemove, onClose }: { value: string; onChange: (v: string) => void; onApply: () => void; onRemove: () => void; onClose: () => void }) {
+  return (
+    <div dir="rtl" className="fixed inset-0 z-[65] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onClose} aria-hidden="true" />
+      <div
+        className="relative w-full max-w-[480px] rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] px-5 pb-4 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
+      >
+        <SheetHandle onDismiss={onClose} />
+        <div className="text-[17px] font-semibold">خصم مخالفة</div>
+        <div className="text-[12px] text-[var(--color-text-3)]">مبلغ يُخصم من هذا الراتب بسبب مخالفة عمل</div>
+        <div dir="ltr" className="num my-4 text-center text-[36px] font-bold" style={{ color: 'var(--color-expense)' }}>
+          {value ? Number(value.split('.')[0] || 0).toLocaleString('en-US') + (value.includes('.') ? '.' + (value.split('.')[1] ?? '') : '') : '0'}
+        </div>
+        <div className="safe-bottom">
+          <AmountPad value={value} onChange={onChange} color="var(--color-expense)" compact />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" onClick={onRemove} className="qb-press h-[50px] rounded-full border border-[var(--color-border-strong)] text-[14px] font-semibold text-[var(--color-text-2)]">
+              بدون خصم
+            </button>
+            <button
+              type="button"
+              onClick={onApply}
+              disabled={!(Number(value) > 0)}
+              className="qb-press h-[50px] rounded-full text-[14px] font-semibold text-[var(--color-on-accent)] disabled:opacity-35"
+              style={{ background: 'var(--color-expense)' }}
+            >
+              اعتمد الخصم
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 const TYPE_OPTIONS: [TransactionType, string, () => React.ReactElement][] = [
@@ -164,6 +238,8 @@ export function AddTransactionScreen() {
   const [hasViolation, setHasViolation] = useState(false)
   const [violationAmount, setViolationAmount] = useState('')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [noteEditing, setNoteEditing] = useState(false)
+  const [violationSheetOpen, setViolationSheetOpen] = useState(false)
 
   const [fromSheetOpen, setFromSheetOpen] = useState(false)
   const [toSheetOpen, setToSheetOpen] = useState(false)
@@ -359,6 +435,8 @@ export function AddTransactionScreen() {
 
   return (
     <ScreenScroll
+      largeTitle={false}
+      contentClassName="px-5"
       header={
         <ScreenHeader
           title={isEditing ? 'تعديل حركة' : 'إضافة حركة'}
@@ -377,18 +455,87 @@ export function AddTransactionScreen() {
         />
       }
       footer={
-        <div className="px-5 pb-6 pt-3">
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-            style={{ background: amountColor, boxShadow: canSave ? `0 16px 34px -14px ${amountColor}` : 'none', transition: 'background 240ms ease, box-shadow 240ms ease, opacity 200ms ease' }}
-          >
-            {isEditing ? 'حفظ التعديلات' : payer ? (isLoanFunded ? `حفظ · سلفة من ${payer.name}` : `حفظ · دفعها ${payer.name}`) : 'حفظ الحركة'}
-          </button>
+        // القسم الثابت: التاريخ والملاحظة ثم لوحة الأرقام وزر الحفظ داخلها — لا يتحرك مع التمرير.
+        <div className="relative z-10 flex-shrink-0 border-t border-[var(--color-border)] bg-[var(--color-bg)] px-5 pb-4 pt-3">
+          <div className="safe-bottom">
+            {noteEditing ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') setNoteEditing(false)
+                  }}
+                  placeholder="مثال: عشاء مع الأصدقاء"
+                  className="h-[46px] min-w-0 flex-1 rounded-2xl border border-[var(--color-accent-line)] bg-[var(--color-surface)] px-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNoteEditing(false)}
+                  className="qb-press h-[46px] flex-shrink-0 rounded-2xl px-4 text-[13.5px] font-semibold text-[var(--color-on-accent)]"
+                  style={{ background: 'var(--color-accent)' }}
+                >
+                  تم
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-2.5 flex items-center gap-1.5">
+                  <DatePicker chip value={date} onChange={setDate} color={color} />
+                  {showViolationToggle && (
+                    <button
+                      type="button"
+                      onClick={() => setViolationSheetOpen(true)}
+                      className="qb-press flex h-9 flex-shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] font-semibold"
+                      style={
+                        hasViolation
+                          ? { color: 'var(--color-expense)', borderColor: 'color-mix(in srgb, var(--color-expense) 40%, transparent)', background: 'color-mix(in srgb, var(--color-expense) 12%, transparent)' }
+                          : { color: 'var(--color-text-2)', borderColor: 'var(--color-border)', background: 'var(--color-surface)' }
+                      }
+                    >
+                      {hasViolation ? <span className="num" dir="ltr">−{formatAmount(Number(violationAmount) || 0)}</span> : 'خصم مخالفة'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setNoteEditing(true)}
+                    className="qb-press flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-full border bg-[var(--color-surface)] px-3 text-[12px] font-semibold"
+                    style={{ borderColor: note ? 'var(--color-border-strong)' : 'var(--color-border)', color: note ? 'var(--color-text)' : 'var(--color-text-2)' }}
+                  >
+                    <NoteIcon />
+                    <span className="truncate">{note || 'ملاحظة'}</span>
+                  </button>
+                </div>
+                <AmountPad
+                  value={amount}
+                  onChange={setAmount}
+                  color={amountColor}
+                  action={{ label: isEditing ? 'حفظ التعديل' : 'حفظ', icon: <CheckIcon />, color: amountColor, disabled: !canSave, onPress: handleSave }}
+                />
+              </>
+            )}
+          </div>
         </div>
       }
     >
+      {violationSheetOpen && (
+        <ViolationSheet
+          value={violationAmount}
+          onChange={setViolationAmount}
+          onApply={() => {
+            setHasViolation(Number(violationAmount) > 0)
+            setViolationSheetOpen(false)
+          }}
+          onRemove={() => {
+            setHasViolation(false)
+            setViolationAmount('')
+            setViolationSheetOpen(false)
+          }}
+          onClose={() => setViolationSheetOpen(false)}
+        />
+      )}
+
       <ConfirmDialog
         open={confirmDeleteOpen}
         title="حذف الحركة"
@@ -482,7 +629,7 @@ export function AddTransactionScreen() {
         onClose={() => setCategoryPickerOpen(false)}
       />
 
-      <div data-own-gesture className="relative mb-5 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+      <div data-own-gesture className="relative mb-3 flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
         <div
           className="absolute bottom-1 top-1 rounded-full"
           style={{
@@ -506,57 +653,40 @@ export function AddTransactionScreen() {
         ))}
       </div>
 
-      {type === 'transfer' ? (
-        <div className="mb-6 flex flex-col gap-2">
-          <PickerField
-            label="من حساب"
-            icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
-            iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
-            iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
-            title={selectedAccount?.name ?? 'اختر حسابًا'}
-            placeholder={!selectedAccount}
-            subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
-            trailing={
-              selectedAccount ? (
-                <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
-                  {formatMoney(selectedAccount.balance)}
-                </span>
-              ) : undefined
-            }
-            onClick={() => setFromSheetOpen(true)}
-          />
+      <div
+        data-own-gesture
+        className="mb-3 select-none text-center"
+        style={{ touchAction: 'pan-y' }}
+        onPointerDown={onAmountPointerDown}
+        onPointerUp={onAmountPointerUp}
+        onPointerCancel={() => (amountSwipe.current.active = false)}
+      >
+        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{payer ? (isLoanFunded ? `كم صرفت من سلفة ${payer.name}؟` : `كم دفع ${payer.name} عنك؟`) : type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
+        <div dir="ltr" className="num inline-flex items-baseline justify-center gap-2 font-bold" style={{ color: amountColor, transition: 'color 240ms ease' }}>
+          <span key={amount} className="text-[48px] leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+            {amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-US') + (amount.includes('.') ? '.' + (amount.split('.')[1] ?? '') : '') : '0'}
+          </span>
+          <span className="font-sans text-[18px] font-medium opacity-60">ر.س</span>
+        </div>
+        {!isEditing && <div className="mt-1 text-[11px] text-[var(--color-text-3)]">‹ اسحب هنا يمينًا أو يسارًا لتغيير نوع الحركة ›</div>}
+      </div>
 
-          <div className="flex items-center justify-center">
+      {type === 'transfer' ? (
+        <div className="mb-4">
+          <div className="grid items-center gap-1.5" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
+            <AccountMiniField label="من" account={selectedAccount} onClick={() => setFromSheetOpen(true)} />
             <button
               onClick={swapAccounts}
               aria-label="تبديل الحسابين"
               disabled={accounts.length < 2}
-              className="qb-press -my-1 flex h-10 w-10 items-center justify-center rounded-full border-4 border-[var(--color-bg)] bg-[var(--color-surface-high)] text-[var(--color-accent)] disabled:opacity-30"
+              className="qb-press flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-surface-high)] text-[var(--color-text)] disabled:opacity-30"
             >
               <SwapIcon />
             </button>
+            <AccountMiniField label="إلى" account={selectedTransferToAccount} onClick={() => setToSheetOpen(true)} />
           </div>
-
-          <PickerField
-            label="إلى حساب"
-            icon={selectedTransferToAccount ? <AccountTypeIcon type={selectedTransferToAccount.type} /> : <AccountTypeIcon type="cash" />}
-            iconColor={selectedTransferToAccount ? ACCOUNT_ICON_COLOR[selectedTransferToAccount.type] : 'var(--color-text-3)'}
-            iconBg={selectedTransferToAccount ? ACCOUNT_ICON_BG[selectedTransferToAccount.type] : 'rgba(255,255,255,0.08)'}
-            title={selectedTransferToAccount?.name ?? 'اختر حسابًا'}
-            placeholder={!selectedTransferToAccount}
-            subtitle={selectedTransferToAccount ? ACCOUNT_TYPE_LABELS[selectedTransferToAccount.type] : undefined}
-            trailing={
-              selectedTransferToAccount ? (
-                <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedTransferToAccount.type] }}>
-                  {formatMoney(selectedTransferToAccount.balance)}
-                </span>
-              ) : undefined
-            }
-            onClick={() => setToSheetOpen(true)}
-          />
-
           {accounts.length < 2 && (
-            <div className="text-[12px] text-[var(--color-text-3)]">
+            <div className="mt-2 text-[12px] text-[var(--color-text-3)]">
               التحويل يحتاج حسابين على الأقل — أضف حسابًا من{' '}
               <button type="button" onClick={() => navigate('/accounts/new')} className="font-semibold underline" style={{ color }}>
                 هنا
@@ -565,7 +695,7 @@ export function AddTransactionScreen() {
           )}
         </div>
       ) : (
-        <div className="mb-6">
+        <div className="mb-4">
           {payer ? (
             <>
             <PickerField
@@ -608,24 +738,6 @@ export function AddTransactionScreen() {
         </div>
       )}
 
-      <div
-        data-own-gesture
-        className="mb-5 select-none text-center"
-        style={{ touchAction: 'pan-y' }}
-        onPointerDown={onAmountPointerDown}
-        onPointerUp={onAmountPointerUp}
-        onPointerCancel={() => (amountSwipe.current.active = false)}
-      >
-        <div className="mb-1 text-[12.5px] text-[var(--color-text-2)]">{payer ? (isLoanFunded ? `كم صرفت من سلفة ${payer.name}؟` : `كم دفع ${payer.name} عنك؟`) : type === 'expense' ? 'كم صرفت؟' : type === 'income' ? 'كم استلمت؟' : 'كم تحوّل؟'}</div>
-        <div dir="ltr" className="num inline-flex items-baseline justify-center gap-2 font-bold" style={{ color: amountColor, transition: 'color 240ms ease' }}>
-          <span key={amount} className="text-[52px] leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
-            {amount ? Number(amount.split('.')[0] || 0).toLocaleString('en-US') + (amount.includes('.') ? '.' + (amount.split('.')[1] ?? '') : '') : '0'}
-          </span>
-          <span className="font-sans text-[18px] font-medium opacity-60">ر.س</span>
-        </div>
-        {!isEditing && <div className="mt-1 text-[11px] text-[var(--color-text-3)]">‹ اسحب هنا يمينًا أو يسارًا لتغيير نوع الحركة ›</div>}
-      </div>
-
       {type === 'expense' && (
         <ExpenseCategoryField
           categories={expenseCategories}
@@ -666,12 +778,8 @@ export function AddTransactionScreen() {
         </div>
       )}
 
-      <div className="mb-6">
-        <AmountPad value={amount} onChange={setAmount} color={amountColor} />
-      </div>
-
       {type === 'income' && (
-        <div className="mb-5">
+        <div className="mb-4">
           <PickerField
             label="مصدر الدخل"
             icon={selectedIncomeSource ? <span style={{ fontWeight: 700, fontSize: 15 }}>{selectedIncomeSource.name.trim().charAt(0)}</span> : <IncomeTypeIcon />}
@@ -690,53 +798,6 @@ export function AddTransactionScreen() {
         </div>
       )}
 
-      {showViolationToggle && (
-        <>
-          <button
-            type="button"
-            onClick={() => setHasViolation((v) => !v)}
-            className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
-          >
-            <div>
-              <div className="text-[13.5px] font-semibold">خصم مخالفة (اختياري)</div>
-              <div className="text-[11.5px] text-[var(--color-text-3)]">فعّله لو فيه مبلغ يُخصم من هذا الراتب بسبب مخالفة عمل</div>
-            </div>
-            <div
-              className="flex h-[30px] w-[52px] flex-shrink-0 items-center rounded-full p-[3px] transition-colors duration-300"
-              style={{ background: hasViolation ? 'var(--color-expense)' : 'rgba(255,255,255,0.14)' }}
-            >
-              <div
-                className="h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-transform duration-300"
-                style={{ transform: hasViolation ? 'translateX(-22px)' : 'translateX(0)' }}
-              />
-            </div>
-          </button>
-
-          {hasViolation && (
-            <div className="mb-5">
-              <div className="mb-3 text-center">
-                <div className="mb-2 text-[12.5px] text-[var(--color-text-2)]">مبلغ الخصم</div>
-                <div className="num text-[28px] font-bold" style={{ color: 'var(--color-expense)' }}>
-                  {violationAmount || '0'}
-                </div>
-              </div>
-              <AmountPad value={violationAmount} onChange={setViolationAmount} color="var(--color-expense)" />
-            </div>
-          )}
-        </>
-      )}
-
-      <div className="mb-5">
-        <DatePicker value={date} onChange={setDate} color={color} fieldLabel="التاريخ" />
-      </div>
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="مثال: عشاء مع الأصدقاء"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
     </ScreenScroll>
   )
 }

@@ -52,10 +52,12 @@ interface DatePickerProps {
   placeholder?: string
   /** إذا انحطّ، الزر يترسم بهيئة صف نموذج (أيقونة + تسمية أعلى القيمة) بدل الزر المدمج — يوحّد شكله مع PickerField. */
   fieldLabel?: string
+  /** زر كبسولة صغير («اليوم» / «أمس» / التاريخ) — لصفوف مضغوطة مثل القسم الثابت بشاشة إضافة حركة. */
+  chip?: boolean
 }
 
 /** منتقي تاريخ مخصص بهوية التطبيق — بديل عن input[type=date] اللي شكله والنافذة المنبثقة له تابعين للمتصفح/النظام ومستحيل تصميمهما. */
-export function DatePicker({ value, onChange, color = 'var(--color-accent)', placeholder = 'اختر تاريخًا', fieldLabel }: DatePickerProps) {
+export function DatePicker({ value, onChange, color = 'var(--color-accent)', placeholder = 'اختر تاريخًا', fieldLabel, chip = false }: DatePickerProps) {
   const [open, setOpen] = useState(false)
   const selected = parseISO(value)
   const [viewDate, setViewDate] = useState(() => selected ?? new Date())
@@ -99,9 +101,29 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
     viewDate.getMonth() === selected.getMonth() &&
     viewDate.getFullYear() === selected.getFullYear()
 
+  const chipLabel = (() => {
+    if (!selected) return placeholder
+    const t = new Date()
+    const y = new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1)
+    if (toISO(selected) === toISO(t)) return 'اليوم'
+    if (toISO(selected) === toISO(y)) return 'أمس'
+    return label
+  })()
+
   return (
     <>
-      {fieldLabel ? (
+      {chip ? (
+        <button
+          type="button"
+          onClick={openPicker}
+          className="qb-press flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[12px] font-semibold"
+        >
+          <span style={{ color }}>
+            <CalendarIcon />
+          </span>
+          <span className={chipLabel === label ? 'num' : ''}>{chipLabel}</span>
+        </button>
+      ) : fieldLabel ? (
         <button type="button" onClick={openPicker} className="qb-card qb-press flex w-full items-center gap-3 px-4 py-3.5 text-right">
           <div
             className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full"

@@ -88,11 +88,11 @@ export function ExpenseCategoryField({ categories, mostUsed, selectedId, spentOf
         </div>
       )}
 
-      {selected && (
+      {/* سطر الميزانية فقط لفئة لها ميزانية — «بدون ميزانية» كان يأخذ مساحة فوق اللوحة الثابتة بلا فائدة. */}
+      {selected && !!selected.budgetLimit && (
         <div className="mt-3 flex items-center gap-2.5 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[12px] text-[var(--color-text-2)]">
           <CategoryIconBox category={selected} size={28} radius={9} />
-          {selected.budgetLimit ? (
-            <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
               <div className="mb-1.5 flex justify-between gap-2">
                 <span>بعد هذا المصروف</span>
                 <span className="num font-bold" style={{ color: BUDGET_STATE_COLOR[state] }}>
@@ -103,11 +103,6 @@ export function ExpenseCategoryField({ categories, mostUsed, selectedId, spentOf
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: BUDGET_STATE_COLOR[state], transition: 'width 300ms ease' }} />
               </div>
             </div>
-          ) : (
-            <span>
-              فئة <b className="font-semibold text-[var(--color-text)]">{selected.name}</b> بدون ميزانية شهرية
-            </span>
-          )}
         </div>
       )}
     </div>

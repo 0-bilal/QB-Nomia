@@ -22,11 +22,14 @@ export function ScreenScroll({
   footer,
   children,
   contentClassName = 'px-5 pb-4',
+  largeTitle = true,
 }: {
   header?: ReactNode
   footer?: ReactNode
   children: ReactNode
   contentClassName?: string
+  /** false: بدون العنوان الكبير — العنوان في كبسولة الرأس دائمًا (شاشات تحتاج كل المساحة، مثل إضافة حركة بلوحة ثابتة). */
+  largeTitle?: boolean
 }) {
   const navigate = useNavigate()
   const navType = useNavigationType()
@@ -117,16 +120,18 @@ export function ScreenScroll({
             // الرأس يطفو فوق المحتوى (مثل الرئيسية): المحتوى يتمرر تحت الأزرار والكبسولة بدل ما يُقص عند حافة شريط مستقل.
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
-                <ScreenTitleContext.Provider value={{ managed: true, scrolled }}>{header}</ScreenTitleContext.Provider>
+                <ScreenTitleContext.Provider value={{ managed: true, scrolled: scrolled || !largeTitle }}>{header}</ScreenTitleContext.Provider>
               </div>
               <div
                 className={`flex-1 overflow-y-auto overflow-x-hidden ${contentClassName}`}
                 style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${FLOATING_HEADER_HEIGHT}px)` }}
-                onScroll={onContentScroll}
+                onScroll={largeTitle ? onContentScroll : undefined}
               >
-                <h1 ref={titleRef} className="mb-4 truncate text-[28px] font-bold leading-tight tracking-tight">
-                  {headerTitle}
-                </h1>
+                {largeTitle && (
+                  <h1 ref={titleRef} className="mb-4 truncate text-[28px] font-bold leading-tight tracking-tight">
+                    {headerTitle}
+                  </h1>
+                )}
                 {children}
               </div>
             </div>

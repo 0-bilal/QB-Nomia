@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>إضافة حركة — لوحة ثابتة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13); --accent-line:rgba(255,255,255,.28);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1);
+    --c:var(--expense);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  input{font:inherit;color:inherit}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+
+  /* ===== الجهاز ===== */
+  .phone{width:390px;max-width:100%;height:var(--ph,844px);background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9);display:flex;flex-direction:column;transition:height .45s var(--expo)}
+  @media (max-width:440px){.phone{border-radius:28px}}
+  .aurora{position:absolute;inset:-80px -40px auto;height:240px;pointer-events:none;background:radial-gradient(60% 60% at 70% 30%,color-mix(in srgb,var(--c) 14%,transparent),transparent 70%);transition:background .3s}
+  .hdr{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:18px 18px 8px;position:relative}
+  .gb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text)}
+  .hdr .t{flex:1;text-align:center;font-size:15px;font-weight:600}
+
+  /* المنطقة العلوية: تتمرر وحدها لو الشاشة صغيرة */
+  .top{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;padding:4px 18px 8px;position:relative}
+  .top::-webkit-scrollbar{display:none}
+  /* القسم السفلي الثابت */
+  .dock{flex-shrink:0;padding:10px 18px 18px;background:linear-gradient(to bottom,transparent,var(--bg) 14px);position:relative;border-top:1px solid var(--border)}
+
+  .types{position:relative;display:flex;padding:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border)}
+  .types .ind{position:absolute;top:4px;bottom:4px;width:calc((100% - 8px)/3);border-radius:999px;background:var(--c);transition:right .38s var(--spring),background .24s;box-shadow:0 8px 22px -10px var(--c)}
+  .types button{position:relative;z-index:1;flex:1;height:36px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text-2);display:flex;align-items:center;justify-content:center;gap:6px;transition:color .2s}
+  .types button.on{color:var(--on-accent)}
+
+  .amt{text-align:center;padding:14px 0 10px;user-select:none}
+  .amt .q{font-size:12px;color:var(--text-2)}
+  .amt .v{display:inline-flex;align-items:baseline;gap:6px;direction:ltr;color:var(--c);font-weight:700;transition:color .24s}
+  .amt .v b{font-size:46px;line-height:1.15}
+  .amt .v small{font-family:var(--font-sans);font-size:16px;font-weight:500;opacity:.6}
+  .amt .v b.pop{animation:pop .26s var(--spring)}
+  @keyframes pop{0%{transform:scale(.85);opacity:.4}100%{transform:none;opacity:1}}
+
+  .field{display:flex;align-items:center;gap:11px;width:100%;padding:9px 12px;border-radius:18px;background:var(--surface);border:1px solid var(--border);text-align:right}
+  .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+  .fl{font-size:10.5px;color:var(--text-3)}
+  .ft{font-size:13.5px;font-weight:600;margin-top:1px}
+  .fb{font-size:13px;font-weight:700;margin-inline-start:auto}
+  .chev{color:var(--text-3);flex-shrink:0}
+  .two{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+  .two .field{flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px}
+  .swap{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--surface-hi);color:var(--text)}
+
+  .lbl{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--text-2);margin:14px 4px 8px}
+  .lbl a{font-size:11.5px;color:var(--text-2)}
+  .cats{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -18px;padding:0 18px 2px}
+  .cats::-webkit-scrollbar{display:none}
+  .cat{flex-shrink:0;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 2px;border-radius:18px;background:var(--surface);border:1px solid var(--border);font-size:10.5px;font-weight:600;color:var(--text-2);transition:border-color .2s,background .2s}
+  .cat .ci{width:36px;height:36px;border-radius:12px;display:grid;place-items:center}
+  .cat.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--surface));color:var(--text)}
+
+  /* صف التفاصيل المضغوط: التاريخ + الملاحظة */
+  .meta{display:flex;gap:6px;margin-top:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:var(--surface);border:1px solid var(--border);white-space:nowrap;min-width:0}
+  .chip.grow{flex:1;overflow:hidden}
+  .chip.grow span{overflow:hidden;text-overflow:ellipsis}
+  .chip.set{color:var(--text);border-color:var(--border-strong)}
+
+  .save{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border-radius:999px;background:var(--c);color:var(--on-accent);font-size:14.5px;font-weight:600;transition:background .24s,opacity .2s,box-shadow .24s;box-shadow:0 16px 34px -14px var(--c)}
+  .save:disabled{opacity:.35;box-shadow:none}
+
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;direction:ltr;margin-top:10px}
+  .pad.side{grid-template-columns:repeat(3,1fr) 1.05fr;margin-top:0}
+  .pad button{height:var(--kh,50px);border-radius:18px;background:rgba(255,255,255,.045);font-size:22px;font-weight:500;display:grid;place-items:center;transition:transform .15s,background .15s}
+  .pad button:active{transform:scale(.92);background:rgba(255,255,255,.09)}
+  .pad .del{color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+  .pad .ok{grid-row:span 3;height:auto;background:var(--c);color:var(--on-accent);font-size:13px;font-weight:700;font-family:var(--font-sans);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 14px 30px -14px var(--c)}
+  .pad .ok:disabled{opacity:.35;box-shadow:none}
+  .pad .zero{grid-column:span 2}
+
+  /* الطي: اللوحة تنطوي عند كتابة الملاحظة (لوحة الهاتف تأخذ مكانها) */
+  .padwrap{display:grid;grid-template-rows:1fr;transition:grid-template-rows .4s var(--expo),opacity .25s}
+  .padwrap>div{overflow:hidden}
+  .dock.typing .padwrap{grid-template-rows:0fr;opacity:0}
+  .kb{display:none;margin-top:10px;height:var(--kbh,250px);border-radius:14px;background:repeating-linear-gradient(0deg,#1d1d22 0 46px,#141418 46px 54px);opacity:.75;place-items:center;color:var(--text-3);font-size:12px}
+  .dock.typing .kb{display:grid;animation:kb .35s var(--expo)}
+  @keyframes kb{from{transform:translateY(40px);opacity:0}}
+  .notein{width:100%;height:46px;border-radius:16px;background:var(--surface);border:1px solid var(--accent-line);padding:0 14px;font-size:13.5px;outline:none;margin-bottom:10px;display:none}
+  .dock.typing .notein{display:block}
+  .dock.typing .meta-dock{display:none}
+
+  .sumline{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:11.5px;color:var(--text-3);overflow:hidden;white-space:nowrap}
+  .sumline b{color:var(--text-2);font-weight:600}
+  .dot{width:4px;height:4px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.85;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text);font-size:12.5px;font-weight:600;display:block;margin:10px 0 2px}
+  .note .k:first-child{margin-top:0}
+  .note ul,.note ol{padding-inline-start:18px}
+  .note code{font-family:var(--font-num);font-size:11px;color:var(--text);background:var(--surface-hi);padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>إضافة حركة — لوحة أرقام ثابتة</h1>
+  <p style="color:var(--text-2)">المعتمد: زر الحفظ داخل اللوحة، والتاريخ والملاحظة داخل القسم الثابت، على حجم الشاشة العادي.</p>
+  <p>لوحة الأرقام وزر الحفظ في قسم ثابت أسفل الشاشة، وكل شيء ثاني فوقها في مساحة مضغوطة ما تحتاج تمرير. جرّب الأنواع الثلاثة، واكتب مبلغًا، واضغط «ملاحظة» لترى كيف تنطوي اللوحة لما تطلع لوحة الهاتف. غيّر حجم الشاشة لترى سلوك الجوالات الصغيرة.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">مكان زر الحفظ</div>
+    <div class="seg" id="segSave">
+      <button data-v="0"><span class="num">1</span> · فوق اللوحة</button>
+      <button data-v="1" class="on"><span class="num">2</span> · داخل اللوحة (معتمد)</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">التاريخ والملاحظة</div>
+    <div class="seg" id="segMeta">
+      <button data-v="0"><span class="num">1</span> · فوق، تحت الفئة</button>
+      <button data-v="1" class="on"><span class="num">2</span> · داخل القسم الثابت (معتمد)</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">حجم الشاشة</div>
+    <div class="seg" id="segSize">
+      <button data-v="844" class="on">عادي <span class="num">390×844</span></button>
+      <button data-v="700">صغير <span class="num">360×700</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="phone" id="phone">
+  <div class="aurora"></div>
+  <div class="hdr">
+    <span class="gb" aria-label="رجوع"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    <div class="t">إضافة حركة</div>
+    <span style="width:40px"></span>
+  </div>
+  <div class="top" id="top"></div>
+  <div class="dock" id="dock"></div>
+</div>
+
+<div class="note">
+  <span class="k">الترتيب الجديد</span>
+  <ol>
+    <li><b>فوق (يتمرر لوحده لو ضاقت الشاشة):</b> نوع الحركة، ثم المبلغ الكبير، ثم الحساب (أو «من / إلى» جنب بعض في التحويل)، ثم الفئة أو مصدر الدخل كشريط أفقي.</li>
+    <li><b>تحت (ثابت دائمًا):</b> زر الحفظ ولوحة الأرقام. المبلغ يتغيّر فوق وأصابعك ما تتحرك.</li>
+    <li><b>التاريخ والملاحظة:</b> صاروا كبسولتين صغيرتين بدل حقلين كاملين. التاريخ يفتح <code>DatePicker</code> كورقة، والملاحظة تكتبها في حقل يطلع فوق القسم الثابت، واللوحة تنطوي لما تطلع لوحة الهاتف وترجع بعدها.</li>
+  </ol>
+  <span class="k">الحالات الخاصة</span>
+  <ul>
+    <li><b>خصم مخالفة الراتب:</b> كبسولة «خصم مخالفة» تظهر جنب التاريخ لما يكون المصدر «راتب»، وتفتح ورقة فيها لوحتها الخاصة.</li>
+    <li><b>دفعها عني / سلفة:</b> حقل الحساب يعرض الشخص، ومفتاح «مساهمة / سلفة» يصير سطرًا صغيرًا تحته. شرح العملية ينتقل إلى ورقة الاختيار نفسها.</li>
+    <li><b>التعديل والحذف:</b> نفس الترتيب. زر «حذف» يبقى في رأس الشاشة.</li>
+  </ul>
+  <span class="k">التطبيق في الكود</span>
+  <ul>
+    <li><code>AddTransactionScreen</code>: يتحول من <code>ScreenScroll</code> طويل إلى عمودين: محتوى علوي <code>flex-1 overflow-y-auto</code>، وقسم سفلي ثابت فيه الحفظ و<code>AmountPad compact</code> (نفس لوحة المطابقة).</li>
+    <li>نفس النمط يُعمم بعدين على شاشات المبالغ الثانية (السلف، الحركات المتكررة، الحاسبة) إذا اعتمدته.</li>
+  </ul>
+</div>
+
+<script>
+const svg=(p,s=18,w=1.9)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I={
+  down:'<path d="M12 5v14M6 13l6 6 6-6"/>', up:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  swap:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>', chev:'<path d="M15 6l-6 6 6 6"/>',
+  cal:'<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  note:'<path d="M5 5h14v10l-5 5H5z"/><path d="M14 20v-5h5"/>',
+  del:'<path d="M9 6L3 12l6 6h11a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  bank:'<path d="M3 10l9-6 9 6M5 10v8M19 10v8M9 10v8M15 10v8M3 20h18"/>',
+  cash:'<rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="12" cy="12" r="2.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+}
+const TYPES=[['expense','مصروف','var(--expense)',I.down],['income','دخل','var(--income)',I.up],['transfer','تحويل','var(--transfer)',I.swap]]
+const CATS=[['مطاعم','#ff8a5b'],['بقالة','#3ee08f'],['مواصلات','#5fb3ff'],['قهوة','#c79a6b'],['فواتير','#ffbf47'],['تسوق','#ff6fb5'],['صحة','#2ee6c8']]
+const SRCS=[['راتب','#5fb3ff'],['عمل حر','#8b7bff'],['هدية','#ff6fb5'],['استرجاع','#3ee08f']]
+const S={type:'expense',amount:'',cat:null,src:null,note:'',typing:false,saveIn:1,meta:1}
+const T=()=>TYPES.find(t=>t[0]===S.type)
+const fmtAmt=a=>a?Number(a.split('.')[0]||0).toLocaleString('en-US')+(a.includes('.')?'.'+(a.split('.')[1]??''):''):'0'
+const canSave=()=>parseFloat(S.amount)>0 && (S.type==='transfer' || (S.type==='expense'?S.cat:S.src))
+let lastAmt=null
+
+function metaHTML(){
+  return `<div class="meta">
+    <button class="chip press set" data-act="date">${svg(I.cal,15,2)}اليوم</button>
+    <button class="chip grow press ${S.note?'set':''}" data-act="note">${svg(I.note,15,2)}<span>${S.note||'ملاحظة'}</span></button>
+  </div>`
+}
+
+function renderTop(){
+  const [,,col]=T(), idx=TYPES.findIndex(t=>t[0]===S.type)
+  document.documentElement.style.setProperty('--c',col)
+  let h=`<div class="types"><span class="ind" style="right:calc(4px + ${idx} * (100% - 8px)/3)"></span>${TYPES.map(([k,l,,ic])=>`<button data-act="type" data-v="${k}" class="${S.type===k?'on':''}">${svg(ic,15,2.2)}${l}</button>`).join('')}</div>`
+  const q=S.type==='expense'?'كم صرفت؟':S.type==='income'?'كم استلمت؟':'كم تحوّل؟'
+  const bump = lastAmt!==null && lastAmt!==S.amount; lastAmt=S.amount
+  h+=`<div class="amt"><div class="q">${q}</div><div class="v num"><b class="${bump?'pop':''}">${fmtAmt(S.amount)}</b><small>ر.س</small></div></div>`
+  if(S.type==='transfer'){
+    h+=`<div class="two">
+      <button class="field press"><span class="fl">من</span><span style="display:flex;align-items:center;gap:8px"><span class="ic" style="width:30px;height:30px;border-radius:10px;background:color-mix(in srgb,var(--transfer) 16%,transparent);color:var(--transfer)">${svg(I.bank,15,2)}</span><span><div class="ft">الراجحي</div><div class="fl num">8,240</div></span></span></button>
+      <span class="swap">${svg(I.swap,16,2.2)}</span>
+      <button class="field press"><span class="fl">إلى</span><span style="display:flex;align-items:center;gap:8px"><span class="ic" style="width:30px;height:30px;border-radius:10px;background:color-mix(in srgb,var(--income) 16%,transparent);color:var(--income)">${svg(I.cash,15,2)}</span><span><div class="ft">الكاش</div><div class="fl num">620</div></span></span></button>
+    </div>`
+  } else {
+    h+=`<button class="field press"><span class="ic" style="background:color-mix(in srgb,var(--transfer) 16%,transparent);color:var(--transfer)">${svg(I.bank,17,2)}</span>
+      <span><div class="fl">الحساب</div><div class="ft">الراجحي</div></span><span class="fb num" style="color:var(--transfer)">8,240 <span style="font-family:var(--font-sans);font-size:11px;opacity:.6">ر.س</span></span><span class="chev">${svg(I.chev,16,2.2)}</span></button>`
+    const list=S.type==='expense'?CATS:SRCS, sel=S.type==='expense'?S.cat:S.src
+    h+=`<div class="lbl"><span>${S.type==='expense'?'الفئة':'مصدر الدخل'}</span><a>الكل ‹</a></div>
+      <div class="cats">${list.map(([n,c])=>`<button class="cat press ${sel===n?'on':''}" data-act="pick" data-v="${n}"><span class="ci" style="background:color-mix(in srgb,${c} 16%,transparent);color:${c};font-weight:700;font-size:14px">${n[0]}</span>${n}</button>`).join('')}
+      <button class="cat press"><span class="ci" style="background:var(--surface-hi);color:var(--text-2)">${svg(I.plus,16,2.2)}</span>جديدة</button></div>`
+  }
+  if(S.meta===0) h+=metaHTML()
+  document.getElementById('top').innerHTML=h
+}
+
+function padKeys(side){
+  const k=d=>`<button class="num" data-act="key" data-v="${d}">${d}</button>`
+  const del=`<button class="del" data-act="key" data-v="del" aria-label="حذف">${svg(I.del,22,1.8)}</button>`
+  if(!side) return `<div class="pad">${['1','2','3','4','5','6','7','8','9'].map(k).join('')}${k('.')}${k('0')}${del}</div>`
+  return `<div class="pad side">${k('1')}${k('2')}${k('3')}${del}
+    ${k('4')}${k('5')}${k('6')}<button class="ok" data-act="save" ${canSave()?'':'disabled'}>${svg(I.check,24,2.6)}حفظ</button>
+    ${k('7')}${k('8')}${k('9')}
+    ${k('.')}<button class="num zero" data-act="key" data-v="0">0</button></div>`
+}
+
+function renderDock(){
+  const d=document.getElementById('dock')
+  d.classList.toggle('typing',S.typing)
+  let h=`<input class="notein" id="notein" placeholder="مثال: عشاء مع الأصدقاء" value="${S.note.replace(/"/g,'&quot;')}">`
+  if(S.meta===1) h+=`<div class="meta-dock" style="margin-bottom:10px">${metaHTML().replace('class="meta"','class="meta" style="margin-top:0"')}</div>`
+  if(S.saveIn===0) h+=`<button class="save press" data-act="save" ${canSave()?'':'disabled'}>${S.typing?'تم':'حفظ الحركة'}</button>`
+  else if(S.typing) h+=`<button class="save press" data-act="done">تم</button>`
+  h+=`<div class="padwrap"><div>${padKeys(S.saveIn===1)}</div></div><div class="kb">لوحة مفاتيح الهاتف</div>`
+  d.innerHTML=h
+  if(S.typing){const n=document.getElementById('notein'); n.focus(); n.setSelectionRange(n.value.length,n.value.length)}
+}
+function render(){renderTop();renderDock()}
+
+function press(v){
+  let a=S.amount
+  if(v==='del') a=a.slice(0,-1)
+  else if(v==='.'){ if(a.includes('.')) return; a=(a||'0')+'.' }
+  else { const [w,dec]=a.split('.'); if(dec!==undefined&&dec.length>=2) return; if((w||'').length>=9) return; a=a==='0'?v:a+v }
+  S.amount=a; navigator.vibrate&&navigator.vibrate(8); render()
+}
+let toastT
+function toast(msg){
+  let el=document.querySelector('.island'); if(el) el.remove()
+  el=document.createElement('div'); el.className='island'
+  el.style.cssText='position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:8px;height:40px;padding:4px 16px 4px 6px;border-radius:999px;background:rgba(28,28,33,.94);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);font-size:12.5px;font-weight:600;white-space:nowrap;box-shadow:0 12px 30px -12px rgba(0,0,0,.8)'
+  el.innerHTML=`<span style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--income) 16%,transparent);color:var(--income)">${svg(I.check,15,2.8)}</span>${msg}`
+  document.getElementById('phone').appendChild(el); clearTimeout(toastT); toastT=setTimeout(()=>el.remove(),2200)
+}
+
+document.getElementById('phone').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return
+  const act=b.dataset.act, v=b.dataset.v
+  if(act==='type'){S.type=v;S.cat=null;S.src=null;S.typing=false;render()}
+  else if(act==='key') press(v)
+  else if(act==='pick'){ if(S.type==='expense') S.cat=v; else S.src=v; render() }
+  else if(act==='note'){S.typing=true;render()}
+  else if(act==='done'){S.typing=false;render()}
+  else if(act==='save'){ if(S.typing){S.typing=false;render();return} if(!canSave()) return; toast('تم حفظ الحركة'); S.amount='';S.cat=null;S.src=null;S.note='';render() }
+  else if(act==='date') toast('يفتح DatePicker كورقة')
+})
+document.getElementById('phone').addEventListener('input',e=>{ if(e.target.id==='notein'){ S.note=e.target.value; const c=document.querySelector('[data-act=note] span'); if(c) c.textContent=S.note||'ملاحظة' } })
+document.getElementById('phone').addEventListener('keydown',e=>{ if(e.target.id==='notein'&&e.key==='Enter'){S.typing=false;render()} })
+
+function bindSeg(id,fn){document.getElementById(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v)})}
+bindSeg('segSave',v=>{S.saveIn=+v;S.typing=false;render()})
+bindSeg('segMeta',v=>{S.meta=+v;S.typing=false;render()})
+bindSeg('segSize',v=>{const ph=document.getElementById('phone');ph.style.setProperty('--ph',v+'px');ph.style.width=v==='700'?'360px':'390px';ph.style.setProperty('--kh',v==='700'?'44px':'50px');ph.style.setProperty('--kbh',v==='700'?'210px':'250px')})
+render()
+</script>
+</body>
+</html>
