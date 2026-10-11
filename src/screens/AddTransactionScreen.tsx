@@ -19,6 +19,7 @@ import { haptic } from '../lib/haptics'
 import type { TransactionType } from '../types'
 import { ContributorPicker } from '../components/ContributorPicker'
 import { SheetHandle } from '../components/SheetHandle'
+import { FixedPadDock, NoteChip } from '../components/FixedPadDock'
 import type { Account } from '../types'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
@@ -94,22 +95,6 @@ function SwapIcon() {
     </svg>
   )
 }
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.5l4.5 4.5L19 7.5" />
-    </svg>
-  )
-}
-function NoteIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-      <path d="M5 5h14v10l-5 5H5z" />
-      <path d="M14 20v-5h5" />
-    </svg>
-  )
-}
-
 /** حساب «من» أو «إلى» في التحويل — بطاقتان جنب بعض بدل صفّين، عشان تبقى الشاشة بدون تمرير. */
 function AccountMiniField({ label, account, onClick }: { label: string; account?: Account; onClick: () => void }) {
   return (
@@ -456,67 +441,35 @@ export function AddTransactionScreen() {
       }
       footer={
         // القسم الثابت: التاريخ والملاحظة ثم لوحة الأرقام وزر الحفظ داخلها — لا يتحرك مع التمرير.
-        <div className="relative z-10 flex-shrink-0 border-t border-[var(--color-border)] bg-[var(--color-bg)] px-5 pb-4 pt-3">
-          <div className="safe-bottom">
-            {noteEditing ? (
-              <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') setNoteEditing(false)
-                  }}
-                  placeholder="مثال: عشاء مع الأصدقاء"
-                  className="h-[46px] min-w-0 flex-1 rounded-2xl border border-[var(--color-accent-line)] bg-[var(--color-surface)] px-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-                />
+        <FixedPadDock
+          amount={amount}
+          onAmountChange={setAmount}
+          color={amountColor}
+          canSave={!!canSave}
+          onSave={handleSave}
+          saveLabel={isEditing ? 'حفظ التعديل' : 'حفظ'}
+          editor={noteEditing ? { value: note, onChange: setNote, placeholder: 'مثال: عشاء مع الأصدقاء', onDone: () => setNoteEditing(false) } : null}
+          chips={
+            <>
+              <DatePicker chip value={date} onChange={setDate} color={color} />
+              {showViolationToggle && (
                 <button
                   type="button"
-                  onClick={() => setNoteEditing(false)}
-                  className="qb-press h-[46px] flex-shrink-0 rounded-2xl px-4 text-[13.5px] font-semibold text-[var(--color-on-accent)]"
-                  style={{ background: 'var(--color-accent)' }}
+                  onClick={() => setViolationSheetOpen(true)}
+                  className="qb-press flex h-9 flex-shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] font-semibold"
+                  style={
+                    hasViolation
+                      ? { color: 'var(--color-expense)', borderColor: 'color-mix(in srgb, var(--color-expense) 40%, transparent)', background: 'color-mix(in srgb, var(--color-expense) 12%, transparent)' }
+                      : { color: 'var(--color-text-2)', borderColor: 'var(--color-border)', background: 'var(--color-surface)' }
+                  }
                 >
-                  تم
+                  {hasViolation ? <span className="num" dir="ltr">−{formatAmount(Number(violationAmount) || 0)}</span> : 'خصم مخالفة'}
                 </button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-2.5 flex items-center gap-1.5">
-                  <DatePicker chip value={date} onChange={setDate} color={color} />
-                  {showViolationToggle && (
-                    <button
-                      type="button"
-                      onClick={() => setViolationSheetOpen(true)}
-                      className="qb-press flex h-9 flex-shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] font-semibold"
-                      style={
-                        hasViolation
-                          ? { color: 'var(--color-expense)', borderColor: 'color-mix(in srgb, var(--color-expense) 40%, transparent)', background: 'color-mix(in srgb, var(--color-expense) 12%, transparent)' }
-                          : { color: 'var(--color-text-2)', borderColor: 'var(--color-border)', background: 'var(--color-surface)' }
-                      }
-                    >
-                      {hasViolation ? <span className="num" dir="ltr">−{formatAmount(Number(violationAmount) || 0)}</span> : 'خصم مخالفة'}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setNoteEditing(true)}
-                    className="qb-press flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-full border bg-[var(--color-surface)] px-3 text-[12px] font-semibold"
-                    style={{ borderColor: note ? 'var(--color-border-strong)' : 'var(--color-border)', color: note ? 'var(--color-text)' : 'var(--color-text-2)' }}
-                  >
-                    <NoteIcon />
-                    <span className="truncate">{note || 'ملاحظة'}</span>
-                  </button>
-                </div>
-                <AmountPad
-                  value={amount}
-                  onChange={setAmount}
-                  color={amountColor}
-                  action={{ label: isEditing ? 'حفظ التعديل' : 'حفظ', icon: <CheckIcon />, color: amountColor, disabled: !canSave, onPress: handleSave }}
-                />
-              </>
-            )}
-          </div>
-        </div>
+              )}
+              <NoteChip note={note} onClick={() => setNoteEditing(true)} />
+            </>
+          }
+        />
       }
     >
       {violationSheetOpen && (

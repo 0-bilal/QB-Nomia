@@ -1,13 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { formatAmount, formatMoney, formatDate } from '../../lib/format'
-import { AmountPad } from '../../components/AmountPad'
-import { PickerField } from '../../components/PickerField'
-import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
-import type { AccountType, SalaryAdvance } from '../../types'
+import { ACCOUNT_TYPE_LABELS } from '../../components/AccountVisuals'
+import type { SalaryAdvance } from '../../types'
 import { EmptyState } from '../../components/ui'
 import { DEBT_META, softBg } from './debtTypes'
 import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
@@ -21,130 +17,6 @@ function SalaryAdvanceIcon({ size = 20 }: { size?: number }) {
       <path d="M19 8.5 22 11.5 19 14.5" />
       <path d="M22 11.5h-5" />
     </svg>
-  )
-}
-
-/**
- * محرر تسجيل/تعديل سلفة مضمّن (مو نافذة منبثقة) — نفس نمط بقية شاشات إدخال
- * الأرقام بالتطبيق: لوحة أرقام النظام (AmountPad) بدل كيبورد الهاتف. لو
- * initial محددة، يعمل بوضع تعديل (يظهر زر حذف).
- */
-function LogAdvanceForm({
-  accounts,
-  color,
-  initial,
-  onSave,
-  onDelete,
-  onCancel,
-}: {
-  accounts: { id: string; name: string; type: AccountType; balance: number }[]
-  color: string
-  initial?: { amount: number; accountId: string }
-  onSave: (amount: number, accountId: string) => void
-  onDelete?: () => void
-  onCancel: () => void
-}) {
-  const navigate = useNavigate()
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
-  const [accountId, setAccountId] = useState(initial?.accountId ?? accounts[0]?.id ?? '')
-  const [accountSheetOpen, setAccountSheetOpen] = useState(false)
-
-  const numeric = Number(amount)
-  const selectedAccount = accounts.find((a) => a.id === accountId)
-  const canSave = numeric > 0 && !!accountId
-
-  return (
-    <div>
-      <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">مبلغ السلفة</div>
-      <div dir="ltr" className="mb-5 flex items-baseline justify-center gap-2" style={{ color }}>
-        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
-          {amount || '0'}
-        </span>
-        <span className="flex-shrink-0 text-[16px] font-medium opacity-60">ر.س</span>
-      </div>
-      <div className="mb-4">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
-
-      <SelectSheet
-        open={accountSheetOpen}
-        title="تُضاف إلى حساب"
-        items={accounts.map(
-          (a): SelectSheetItem => ({
-            id: a.id,
-            icon: <AccountTypeIcon type={a.type} size={17} />,
-            iconColor: ACCOUNT_ICON_COLOR[a.type],
-            iconBg: ACCOUNT_ICON_BG[a.type],
-            title: a.name,
-            subtitle: ACCOUNT_TYPE_LABELS[a.type],
-            trailing: (
-              <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
-                {formatMoney(a.balance)}
-              </span>
-            ),
-          }),
-        )}
-        selectedId={accountId}
-        onSelect={(v) => {
-          setAccountId(v)
-          setAccountSheetOpen(false)
-        }}
-        onClose={() => setAccountSheetOpen(false)}
-        emptyLabel="لا توجد حسابات بعد"
-        footer={
-          <button
-            onClick={() => {
-              setAccountSheetOpen(false)
-              navigate('/accounts/new')
-            }}
-            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
-            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
-          >
-            + إضافة حساب جديد
-          </button>
-        }
-      />
-
-      <div className="mb-4">
-        <PickerField
-          label="تُضاف إلى حساب"
-          icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
-          iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
-          iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
-          title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
-          placeholder={!selectedAccount}
-          subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
-          trailing={
-            selectedAccount ? (
-              <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
-                {formatMoney(selectedAccount.balance)}
-              </span>
-            ) : undefined
-          }
-          onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
-        />
-      </div>
-
-      <div className="flex gap-2.5">
-        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
-          إلغاء
-        </button>
-        <button
-          onClick={() => canSave && onSave(numeric, accountId)}
-          disabled={!canSave}
-          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-          style={{ background: color, boxShadow: canSave ? `0 12px 26px -12px ${color}` : 'none' }}
-        >
-          حفظ
-        </button>
-      </div>
-
-      {onDelete && (
-        <button onClick={onDelete} className="qb-press mt-4 w-full text-center text-[13px] font-medium" style={{ color: 'var(--color-expense)' }}>
-          حذف السلفة
-        </button>
-      )}
-    </div>
   )
 }
 
@@ -239,10 +111,9 @@ function AdvanceRow({ advance, accountLabel, color, onClick }: { advance: Salary
 }
 
 /** محتوى تبويب "سلفة راتب" داخل شاشة الديون والسلف. */
-export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: boolean }) {
-  const { salaryAdvances, logSalaryAdvance, updateSalaryAdvance, deleteSalaryAdvance, accounts } = useData()
-  const [editingId, setEditingId] = useState<'new' | string | null>(startAdding && accounts.length > 0 ? 'new' : null)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+export function SalaryAdvancePanel() {
+  const { salaryAdvances, accounts } = useData()
+  const navigate = useNavigate()
   const h = useDebtHistory()
 
   const outstanding = salaryAdvances.filter((a) => !a.settled)
@@ -252,7 +123,6 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
   const advanceAt = (scrub: number | null) => (scrub === null ? outstandingTotal : h.advance[scrub])
   const oldestOutstanding = [...outstanding].sort((a, b) => a.date.localeCompare(b.date))[0]
   const color = DEBT_META.advance.color
-  const editingAdvance = editingId && editingId !== 'new' ? salaryAdvances.find((a) => a.id === editingId) : undefined
   const accountLabel = (id: string) => {
     const account = accounts.find((acc) => acc.id === id)
     return account ? `${account.name} · ${ACCOUNT_TYPE_LABELS[account.type]}` : ''
@@ -260,45 +130,8 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
 
   return (
     <>
-      <ConfirmDialog
-        open={confirmDeleteId !== null}
-        title="حذف السلفة"
-        message="بيتم حذف هذي السلفة والحركة المالية المرتبطة بيها من سجلك، وخصم مبلغها من رصيد الحساب."
-        confirmLabel="حذف"
-        color="var(--color-expense)"
-        onConfirm={() => {
-          if (confirmDeleteId) deleteSalaryAdvance(confirmDeleteId)
-          setConfirmDeleteId(null)
-          setEditingId(null)
-        }}
-        onCancel={() => setConfirmDeleteId(null)}
-      />
-
-      <DebtHero color={color} dates={h.dates} series={editingId ? undefined : [{ color, values: h.advance }]}>
-        {({ scrub, chart }) =>
-        editingId === 'new' ? (
-          <LogAdvanceForm
-            accounts={accounts}
-            color={color}
-            onSave={(amount, accountId) => {
-              logSalaryAdvance({ amount, accountId })
-              setEditingId(null)
-            }}
-            onCancel={() => setEditingId(null)}
-          />
-        ) : editingAdvance ? (
-          <LogAdvanceForm
-            accounts={accounts}
-            color={color}
-            initial={{ amount: editingAdvance.amount, accountId: editingAdvance.accountId }}
-            onSave={(amount, accountId) => {
-              updateSalaryAdvance(editingAdvance.id, { amount, accountId })
-              setEditingId(null)
-            }}
-            onDelete={() => setConfirmDeleteId(editingAdvance.id)}
-            onCancel={() => setEditingId(null)}
-          />
-        ) : (
+      <DebtHero color={color} dates={h.dates} series={[{ color, values: h.advance }]}>
+        {({ scrub, chart }) => (
           <>
             <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">المتبقي من سلفة الراتب</div>
             <div className="mt-1 flex items-baseline gap-1.5">
@@ -319,7 +152,7 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
             {chart && <div className="-mt-1">{chart}</div>}
             {oldestOutstanding && <AdvanceSteps color={color} since={oldestOutstanding.date} />}
             <button
-              onClick={() => setEditingId('new')}
+              onClick={() => navigate('/debts/advance/new')}
               disabled={accounts.length === 0}
               className="qb-press mt-4 flex w-full items-center justify-center gap-2 rounded-full border py-3 text-[13.5px] font-semibold disabled:opacity-40"
               style={{ background: softBg(color), color, borderColor: softBg(color, 30) }}
@@ -346,7 +179,7 @@ export function SalaryAdvancePanel({ startAdding = false }: { startAdding?: bool
               <SectionHead title="قائمة" hint="اضغط للتعديل" />
               <div className="qb-card px-3.5 py-1">
                 {outstanding.map((a) => (
-                  <AdvanceRow key={a.id} advance={a} accountLabel={accountLabel(a.accountId)} color={color} onClick={() => setEditingId(a.id)} />
+                  <AdvanceRow key={a.id} advance={a} accountLabel={accountLabel(a.accountId)} color={color} onClick={() => navigate(`/debts/advance/${a.id}/edit`)} />
                 ))}
               </div>
             </>

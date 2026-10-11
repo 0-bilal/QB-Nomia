@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>السلف — لوحة ثابتة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13); --accent-line:rgba(255,255,255,.28);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --owed-to:#2ee6c8; --owed-by:#ff9a4d;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1);
+    --c:var(--owed-by);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  button:disabled{cursor:default}
+  input{font:inherit;color:inherit}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .seg.wrap{flex-wrap:wrap;border-radius:20px}
+
+  /* ===== الجهاز ===== */
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;overflow:clip;box-shadow:0 40px 120px -40px rgba(0,0,0,.9);display:flex;flex-direction:column}
+  @media (max-width:440px){.phone{border-radius:28px}}
+  .aurora{position:absolute;inset:-80px -40px auto;height:240px;pointer-events:none;background:radial-gradient(60% 60% at 70% 30%,color-mix(in srgb,var(--c) 14%,transparent),transparent 70%)}
+  .hdr{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:18px 18px 8px;position:relative}
+  .gb{height:40px;min-width:40px;padding:0 14px;border-radius:999px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-2);font-size:13px;font-weight:600}
+  .gb.del{color:var(--expense);background:rgba(255,95,109,.12);border-color:transparent}
+  .capt{flex:1;display:flex;justify-content:center}
+  .capt span{height:40px;padding:0 16px;border-radius:999px;display:grid;place-items:center;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);font-size:14px;font-weight:700}
+  .top{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;padding:6px 18px 8px;position:relative}
+  .top::-webkit-scrollbar{display:none}
+  .dock{flex-shrink:0;padding:12px 18px 18px;border-top:1px solid var(--border);background:var(--bg);position:relative}
+
+  /* خلفية شاشة الديون وراء الورقة */
+  .bgscr{position:absolute;inset:0;padding:70px 18px;display:flex;flex-direction:column;gap:12px;filter:blur(1px)}
+  .bgscr i{display:block;border-radius:22px;background:var(--surface);border:1px solid var(--border)}
+  .veil{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:5}
+  .sheet{position:absolute;left:0;right:0;bottom:0;height:92%;z-index:6;display:flex;flex-direction:column;background:var(--surface-el);border:1px solid var(--border-strong);border-bottom:0;border-radius:32px 32px 0 0}
+  .sheet.anim{animation:sheetIn .5s var(--expo) both}
+  .sheet .dock{background:var(--surface-el)}
+  @keyframes sheetIn{from{transform:translateY(100%)}}
+  .handle{width:38px;height:5px;border-radius:999px;background:rgba(255,255,255,.18);margin:9px auto 0}
+  .shd{display:flex;align-items:center;gap:10px;padding:12px 18px 4px}
+  .shd .tt{flex:1;font-size:17px;font-weight:600}
+  .shd .ts{font-size:11.5px;color:var(--text-3);margin-top:1px;font-weight:500}
+  .x{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);color:var(--text-2)}
+  .dl{height:34px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--expense);background:rgba(255,95,109,.12)}
+
+  .person{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:16px;background:color-mix(in srgb,var(--transfer) 22%,transparent);color:var(--transfer);flex-shrink:0}
+  .pn{font-size:15px;font-weight:600}
+  .ps{font-size:11.5px;color:var(--text-3);margin-top:1px}
+
+  .dir{position:relative;display:flex;padding:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border);margin-bottom:6px}
+  .dir .ind{position:absolute;top:4px;bottom:4px;width:calc(50% - 4px);border-radius:999px;background:var(--c);transition:right .38s var(--spring),background .24s}
+  .dir button{position:relative;z-index:1;flex:1;height:36px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text-2);transition:color .2s}
+  .dir button.on{color:var(--on-accent)}
+
+  .amt{text-align:center;padding:10px 0 12px}
+  .amt .q{font-size:12px;color:var(--text-2)}
+  .amt .v{display:inline-flex;align-items:baseline;gap:6px;direction:ltr;color:var(--c);font-weight:700}
+  .amt .v b{font-size:46px;line-height:1.15}
+  .amt .v small{font-family:var(--font-sans);font-size:16px;font-weight:500;opacity:.6}
+  .amt .v b.pop{animation:pop .26s var(--spring)}
+  @keyframes pop{0%{transform:scale(.85);opacity:.4}100%{transform:none;opacity:1}}
+  .amt .warn{font-size:11.5px;color:var(--expense);margin-top:2px;min-height:16px}
+
+  .field{display:flex;align-items:center;gap:11px;width:100%;padding:9px 12px;border-radius:18px;background:var(--surface);border:1px solid var(--border);text-align:right;margin-bottom:10px}
+  .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+  .fl{font-size:10.5px;color:var(--text-3)}
+  .ft{font-size:13.5px;font-weight:600;margin-top:1px}
+  .fb{font-size:13px;font-weight:700;margin-inline-start:auto}
+  .chev{color:var(--text-3);flex-shrink:0}
+  .tin{width:100%;height:50px;border-radius:18px;background:var(--surface);border:1px solid var(--border);padding:0 14px;font-size:14px;outline:none;margin-bottom:4px}
+  .tin:focus{border-color:var(--accent-line)}
+  .tin::placeholder{color:var(--text-3)}
+  .lab{font-size:11.5px;color:var(--text-3);font-weight:500;margin:0 4px 6px}
+
+  .remain{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:18px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px}
+  .remain .l{font-size:11.5px;color:var(--text-3)}
+  .remain .v{font-size:18px;font-weight:700;margin-top:2px}
+  .bar{height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:8px;width:120px}
+  .bar i{display:block;height:100%;background:var(--c);border-radius:999px}
+  .quick{display:flex;gap:6px;justify-content:center;margin-top:8px}
+  .qc{height:30px;padding:0 12px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--text-2);background:rgba(255,255,255,.05);border:1px solid var(--border)}
+  .qc.on{background:color-mix(in srgb,var(--c) 16%,transparent);border-color:color-mix(in srgb,var(--c) 40%,transparent);color:var(--c)}
+
+  /* القسم الثابت */
+  .meta{display:flex;gap:6px;margin-bottom:10px}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:var(--surface);border:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+  .chip.set{color:var(--text);border-color:var(--border-strong)}
+  .chip.grow{flex:1;min-width:0;overflow:hidden;flex-shrink:1}
+  .chip.grow span{overflow:hidden;text-overflow:ellipsis}
+  .chip .cc{color:var(--c)}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr) 1.05fr;gap:8px;direction:ltr}
+  .pad button{height:50px;border-radius:22px;background:rgba(255,255,255,.045);font-size:24px;font-weight:500;display:grid;place-items:center;transition:transform .15s,background .15s}
+  .pad button:active{transform:scale(.92)}
+  .pad .del{color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+  .pad .ok{grid-column:4;grid-row:2/span 3;height:auto;background:var(--c);color:var(--on-accent);font-size:13px;font-weight:700;font-family:var(--font-sans);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 14px 30px -14px var(--c);transition:opacity .2s,transform .15s}
+  .pad .ok:disabled{opacity:.35;box-shadow:none}
+  .typing{display:flex;gap:8px}
+  .typing input{flex:1;min-width:0;height:46px;border-radius:16px;background:var(--surface);border:1px solid var(--accent-line);padding:0 14px;font-size:14px;outline:none}
+  .typing button{height:46px;padding:0 16px;border-radius:16px;background:var(--accent);color:var(--on-accent);font-size:13.5px;font-weight:600}
+  .kb{margin-top:10px;height:250px;border-radius:14px;background:repeating-linear-gradient(0deg,#1d1d22 0 46px,#141418 46px 54px);opacity:.75;display:grid;place-items:center;color:var(--text-3);font-size:12px;animation:kb .35s var(--expo)}
+  @keyframes kb{from{transform:translateY(40px);opacity:0}}
+
+  .island{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:8px;height:40px;padding:4px 16px 4px 6px;border-radius:999px;background:rgba(28,28,33,.94);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);font-size:12.5px;font-weight:600;white-space:nowrap;box-shadow:0 12px 30px -12px rgba(0,0,0,.8);animation:isl .42s var(--spring) both}
+  @keyframes isl{from{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.6)}}
+
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.85;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text);font-size:12.5px;font-weight:600;display:block;margin:10px 0 2px}
+  .note .k:first-child{margin-top:0}
+  .note ul{padding-inline-start:18px}
+  .note code{font-family:var(--font-num);font-size:11px;color:var(--text);background:var(--surface-hi);padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>السلف — لوحة أرقام ثابتة</h1>
+  <p>نفس ترتيب شاشة إضافة الحركة: المحتوى فوق، والكبسولات ولوحة الأرقام بزر الحفظ ثابتة تحت. اختر الشاشة من اللوحة، واكتب مبلغًا، وجرّب الكبسولات.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">الشاشة</div>
+    <div class="seg wrap" id="segScr">
+      <button data-v="person" class="on">سلفة مع شخص</button>
+      <button data-v="store">دين متجر جديد</button>
+      <button data-v="pay">سداد دين متجر</button>
+      <button data-v="advance">سلفة راتب</button>
+      <button data-v="violation">تعديل خصم</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">نماذج «الديون والسلف» (المتاجر، الراتب، الخصومات)</div>
+    <div class="seg" id="segForm">
+      <button data-v="sheet" class="on"><span class="num">1</span> · ورقة سفلية</button>
+      <button data-v="screen"><span class="num">2</span> · شاشة كاملة</button>
+    </div>
+  </div>
+</div>
+
+<div class="phone" id="phone"></div>
+
+<div class="note">
+  <span class="k">ما يتغيّر في كل شاشة</span>
+  <ul>
+    <li><b>سلفة مع شخص:</b> فوق: الشخص ورصيده معك، ثم «أعطيته / استلمت منه»، ثم المبلغ، ثم الحساب. تحت: التاريخ، والاستحقاق (لـ«أعطيته» فقط)، والملاحظة، ثم اللوحة بزر الحفظ. العنوان في كبسولة الرأس بدل العنوان الكبير.</li>
+    <li><b>دين متجر:</b> اسم المتجر حقل كتابة فوق. الضغط عليه يطوي اللوحة مثل الملاحظة، ويرجعها بعد «تم».</li>
+    <li><b>سداد دين متجر:</b> المتبقي فوق مع اختصارين: «كامل المتبقي» و«النصف». المبلغ يبدأ بكامل المتبقي، ولو تجاوزه يظهر تنبيه أحمر ويتعطّل الحفظ.</li>
+    <li><b>سلفة الراتب وتعديل الخصم:</b> المبلغ والحساب فقط، فاللوحة تأخذ راحتها. زر «حذف» في رأس الورقة عند التعديل.</li>
+  </ul>
+  <span class="k">النماذج داخل البطاقات اليوم</span>
+  <ul>
+    <li>نماذج المتاجر والراتب والخصومات تنفتح حاليًا <b>داخل البطاقة</b> في قائمة تتمرر، واللوحة تتحرك معها.</li>
+    <li><b>الخيار 1:</b> تصير ورقة سفلية بارتفاع ثابت، مثل ورقة المطابقة. القائمة تبقى وراها.</li>
+    <li><b>الخيار 2:</b> تصير شاشة كاملة مثل «سلفة مع شخص»، برجوع عادي.</li>
+  </ul>
+  <span class="k">في الكود</span>
+  <ul>
+    <li><code>AddLoanScreen</code>: نفس نمط <code>AddTransactionScreen</code> (<code>largeTitle={false}</code> + <code>footer</code> فيه <code>DatePicker chip</code> و<code>AmountPad action</code>).</li>
+    <li>مكوّن مشترك جديد <code>AmountFormSheet</code> لنماذج الديون الأربعة: عنوان، ومحتوى علوي، وكبسولات، ولوحة بزر الحفظ.</li>
+  </ul>
+</div>
+
+<script>
+const svg=(p,s=18,w=1.9)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I={
+  cal:'<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  due:'<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M9 3h6"/>',
+  note:'<path d="M5 5h14v10l-5 5H5z"/><path d="M14 20v-5h5"/>',
+  del:'<path d="M9 6L3 12l6 6h11a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>', x:'<path d="M6 6l12 12M18 6L6 18"/>', chev:'<path d="M15 6l-6 6 6 6"/>',
+  bank:'<path d="M3 10l9-6 9 6M5 10v8M19 10v8M9 10v8M15 10v8M3 20h18"/>',
+  store:'<path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM9 20v-6h6v6"/>',
+}
+const fmt=a=>a?Number(a.split('.')[0]||0).toLocaleString('en-US')+(a.includes('.')?'.'+(a.split('.')[1]??''):''):'0'
+const REMAIN=340
+const S={scr:'person',form:'sheet',dir:'given',amount:'',store:'',note:'',due:false,typing:null,quick:null,prefilled:false}
+const reset=()=>{S.amount=S.scr==='pay'?String(REMAIN):S.scr==='violation'?'150':'';S.store='';S.note=S.scr==='violation'?'تأخير عن الدوام':'';S.due=false;S.typing=null;S.quick=S.scr==='pay'?'all':null;S.prefilled=S.amount!=='';lastAmt=null}
+let lastAmt=null, lastView=''
+
+const CONF={
+  person:{kind:'screen',title:'حركة مع أحمد',color:()=>S.dir==='given'?'var(--owed-by)':'var(--owed-to)',
+    q:()=>S.dir==='given'?'كم أعطيته؟':'كم استلمت منه؟',
+    top:()=>`<div class="person"><span class="av">أ</span><div><div class="pn">أحمد</div><div class="ps">${S.dir==='given'?'المبلغ يُضاف لما لك عنده':'المبلغ يُخصم مما لك عنده'} · لك عنده <span class="num">300</span></div></div></div>
+      <div class="dir"><span class="ind" style="right:${S.dir==='given'?'4px':'50%'}"></span><button data-act="dir" data-v="given" class="${S.dir==='given'?'on':''}">أعطيته مبلغ</button><button data-act="dir" data-v="received" class="${S.dir==='received'?'on':''}">استلمت منه</button></div>`,
+    after:()=>acct(S.dir==='given'?'من حساب':'إلى حساب'),
+    chips:()=>[dateChip(), S.dir==='given'?dueChip():'', noteChip()],
+    can:()=>parseFloat(S.amount)>0},
+  store:{kind:'form',title:'دين متجر جديد',sub:'مشتريات بالآجل',color:()=>'var(--sub)',q:()=>'مبلغ الدَين',
+    top:()=>`<div class="lab">اسم المتجر</div><input class="tin" data-act="storefocus" readonly placeholder="مثال: بقالة الحي" value="${S.store}">`,
+    after:()=>'', chips:()=>[dateChip('تاريخ الدَين: اليوم'),dueChip(),noteChip()],
+    can:()=>parseFloat(S.amount)>0 && S.store.trim()},
+  pay:{kind:'form',title:'سداد · بقالة الحي',sub:'كامل أو جزئي',color:()=>'var(--sub)',q:()=>'مبلغ السداد',
+    top:()=>`<div class="remain"><div><div class="l">المتبقي</div><div class="v num">${REMAIN} <span style="font-family:var(--font-sans);font-size:11px;color:var(--text-3)">ر.س</span></div></div><div><div class="l" style="text-align:left">مسدَّد <span class="num">160</span> من <span class="num">500</span></div><div class="bar"><i style="width:32%"></i></div></div></div>`,
+    afterAmt:()=>`<div class="quick"><button class="qc ${S.quick==='all'?'on':''}" data-act="quick" data-v="all">كامل المتبقي</button><button class="qc ${S.quick==='half'?'on':''}" data-act="quick" data-v="half">النصف</button></div>`,
+    after:()=>acct('يُسدَّد من حساب'), chips:()=>[],
+    warn:()=>parseFloat(S.amount)>REMAIN?`أكثر من المتبقي (${REMAIN})`:'',
+    can:()=>parseFloat(S.amount)>0 && parseFloat(S.amount)<=REMAIN},
+  advance:{kind:'form',title:'سلفة راتب',sub:'تُخصم تلقائيًا من الراتب القادم',color:()=>'var(--transfer)',q:()=>'مبلغ السلفة',
+    top:()=>'', after:()=>acct('تُضاف إلى حساب'), chips:()=>[], can:()=>parseFloat(S.amount)>0},
+  violation:{kind:'form',edit:true,title:'تعديل خصم مخالفة',sub:'من راتب 27 سبتمبر',color:()=>'var(--expense)',q:()=>'مبلغ الخصم',
+    top:()=>'', after:()=>'', chips:()=>[noteChip('سبب المخالفة')], can:()=>parseFloat(S.amount)>0},
+}
+const acct=l=>`<button class="field press"><span class="ic" style="background:color-mix(in srgb,var(--transfer) 16%,transparent);color:var(--transfer)">${svg(I.bank,17,2)}</span><span><div class="fl">${l}</div><div class="ft">الراجحي</div></span><span class="fb num" style="color:var(--transfer)">8,240 <span style="font-family:var(--font-sans);font-size:11px;opacity:.6">ر.س</span></span><span class="chev">${svg(I.chev,16,2.2)}</span></button>`
+const dateChip=(l='اليوم')=>`<button class="chip set press" data-act="toast" data-v="يفتح DatePicker"><span class="cc">${svg(I.cal,15,2)}</span>${l}</button>`
+const dueChip=()=>`<button class="chip press ${S.due?'set':''}" data-act="due">${svg(I.due,15,2)}${S.due?'<span class="num">2026/11/01</span>':'استحقاق'}</button>`
+const noteChip=(ph='ملاحظة')=>`<button class="chip grow press ${S.note?'set':''}" data-act="note">${svg(I.note,15,2)}<span>${S.note||ph}</span></button>`
+
+function padHTML(can){
+  const k=(d,c,r,span)=>`<button class="num" data-act="key" data-v="${d}" style="grid-column:${c}${span?' / span 2':''};grid-row:${r}">${d}</button>`
+  let h='<div class="pad">'
+  ;['1','2','3','4','5','6','7','8','9'].forEach((d,i)=>h+=k(d,i%3+1,Math.floor(i/3)+1))
+  h+=`<button class="del" data-act="key" data-v="del" style="grid-column:4;grid-row:1" aria-label="حذف">${svg(I.del,24,1.8)}</button>`
+  h+=`<button class="ok" data-act="save" ${can?'':'disabled'}>${svg(I.check,24,2.6)}حفظ</button>`
+  h+=k('.',1,4)+k('0',2,4,true)
+  return h+'</div>'
+}
+
+function render(){
+  const c=CONF[S.scr], col=c.color()
+  document.documentElement.style.setProperty('--c',col)
+  const bump=lastAmt!==null&&lastAmt!==S.amount; lastAmt=S.amount
+  const warn=c.warn?c.warn():''
+  const amt=`<div class="amt"><div class="q">${c.q()}</div><div class="v num"><b class="${bump?'pop':''}" ${warn?'style="color:var(--expense)"':''}>${fmt(S.amount)}</b><small>ر.س</small></div>${c.warn?`<div class="warn">${warn}</div>`:''}${c.afterAmt?c.afterAmt():''}</div>`
+  const top=c.top()+amt+c.after()
+  const chips=c.chips().filter(Boolean)
+  let dock
+  if(S.typing){
+    const v=S.typing==='store'?S.store:S.note, ph=S.typing==='store'?'مثال: بقالة الحي':'اكتب ملاحظة'
+    dock=`<div class="typing"><input id="tin" value="${v.replace(/"/g,'&quot;')}" placeholder="${ph}"><button data-act="done">تم</button></div><div class="kb">لوحة مفاتيح الهاتف</div>`
+  } else dock=(chips.length?`<div class="meta">${chips.join('')}</div>`:'')+padHTML(c.can())
+  const asScreen=c.kind==='screen'||S.form==='screen'
+  const view=S.scr+S.form
+  let h=`<div class="aurora"></div>`
+  if(asScreen){
+    h+=`<div class="hdr"><span class="gb">${c.kind==='screen'?'إلغاء':svg('<path d="M9 6l6 6-6 6"/>',18,2.2)}</span><div class="capt"><span>${c.title}</span></div>${c.edit?'<span class="gb del">حذف</span>':'<span style="width:40px"></span>'}</div>
+      <div class="top">${top}</div><div class="dock">${dock}</div>`
+  } else {
+    h+=`<div class="bgscr"><i style="height:190px"></i><i style="height:70px"></i><i style="height:70px"></i><i style="height:70px"></i></div><div class="veil"></div>
+      <div class="sheet ${view!==lastView?'anim':''}"><div class="handle"></div>
+        <div class="shd"><div style="flex:1"><div class="tt">${c.title}</div><div class="ts">${c.sub}</div></div>${c.edit?'<button class="dl">حذف</button>':''}<button class="x">${svg(I.x,15,2.6)}</button></div>
+        <div class="top">${top}</div><div class="dock">${dock}</div></div>`
+  }
+  const ph=document.getElementById('phone'); ph.innerHTML=h; lastView=view
+  if(S.typing){const n=document.getElementById('tin');n.focus();n.setSelectionRange(n.value.length,n.value.length)}
+}
+
+function press(v){
+  // المبلغ المعبّأ مسبقًا يُستبدل بأول رقم يُكتب (مثل تحديد النص)، والحذف يمسحه كله.
+  let a=S.prefilled&&v!=='.'?'':S.amount
+  S.prefilled=false
+  if(v==='del') a=a.slice(0,-1)
+  else if(v==='.'){ if(a.includes('.')) return; a=(a||'0')+'.' }
+  else { const [w,d]=a.split('.'); if(d!==undefined&&d.length>=2) return; if((w||'').length>=9) return; a=a==='0'?v:a+v }
+  S.amount=a; S.quick=null; navigator.vibrate&&navigator.vibrate(8); render()
+}
+let tT
+function toast(msg){
+  const ph=document.getElementById('phone'); ph.querySelector('.island')?.remove()
+  const el=document.createElement('div'); el.className='island'
+  el.innerHTML=`<span style="width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--income) 16%,transparent);color:var(--income)">${svg(I.check,15,2.8)}</span>${msg}`
+  ph.appendChild(el); clearTimeout(tT); tT=setTimeout(()=>el.remove(),2200)
+}
+const ph=document.getElementById('phone')
+ph.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return
+  const act=b.dataset.act, v=b.dataset.v
+  if(act==='key') press(v)
+  else if(act==='dir'){S.dir=v;render()}
+  else if(act==='due'){S.due=!S.due;render()}
+  else if(act==='note'){S.typing='note';render()}
+  else if(act==='storefocus'){S.typing='store';render()}
+  else if(act==='done'){S.typing=null;render()}
+  else if(act==='quick'){S.quick=v;S.amount=String(v==='all'?REMAIN:REMAIN/2);S.prefilled=true;render()}
+  else if(act==='toast') toast(v)
+  else if(act==='save'){ if(b.disabled) return; toast('تم الحفظ'); reset(); render() }
+})
+ph.addEventListener('input',e=>{ if(e.target.id==='tin'){ if(S.typing==='store') S.store=e.target.value; else S.note=e.target.value } })
+ph.addEventListener('keydown',e=>{ if(e.target.id==='tin'&&e.key==='Enter'){S.typing=null;render()} })
+function bindSeg(id,fn){document.getElementById(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v)})}
+bindSeg('segScr',v=>{S.scr=v;reset();render()})
+bindSeg('segForm',v=>{S.form=v;S.typing=null;render()})
+reset(); render()
+</script>
+</body>
+</html>

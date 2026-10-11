@@ -25,6 +25,7 @@ import { DebtsHubScreen } from './screens/loans/DebtsHubScreen'
 import { AddPersonScreen } from './screens/loans/AddPersonScreen'
 import { PersonDetailScreen } from './screens/loans/PersonDetailScreen'
 import { AddLoanScreen } from './screens/loans/AddLoanScreen'
+import { SalaryAdvanceFormScreen, StoreDebtFormScreen, StoreDebtPaymentScreen, ViolationEditScreen } from './screens/loans/DebtFormScreens'
 import { SyncSettingsScreen } from './screens/SyncSettingsScreen'
 import { ReportsScreen } from './screens/ReportsScreen'
 import { ComparisonsScreen } from './screens/ComparisonsScreen'
@@ -89,6 +90,12 @@ export default function App() {
         <Route path="loans/:personId/edit" element={<AddPersonScreen />} />
         <Route path="loans/:personId/add" element={<AddLoanScreen />} />
         <Route path="loans/:personId/edit/:loanId" element={<AddLoanScreen />} />
+        <Route path="debts/stores/new" element={<StoreDebtFormScreen />} />
+        <Route path="debts/stores/:id/edit" element={<StoreDebtFormScreen />} />
+        <Route path="debts/stores/:id/pay" element={<StoreDebtPaymentScreen />} />
+        <Route path="debts/advance/new" element={<SalaryAdvanceFormScreen />} />
+        <Route path="debts/advance/:id/edit" element={<SalaryAdvanceFormScreen />} />
+        <Route path="debts/violations/:id/edit" element={<ViolationEditScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
         <Route path="comparisons" element={<ComparisonsScreen />} />

@@ -3,13 +3,10 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { ScreenScroll } from '../../components/ScreenScroll'
 import { ScreenHeader } from '../../components/ScreenHeader'
-import { AmountPad } from '../../components/AmountPad'
 import { DatePicker } from '../../components/DatePicker'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { PickerField } from '../../components/PickerField'
-import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
-import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
-import { formatMoney } from '../../lib/format'
+import { AccountSelectField, FixedPadDock, NoteChip } from '../../components/FixedPadDock'
+import { formatAmount } from '../../lib/format'
 import { showUndoToast } from '../../lib/undoToast'
 import type { LoanDirection } from '../../types'
 import { Segmented } from '../../components/ui'
@@ -20,7 +17,7 @@ export function AddLoanScreen() {
   const { personId, loanId } = useParams<{ personId: string; loanId?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { people, accounts, loanTransactions, addLoanTransaction, updateLoanTransaction, deleteLoanTransaction } = useData()
+  const { people, accounts, loanTransactions, addLoanTransaction, updateLoanTransaction, deleteLoanTransaction, personBalance } = useData()
 
   const person = people.find((p) => p.id === personId)
   const existing = loanId ? loanTransactions.find((t) => t.id === loanId) : undefined
@@ -34,7 +31,7 @@ export function AddLoanScreen() {
   const [dueDate, setDueDate] = useState(existing?.dueDate ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
-  const [accountSheetOpen, setAccountSheetOpen] = useState(false)
+  const [noteEditing, setNoteEditing] = useState(false)
 
   if (!person) {
     return (
@@ -46,8 +43,9 @@ export function AddLoanScreen() {
 
   const color = direction === 'given' ? 'var(--color-owed-by)' : 'var(--color-owed-to)'
   const numericAmount = Number(amount)
+  /** الرصيد الصافي مع الشخص: موجب = لك عنده، سالب = عليك له. */
+  const net = personBalance(person.id)
   const canSave = numericAmount > 0 && accountId
-  const selectedAccount = accounts.find((a) => a.id === accountId)
 
   function handleSave() {
     if (!canSave || !person) return
@@ -75,6 +73,8 @@ export function AddLoanScreen() {
 
   return (
     <ScreenScroll
+      largeTitle={false}
+      contentClassName="px-5"
       header={
         <ScreenHeader
           title={isEditing ? 'تعديل حركة' : `حركة مع ${person.name}`}
@@ -93,16 +93,22 @@ export function AddLoanScreen() {
         />
       }
       footer={
-        <div className="px-5 pb-6 pt-3">
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-            style={{ background: color }}
-          >
-            {isEditing ? 'حفظ التعديلات' : 'حفظ الحركة'}
-          </button>
-        </div>
+        <FixedPadDock
+          amount={amount}
+          onAmountChange={setAmount}
+          color={color}
+          canSave={!!canSave}
+          onSave={handleSave}
+          saveLabel={isEditing ? 'حفظ التعديل' : 'حفظ'}
+          editor={noteEditing ? { value: note, onChange: setNote, placeholder: 'مثال: سلفة راتب', onDone: () => setNoteEditing(false) } : null}
+          chips={
+            <>
+              <DatePicker chip value={date} onChange={setDate} color={color} />
+              {direction === 'given' && <DatePicker chip value={dueDate} onChange={setDueDate} color={color} placeholder="استحقاق" />}
+              <NoteChip note={note} onClick={() => setNoteEditing(true)} />
+            </>
+          }
+        />
       }
     >
       <ConfirmDialog
@@ -115,11 +121,19 @@ export function AddLoanScreen() {
         onCancel={() => setConfirmDeleteOpen(false)}
       />
 
-      <div className="qb-rise mb-5 flex items-center gap-3 px-1">
+      <div className="mb-3 flex items-center gap-3 px-1">
         <Avatar name={person.name} size={44} />
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold">{person.name}</div>
-          <div className="text-[11.5px] text-[var(--color-text-3)]">{direction === 'given' ? 'المبلغ يُضاف لما لك عنده' : 'المبلغ يُخصم مما لك عنده'}</div>
+          <div className="truncate text-[11.5px] text-[var(--color-text-3)]">
+            {direction === 'given' ? 'المبلغ يُضاف لما لك عنده' : 'المبلغ يُخصم مما لك عنده'}
+            {net !== 0 && (
+              <>
+                {' · '}
+                {net > 0 ? 'لك عنده' : 'عليك له'} <span className="num">{formatAmount(Math.abs(net))}</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -131,99 +145,21 @@ export function AddLoanScreen() {
         value={direction}
         onChange={setDirection}
         color={color}
+        className="mb-3"
       />
 
-      <SelectSheet
-        open={accountSheetOpen}
-        title="اختر الحساب"
-        items={accounts.map(
-          (a): SelectSheetItem => ({
-            id: a.id,
-            icon: <AccountTypeIcon type={a.type} size={17} />,
-            iconColor: ACCOUNT_ICON_COLOR[a.type],
-            iconBg: ACCOUNT_ICON_BG[a.type],
-            title: a.name,
-            subtitle: ACCOUNT_TYPE_LABELS[a.type],
-            trailing: (
-              <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
-                {formatMoney(a.balance)}
-              </span>
-            ),
-          }),
-        )}
-        selectedId={accountId}
-        onSelect={(v) => {
-          setAccountId(v)
-          setAccountSheetOpen(false)
-        }}
-        onClose={() => setAccountSheetOpen(false)}
-        emptyLabel="لا توجد حسابات بعد"
-        footer={
-          <button
-            onClick={() => {
-              setAccountSheetOpen(false)
-              navigate('/accounts/new')
-            }}
-            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
-            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
-          >
-            + إضافة حساب جديد
-          </button>
-        }
-      />
+      <AmountHero amount={amount} color={color} label={direction === 'given' ? 'كم أعطيته؟' : 'كم استلمت منه؟'} className="mb-3" />
 
-      <div className="mb-6">
-        <PickerField
-          label={direction === 'given' ? 'من حساب' : 'إلى حساب'}
-          icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
-          iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
-          iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
-          title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
-          placeholder={!selectedAccount}
-          subtitle={selectedAccount ? `${ACCOUNT_TYPE_LABELS[selectedAccount.type]} · الرصيد الحالي` : undefined}
-          trailing={
-            selectedAccount ? (
-              <span className="num text-[16px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
-                {formatMoney(selectedAccount.balance)}
-              </span>
-            ) : undefined
-          }
-          onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
-        />
-      </div>
-
-      <AmountHero amount={amount} color={color} label={direction === 'given' ? 'كم أعطيته؟' : 'كم استلمت منه؟'} />
-
-      <div className="mb-6">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
+      <AccountSelectField label={direction === 'given' ? 'من حساب' : 'إلى حساب'} sheetTitle="اختر الحساب" accountId={accountId} onChange={setAccountId} />
 
       {accounts.length === 0 && (
-        <div className="mb-5 text-[12.5px] text-[var(--color-text-3)]">
+        <div className="mb-3 text-[12.5px] text-[var(--color-text-3)]">
           التحويل يحتاج حسابًا — أضف حسابًا من{' '}
           <button type="button" onClick={() => navigate('/accounts/new')} className="font-semibold underline" style={{ color }}>
             هنا
           </button>
         </div>
       )}
-
-      <div className="mb-5">
-        <DatePicker value={date} onChange={setDate} color={color} fieldLabel="التاريخ" />
-      </div>
-
-      {direction === 'given' && (
-        <div className="mb-5">
-          <DatePicker value={dueDate} onChange={setDueDate} color={color} placeholder="بدون تاريخ استحقاق" fieldLabel="تاريخ الاستحقاق (اختياري)" />
-        </div>
-      )}
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="مثال: سلفة راتب"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
     </ScreenScroll>
   )
 }

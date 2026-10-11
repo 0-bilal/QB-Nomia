@@ -466,15 +466,12 @@ export function DebtsHubScreen() {
   const initialTab = searchParams.get('tab')
   const [tab, setTab] = useState<DebtTab>(isDebtTab(initialTab) ? initialTab : 'overview')
   const [addOpen, setAddOpen] = useState(false)
-  /** نوع فُتح من ورقة "+" — تبويبه يبدأ بنموذج الإضافة مفتوحًا. nonce يعيد تركيب التبويب حتى لو اختير نفس النوع مرة ثانية. */
-  const [addingKind, setAddingKind] = useState<DebtKind | null>(null)
-  const [addNonce, setAddNonce] = useState(0)
+  const { accounts } = useData()
   const s = useDebtSummary()
 
   function selectTab(next: DebtTab) {
     haptic('tick')
     setTab(next)
-    setAddingKind(null)
     setSearchParams(next === 'overview' ? {} : { tab: next }, { replace: true })
   }
 
@@ -489,9 +486,13 @@ export function DebtsHubScreen() {
       else selectTab('people')
       return
     }
-    selectTab(kind)
-    setAddingKind(kind)
-    setAddNonce((n) => n + 1)
+    // سلفة الراتب ودَين المتجر: شاشة إدخال كاملة بلوحة ثابتة.
+    if (kind === 'advance') {
+      if (accounts.length === 0) selectTab('advance')
+      else navigate('/debts/advance/new')
+      return
+    }
+    navigate('/debts/stores/new')
   }
 
   const alerts: Partial<Record<DebtTab, string>> = {
@@ -515,12 +516,12 @@ export function DebtsHubScreen() {
 
       <TypeSwitcher tab={tab} onSelect={selectTab} alerts={alerts} />
 
-      <div key={`${tab}-${addNonce}`} className="qb-rise">
+      <div key={tab} className="qb-rise">
         {tab === 'overview' && <OverviewPanel onOpenTab={selectTab} />}
         {tab === 'people' && <PeoplePanel />}
-        {tab === 'advance' && <SalaryAdvancePanel startAdding={addingKind === 'advance'} />}
+        {tab === 'advance' && <SalaryAdvancePanel />}
         {tab === 'violations' && <SalaryViolationsPanel />}
-        {tab === 'stores' && <StoreDebtsPanel startAdding={addingKind === 'stores'} />}
+        {tab === 'stores' && <StoreDebtsPanel />}
       </div>
     </div>
   )

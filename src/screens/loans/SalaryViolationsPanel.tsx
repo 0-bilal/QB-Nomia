@@ -1,8 +1,6 @@
-import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { formatAmount, formatMoney, formatDate } from '../../lib/format'
-import { AmountPad } from '../../components/AmountPad'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { EmptyState } from '../../components/ui'
 import { softBg } from './debtTypes'
 import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
@@ -21,72 +19,10 @@ function SalaryViolationIcon({ size = 20 }: { size?: number }) {
   )
 }
 
-/**
- * محرر تعديل خصم مخالفة مضمّن — بدون اختيار حساب (الحساب موروث من حركة
- * الراتب المرتبطة ولا يتغيّر)، فقط المبلغ وملاحظة اختيارية.
- */
-function EditViolationForm({
-  initial,
-  onSave,
-  onDelete,
-  onCancel,
-}: {
-  initial: { amount: number; note?: string }
-  onSave: (amount: number, note: string) => void
-  onDelete: () => void
-  onCancel: () => void
-}) {
-  const [amount, setAmount] = useState(String(initial.amount))
-  const [note, setNote] = useState(initial.note ?? '')
-
-  const numeric = Number(amount)
-  const canSave = numeric > 0
-
-  return (
-    <div>
-      <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">مبلغ الخصم</div>
-      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{amount || '0'}</span>
-        <span className="flex-shrink-0 text-[16px] font-medium text-[var(--color-text-3)]">ر.س</span>
-      </div>
-      <div className="mb-4 flex justify-center">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="سبب المخالفة"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
-
-      <div className="flex gap-2.5">
-        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
-          إلغاء
-        </button>
-        <button
-          onClick={() => canSave && onSave(numeric, note)}
-          disabled={!canSave}
-          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-          style={{ background: color }}
-        >
-          حفظ
-        </button>
-      </div>
-
-      <button onClick={onDelete} className="qb-press mt-3 w-full text-center text-[12.5px] font-semibold" style={{ color }}>
-        حذف الخصم
-      </button>
-    </div>
-  )
-}
-
 /** محتوى تبويب "خصومات المخالفات" داخل شاشة الديون والسلف. */
 export function SalaryViolationsPanel() {
-  const { salaryViolations, updateSalaryViolation, deleteSalaryViolation } = useData()
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const { salaryViolations } = useData()
+  const navigate = useNavigate()
 
   const year = String(new Date().getFullYear())
   const sorted = [...salaryViolations].sort((a, b) => b.date.localeCompare(a.date))
@@ -94,37 +30,11 @@ export function SalaryViolationsPanel() {
   const h = useDebtHistory()
   /** مجموع السنة الآن، أو حتى الأسبوع المختار على السبارك. */
   const shownAt = (scrub: number | null) => (scrub === null ? yearTotal : h.violations[scrub])
-  const editingViolation = editingId ? salaryViolations.find((v) => v.id === editingId) : undefined
 
   return (
     <>
-      <ConfirmDialog
-        open={confirmDeleteId !== null}
-        title="حذف الخصم"
-        message="بيتم حذف هذا الخصم، ويرجع مبلغه لحركة الراتب المرتبطة به ولرصيد الحساب."
-        confirmLabel="حذف"
-        color="var(--color-expense)"
-        onConfirm={() => {
-          if (confirmDeleteId) deleteSalaryViolation(confirmDeleteId)
-          setConfirmDeleteId(null)
-          setEditingId(null)
-        }}
-        onCancel={() => setConfirmDeleteId(null)}
-      />
-
-      <DebtHero color={color} dates={h.dates} series={editingViolation ? undefined : [{ color, values: h.violations }]} chartHeight={84}>
-        {({ scrub, chart }) =>
-        editingViolation ? (
-          <EditViolationForm
-            initial={{ amount: editingViolation.amount, note: editingViolation.note }}
-            onSave={(amount, note) => {
-              updateSalaryViolation(editingViolation.id, { amount, note })
-              setEditingId(null)
-            }}
-            onDelete={() => setConfirmDeleteId(editingViolation.id)}
-            onCancel={() => setEditingId(null)}
-          />
-        ) : (
+      <DebtHero color={color} dates={h.dates} series={[{ color, values: h.violations }]} chartHeight={84}>
+        {({ scrub, chart }) => (
           <>
             <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">خصومات هذه السنة</div>
             <div className="mt-1 flex items-baseline gap-1.5">
@@ -177,7 +87,7 @@ export function SalaryViolationsPanel() {
           {sorted.map((v) => (
             <button
               key={v.id}
-              onClick={() => setEditingId(v.id)}
+              onClick={() => navigate(`/debts/violations/${v.id}/edit`)}
               className="flex w-full items-center gap-3 border-t border-[var(--color-border)] py-2.5 text-right first:border-t-0"
             >
               <span className="flex flex-shrink-0 items-center justify-center" style={{ width: 40, height: 40, borderRadius: 14, background: softBg(color), color }}>
