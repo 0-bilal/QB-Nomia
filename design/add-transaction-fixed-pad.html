@@ -124,6 +124,7 @@
 
 <div class="intro">
   <h1>إضافة حركة — لوحة أرقام ثابتة</h1>
+  <p style="color:var(--text-2)">المعتمد: زر الحفظ داخل اللوحة، والتاريخ والملاحظة داخل القسم الثابت، على حجم الشاشة العادي.</p>
   <p>لوحة الأرقام وزر الحفظ في قسم ثابت أسفل الشاشة، وكل شيء ثاني فوقها في مساحة مضغوطة ما تحتاج تمرير. جرّب الأنواع الثلاثة، واكتب مبلغًا، واضغط «ملاحظة» لترى كيف تنطوي اللوحة لما تطلع لوحة الهاتف. غيّر حجم الشاشة لترى سلوك الجوالات الصغيرة.</p>
 </div>
 
@@ -131,15 +132,15 @@
   <div>
     <div class="plbl">مكان زر الحفظ</div>
     <div class="seg" id="segSave">
-      <button data-v="0" class="on"><span class="num">1</span> · فوق اللوحة</button>
-      <button data-v="1"><span class="num">2</span> · داخل اللوحة</button>
+      <button data-v="0"><span class="num">1</span> · فوق اللوحة</button>
+      <button data-v="1" class="on"><span class="num">2</span> · داخل اللوحة (معتمد)</button>
     </div>
   </div>
   <div>
     <div class="plbl">التاريخ والملاحظة</div>
     <div class="seg" id="segMeta">
-      <button data-v="0" class="on"><span class="num">1</span> · فوق، تحت الفئة</button>
-      <button data-v="1"><span class="num">2</span> · داخل القسم الثابت</button>
+      <button data-v="0"><span class="num">1</span> · فوق، تحت الفئة</button>
+      <button data-v="1" class="on"><span class="num">2</span> · داخل القسم الثابت (معتمد)</button>
     </div>
   </div>
   <div>
@@ -198,7 +199,7 @@ const I={
 const TYPES=[['expense','مصروف','var(--expense)',I.down],['income','دخل','var(--income)',I.up],['transfer','تحويل','var(--transfer)',I.swap]]
 const CATS=[['مطاعم','#ff8a5b'],['بقالة','#3ee08f'],['مواصلات','#5fb3ff'],['قهوة','#c79a6b'],['فواتير','#ffbf47'],['تسوق','#ff6fb5'],['صحة','#2ee6c8']]
 const SRCS=[['راتب','#5fb3ff'],['عمل حر','#8b7bff'],['هدية','#ff6fb5'],['استرجاع','#3ee08f']]
-const S={type:'expense',amount:'',cat:null,src:null,note:'',typing:false,saveIn:0,meta:0}
+const S={type:'expense',amount:'',cat:null,src:null,note:'',typing:false,saveIn:1,meta:1}
 const T=()=>TYPES.find(t=>t[0]===S.type)
 const fmtAmt=a=>a?Number(a.split('.')[0]||0).toLocaleString('en-US')+(a.includes('.')?'.'+(a.split('.')[1]??''):''):'0'
 const canSave=()=>parseFloat(S.amount)>0 && (S.type==='transfer' || (S.type==='expense'?S.cat:S.src))
