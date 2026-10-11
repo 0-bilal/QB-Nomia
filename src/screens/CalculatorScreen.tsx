@@ -328,11 +328,14 @@ function SplitBill({ onUse }: { onUse: (n: number) => void }) {
         )}
       </div>
 
-      <UseNumberButton onClick={() => onUse(perPerson)} disabled={!(perPerson > 0)} />
-
-      {/* لوحة أرقام التطبيق الخاصة بدل الاعتماد على كيبورد الهاتف — نفس المستخدمة بإدخال مبلغ أي حركة مالية. */}
-      <div className="mt-auto flex justify-center pt-2">
-        <AmountPad value={amount} onChange={setAmount} color="var(--color-accent)" />
+      {/* نفس لوحة الأرقام الثابتة بباقي الشاشات — «استخدم الرقم» داخل اللوحة. */}
+      <div className="mt-auto pt-2">
+        <AmountPad
+          value={amount}
+          onChange={setAmount}
+          color="var(--color-accent)"
+          action={{ label: 'استخدم الرقم', icon: <UseNumberIcon />, color: 'var(--color-accent)', disabled: !(perPerson > 0), onPress: () => onUse(perPerson) }}
+        />
       </div>
     </div>
   )

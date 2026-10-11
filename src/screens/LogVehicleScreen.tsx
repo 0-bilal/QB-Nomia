@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { AmountPad } from '../components/AmountPad'
+import { FixedPadDock } from '../components/FixedPadDock'
 import { PickerField } from '../components/PickerField'
 import { SelectSheet, type SelectSheetItem } from '../components/SelectSheet'
 import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../components/AccountVisuals'
@@ -71,21 +71,45 @@ export function LogVehicleScreen() {
 
   return (
     <ScreenScroll
+      largeTitle={false}
+      contentClassName="px-5"
       header={<ScreenHeader title={type === 'oil' ? 'تسجيل تغيير الزيت' : 'تسجيل تعبئة وقود'} onBack={() => navigate(-1)} cancelLabel="إلغاء" className="pt-8 pb-6" />}
       footer={
-        <div className="px-5 pb-6 pt-3">
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="qb-press w-full rounded-full py-4 text-center text-[15px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-            style={{ background: 'var(--color-vehicle)' }}
-          >
-            تسجيل
-          </button>
-        </div>
+        <FixedPadDock
+          amount={activeValue}
+          onAmountChange={setActiveValue}
+          color="var(--color-vehicle)"
+          canSave={canSave}
+          onSave={handleSave}
+          saveLabel="تسجيل"
+          chips={
+            type === 'fuel' ? (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isFullTank}
+                onClick={() => setIsFullTank((v) => !v)}
+                className="qb-press flex h-9 items-center gap-2 rounded-full border px-3 text-[12px] font-semibold"
+                style={
+                  isFullTank
+                    ? { borderColor: 'color-mix(in srgb, var(--color-vehicle) 40%, transparent)', background: 'color-mix(in srgb, var(--color-vehicle) 14%, transparent)', color: 'var(--color-text)' }
+                    : { borderColor: 'var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-2)' }
+                }
+              >
+                <span
+                  className="flex h-[18px] w-[30px] items-center rounded-full p-[2px] transition-colors duration-300"
+                  style={{ background: isFullTank ? 'var(--color-vehicle)' : 'rgba(255,255,255,0.14)' }}
+                >
+                  <span className="h-[14px] w-[14px] rounded-full bg-white transition-transform duration-300" style={{ transform: isFullTank ? 'translateX(-12px)' : 'translateX(0)' }} />
+                </span>
+                تعبئة كاملة
+              </button>
+            ) : undefined
+          }
+        />
       }
     >
-      <div className="mb-5 grid gap-2" style={{ gridTemplateColumns: `repeat(${fields.length}, 1fr)` }}>
+      <div className="mb-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${fields.length}, 1fr)` }}>
         {fields.map((f) => (
           <button
             key={f.key}
@@ -109,50 +133,27 @@ export function LogVehicleScreen() {
       </div>
 
       <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">{fields.find((f) => f.key === activeField)?.label}</div>
-      <div dir="ltr" className="mb-5 flex items-baseline justify-center gap-2" style={{ color: 'var(--color-vehicle)' }}>
+      <div dir="ltr" className="mb-3 flex items-baseline justify-center gap-2" style={{ color: 'var(--color-vehicle)' }}>
         <span key={activeValue} className="num text-[50px] font-bold leading-tight tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
           {activeValue || '0'}
         </span>
         <span className="flex-shrink-0 text-[17px] font-medium opacity-60">{activeUnit ?? 'ر.س'}</span>
       </div>
-      <div className="mb-5">
-        <AmountPad value={activeValue} onChange={setActiveValue} color="var(--color-vehicle)" />
-      </div>
 
       {type === 'oil' && activeField === 'odometer' && (
-        <div className="mb-5 -mt-2 px-1 text-center text-[11px] leading-relaxed text-[var(--color-text-3)]">
+        <div className="mb-3 -mt-1 px-1 text-center text-[11px] leading-relaxed text-[var(--color-text-3)]">
           يبدأ حساب الفاصل التالي (5000 كم افتراضيًا) من هذا الرقم
         </div>
       )}
 
-      {type === 'fuel' && (
-        <>
-          <button
-            type="button"
-            onClick={() => setIsFullTank((v) => !v)}
-            className="qb-card qb-press mb-5 flex w-full items-center justify-between px-4 py-3.5 text-right"
-          >
-            <div>
-              <div className="text-[13.5px] font-semibold">تعبئة كاملة (لين آخر الخزان)</div>
-              <div className="text-[11.5px] text-[var(--color-text-3)]">هذا هو الوضع الطبيعي عند التعبئة — عطّلها فقط لو عبّيت جزء من الخزان</div>
-            </div>
-            <div
-              className="flex h-[30px] w-[52px] flex-shrink-0 items-center rounded-full p-[3px] transition-colors duration-300"
-              style={{ background: isFullTank ? 'var(--color-vehicle)' : 'rgba(255,255,255,0.14)' }}
-            >
-              <div className="h-6 w-6 rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-transform duration-300" style={{ transform: isFullTank ? 'translateX(-22px)' : 'translateX(0)' }} />
-            </div>
-          </button>
-          {!isFullTank && (
-            <div className="mb-5 -mt-3 px-1 text-[11px] leading-relaxed text-[var(--color-text-3)]">
-              التعبئة الجزئية تُسجَّل بالسجل وبالتكلفة، بس ما تدخل بحساب معدل الاستهلاك — لازم تعبئة كاملة عشان الحساب يكون دقيق.
-            </div>
-          )}
-        </>
+      {type === 'fuel' && !isFullTank && (
+        <div className="mb-3 -mt-1 px-1 text-center text-[11px] leading-relaxed text-[var(--color-text-3)]">
+          التعبئة الجزئية تُسجَّل بالتكلفة، بس ما تدخل بحساب معدل الاستهلاك
+        </div>
       )}
 
       {hasCost && (
-        <div className="mb-5">
+        <div className="mb-3">
           <SelectSheet
             open={accountSheetOpen}
             title="اختر الحساب الذي يُخصم منه"

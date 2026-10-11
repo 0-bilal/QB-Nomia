@@ -7,6 +7,7 @@ import { computeFuelGaps, computeFuelStats, computeVehicleCostStats } from '../l
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
+import { SheetHandle } from '../components/SheetHandle'
 import type { FuelLog, OilChangeLog } from '../types'
 import { Badge, EmptyState, IconBubble, ListGroup, ListItem, RingProgress, SectionTitle, Segmented, StatTile } from '../components/ui'
 import { rise } from '../lib/motion'
@@ -43,10 +44,10 @@ function FuelIcon({ size = 20 }: { size?: number }) {
 }
 
 /**
- * محرر مضمّن (مو نافذة منبثقة) بلوحة الأرقام الخاصة بالتطبيق (AmountPad) — نفس
- * هوية إدخال الأرقام بباقي الشاشات (إضافة حركة، تقسيم حساب) بدل حقل نصي عادي.
+ * ورقة إدخال رقم (العداد، فاصل الزيت، سعة الخزان) — نفس لوحة الأرقام الثابتة
+ * بزر الحفظ داخلها، بدل محرر مضمّن داخل البطاقة.
  */
-function InlineNumberEditor({
+function NumberSheet({
   label,
   unit,
   initialValue,
@@ -66,29 +67,33 @@ function InlineNumberEditor({
   const canSave = value.trim() !== '' && numeric > 0
 
   return (
-    <div>
-      <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">{label}</div>
-      <div dir="ltr" className="mb-5 flex items-baseline justify-center gap-2" style={{ color }}>
-        <span key={value} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{value || '0'}</span>
-        <span className="flex-shrink-0 text-[16px] font-medium opacity-60">{unit}</span>
-      </div>
-      <div className="mb-4">
-        <AmountPad value={value} onChange={setValue} color={color} />
-      </div>
-      <div className="flex gap-2.5">
-        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
-          إلغاء
-        </button>
-        <button
-          onClick={() => canSave && onSave(numeric)}
-          disabled={!canSave}
-          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-          style={{ background: color }}
-        >
-          حفظ
-        </button>
+    <div dir="rtl" className="fixed inset-0 z-[65] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[6px]" style={{ animation: 'fade-in 180ms ease-out both' }} onClick={onCancel} aria-hidden="true" />
+      <div
+        className="relative w-full max-w-[480px] rounded-t-[32px] border-x border-t border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] px-5 pb-4 shadow-[0_-24px_60px_-20px_rgba(0,0,0,0.85)]"
+        style={{ animation: 'sheet-in 420ms var(--ease-out-expo) both' }}
+      >
+        <SheetHandle onDismiss={onCancel} />
+        <div className="mb-1 text-center text-[12.5px] text-[var(--color-text-2)]">{label}</div>
+        <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2" style={{ color }}>
+          <span key={value} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+            {value || '0'}
+          </span>
+          <span className="flex-shrink-0 text-[16px] font-medium opacity-60">{unit}</span>
+        </div>
+        <div className="safe-bottom">
+          <AmountPad value={value} onChange={setValue} color={color} action={{ label: 'حفظ', icon: <CheckGlyph />, color, disabled: !canSave, onPress: () => onSave(numeric) }} />
+        </div>
       </div>
     </div>
+  )
+}
+
+function CheckGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
   )
 }
 
@@ -133,44 +138,47 @@ export function VehicleScreen() {
 
   return (
     <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} />}>
+      {editing === 'odometer' && (
+        <NumberSheet
+          label="عداد السيارة الحالي"
+          unit="كم"
+          initialValue={vehicleOdometerKm}
+          color={vColor}
+          onSave={(v) => {
+            setVehicleOdometerKm(v)
+            setEditing(null)
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+      {editing === 'interval' && (
+        <NumberSheet
+          label="فاصل تغيير الزيت (كل كم كيلومتر توصي بالتغيير)"
+          unit="كم"
+          initialValue={vehicleOilIntervalKm}
+          color={vColor}
+          onSave={(v) => {
+            setVehicleOilIntervalKm(v)
+            setEditing(null)
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+      {editing === 'fuelCapacity' && (
+        <NumberSheet
+          label="سعة خزان الوقود"
+          unit="لتر"
+          initialValue={fuelTankCapacityL}
+          color={vColor}
+          onSave={(v) => {
+            setFuelTankCapacityL(v)
+            setEditing(null)
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
       <div className="qb-card-elevated qb-rise mb-4 p-5">
-        {editing === 'odometer' ? (
-          <InlineNumberEditor
-            label="عداد السيارة الحالي"
-            unit="كم"
-            initialValue={vehicleOdometerKm}
-            color={vColor}
-            onSave={(v) => {
-              setVehicleOdometerKm(v)
-              setEditing(null)
-            }}
-            onCancel={() => setEditing(null)}
-          />
-        ) : editing === 'interval' ? (
-          <InlineNumberEditor
-            label="فاصل تغيير الزيت (كل كم كيلومتر توصي بالتغيير)"
-            unit="كم"
-            initialValue={vehicleOilIntervalKm}
-            color={vColor}
-            onSave={(v) => {
-              setVehicleOilIntervalKm(v)
-              setEditing(null)
-            }}
-            onCancel={() => setEditing(null)}
-          />
-        ) : editing === 'fuelCapacity' ? (
-          <InlineNumberEditor
-            label="سعة خزان الوقود"
-            unit="لتر"
-            initialValue={fuelTankCapacityL}
-            color={vColor}
-            onSave={(v) => {
-              setFuelTankCapacityL(v)
-              setEditing(null)
-            }}
-            onCancel={() => setEditing(null)}
-          />
-        ) : (
+        {(
           <>
             <div className="mb-5 flex items-center gap-3">
               <IconBubble color={vColor} size={46}>
