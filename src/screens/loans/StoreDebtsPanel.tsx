@@ -2,12 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../../state/DataContext'
 import { formatAmount, formatMoney, formatDate } from '../../lib/format'
-import { AmountPad } from '../../components/AmountPad'
-import { DatePicker } from '../../components/DatePicker'
-import { PickerField } from '../../components/PickerField'
-import { SelectSheet, type SelectSheetItem } from '../../components/SelectSheet'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIcon } from '../../components/AccountVisuals'
 import type { Account, StoreDebt, StoreDebtPayment } from '../../types'
 import { EmptyState, IconBubble, TintButton } from '../../components/ui'
 import { DEBT_META, softBg } from './debtTypes'
@@ -27,199 +22,10 @@ function StoreDebtIcon({ size = 20 }: { size?: number }) {
   )
 }
 
-/** محرر تسجيل/تعديل دَين متجر مضمّن — اسم المتجر + المبلغ + التاريخ + استحقاق اختياري + ملاحظة. */
-function DebtForm({
-  initial,
-  onSave,
-  onDelete,
-  onCancel,
-}: {
-  initial?: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }
-  onSave: (input: { storeName: string; amount: number; date: string; dueDate?: string; note?: string }) => void
-  onDelete?: () => void
-  onCancel: () => void
-}) {
-  const [storeName, setStoreName] = useState(initial?.storeName ?? '')
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
-  const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10))
-  const [dueDate, setDueDate] = useState(initial?.dueDate ?? '')
-  const [note, setNote] = useState(initial?.note ?? '')
-
-  const numeric = Number(amount)
-  const canSave = storeName.trim() && numeric > 0
-
-  return (
-    <div>
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">اسم المتجر</label>
-      <input
-        value={storeName}
-        onChange={(e) => setStoreName(e.target.value)}
-        placeholder="مثال: بقالة الحي"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
-
-      <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">مبلغ الدَين</div>
-      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{amount || '0'}</span>
-        <span className="flex-shrink-0 text-[16px] font-medium text-[var(--color-text-3)]">ر.س</span>
-      </div>
-      <div className="mb-4 flex justify-center">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
-
-      <div className="mb-4">
-        <DatePicker value={date} onChange={setDate} color={color} fieldLabel="تاريخ الدَين" />
-      </div>
-      <div className="mb-4">
-        <DatePicker value={dueDate} onChange={setDueDate} color={color} placeholder="بدون تاريخ استحقاق" fieldLabel="تاريخ الاستحقاق (اختياري)" />
-      </div>
-
-      <label className="mb-2 block px-1 text-[12.5px] font-medium text-[var(--color-text-2)]">ملاحظة (اختياري)</label>
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="وش اشتريت أو استلمت من خدمة؟"
-        className="mb-4 w-full rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[14px] outline-none placeholder:text-[var(--color-text-3)]"
-      />
-
-      <div className="flex gap-2.5">
-        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
-          إلغاء
-        </button>
-        <button
-          onClick={() => canSave && onSave({ storeName, amount: numeric, date, dueDate: dueDate || undefined, note })}
-          disabled={!canSave}
-          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-          style={{ background: color }}
-        >
-          حفظ
-        </button>
-      </div>
-
-      {onDelete && (
-        <button onClick={onDelete} className="qb-press mt-3 w-full text-center text-[12.5px] font-semibold" style={{ color }}>
-          حذف الدَين
-        </button>
-      )}
-    </div>
-  )
-}
-
-/** محرر تسجيل سداد (كامل أو جزئي) — المبلغ محدود بالمتبقي + اختيار الحساب. */
-function PaymentForm({
-  remaining,
-  accounts,
-  onSave,
-  onCancel,
-}: {
-  remaining: number
-  accounts: Account[]
-  onSave: (amount: number, accountId: string) => void
-  onCancel: () => void
-}) {
-  const navigate = useNavigate()
-  const [amount, setAmount] = useState(String(remaining))
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
-  const [accountSheetOpen, setAccountSheetOpen] = useState(false)
-
-  const numeric = Number(amount)
-  const selectedAccount = accounts.find((a) => a.id === accountId)
-  const canSave = numeric > 0 && numeric <= remaining && !!accountId
-
-  return (
-    <div>
-      <div className="mb-1.5 text-[12px] text-[var(--color-text-3)]">مبلغ السداد (المتبقي {formatMoney(remaining)})</div>
-      <div dir="ltr" className="mb-4 flex items-baseline justify-center gap-2">
-        <span key={amount} className="num text-[44px] font-bold tracking-tight" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>{amount || '0'}</span>
-        <span className="flex-shrink-0 text-[16px] font-medium text-[var(--color-text-3)]">ر.س</span>
-      </div>
-      <div className="mb-4 flex justify-center">
-        <AmountPad value={amount} onChange={setAmount} color={color} />
-      </div>
-
-      <SelectSheet
-        open={accountSheetOpen}
-        title="يُسدَّد من حساب"
-        items={accounts.map(
-          (a): SelectSheetItem => ({
-            id: a.id,
-            icon: <AccountTypeIcon type={a.type} size={17} />,
-            iconColor: ACCOUNT_ICON_COLOR[a.type],
-            iconBg: ACCOUNT_ICON_BG[a.type],
-            title: a.name,
-            subtitle: ACCOUNT_TYPE_LABELS[a.type],
-            trailing: (
-              <span className="num font-bold" style={{ color: ACCOUNT_ICON_COLOR[a.type] }}>
-                {formatMoney(a.balance)}
-              </span>
-            ),
-          }),
-        )}
-        selectedId={accountId}
-        onSelect={(v) => {
-          setAccountId(v)
-          setAccountSheetOpen(false)
-        }}
-        onClose={() => setAccountSheetOpen(false)}
-        emptyLabel="لا توجد حسابات بعد"
-        footer={
-          <button
-            onClick={() => {
-              setAccountSheetOpen(false)
-              navigate('/accounts/new')
-            }}
-            className="qb-press mt-1 w-full rounded-full py-3 text-[13px] font-semibold"
-            style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
-          >
-            + إضافة حساب جديد
-          </button>
-        }
-      />
-
-      <div className="mb-4">
-        <PickerField
-          label="يُسدَّد من حساب"
-          icon={selectedAccount ? <AccountTypeIcon type={selectedAccount.type} /> : <AccountTypeIcon type="cash" />}
-          iconColor={selectedAccount ? ACCOUNT_ICON_COLOR[selectedAccount.type] : 'var(--color-text-3)'}
-          iconBg={selectedAccount ? ACCOUNT_ICON_BG[selectedAccount.type] : 'rgba(255,255,255,0.08)'}
-          title={selectedAccount?.name ?? (accounts.length === 0 ? 'لا توجد حسابات' : 'اختر حسابًا')}
-          placeholder={!selectedAccount}
-          subtitle={selectedAccount ? ACCOUNT_TYPE_LABELS[selectedAccount.type] : undefined}
-          trailing={
-            selectedAccount ? (
-              <span className="num text-[13.5px] font-bold" style={{ color: ACCOUNT_ICON_COLOR[selectedAccount.type] }}>
-                {formatMoney(selectedAccount.balance)}
-              </span>
-            ) : undefined
-          }
-          onClick={() => (accounts.length === 0 ? navigate('/accounts/new') : setAccountSheetOpen(true))}
-        />
-      </div>
-
-      <div className="flex gap-2.5">
-        <button onClick={onCancel} className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]">
-          إلغاء
-        </button>
-        <button
-          onClick={() => canSave && onSave(numeric, accountId)}
-          disabled={!canSave}
-          className="qb-press flex-1 rounded-full py-3 text-[13.5px] font-semibold text-[#0A0A0C] disabled:opacity-35"
-          style={{ background: color }}
-        >
-          تسجيل السداد
-        </button>
-      </div>
-    </div>
-  )
-}
-
-type RowMode = 'view' | 'edit' | 'pay'
-
 function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: StoreDebtPayment[]; accounts: Account[] }) {
-  const { updateStoreDebt, deleteStoreDebt, addStoreDebtPayment, deleteStoreDebtPayment } = useData()
+  const { deleteStoreDebtPayment } = useData()
+  const navigate = useNavigate()
   const [expanded, setExpanded] = useState(false)
-  const [mode, setMode] = useState<RowMode>('view')
-  const [confirmDeleteDebt, setConfirmDeleteDebt] = useState(false)
   const [confirmDeletePaymentId, setConfirmDeletePaymentId] = useState<string | null>(null)
 
   const today = new Date().toISOString().slice(0, 10)
@@ -234,24 +40,8 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
       ? { background: 'rgba(255,95,109,0.14)', color: 'var(--color-expense)' }
       : { background: 'rgba(255,255,255,0.08)', color: 'var(--color-text-2)' }
 
-  function closeForms() {
-    setMode('view')
-  }
-
   return (
     <div className="qb-card overflow-hidden" style={{ opacity: settled && !expanded ? 0.65 : 1 }}>
-      <ConfirmDialog
-        open={confirmDeleteDebt}
-        title="حذف الدَين"
-        message="بيتم حذف هذا الدَين وكل الدفعات المسجَّلة له، وترجع أي حركة مصروف مرتبطة بها لرصيد حسابها."
-        confirmLabel="حذف"
-        color={color}
-        onConfirm={() => {
-          deleteStoreDebt(debt.id)
-          setConfirmDeleteDebt(false)
-        }}
-        onCancel={() => setConfirmDeleteDebt(false)}
-      />
       <ConfirmDialog
         open={confirmDeletePaymentId !== null}
         title="حذف السداد"
@@ -307,20 +97,14 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
       {!expanded && !settled && (
         <div className="flex gap-2 px-4 pb-4">
           <button
-            onClick={() => {
-              setExpanded(true)
-              setMode('pay')
-            }}
+            onClick={() => navigate(`/debts/stores/${debt.id}/pay`)}
             className="qb-press flex-1 rounded-full border py-2.5 text-[12.5px] font-semibold"
             style={{ background: softBg(color), color, borderColor: softBg(color, 30) }}
           >
             سداد
           </button>
           <button
-            onClick={() => {
-              setExpanded(true)
-              setMode('edit')
-            }}
+            onClick={() => navigate(`/debts/stores/${debt.id}/edit`)}
             className="qb-press flex-1 rounded-full bg-[var(--color-surface-high)] py-2.5 text-[12.5px] font-semibold"
           >
             تعديل
@@ -330,36 +114,16 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
 
       {expanded && (
         <div className="border-t qb-divider p-4">
-          {mode === 'edit' ? (
-            <DebtForm
-              initial={{ storeName: debt.storeName, amount: debt.amount, date: debt.date, dueDate: debt.dueDate, note: debt.note }}
-              onSave={(input) => {
-                updateStoreDebt(debt.id, input)
-                closeForms()
-              }}
-              onDelete={() => setConfirmDeleteDebt(true)}
-              onCancel={closeForms}
-            />
-          ) : mode === 'pay' ? (
-            <PaymentForm
-              remaining={remaining}
-              accounts={accounts}
-              onSave={(amount, accountId) => {
-                addStoreDebtPayment({ debtId: debt.id, amount, accountId, date: new Date().toISOString().slice(0, 10) })
-                closeForms()
-              }}
-              onCancel={closeForms}
-            />
-          ) : (
+          {(
             <>
               <div className="mb-3 flex gap-2.5">
                 {!settled && (
-                  <TintButton color={color} onClick={() => setMode('pay')} className="flex-1">
+                  <TintButton color={color} onClick={() => navigate(`/debts/stores/${debt.id}/pay`)} className="flex-1">
                     سداد
                   </TintButton>
                 )}
                 <button
-                  onClick={() => setMode('edit')}
+                  onClick={() => navigate(`/debts/stores/${debt.id}/edit`)}
                   className="qb-press flex-1 rounded-full bg-white/[0.06] py-3 text-[13.5px] font-medium text-[var(--color-text)]"
                 >
                   تعديل
@@ -401,9 +165,9 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
 }
 
 /** محتوى تبويب "ديون متاجر" داخل شاشة الديون والسلف. */
-export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean }) {
-  const { storeDebts, storeDebtPayments, addStoreDebt, accounts } = useData()
-  const [addingNew, setAddingNew] = useState(startAdding)
+export function StoreDebtsPanel() {
+  const { storeDebts, storeDebtPayments, accounts } = useData()
+  const navigate = useNavigate()
 
   const today = new Date().toISOString().slice(0, 10)
   const remainingOf = (debt: StoreDebt) => debt.amount - storeDebtPayments.filter((p) => p.debtId === debt.id).reduce((s, p) => s + p.amount, 0)
@@ -419,17 +183,8 @@ export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean
 
   return (
     <>
-      <DebtHero color={color} dates={h.dates} series={addingNew ? undefined : [{ color, values: h.stores }]}>
-        {({ scrub, chart }) =>
-        addingNew ? (
-          <DebtForm
-            onSave={(input) => {
-              addStoreDebt(input)
-              setAddingNew(false)
-            }}
-            onCancel={() => setAddingNew(false)}
-          />
-        ) : (
+      <DebtHero color={color} dates={h.dates} series={[{ color, values: h.stores }]}>
+        {({ scrub, chart }) => (
           <>
             <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">المتبقي لكل المتاجر</div>
             <div className="mt-1 flex items-baseline gap-1.5">
@@ -452,7 +207,7 @@ export function StoreDebtsPanel({ startAdding = false }: { startAdding?: boolean
             </div>
             {chart && <div className="-mt-1">{chart}</div>}
             <button
-              onClick={() => setAddingNew(true)}
+              onClick={() => navigate('/debts/stores/new')}
               className="qb-press mt-4 flex w-full items-center justify-center gap-2 rounded-full border py-3 text-[13.5px] font-semibold"
               style={{ background: softBg(color), color, borderColor: softBg(color, 30) }}
             >
