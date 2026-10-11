@@ -5,5 +5,7 @@ export function activityEditPath(item: ActivityItem): string {
   if (item.kind === 'loan-given' || item.kind === 'loan-received') {
     return `/loans/${item.personId}/edit/${item.id}`
   }
+  // التسوية بلا شاشة تعديل — تُحذف بالسحب (مع تراجع) وتُعاد من المطابقة.
+  if (item.kind === 'adjustment') return '/accounts'
   return `/add/transaction/${item.id}`
 }

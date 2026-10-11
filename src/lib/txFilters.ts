@@ -4,11 +4,18 @@ import { localIso } from './homeFeed'
 /** أنواع الحركة كما تظهر ببطاقات "كل الحركات" — "سلف" تجمع أعطيته/استلمت منه. */
 export type TxType = 'expense' | 'income' | 'transfer' | 'loan'
 
-export function txTypeOf(kind: ActivityItem['kind']): TxType {
+/** نوع الحركة لبطاقات الأنواع — التسوية بلا نوع (تظهر تحت «الكل» فقط). */
+export function txTypeOf(kind: ActivityItem['kind']): TxType | null {
+  if (kind === 'adjustment') return null
   if (kind === 'loan-given' || kind === 'loan-received') return 'loan'
   // المساهمة مصروف دفعه غيرك — تظهر تحت «مصروف» (بمبلغ صفر فلا تغيّر المجاميع).
   if (kind === 'contribution') return 'expense'
   return kind
+}
+
+/** هل تدخل الحركة في الدخل والمصروف والصافي — التحويل والتسوية لا يغيّران ما تكسبه أو تصرفه. */
+export function countsInNet(kind: ActivityItem['kind']): boolean {
+  return kind !== 'transfer' && kind !== 'adjustment'
 }
 
 /** فترة جاهزة، أو `m:YYYY-MM` لشهر محدد (متنقّل الأشهر)، أو `custom` بتاريخي from/to. */
@@ -156,12 +163,12 @@ export interface Totals {
   net: number
 }
 
-/** الدخل والمصروف والصافي — بدون التحويلات (لا تغيّر ما تملكه)؛ السلف تُحسب بإشارتها. */
+/** الدخل والمصروف والصافي — بدون التحويلات والتسويات؛ السلف تُحسب بإشارتها. */
 export function totalsOf(items: ActivityItem[]): Totals {
   let income = 0
   let expense = 0
   for (const i of items) {
-    if (i.kind === 'transfer') continue
+    if (!countsInNet(i.kind)) continue
     if (i.amount > 0) income += i.amount
     else expense += -i.amount
   }
@@ -171,11 +178,14 @@ export function totalsOf(items: ActivityItem[]): Totals {
 /** مجموع كل نوع (بالقيمة المطلقة) — لبطاقات الأنواع. */
 export function typeTotals(items: ActivityItem[]): Record<TxType, number> {
   const out: Record<TxType, number> = { expense: 0, income: 0, transfer: 0, loan: 0 }
-  for (const i of items) out[txTypeOf(i.kind)] += Math.abs(i.amount)
+  for (const i of items) {
+    const t = txTypeOf(i.kind)
+    if (t) out[t] += Math.abs(i.amount)
+  }
   return out
 }
 
-/** صافي مجموعة (بدون التحويلات) — لعناوين الأشهر والأيام. */
+/** صافي مجموعة (بدون التحويلات والتسويات) — لعناوين الأشهر والأيام. */
 export function netOf(items: ActivityItem[]): number {
-  return items.filter((i) => i.kind !== 'transfer').reduce((s, i) => s + i.amount, 0)
+  return items.filter((i) => countsInNet(i.kind)).reduce((s, i) => s + i.amount, 0)
 }

@@ -68,3 +68,16 @@ describe('txFilters', () => {
     expect(shiftMonth('2026-12', 1)).toBe('2027-01')
   })
 })
+
+describe('التسوية (مطابقة)', () => {
+  const withAdj = [...ITEMS, mk('6', '2026-10-08', 'adjustment', -40, { title: 'تسوية مطابقة' })]
+  it('لا تدخل الدخل والمصروف ولا الصافي ولا بطاقات الأنواع', () => {
+    expect(totalsOf(withAdj)).toEqual(totalsOf(ITEMS))
+    expect(netOf(withAdj)).toBe(netOf(ITEMS))
+    expect(typeTotals(withAdj)).toEqual(typeTotals(ITEMS))
+  })
+  it('تظهر تحت «الكل» فقط', () => {
+    expect(filterActivity(withAdj, EMPTY_TX_FILTERS, '', TODAY).map((i) => i.id)).toContain('6')
+    expect(filterActivity(withAdj, { ...EMPTY_TX_FILTERS, type: 'expense' }, '', TODAY).map((i) => i.id)).not.toContain('6')
+  })
+})

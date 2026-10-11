@@ -4,6 +4,8 @@ interface AmountPadProps {
   value: string
   onChange: (next: string) => void
   color: string
+  /** مفاتيح أقصر وبدون «مسح الكل» تحت اللوحة — لوحة مثبّتة أسفل ورقة لا يتغيّر ارتفاعها (المسح الكامل بالضغط المطوّل على الحذف). */
+  compact?: boolean
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -13,7 +15,7 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
  * بدل الاعتماد على لوحة مفاتيح الهاتف الافتراضية. تدعم كسور عشرية
  * حتى خانتين (هللات) عبر مفتاح النقطة.
  */
-export function AmountPad({ value, onChange, color }: AmountPadProps) {
+export function AmountPad({ value, onChange, color, compact = false }: AmountPadProps) {
   function pressDigit(d: string) {
     const [whole, decimals] = value.split('.')
     if (decimals !== undefined && decimals.length >= 2) return
@@ -33,7 +35,8 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
 
   const keyClass =
     'num flex items-center justify-center rounded-[22px] text-[24px] font-medium text-[var(--color-text)] transition-[transform,background-color] duration-150 active:scale-90'
-  const keyStyle = { background: 'rgba(255,255,255,0.045)', height: 58 }
+  const keyHeight = compact ? 50 : 58
+  const keyStyle = { background: 'rgba(255,255,255,0.045)', height: keyHeight }
 
   function press(fn: () => void) {
     haptic('tick')
@@ -42,7 +45,7 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
 
   return (
     <div dir="ltr" className="flex flex-col gap-2.5">
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className={`grid grid-cols-3 ${compact ? 'gap-2' : 'gap-2.5'}`}>
         {KEYS.map((k) => (
           <button key={k} type="button" onClick={() => press(() => pressDigit(k))} className={keyClass} style={keyStyle}>
             {k}
@@ -65,7 +68,7 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
             press(clearAll)
           }}
           className="flex items-center justify-center rounded-[22px] transition-transform active:scale-90"
-          style={{ height: 58, color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+          style={{ height: keyHeight, color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
           aria-label="حذف آخر رقم (اضغط مطولًا لمسح الكل)"
         >
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +78,7 @@ export function AmountPad({ value, onChange, color }: AmountPadProps) {
           </svg>
         </button>
       </div>
-      {value && (
+      {value && !compact && (
         <button type="button" onClick={() => press(clearAll)} className="self-center px-3 py-1 text-[12px] font-medium text-[var(--color-text-3)]" aria-label="مسح الكل">
           مسح الكل
         </button>

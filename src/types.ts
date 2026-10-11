@@ -117,6 +117,30 @@ export interface Contribution {
   fuelLogId?: string
 }
 
+/**
+ * مطابقة حساب: مقارنة رصيد التطبيق بالمبلغ الفعلي.
+ *  - matched: لا فرق — يحفظ تاريخ آخر مطابقة فقط.
+ *  - adjust: تسوية تعدّل رصيد الحساب بالفرق ولا تدخل الدخل والمصروف.
+ *  - transaction: الفرق سُجّل حركة مصروف/دخل منسية (transactionId) — الحركة نفسها هي اللي تغيّر الرصيد.
+ */
+export type ReconciliationResolution = 'matched' | 'adjust' | 'transaction'
+
+export interface Reconciliation {
+  id: string
+  accountId: string
+  date: string
+  /** رصيد التطبيق لحظة المطابقة. */
+  appBalance: number
+  /** المبلغ الفعلي اللي أدخله المستخدم. */
+  actualBalance: number
+  /** actualBalance − appBalance: سالب = نقص، موجب = زيادة. */
+  difference: number
+  resolution: ReconciliationResolution
+  transactionId?: string
+  note?: string
+  createdAt?: string
+}
+
 export type LoanDirection = 'given' | 'received'
 
 export interface LoanTransaction {
