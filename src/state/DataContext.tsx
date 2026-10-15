@@ -234,6 +234,8 @@ interface AddLoanInput {
   date: string
   dueDate?: string
   note?: string
+  /** مسار الفلوس: دفعة مثبّتة للسلفة المعطاة — '' يرجّعها للأقدم أولًا، وundefined يبقيها كما هي. */
+  fundBatchId?: string
 }
 
 interface AddCategoryInput {
@@ -258,6 +260,8 @@ interface AddTransactionInput {
   note?: string
   /** خصم مخالفة عمل يُطبَّق فورًا على حركة راتب جديدة — يُتجاهَل لأي نوع/مصدر حركة غير "دخل براتب". */
   violationDeductionAmount?: number
+  /** مسار الفلوس: دفعة مثبّتة للمصروف/التحويل — '' يرجّعها للأقدم أولًا، وundefined يبقيها كما هي. */
+  fundBatchId?: string
 }
 
 interface AddSubscriptionInput {
@@ -1582,6 +1586,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           date: input.date,
           dueDate: input.direction === 'given' ? input.dueDate : undefined,
           note: input.note?.trim() || undefined,
+          fundBatchId: input.direction === 'given' ? input.fundBatchId || undefined : undefined,
         }
         persistLoans([txn, ...loanTransactions])
         persistAccounts(withLoanEffect(accounts, txn, 1))
@@ -1597,6 +1602,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           date: input.date,
           dueDate: input.direction === 'given' ? input.dueDate : undefined,
           note: input.note?.trim() || undefined,
+          fundBatchId: input.direction !== 'given' ? undefined : input.fundBatchId === undefined ? old.fundBatchId : input.fundBatchId || undefined,
         }
         const reverted = withLoanEffect(accounts, old, -1)
         persistAccounts(withLoanEffect(reverted, updated, 1))
@@ -1674,6 +1680,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           incomeSourceId: input.type === 'income' ? input.incomeSourceId : undefined,
           transferToAccountId: input.type === 'transfer' ? input.transferToAccountId : undefined,
           note,
+          fundBatchId: input.type !== 'income' ? input.fundBatchId || undefined : undefined,
         }
         persistTransactions([txn, ...transactions])
         persistAccounts(withTransactionEffect(accounts, txn, 1))
@@ -1692,6 +1699,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           incomeSourceId: input.type === 'income' ? input.incomeSourceId : undefined,
           transferToAccountId: input.type === 'transfer' ? input.transferToAccountId : undefined,
           note: input.note?.trim() || undefined,
+          fundBatchId: input.type === 'income' ? undefined : input.fundBatchId === undefined ? old.fundBatchId : input.fundBatchId || undefined,
         }
         const reverted = withTransactionEffect(accounts, old, -1)
         persistAccounts(withTransactionEffect(reverted, updated, 1))
