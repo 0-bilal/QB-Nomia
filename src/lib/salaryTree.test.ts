@@ -24,13 +24,26 @@ describe('salaryPeriods', () => {
     expect(first.to).toBe('2026-09-26')
     expect(first.expenses.map((e) => e.id)).toEqual([e1.id, e2.id])
     expect(first.spent).toBe(300.5)
-    expect(first.left).toBe(2699.5)
     expect(first.byCategory).toEqual([
       { categoryId: 'food', amount: 200, count: 1 },
       { categoryId: 'bills', amount: 100.5, count: 1 },
     ])
+    // التحويل من حساب الراتب خلال الفترة: ما يدخل المصاريف وينقص من الباقي.
+    expect(first.transfers.map((t) => t.id)).toEqual([move.id])
+    expect(first.transferred).toBe(700)
+    expect(first.byDestination).toEqual([{ accountId: 'b', amount: 700, count: 1 }])
+    expect(first.left).toBe(1999.5)
     expect(last.to).toBeNull()
     expect(last.expenses.map((e) => e.id)).toEqual([e3.id])
+  })
+
+  it('تحويلات من حسابات ثانية أو لنفس الحساب ما تدخل', () => {
+    const s = salary(1000, '2026-02-01')
+    const fromOther = tx({ type: 'transfer', amount: 50, date: '2026-02-02', accountId: 'cash', transferToAccountId: 'sav' })
+    const toSalaryAcc = tx({ type: 'transfer', amount: 80, date: '2026-02-03', accountId: 'cash', transferToAccountId: 'a' })
+    const [p] = salaryPeriods([toSalaryAcc, fromOther, s], 'src-salary')
+    expect(p.transfers).toEqual([])
+    expect(p.left).toBe(1000)
   })
 
   it('المصاريف الأكبر من الراتب تعطي باقي سالب', () => {
