@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { salaryPeriods } from './salaryTree'
-import type { Transaction } from '../types'
+import type { LoanTransaction, Transaction } from '../types'
 
 let seq = 0
 const tx = (p: Partial<Transaction> & Pick<Transaction, 'type' | 'amount' | 'date'>): Transaction => ({ id: `t${++seq}`, accountId: 'a', ...p })
@@ -44,6 +44,22 @@ describe('salaryPeriods', () => {
     const [p] = salaryPeriods([toSalaryAcc, fromOther, s], 'src-salary')
     expect(p.transfers).toEqual([])
     expect(p.left).toBe(1000)
+  })
+
+  it('السلف خلال الفترة: المعطاة تنقص من الباقي، والمستلمة للعرض فقط', () => {
+    const s = salary(3000, '2026-08-01')
+    const next = salary(3000, '2026-09-01')
+    const l = (id: string, direction: LoanTransaction['direction'], amount: number, date: string, personId: string): LoanTransaction => ({ id, direction, amount, date, personId, accountId: 'a' })
+    const loans = [l('l1', 'given', 500, '2026-08-03', 'ahmad'), l('l2', 'given', 100, '2026-08-10', 'ahmad'), l('l3', 'received', 1000, '2026-08-05', 'khalid'), l('l4', 'given', 50, '2026-09-02', 'ahmad')]
+    const [, aug] = salaryPeriods([next, s], 'src-salary', loans)
+    expect(aug.loans.map((x) => x.id)).toEqual(['l1', 'l3', 'l2'])
+    expect(aug.lent).toBe(600)
+    expect(aug.borrowed).toBe(1000)
+    expect(aug.byPerson).toEqual([
+      { personId: 'khalid', direction: 'received', amount: 1000, count: 1 },
+      { personId: 'ahmad', direction: 'given', amount: 600, count: 2 },
+    ])
+    expect(aug.left).toBe(2400)
   })
 
   it('المصاريف الأكبر من الراتب تعطي باقي سالب', () => {
