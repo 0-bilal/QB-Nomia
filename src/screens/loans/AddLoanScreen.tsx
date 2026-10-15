@@ -12,7 +12,6 @@ import type { LoanDirection } from '../../types'
 import { Segmented } from '../../components/ui'
 import { AmountHero } from '../../components/AmountHero'
 import { Avatar } from '../../components/Avatar'
-import { LoanSourceChip, LoanSourceLine } from '../../components/FundSourceChip'
 
 export function AddLoanScreen() {
   const { personId, loanId } = useParams<{ personId: string; loanId?: string }>()
@@ -33,8 +32,6 @@ export function AddLoanScreen() {
   const [note, setNote] = useState(existing?.note ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [noteEditing, setNoteEditing] = useState(false)
-  /** مسار الفلوس: دفعة مثبّتة للسلفة المعطاة ('' = الأقدم أولًا). */
-  const [fundBatchId, setFundBatchId] = useState(existing?.fundBatchId ?? '')
 
   if (!person) {
     return (
@@ -60,7 +57,6 @@ export function AddLoanScreen() {
       date,
       dueDate: direction === 'given' && dueDate ? dueDate : undefined,
       note,
-      fundBatchId: direction === 'given' ? fundBatchId : '',
     }
     if (isEditing && loanId) updateLoanTransaction(loanId, input)
     else addLoanTransaction(input)
@@ -69,10 +65,10 @@ export function AddLoanScreen() {
 
   function handleDelete() {
     if (!loanId || !person || !existing) return
-    const { personId, direction, amount, accountId, date, dueDate, note, fundBatchId } = existing
+    const { personId, direction, amount, accountId, date, dueDate, note } = existing
     deleteLoanTransaction(loanId)
     navigate(`/loans/${person.id}`, { replace: true })
-    showUndoToast('تم حذف الحركة', (data) => data.addLoanTransaction({ personId, direction, amount, accountId, date, dueDate, note, fundBatchId }))
+    showUndoToast('تم حذف الحركة', (data) => data.addLoanTransaction({ personId, direction, amount, accountId, date, dueDate, note }))
   }
 
   return (
@@ -107,7 +103,6 @@ export function AddLoanScreen() {
           editor={noteEditing ? { value: note, onChange: setNote, placeholder: 'مثال: سلفة راتب', onDone: () => setNoteEditing(false) } : null}
           chips={
             <>
-              {direction === 'given' && <LoanSourceChip accountId={accountId} value={fundBatchId} onChange={setFundBatchId} />}
               <DatePicker chip value={date} onChange={setDate} color={color} />
               {direction === 'given' && <DatePicker chip value={dueDate} onChange={setDueDate} color={color} placeholder="استحقاق" />}
               <NoteChip note={note} onClick={() => setNoteEditing(true)} />
@@ -155,12 +150,7 @@ export function AddLoanScreen() {
 
       <AmountHero amount={amount} color={color} label={direction === 'given' ? 'كم أعطيته؟' : 'كم استلمت منه؟'} className="mb-3" />
 
-      <AccountSelectField label={direction === 'given' ? 'من حساب' : 'إلى حساب'} sheetTitle="اختر الحساب" accountId={accountId} onChange={(id) => {
-          setAccountId(id)
-          setFundBatchId('')
-        }} />
-
-      {direction === 'given' && !isEditing && <LoanSourceLine accountId={accountId} amount={numericAmount || 0} value={fundBatchId} />}
+      <AccountSelectField label={direction === 'given' ? 'من حساب' : 'إلى حساب'} sheetTitle="اختر الحساب" accountId={accountId} onChange={setAccountId} />
 
       {accounts.length === 0 && (
         <div className="mb-3 text-[12.5px] text-[var(--color-text-3)]">

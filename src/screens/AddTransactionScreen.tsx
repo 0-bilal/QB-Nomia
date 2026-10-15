@@ -20,7 +20,6 @@ import type { TransactionType } from '../types'
 import { ContributorPicker } from '../components/ContributorPicker'
 import { SheetHandle } from '../components/SheetHandle'
 import { AccountMiniField, FixedPadDock, NoteChip } from '../components/FixedPadDock'
-import { FundSourceChip, FundSourceSection, IncomeTrailButton } from '../components/FundSourceChip'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -203,12 +202,6 @@ export function AddTransactionScreen() {
   const [toSheetOpen, setToSheetOpen] = useState(false)
   const [metaSheetOpen, setMetaSheetOpen] = useState(false)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
-  /** مسار الفلوس: دفعة مثبّتة للمصروف/التحويل ('' = الأقدم أولًا). تغيير الحساب يرجّعها للتلقائي. */
-  const [fundBatchId, setFundBatchId] = useState(existing?.fundBatchId ?? '')
-  const initialAccountRef = useRef(accountId)
-  useEffect(() => {
-    if (accountId !== initialAccountRef.current) setFundBatchId('')
-  }, [accountId])
 
   const color = TYPE_COLOR[type]
   const payer = type === 'expense' && paidBy ? people.find((p) => p.id === paidBy) : undefined
@@ -236,9 +229,6 @@ export function AddTransactionScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, accountId])
-
-  /** تعديل مصروف/تحويل بنفس حسابه ونوعه: قسم «من أي فلوس؟» ظاهر بتوزيعه الفعلي بدل الكبسولة. */
-  const showFundSection = Boolean(existing && !existing.loanId && type !== 'income' && existing.type === type && existing.accountId === accountId && !payer)
 
   const isSalaryIncome = type === 'income' && incomeSourceId === SALARY_INCOME_SOURCE_ID
   const showViolationToggle = isSalaryIncome && !isEditing
@@ -326,7 +316,6 @@ export function AddTransactionScreen() {
       transferToAccountId: type === 'transfer' ? transferToId : undefined,
       note,
       violationDeductionAmount: showViolationToggle && hasViolation ? Number(violationAmount) : undefined,
-      fundBatchId: type !== 'income' ? fundBatchId : '',
     }
     if (isEditing && id) {
       updateTransaction(id, input)
@@ -358,11 +347,11 @@ export function AddTransactionScreen() {
       )
       return
     }
-    const { type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note, fundBatchId } = existing
+    const { type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note } = existing
     deleteTransaction(id)
     navigate('/', { replace: true })
     showUndoToast('تم حذف الحركة', (data) =>
-      data.addTransaction({ type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note, fundBatchId }),
+      data.addTransaction({ type, amount, date, accountId, categoryId, incomeSourceId, transferToAccountId, note }),
     )
   }
 
@@ -435,9 +424,6 @@ export function AddTransactionScreen() {
           chips={
             <>
               <DatePicker chip value={date} onChange={setDate} color={color} />
-              {type !== 'income' && !payer && !existingContribution && !existing?.loanId && accountId && !showFundSection && (
-                <FundSourceChip accountId={accountId} value={fundBatchId} onChange={setFundBatchId} amount={numericAmount || 0} />
-              )}
               {showViolationToggle && (
                 <button
                   type="button"
@@ -737,10 +723,6 @@ export function AddTransactionScreen() {
         </div>
       )}
 
-      {showFundSection && existing && (
-        <FundSourceSection accountId={accountId} value={fundBatchId} savedValue={existing.fundBatchId ?? ''} onChange={setFundBatchId} movementRef={`tx:${existing.id}`} />
-      )}
-      {existing && existing.type === 'income' && type === 'income' && <IncomeTrailButton txId={existing.id} />}
     </ScreenScroll>
   )
 }
