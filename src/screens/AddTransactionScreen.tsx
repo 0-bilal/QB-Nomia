@@ -20,7 +20,7 @@ import type { TransactionType } from '../types'
 import { ContributorPicker } from '../components/ContributorPicker'
 import { SheetHandle } from '../components/SheetHandle'
 import { AccountMiniField, FixedPadDock, NoteChip } from '../components/FixedPadDock'
-import { FundSourceChip } from '../components/FundSourceChip'
+import { FundSourceChip, FundSourceSection, IncomeTrailButton } from '../components/FundSourceChip'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -237,6 +237,9 @@ export function AddTransactionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, accountId])
 
+  /** تعديل مصروف/تحويل بنفس حسابه ونوعه: قسم «من أي فلوس؟» ظاهر بتوزيعه الفعلي بدل الكبسولة. */
+  const showFundSection = Boolean(existing && !existing.loanId && type !== 'income' && existing.type === type && existing.accountId === accountId && !payer)
+
   const isSalaryIncome = type === 'income' && incomeSourceId === SALARY_INCOME_SOURCE_ID
   const showViolationToggle = isSalaryIncome && !isEditing
 
@@ -432,8 +435,8 @@ export function AddTransactionScreen() {
           chips={
             <>
               <DatePicker chip value={date} onChange={setDate} color={color} />
-              {type !== 'income' && !payer && !existingContribution && !existing?.loanId && accountId && (
-                <FundSourceChip accountId={accountId} value={fundBatchId} onChange={setFundBatchId} movementRef={existing ? `tx:${existing.id}` : undefined} />
+              {type !== 'income' && !payer && !existingContribution && !existing?.loanId && accountId && !showFundSection && (
+                <FundSourceChip accountId={accountId} value={fundBatchId} onChange={setFundBatchId} amount={numericAmount || 0} />
               )}
               {showViolationToggle && (
                 <button
@@ -734,6 +737,10 @@ export function AddTransactionScreen() {
         </div>
       )}
 
+      {showFundSection && existing && (
+        <FundSourceSection accountId={accountId} value={fundBatchId} savedValue={existing.fundBatchId ?? ''} onChange={setFundBatchId} movementRef={`tx:${existing.id}`} />
+      )}
+      {existing && existing.type === 'income' && type === 'income' && <IncomeTrailButton txId={existing.id} />}
     </ScreenScroll>
   )
 }
