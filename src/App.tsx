@@ -42,6 +42,7 @@ import { LogVehicleScreen } from './screens/LogVehicleScreen'
 import { MoneyTrailScreen } from './screens/trail/MoneyTrailScreen'
 import { BatchDetailScreen } from './screens/trail/BatchDetailScreen'
 import { TrailReviewScreen } from './screens/trail/TrailReviewScreen'
+import { TrailWelcomeScreen } from './screens/trail/TrailWelcomeScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="vehicle/log/:type" element={<LogVehicleScreen />} />
         <Route path="trail" element={<MoneyTrailScreen />} />
         <Route path="trail/review" element={<TrailReviewScreen />} />
+        <Route path="trail/welcome" element={<TrailWelcomeScreen />} />
         <Route path="trail/:batchId" element={<BatchDetailScreen />} />
       </Route>
 

@@ -12,7 +12,7 @@ import type { LoanDirection } from '../../types'
 import { Segmented } from '../../components/ui'
 import { AmountHero } from '../../components/AmountHero'
 import { Avatar } from '../../components/Avatar'
-import { LoanSourceChip } from '../../components/FundSourceChip'
+import { LoanSourceChip, LoanSourceLine } from '../../components/FundSourceChip'
 
 export function AddLoanScreen() {
   const { personId, loanId } = useParams<{ personId: string; loanId?: string }>()
@@ -159,6 +159,8 @@ export function AddLoanScreen() {
           setAccountId(id)
           setFundBatchId('')
         }} />
+
+      {direction === 'given' && !isEditing && <LoanSourceLine accountId={accountId} amount={numericAmount || 0} value={fundBatchId} />}
 
       {accounts.length === 0 && (
         <div className="mb-3 text-[12.5px] text-[var(--color-text-3)]">

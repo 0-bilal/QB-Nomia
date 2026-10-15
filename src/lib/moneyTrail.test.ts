@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { batchParts, borrowedInAccount, computeMoneyTrail, groupBatchesByMonth, loanRef, openingBatchId, txRef, type MoneyTrailInput } from './moneyTrail'
+import { batchParts, borrowedInAccount, computeMoneyTrail, groupBatchesByMonth, loanRef, openingBatchId, previewTake, reviewItems, txRef, type MoneyTrailInput } from './moneyTrail'
 import type { LoanTransaction, Reconciliation, Transaction } from '../types'
 
 let seq = 0
@@ -115,6 +115,23 @@ describe('computeMoneyTrail', () => {
     expect(extra.kind).toBe('borrowed')
     expect(extra.amount).toBe(50)
     expect(extra.owed).toBe(50)
+    expect(extra.returnedPart).toBe(200)
+    expect(reviewItems(trail).map((b) => b.id)).toEqual([loanRef(back.id)])
+  })
+
+  it('previewTake: المثبّتة أولًا ثم الأقدم أولًا، والزائد بلا مصدر', () => {
+    const khalid = loan({ direction: 'received', amount: 1000, date: '2026-10-05', accountId: 'cash', personId: 'khalid' })
+    const trail = computeMoneyTrail(input({ cash: 340 }, [], [khalid]))
+    expect(previewTake(trail, 'cash', 1000)).toEqual([
+      { batchId: openingBatchId('cash'), amount: 340 },
+      { batchId: loanRef(khalid.id), amount: 660 },
+    ])
+    expect(previewTake(trail, 'cash', 1000, loanRef(khalid.id))).toEqual([{ batchId: loanRef(khalid.id), amount: 1000 }])
+    expect(previewTake(trail, 'cash', 1500)).toEqual([
+      { batchId: openingBatchId('cash'), amount: 340 },
+      { batchId: loanRef(khalid.id), amount: 1000 },
+      { batchId: null, amount: 160 },
+    ])
   })
 
   it('رصيد سابق يُحسب من الرصيد الحالي ويُصرف أولًا', () => {

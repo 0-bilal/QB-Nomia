@@ -256,13 +256,15 @@ export function BatchDetailScreen() {
             )}
             <ProgressRow label={`سدّدت لـ${personName(batch.personId)}`} value={batch.owedPaid} total={batch.owed} color="var(--color-owed-by)" hidden={hidden} />
           </div>
-          <div className="mt-3 text-[11.5px] text-[var(--color-text-3)]">
-            {batch.owed - batch.owedPaid <= 0
-              ? batch.left > 0 || batch.lent > 0
-                ? 'الالتزام مسدَّد، والمتبقي منها صار لك.'
-                : 'الحلقة مغلقة: الالتزام مسدَّد وما بقي شيء عند أحد.'
-              : `باقي عليك لـ${personName(batch.personId)} ${money(batch.owed - batch.owedPaid, hidden)} ر.س`}
-          </div>
+        </div>
+      )}
+
+      {borrowed && <LoopCard batch={batch} hidden={hidden} personName={personName} />}
+      {borrowed && (
+        <div className="mt-3">
+          <Info>
+            لو سدّدت {personName(batch.personId)} من دفعة ثانية (مثل راتبك) قبل ما يرجع لك شيء، السداد يظهر في قصة تلك الدفعة، وهنا تظهر علامة «الالتزام مسدَّد»، وأي شيء يرجع لهذه الدفعة بعدها يصير <b className="font-semibold text-[var(--color-text)]">باقي لك</b>.
+          </Info>
         </div>
       )}
 
@@ -374,6 +376,51 @@ function ProgressRow({ label, value, total, color, hidden }: { label: string; va
         </span>
       </div>
       <ProgressBar pct={total > 0 ? (value / total) * 100 : 0} color={color} height={6} />
+    </div>
+  )
+}
+
+/** حالة الحلقة في الدفعة المقترضة: متى تُغلق، أو أنها مغلقة. */
+function LoopCard({ batch, hidden, personName }: { batch: MoneyBatch; hidden: boolean; personName: (id?: string) => string }) {
+  const owedLeft = batch.owed - batch.owedPaid
+  const lender = personName(batch.personId)
+  const holders = Object.entries(batch.lentByPerson).filter(([, v]) => v > 0)
+  const holderNames = holders.map(([p]) => personName(p)).join(' و')
+  let title: string
+  let sub: string
+  let done = false
+  if (owedLeft <= 0 && batch.lent <= 0) {
+    done = true
+    title = 'الحلقة مغلقة'
+    sub = batch.left > 0 ? `الالتزام مسدَّد، والباقي ${money(batch.left, hidden)} صار لك` : 'الالتزام مسدَّد وما بقي شيء عند أحد'
+  } else if (owedLeft <= 0) {
+    title = 'الالتزام مسدَّد'
+    sub = `اللي يرجع من ${holderNames} (${money(batch.lent, hidden)}) يصير لك`
+  } else if (batch.lent > 0) {
+    title = `الحلقة تُغلق لما يرجّع ${holderNames} ${money(batch.lent, hidden)} وتسدّدها لـ${lender}`
+    sub = `باقي عند ${holderNames} ${money(batch.lent, hidden)} · باقي عليك لـ${lender} ${money(owedLeft, hidden)}`
+  } else {
+    title = `الحلقة تُغلق لما تسدّد ${lender} ${money(owedLeft, hidden)}`
+    sub = `باقي عليك لـ${lender} ${money(owedLeft, hidden)}`
+  }
+  const c = done ? 'var(--color-income)' : 'var(--color-owed-by)'
+  return (
+    <div className="qb-card qb-rise mt-3 flex items-center gap-3 p-3.5" style={rise(2)}>
+      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full" style={{ background: `color-mix(in srgb, ${c} 15%, transparent)`, color: c }}>
+        {done ? (
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+          </svg>
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-semibold leading-snug">{title}</div>
+        <div className="mt-0.5 text-[11px] text-[var(--color-text-3)]">{sub}</div>
+      </div>
     </div>
   )
 }

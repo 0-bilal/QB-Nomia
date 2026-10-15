@@ -87,6 +87,8 @@ export interface MoneyBatch {
   /** باقي لك الآن. */
   left: number
   leftByAccount: Record<string, number>
+  /** المقترضة فقط: لو الاستلام كان أكبر مما لك عند الشخص — الجزء اللي كان سدادًا (الباقي صار هذه الدفعة). */
+  returnedPart?: number
   /** المقترضة فقط: أصل الالتزام وما سُدّد منه. */
   owed: number
   owedPaid: number
@@ -429,7 +431,7 @@ export function computeMoneyTrail(input: MoneyTrailInput): MoneyTrail {
         }
         const borrowed = mv.amt - returnCents
         if (borrowed > 0) {
-          const b = newBatch('borrowed', mv.ref, mv.date, mv.acc, borrowed, mv.ref, { personId: mv.person, owed: borrowed, note: mv.note })
+          const b = newBatch('borrowed', mv.ref, mv.date, mv.acc, borrowed, mv.ref, { personId: mv.person, owed: borrowed, note: mv.note, returnedPart: returnCents > 0 ? returnCents : undefined })
           put(mv.acc, b.id, borrowed, mv.ref, mv.date)
           const owedQueue = owedQ.get(mv.person) ?? []
           owedQueue.push({ batchId: b.id, amount: borrowed })
@@ -474,6 +476,7 @@ export function computeMoneyTrail(input: MoneyTrailInput): MoneyTrail {
     b.returned = toSar(b.returned)
     b.left = toSar(b.left)
     b.owed = toSar(b.owed)
+    if (b.returnedPart) b.returnedPart = toSar(b.returnedPart)
     b.owedPaid = toSar(b.owedPaid)
     b.spentByCategory = sarRecord(b.spentByCategory)
     b.repaidByPerson = sarRecord(b.repaidByPerson)
@@ -484,6 +487,38 @@ export function computeMoneyTrail(input: MoneyTrailInput): MoneyTrail {
   for (const [k, list] of allocations) allocations.set(k, list.map((p) => ({ batchId: p.batchId, amount: toSar(p.amount) })))
 
   return { batches, byId, allocations, holdings, issues: batches.filter((b) => b.kind === 'unknown') }
+}
+
+/**
+ * «تحتاج نظرة»: خروج بلا مصدر (دفعات «مصدر غير معروف»)، واستلام من شخص أكبر مما لك عنده
+ * (الزيادة صارت سلفة عليك له — غالبًا صح، لكن تستاهل نظرة لو كان خطأ إدخال).
+ */
+export function reviewItems(trail: MoneyTrail): MoneyBatch[] {
+  return trail.batches.filter((b) => b.kind === 'unknown' || (b.kind === 'borrowed' && (b.returnedPart ?? 0) > 0)).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+}
+
+/**
+ * من أي دفعات بيطلع مبلغ لو خرج الآن من حساب — للسطر التوضيحي قبل الحفظ.
+ * المثبّتة أولًا (بحد المتوفر منها)، ثم الأقدم أولًا، والزائد عن رصيد الحساب `null`.
+ */
+export function previewTake(trail: MoneyTrail, accountId: string, amount: number, pin?: string): { batchId: string | null; amount: number }[] {
+  const held = (trail.holdings[accountId] ?? []).map((h) => ({ ...h, amount: toCents(h.amount) }))
+  const out: { batchId: string | null; amount: number }[] = []
+  let need = toCents(amount)
+  const grab = (h: { batchId: string; amount: number }) => {
+    const t = Math.min(h.amount, need)
+    if (t <= 0) return
+    h.amount -= t
+    need -= t
+    const last = out.find((p) => p.batchId === h.batchId)
+    if (last) last.amount += t
+    else out.push({ batchId: h.batchId, amount: t })
+  }
+  const pinned = pin ? held.find((h) => h.batchId === pin) : undefined
+  if (pinned) grab(pinned)
+  for (const h of held) if (need > 0) grab(h)
+  if (need > 0) out.push({ batchId: null, amount: need })
+  return out.map((p) => ({ batchId: p.batchId, amount: toSar(p.amount) }))
 }
 
 /** الدفعات المقترضة المتوفرة الآن في حساب — لاقتراح «من سلفة فلان؟» عند إعطاء سلفة. */
