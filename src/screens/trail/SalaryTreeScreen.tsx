@@ -32,7 +32,9 @@ export function SalaryTreeScreen() {
       ) : (
         periods.map((p, i) => {
           const over = p.left < 0
-          const spentPct = p.salary.amount > 0 ? Math.min(100, (p.spent / p.salary.amount) * 100) : 100
+          const total = Math.max(p.salary.amount, p.spent + p.transferred) || 1
+          const spentPct = (p.spent / total) * 100
+          const movedPct = (p.transferred / total) * 100
           return (
             <button key={p.salary.id} onClick={() => navigate(`/trail/${p.salary.id}`)} className="qb-card qb-press qb-rise mb-2 block w-full p-3.5 text-right" style={rise(i)}>
               <div className="flex items-center gap-3">
@@ -50,13 +52,20 @@ export function SalaryTreeScreen() {
               </div>
               <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[var(--color-surface-high)]" style={{ gap: 2 }}>
                 <span className="qb-trail-grow block h-full" style={{ width: `${spentPct}%`, background: 'var(--color-expense)' }} />
-                {!over && p.left > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${100 - spentPct}%`, background: 'var(--color-accent)', animationDelay: '90ms' }} />}
+                {p.transferred > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${movedPct}%`, background: 'var(--color-transfer)', animationDelay: '60ms' }} />}
+                {!over && p.left > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${100 - spentPct - movedPct}%`, background: 'var(--color-accent)', animationDelay: '120ms' }} />}
               </div>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-2)]">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-[7px] w-[7px] rounded-full bg-[var(--color-expense)]" />
                   صُرف <b className="num text-[var(--color-text)]">{money(p.spent, hidden)}</b>
                 </span>
+                {p.transferred > 0 && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-[7px] w-[7px] rounded-full bg-[var(--color-transfer)]" />
+                    حوّلت <b className="num text-[var(--color-text)]">{money(p.transferred, hidden)}</b>
+                  </span>
+                )}
                 {over ? (
                   <span style={{ color: 'var(--color-expense)' }}>
                     تجاوزت الراتب بـ <b className="num">{money(-p.left, hidden)}</b>

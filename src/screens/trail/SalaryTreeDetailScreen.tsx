@@ -51,10 +51,15 @@ export function SalaryTreeDetailScreen() {
     amount: c.amount,
     color: colorOf(c.categoryId),
   }))
-  if (period.left > 0) branches.push({ key: 'left', label: 'باقي من الراتب', note: period.to ? 'ما انصرف خلال فترته' : 'لين الآن', amount: period.left, color: 'var(--color-accent)' })
-  const base = Math.max(salary.amount, period.spent) || 1
+  const nameOfAccount = (id?: string) => accounts.find((a) => a.id === id)?.name ?? 'حساب محذوف'
+  for (const d of period.byDestination) {
+    branches.push({ key: `to-${d.accountId}`, label: `تحويل إلى ${nameOfAccount(d.accountId)}`, note: `${d.count} تحويل · ما انحسب مصروف`, amount: d.amount, color: 'var(--color-transfer)' })
+  }
+  if (period.left > 0) branches.push({ key: 'left', label: 'باقي من الراتب', note: period.to ? 'ما انصرف ولا انحوّل خلال فترته' : 'لين الآن', amount: period.left, color: 'var(--color-accent)' })
+  const base = Math.max(salary.amount, period.spent + period.transferred) || 1
   const accountName = accounts.find((a) => a.id === salary.accountId)?.name
-  const days = groupByDay([...period.expenses].reverse())
+  // المسار الزمني: المصاريف والتحويلات معًا، مجمّعة باليوم.
+  const days = groupByDay([...period.expenses, ...period.transfers].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)))
 
   return (
     <ScreenScroll header={<ScreenHeader title={salaryTitle(salary.date)} onBack={() => navigate(-1)} right={<EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />} />}>
@@ -75,6 +80,14 @@ export function SalaryTreeDetailScreen() {
           <div>
             <div className="text-[12px] text-[var(--color-text-2)]">{over ? 'تجاوزت الراتب بـ' : 'باقي من الراتب'}</div>
             <BigAmount value={Math.abs(period.left)} hidden={hidden} size={30} className="mt-1" color={over ? 'var(--color-expense)' : undefined} />
+            <div className="mt-1.5 text-[11px] text-[var(--color-text-3)]">
+              صُرف <span className="num text-[var(--color-text-2)]">{money(period.spent, hidden)}</span>
+              {period.transferred > 0 && (
+                <>
+                  {' · '}حوّلت <span className="num" style={{ color: 'var(--color-transfer)' }}>{money(period.transferred, hidden)}</span>
+                </>
+              )}
+            </div>
           </div>
           <div className="text-left">
             <div className="text-[11px] text-[var(--color-text-3)]">من أصل</div>
@@ -90,13 +103,20 @@ export function SalaryTreeDetailScreen() {
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-semibold">{salaryTitle(salary.date)}</div>
             <div className="text-[11px] text-[var(--color-text-3)]">
-              <span className="num">{period.expenses.length}</span> مصروف خلال الفترة
+              <span className="num">{period.expenses.length}</span> مصروف
+              {period.transfers.length > 0 && (
+                <>
+                  {' · '}
+                  <span className="num">{period.transfers.length}</span> تحويل
+                </>
+              )}{' '}
+              خلال الفترة
             </div>
           </div>
           <span className="num text-[14px] font-bold">{money(salary.amount, hidden)}</span>
         </div>
         {branches.length === 0 ? (
-          <div className="pt-3 text-center text-[12px] text-[var(--color-text-3)]">ما سجّلت مصاريف بعد هذا الراتب</div>
+          <div className="pt-3 text-center text-[12px] text-[var(--color-text-3)]">ما سجّلت مصاريف ولا تحويلات بعد هذا الراتب</div>
         ) : (
           <div style={{ paddingInlineStart: 26 }}>
             {branches.map((br, i) => (
@@ -137,16 +157,31 @@ export function SalaryTreeDetailScreen() {
             </div>
             {[...days].reverse().map((day) => (
               <div key={day.date} className="relative py-2.5">
-                <span className="absolute h-3 w-3 rounded-full border-2 border-[var(--color-bg)]" style={{ insetInlineStart: -20, top: 14, background: 'var(--color-expense)' }} />
+                <span
+                  className="absolute h-3 w-3 rounded-full border-2 border-[var(--color-bg)]"
+                  style={{ insetInlineStart: -20, top: 14, background: day.items.every((t) => t.type === 'transfer') ? 'var(--color-transfer)' : 'var(--color-expense)' }}
+                />
                 <div className="flex justify-between text-[10.5px] text-[var(--color-text-3)]">
                   <span className="num">{longDate(day.date)}</span>
-                  {day.items.length > 1 && (
+                  {day.items.filter((t) => t.type === 'expense').length > 1 && (
                     <span className="num" dir="ltr">
-                      −{money(day.items.reduce((s, t) => s + t.amount, 0), hidden)}
+                      −{money(day.items.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0), hidden)}
                     </span>
                   )}
                 </div>
-                {[...day.items].reverse().map((t) => (
+                {[...day.items].reverse().map((t) =>
+                  t.type === 'transfer' ? (
+                    <button key={t.id} onClick={() => navigate(`/add/transaction/${t.id}`)} className="qb-press mt-1 flex w-full items-center gap-2 text-right">
+                      <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: 'var(--color-transfer)' }} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-semibold">تحويل إلى {nameOfAccount(t.transferToAccountId)}</span>
+                        <span className="block truncate text-[11px] text-[var(--color-text-3)]">{t.note || 'ما انحسب مصروف'}</span>
+                      </span>
+                      <span className="num flex-shrink-0 text-[13.5px] font-bold" style={{ color: 'var(--color-transfer)' }}>
+                        {money(t.amount, hidden)}
+                      </span>
+                    </button>
+                  ) : (
                   <button key={t.id} onClick={() => navigate(`/add/transaction/${t.id}`)} className="qb-press mt-1 flex w-full items-center gap-2 text-right">
                     <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: colorOf(t.categoryId ?? '') }} />
                     <span className="min-w-0 flex-1">
@@ -157,7 +192,8 @@ export function SalaryTreeDetailScreen() {
                       −{money(t.amount, hidden)}
                     </span>
                   </button>
-                ))}
+                  ),
+                )}
               </div>
             ))}
           </div>
