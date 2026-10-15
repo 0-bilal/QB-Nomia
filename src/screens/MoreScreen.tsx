@@ -14,7 +14,7 @@ import { TabHeader, HeaderIconButton, FLOATING_ROW_OFFSET } from '../components/
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { ListGroup, ListItem, SearchField } from '../components/ui'
 import { rise } from '../lib/motion'
-import { TrailIcon } from '../components/MoneyTrailVisuals'
+import { TreeIcon } from '../components/SalaryTreeVisuals'
 
 function SearchIcon() {
   return (
@@ -225,10 +225,9 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
     ],
   },
   {
-    // شجرة العلاقات: شاشات تربط الفلوس بمصادرها ووجهاتها. «شجرة المصاريف» زر واحد،
-    // وأقسامها (المقترضة، عند الناس، تحتاج نظرة) من الكبسولة داخلها.
+    // شجرة العلاقات: شاشات تربط الفلوس بما حدث لها — المساحة محجوزة لشاشات قادمة.
     title: 'شجرة العلاقات',
-    items: [{ label: 'شجرة المصاريف', full: 'شجرة المصاريف', desc: 'كل دخل وين راح ومتى، والمقترضة، وعند الناس', to: '/trail', icon: <TrailIcon /> }],
+    items: [{ label: 'شجرة المصاريف', full: 'شجرة المصاريف', desc: 'كل راتب ومصاريف فترته', to: '/trail', icon: <TreeIcon /> }],
   },
   {
     title: 'الدوري',
