@@ -515,9 +515,19 @@ textarea:focus {
   .qb-screen-enter,
   .qb-rise,
   .qb-col-grow,
-  .qb-ring-fill {
+  .qb-ring-fill,
+  .qb-trail-grow {
     animation-duration: 1ms;
   }
+}
+
+/* شجرة المصاريف: أجزاء شريط الدفعة تنمو من اليمين عند الظهور. */
+.qb-trail-grow {
+  transform-origin: right;
+  animation: qb-trail-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes qb-trail-grow {
+  from { transform: scaleX(0); }
 }
 
 /* «تدفّق هذا الشهر»: العمودان ينموان من الأسفل، ويتغيّر ارتفاعهما بهدوء أثناء اختيار يوم على السبارك. */

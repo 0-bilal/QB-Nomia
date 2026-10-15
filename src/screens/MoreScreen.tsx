@@ -14,6 +14,7 @@ import { TabHeader, HeaderIconButton, FLOATING_ROW_OFFSET } from '../components/
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { ListGroup, ListItem, SearchField } from '../components/ui'
 import { rise } from '../lib/motion'
+import { AlertIcon, HandIcon, PeopleIcon, TrailIcon } from '../components/MoneyTrailVisuals'
 
 function SearchIcon() {
   return (
@@ -221,6 +222,15 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       { label: 'الفئات', full: 'فئات المصاريف', desc: 'الفئات والميزانيات', to: '/categories', icon: <TagIcon /> },
       { label: 'الدخل', full: 'مصادر الدخل', desc: 'مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon /> },
       { label: 'الأهداف', full: 'أهداف الادخار', desc: 'تتبّع الأهداف والزكاة', to: '/goals', icon: <GoalIcon /> },
+    ],
+  },
+  {
+    title: 'شجرة المصاريف',
+    items: [
+      { label: 'الدفعات', full: 'شجرة المصاريف', desc: 'كل دخل وين راح ومتى', to: '/trail', icon: <TrailIcon /> },
+      { label: 'المقترضة', full: 'الدفعات المقترضة', desc: 'سلف عليك ووين راحت', to: '/trail?f=borrowed', icon: <HandIcon /> },
+      { label: 'عند الناس', full: 'فلوس عند الناس', desc: 'من أي دفعة طلعت كل سلفة', to: '/trail?f=lent', icon: <PeopleIcon /> },
+      { label: 'تحتاج نظرة', full: 'حركات بلا مصدر', desc: 'خروج أكبر من الفلوس المسجّلة', to: '/trail/review', icon: <AlertIcon /> },
     ],
   },
   {

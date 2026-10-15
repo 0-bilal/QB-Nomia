@@ -156,6 +156,8 @@ export interface LoanTransaction {
   createdAt?: string
   /** سلفة صُرفت مباشرة: المصروف المربوط بها (بدون حساب — لا أثر على أي رصيد). */
   expenseId?: string
+  /** مسار الفلوس: دفعة مثبّتة لهذه السلفة المعطاة بدل «الأقدم أولًا» (lib/moneyTrail). */
+  fundBatchId?: string
 }
 
 export type CategoryKind = 'expense' | 'income'
@@ -190,6 +192,8 @@ export interface Transaction {
   createdAt?: string
   /** مصروف بسلفة من شخص: السلفة المربوطة (accountId فارغ — لا أثر على أي رصيد). */
   loanId?: string
+  /** مسار الفلوس: دفعة مثبّتة لهذا المصروف/التحويل بدل «الأقدم أولًا» (lib/moneyTrail). */
+  fundBatchId?: string
 }
 
 export type BillingCycle = 'monthly' | 'yearly'
