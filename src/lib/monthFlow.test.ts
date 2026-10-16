@@ -52,3 +52,11 @@ describe('categoryShares', () => {
     expect(categoryShares([], 0)).toEqual([])
   })
 })
+
+describe('monthFlowSeries — المدخرات', () => {
+  it('مصروف حسابات المدخرات خارج «daily»', () => {
+    const r = monthFlowSeries([tx('expense', 100, '2026-10-01'), { ...tx('expense', 300, '2026-10-02'), accountId: 'sav' }], new Date(2026, 9, 2), new Set(['sav']))
+    expect(r.expense).toEqual([100, 400])
+    expect(r.daily).toEqual([100, 100])
+  })
+})

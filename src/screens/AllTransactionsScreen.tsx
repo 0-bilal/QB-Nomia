@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { usePreviousFunded } from '../hooks/usePreviousFunded'
+import { useSavingsIds } from '../hooks/useSavingsIds'
 import { PreviousTag } from '../components/PreviousTag'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useData, type ActivityItem } from '../state/DataContext'
@@ -272,7 +272,7 @@ function TypeCapsule({ visible, type, onSelect }: { visible: boolean; type: TxTy
 export function AllTransactionsScreen() {
   const navigate = useNavigate()
   const { recentActivity, accounts, categories, transactions, deleteTransactions, setTransactionsCategory, categorySpentThisMonth } = useData()
-  const previousFunded = usePreviousFunded()
+  const savingsIds = useSavingsIds()
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState('')
   // ?category=<اسم>&period=month|last — يفتح القائمة مفلترة على فئة واحدة وفترتها (من تفاصيل الفئة بشاشة الفئات).
@@ -303,10 +303,10 @@ export function AllTransactionsScreen() {
   const tTotals = useMemo(() => typeTotals(typeBase), [typeBase])
   const noCat = useMemo(() => filterActivity(all, filters, query, today, { ignoreCategory: true }), [all, filters, query, today])
   const filtered = useMemo(() => sortActivity(filterActivity(all, filters, query, today), filters.sort), [all, filters, query, today])
-  /** من مصروف القائمة: اللي غطّاه رصيد سابق (مثل الشراء من الادخار) — يُرجع للصافي فما يطلع عجز. */
+  /** من مصروف القائمة: اللي من المدخرات (ادخار وطوارئ) — يُرجع للصافي فما يطلع عجز. */
   const previousOf = useCallback(
-    (items: ActivityItem[]) => items.reduce((s, i) => (i.kind === 'expense' ? s + (previousFunded.get(i.id)?.amount ?? 0) : s), 0),
-    [previousFunded],
+    (items: ActivityItem[]) => items.reduce((s, i) => (i.kind === 'expense' && i.accountIds.some((a) => savingsIds.has(a)) ? s + Math.abs(i.amount) : s), 0),
+    [savingsIds],
   )
   const totals = useMemo(() => {
     const t = totalsOf(filtered)
@@ -464,7 +464,7 @@ export function AllTransactionsScreen() {
             <Highlight text={item.subtitle} q={q} />
             {!byDate && <span className="num"> · {item.date.slice(5).replace('-', '/')}</span>}
           </div>
-          {item.kind === 'expense' && previousFunded.has(item.id) && <PreviousTag partial={previousFunded.get(item.id)!.amount < Math.abs(item.amount)} />}
+          {item.kind === 'expense' && item.accountIds.some((a) => savingsIds.has(a)) && <PreviousTag />}
         </div>
         <ActivityAmount item={item} />
       </button>

@@ -1,6 +1,6 @@
 import type { Account, Category, Commitment, IncomeSource, LoanTransaction, RecurringTransaction, Subscription, Transaction, ZakatPayment } from '../types'
 import { formatDate } from './format'
-import { fundMonth } from './periodFunding'
+import { savingsSpentInMonth } from './monthLedger'
 
 export function currentMonthValue(): string {
   const d = new Date()
@@ -239,12 +239,12 @@ export interface TrendPoint {
   label: string
   income: number
   expense: number
-  /** من المصروف: اللي غطّاه رصيد سابق (lib/periodFunding) — الصافي = الدخل − (المصروف − هذا). */
-  fromPrevious: number
+  /** من المصروف: اللي من حسابات المدخرات (ادخار وطوارئ) — الصافي = الدخل − (المصروف − هذا). */
+  fromSavings: number
 }
 
 /** نفس فكرة monthlyTrend بالسياق العام، لكن ينتهي بأي شهر تختاره (مو دائمًا الشهر الحالي) — يدعم منتقي الشهر بالتقارير. */
-export function monthlyTrendEndingAt(monthValue: string, transactions: Transaction[], months = 6, loanTransactions: LoanTransaction[] = []): TrendPoint[] {
+export function monthlyTrendEndingAt(monthValue: string, transactions: Transaction[], months = 6, savingsIds: Set<string> = new Set()): TrendPoint[] {
   const [y, m] = monthValue.split('-').map(Number)
   const result: TrendPoint[] = []
   for (let i = months - 1; i >= 0; i--) {
@@ -256,7 +256,7 @@ export function monthlyTrendEndingAt(monthValue: string, transactions: Transacti
       label: d.toLocaleDateString('ar-SA-u-ca-gregory', { month: 'short' }),
       income: inRange.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0),
       expense: inRange.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
-      fromPrevious: fundMonth(transactions, loanTransactions, mv).fromPrevious,
+      fromSavings: savingsSpentInMonth(transactions, savingsIds, mv),
     })
   }
   return result

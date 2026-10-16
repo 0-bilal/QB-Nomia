@@ -56,8 +56,8 @@ export function MonthSummary({
   prevExpense,
   prevName,
   pctChange,
-  fromPrevious = 0,
-  prevFromPrevious = 0,
+  fromSavings = 0,
+  prevFromSavings = 0,
 }: {
   income: number
   expense: number
@@ -65,12 +65,13 @@ export function MonthSummary({
   prevExpense: number
   prevName: string
   pctChange: (cur: number, prev: number) => number | null
-  /** من المصروف: اللي غطّاه رصيد سابق (مثل الشراء من الادخار) — ما ينحسب على التوفير. */
-  fromPrevious?: number
-  prevFromPrevious?: number
+  /** من المصروف: اللي طلع من خارج دخل الشهر (مرحّل أو مدخرات) — ما ينحسب على التوفير. */
+  fromSavings?: number
+  /** «من مدخراتك» / «من مرحّل الشهر الماضي» / «من المرحّل والمدخرات». */
+  prevFromSavings?: number
 }) {
-  const net = income - (expense - fromPrevious)
-  const prevNet = prevIncome - (prevExpense - prevFromPrevious)
+  const net = income - (expense - fromSavings)
+  const prevNet = prevIncome - (prevExpense - prevFromSavings)
   const rate = income > 0 ? Math.round((net / income) * 100) : null
   const netColor = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
   return (
@@ -99,10 +100,10 @@ export function MonthSummary({
               </div>
               <div className="num mb-1.5 mt-0.5 text-[18px] font-bold">{formatAmount(x.value)}</div>
               <DeltaChip pct={pctChange(x.value, x.prev)} goodWhenUp={x.goodWhenUp} />
-              {x.label === 'المصروف' && fromPrevious > 0 && (
+              {x.label === 'المصروف' && fromSavings > 0 && (
                 <div className="mt-1.5 flex items-center gap-1 text-[10.5px] text-[var(--color-text-3)]">
                   <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
-                  منه <span className="num text-[var(--color-text-2)]">{formatAmount(fromPrevious)}</span> من رصيد سابق
+                  منه <span className="num text-[var(--color-text-2)]">{formatAmount(fromSavings)}</span> من مدخراتك
                 </div>
               )}
             </div>
@@ -128,8 +129,8 @@ export function MonthSummary({
 export function FlowChart({ trend, selected, onSelect }: { trend: TrendPoint[]; selected: number; onSelect: (i: number) => void }) {
   const max = Math.max(1, ...trend.flatMap((m) => [m.income, m.expense]))
   const sel = trend[selected]
-  // الصافي على المصروف من دخل الشهر — الصرف من الرصيد السابق ما يطلع عجز.
-  const selNet = sel ? sel.income - (sel.expense - sel.fromPrevious) : 0
+  // الصافي على مصروف الحسابات اليومية — الصرف من المدخرات ما يطلع عجز.
+  const selNet = sel ? sel.income - (sel.expense - sel.fromSavings) : 0
   const BAR_H = 112
   return (
     <div className="qb-card p-4">

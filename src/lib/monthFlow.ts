@@ -5,8 +5,8 @@ export interface MonthFlow {
   income: number[]
   /** المصروف التراكمي بنفس الترتيب. */
   expense: number[]
-  /** المصروف التراكمي اللي غطّاه دخل الشهر (بدون الرصيد السابق) — الصافي عليه. يساوي `expense` لو ما انمرّر توزيع. */
-  fromPeriod: number[]
+  /** المصروف التراكمي من الحسابات اليومية (بدون حسابات المدخرات) — الصافي عليه. يساوي `expense` لو ما انمرّرت حسابات مدخرات. */
+  daily: number[]
 }
 
 /**
@@ -14,31 +14,28 @@ export interface MonthFlow {
  * الحركات بتاريخ لاحق داخل نفس الشهر تُحسب في اليوم الحالي، فآخر نقطة = مجموع الشهر (مثل `monthTotals`).
  * التحويلات لا تدخل.
  */
-export function monthFlowSeries(transactions: Transaction[], now: Date, fromPeriodByDate?: Map<string, number>): MonthFlow {
+export function monthFlowSeries(transactions: Transaction[], now: Date, savingsIds?: Set<string>): MonthFlow {
   const days = now.getDate()
   const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
   const inc = new Array<number>(days).fill(0)
   const exp = new Array<number>(days).fill(0)
+  const daily = new Array<number>(days).fill(0)
   for (const t of transactions) {
     if ((t.type !== 'income' && t.type !== 'expense') || !t.date.startsWith(prefix)) continue
     const i = Math.min(days, Number(t.date.slice(8, 10))) - 1
     if (i < 0) continue
-    ;(t.type === 'income' ? inc : exp)[i] += t.amount
-  }
-  const fp = fromPeriodByDate ? new Array<number>(days).fill(0) : null
-  if (fp && fromPeriodByDate) {
-    for (const [date, v] of fromPeriodByDate) {
-      if (!date.startsWith(prefix)) continue
-      const i = Math.min(days, Number(date.slice(8, 10))) - 1
-      if (i >= 0) fp[i] += v
+    if (t.type === 'income') inc[i] += t.amount
+    else {
+      exp[i] += t.amount
+      if (!savingsIds?.has(t.accountId)) daily[i] += t.amount
     }
   }
   for (let i = 1; i < days; i++) {
     inc[i] += inc[i - 1]
     exp[i] += exp[i - 1]
-    if (fp) fp[i] += fp[i - 1]
+    daily[i] += daily[i - 1]
   }
-  return { income: inc, expense: exp, fromPeriod: fp ?? exp }
+  return { income: inc, expense: exp, daily }
 }
 
 export interface CategoryShare<T> {
