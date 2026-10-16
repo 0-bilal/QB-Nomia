@@ -41,9 +41,10 @@ export function TabHeader({ title, subtitle, actions }: { title: string; subtitl
 }
 
 /** زر إجراء دائري زجاجي لرأس التبويب — نفس مقاس زر العين والجرس. */
-export function HeaderIconButton({ onClick, label, children, accent = false }: { onClick: () => void; label: string; children: ReactNode; accent?: boolean }) {
+export function HeaderIconButton({ onClick, label, children, accent = false, tour }: { onClick: () => void; label: string; children: ReactNode; accent?: boolean; tour?: string }) {
   return (
     <button
+      data-tour={tour}
       onClick={onClick}
       aria-label={label}
       className={`qb-press flex items-center justify-center rounded-full ${accent ? '' : 'qb-glass-circle border'}`}

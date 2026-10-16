@@ -58,6 +58,7 @@ function TypeSwitcher({ tab, onSelect, alerts }: { tab: DebtTab; onSelect: (t: D
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
       >
         <div
+          data-tour="loans-types"
           className="grid grid-cols-5 gap-1.5"
           role="tablist"
           aria-hidden={stuck}
@@ -310,51 +311,53 @@ function OverviewPanel({ onOpenTab }: { onOpenTab: (tab: DebtTab) => void }) {
 
   return (
     <>
-      <DebtHero
-        color={netColor}
-        dates={h.dates}
-        series={[
-          { color: 'var(--color-income)', values: h.owedToMe },
-          { color: 'var(--color-expense)', values: h.iOweAll },
-        ]}
-      >
-        {({ scrub, chart }) => {
-          const owed = scrub === null ? s.owedToMe : h.owedToMe[scrub]
-          const owe = scrub === null ? iOweAll : h.iOweAll[scrub]
-          const shownNet = owed - owe
-          const color = shownNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
-          return (
-            <>
-              <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">صافي موقفك</div>
-              <div className="mt-1 flex items-baseline gap-1.5" style={{ color, textShadow: NUM_SHADOW }}>
-                <span dir="ltr" className="num text-[34px] font-bold">
-                  {shownNet < 0 ? '−' : ''}
-                  {formatAmount(Math.abs(shownNet))}
-                </span>
-                <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
-              </div>
-              <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">{shownNet >= 0 ? 'لك أكثر مما عليك' : 'عليك أكثر مما لك'}</div>
-              {chart ? <div className="mb-1 mt-1">{chart}</div> : <div className="h-3.5" />}
-              <div className="grid grid-cols-2 gap-2.5">
-                {[
-                  { label: 'مستحق لك', value: owed, color: 'var(--color-income)' },
-                  { label: 'إجمالي عليك', value: owe, color: 'var(--color-expense)' },
-                ].map((x) => (
-                  <div key={x.label}>
-                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
-                      <span className="rounded-full" style={{ width: 7, height: 7, background: x.color }} />
-                      {x.label}
+      <div data-tour="loans-panel">
+        <DebtHero
+          color={netColor}
+          dates={h.dates}
+          series={[
+            { color: 'var(--color-income)', values: h.owedToMe },
+            { color: 'var(--color-expense)', values: h.iOweAll },
+          ]}
+        >
+          {({ scrub, chart }) => {
+            const owed = scrub === null ? s.owedToMe : h.owedToMe[scrub]
+            const owe = scrub === null ? iOweAll : h.iOweAll[scrub]
+            const shownNet = owed - owe
+            const color = shownNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)'
+            return (
+              <>
+                <div className="text-[12.5px] font-medium text-[var(--color-text-2)]">صافي موقفك</div>
+                <div className="mt-1 flex items-baseline gap-1.5" style={{ color, textShadow: NUM_SHADOW }}>
+                  <span dir="ltr" className="num text-[34px] font-bold">
+                    {shownNet < 0 ? '−' : ''}
+                    {formatAmount(Math.abs(shownNet))}
+                  </span>
+                  <span className="text-[13px] font-medium text-[var(--color-text-3)]">ر.س</span>
+                </div>
+                <div className="mt-0.5 text-[11.5px] text-[var(--color-text-3)]">{shownNet >= 0 ? 'لك أكثر مما عليك' : 'عليك أكثر مما لك'}</div>
+                {chart ? <div className="mb-1 mt-1">{chart}</div> : <div className="h-3.5" />}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[
+                    { label: 'مستحق لك', value: owed, color: 'var(--color-income)' },
+                    { label: 'إجمالي عليك', value: owe, color: 'var(--color-expense)' },
+                  ].map((x) => (
+                    <div key={x.label}>
+                      <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+                        <span className="rounded-full" style={{ width: 7, height: 7, background: x.color }} />
+                        {x.label}
+                      </div>
+                      <div className="num mt-0.5 text-[16px] font-bold" style={{ textShadow: NUM_SHADOW }}>
+                        {formatAmount(x.value)}
+                      </div>
                     </div>
-                    <div className="num mt-0.5 text-[16px] font-bold" style={{ textShadow: NUM_SHADOW }}>
-                      {formatAmount(x.value)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )
-        }}
-      </DebtHero>
+                  ))}
+                </div>
+              </>
+            )
+          }}
+        </DebtHero>
+      </div>
 
       <SectionHead title="حسب النوع" />
       <div className="grid grid-cols-2 gap-2.5">
@@ -508,7 +511,7 @@ export function DebtsHubScreen() {
         title="السلف والديون"
         subtitle={DEBT_META[tab].subtitle}
         actions={
-          <HeaderIconButton accent label="إضافة" onClick={() => setAddOpen(true)}>
+          <HeaderIconButton accent tour="loans-add" label="إضافة" onClick={() => setAddOpen(true)}>
             <PlusGlyph />
           </HeaderIconButton>
         }
