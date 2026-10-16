@@ -101,10 +101,10 @@ export function monthNotes(params: {
   categories: Category[]
   monthlyBudgetLimit: number | null
   today: Date
-  /** مصروف الشهر اللي غطّاه رصيد سابق (lib/periodFunding) — ما ينحسب على السقف. */
-  fromPrevious?: number
+  /** مصروف الشهر من المدخرات (ادخار وطوارئ) — ما ينحسب على السقف. */
+  fromSavings?: number
 }): MonthNote[] {
-  const { monthValue, transactions, categories, monthlyBudgetLimit, today, fromPrevious = 0 } = params
+  const { monthValue, transactions, categories, monthlyBudgetLimit, today, fromSavings = 0 } = params
   const notes: MonthNote[] = []
   const nameOf = (id: string) => (id === '__none__' ? 'بدون فئة' : (categories.find((c) => c.id === id)?.name ?? 'فئة محذوفة'))
   const [y, m] = monthValue.split('-').map(Number)
@@ -154,7 +154,7 @@ export function monthNotes(params: {
   }
 
   if (isCurrent && monthlyBudgetLimit && elapsed >= 5) {
-    const spent = Math.max(0, [...cur.values()].reduce((s, v) => s + v, 0) - fromPrevious)
+    const spent = Math.max(0, [...cur.values()].reduce((s, v) => s + v, 0) - fromSavings)
     const projected = (spent / elapsed) * daysInMonth
     notes.push(
       projected > monthlyBudgetLimit

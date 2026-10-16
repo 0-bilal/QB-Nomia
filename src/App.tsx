@@ -39,8 +39,8 @@ import { ChangePinScreen } from './screens/ChangePinScreen'
 import { CalculatorScreen } from './screens/CalculatorScreen'
 import { VehicleScreen } from './screens/VehicleScreen'
 import { LogVehicleScreen } from './screens/LogVehicleScreen'
-import { SalaryTreeScreen } from './screens/trail/SalaryTreeScreen'
-import { SalaryTreeDetailScreen } from './screens/trail/SalaryTreeDetailScreen'
+import { MonthTreeScreen } from './screens/trail/MonthTreeScreen'
+import { MonthTreeDetailScreen } from './screens/trail/MonthTreeDetailScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -108,8 +108,8 @@ export default function App() {
         <Route path="calculator" element={<CalculatorScreen />} />
         <Route path="vehicle" element={<VehicleScreen />} />
         <Route path="vehicle/log/:type" element={<LogVehicleScreen />} />
-        <Route path="trail" element={<SalaryTreeScreen />} />
-        <Route path="trail/:salaryId" element={<SalaryTreeDetailScreen />} />
+        <Route path="trail" element={<MonthTreeScreen />} />
+        <Route path="trail/:month" element={<MonthTreeDetailScreen />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -21,6 +21,7 @@ import { QuickSyncButton } from '../components/QuickSyncButton'
 import { BalanceCapsule, GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
 import { daysBetween, daysLeftLabel, localIso, upcomingItems } from '../lib/homeFeed'
 import { categoryShares, monthFlowSeries } from '../lib/monthFlow'
+import { savingsAccountIds, savingsSpentByAccount } from '../lib/monthLedger'
 import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
@@ -163,7 +164,7 @@ export function HomeScreen() {
     categories,
     categorySpentThisMonth,
     monthTotals,
-    monthFunding,
+    monthLedgerNow,
     subscriptions,
     recurringTransactions,
     monthlyBudgetLimit,
@@ -194,9 +195,10 @@ export function HomeScreen() {
 
   const activity = recentActivity(8)
   const { income: monthIncome, expense: monthExpense } = monthTotals()
-  // الصرف من الرصيد السابق (مثل الشراء من الادخار) ما ينحسب على دخل الشهر ولا ميزانيته.
-  const funding = useMemo(() => monthFunding(), [monthFunding])
-  const monthPeriodExpense = funding.fromPeriod
+  // الصرف من المدخرات (ادخار وطوارئ) ما ينحسب على دخل الشهر ولا ميزانيته — نفس كشف الشهر في شجرة المصاريف.
+  const ledger = useMemo(() => monthLedgerNow(), [monthLedgerNow])
+  const savingsIds = useMemo(() => savingsAccountIds(accounts), [accounts])
+  const monthPeriodExpense = ledger.spent
   const monthNet = monthIncome - monthPeriodExpense
   const flowTotal = monthIncome + monthExpense
 
@@ -204,8 +206,12 @@ export function HomeScreen() {
     categories.filter((c) => c.kind === 'expense').map((c) => ({ ...c, spent: categorySpentThisMonth(c.id) })),
     monthExpense,
   )
-  const monthFlow = useMemo(() => monthFlowSeries(transactions, new Date(), funding.fromPeriodByDate), [transactions, funding])
-  const previousSources = funding.previousSources.map((p) => ({ name: accounts.find((a) => a.id === p.accountId)?.name ?? 'حساب محذوف', amount: p.amount, viaTransfer: p.viaTransfer }))
+  const monthFlow = useMemo(() => monthFlowSeries(transactions, new Date(), savingsIds), [transactions, savingsIds])
+  // خارج دخل الشهر: المرحّل من الشهر الماضي، والصرف من المدخرات بالحساب.
+  const outsideIncome = {
+    carried: ledger.carried,
+    savings: savingsSpentByAccount(transactions, savingsIds, ledger.month).map((p) => ({ name: accounts.find((a) => a.id === p.accountId)?.name ?? 'حساب محذوف', amount: p.amount })),
+  }
 
   const activeCommitments = commitments.filter((c) => c.status === 'active')
 
@@ -216,7 +222,7 @@ export function HomeScreen() {
   // الترحيب: مصروف اليوم، وميزانية اليوم (المتبقي من ميزانية الشهر ÷ الأيام الباقية)، ونزول الراتب اليوم.
   const todayIso = localIso(now)
   const todaySpent = transactions.filter((x) => x.type === 'expense' && x.date === todayIso).reduce((s, x) => s + x.amount, 0)
-  const todayPeriodSpent = funding.fromPeriodByDate.get(todayIso) ?? 0
+  const todayPeriodSpent = transactions.filter((x) => x.type === 'expense' && x.date === todayIso && !savingsIds.has(x.accountId)).reduce((s, x) => s + x.amount, 0)
   const monthBudgetLeft = monthlyBudgetLimit ? monthlyBudgetLimit - monthPeriodExpense : null
   const dailyBudget = monthBudgetLeft !== null ? Math.max(0, Math.round((monthBudgetLeft + todayPeriodSpent) / (totalDaysInMonth - daysElapsedInMonth + 1))) : null
   const salaryToday = transactions.some((x) => x.type === 'income' && x.incomeSourceId === SALARY_INCOME_SOURCE_ID && x.date === todayIso)
@@ -475,7 +481,7 @@ export function HomeScreen() {
 
       {/* ملخص الشهر: التدفّق مع السبارك، ثم الاشتراكات والالتزامات */}
       <section className="qb-rise mb-3" style={rise(4)}>
-        <MonthFlowCard flow={monthFlow} hidden={hidden} monthIndex={now.getMonth()} sources={previousSources} />
+        <MonthFlowCard flow={monthFlow} hidden={hidden} monthIndex={now.getMonth()} outside={outsideIncome} />
       </section>
 
       {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (

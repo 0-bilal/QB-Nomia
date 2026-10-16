@@ -10,7 +10,7 @@ import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
 import { formatMoney } from '../lib/format'
 import { localIso } from '../lib/homeFeed'
 import { reconcileDiff } from '../lib/reconcile'
-import { fundMonth, type PeriodFunding } from '../lib/periodFunding'
+import { monthLedger, type MonthLedger } from '../lib/monthLedger'
 import type {
   Account,
   BillingCycle,
@@ -469,8 +469,8 @@ interface DataContextValue {
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
   monthTotals: () => { income: number; expense: number }
-  /** الشهر الحالي: المصروف من دخل الشهر ومن الرصيد السابق (lib/periodFunding). الميزانية والصافي على `fromPeriod`. */
-  monthFunding: () => PeriodFunding
+  /** كشف الشهر الحالي (lib/monthLedger): `spent` = مصروف الحسابات اليومية — الصافي والسقف عليه؛ الصرف من المدخرات منفصل. */
+  monthLedgerNow: () => MonthLedger
   monthlyTrend: (months?: number) => { label: string; income: number; expense: number }[]
   financialHealthScore: () => number | null
   exportSnapshot: () => DataSnapshot
@@ -790,9 +790,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    function monthFunding(): PeriodFunding {
+    function monthLedgerNow(): MonthLedger {
       const now = new Date()
-      return fundMonth(transactions, loanTransactions, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+      return monthLedger({ accounts, transactions, loanTransactions, reconciliations }, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
     }
 
     function monthlyTrend(months = 6): { label: string; income: number; expense: number }[] {
@@ -817,8 +817,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
      * لا معنى له بدون دخل مسجّل هذا الشهر فيرجع null.
      */
     function financialHealthScore(): number | null {
-      // المصروف من الرصيد السابق (مثل الشراء من الادخار) ما يُحسب على دخل الشهر.
-      const { income, fromPeriod: expense } = monthFunding()
+      // الصرف من المدخرات (ادخار وطوارئ) ما يُحسب على دخل الشهر.
+      const { incomeTotal: income, spent: expense } = monthLedgerNow()
       if (income <= 0) return null
       const savingsRate = (income - expense) / income
       const subscriptionBurden = totalMonthlySubscriptions / income
@@ -1076,7 +1076,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       if (monthlyBudgetLimit) {
-        const spent = monthFunding().fromPeriod
+        const spent = monthLedgerNow().spent
         const pct = (spent / monthlyBudgetLimit) * 100
         if (pct >= 100) {
           list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: 'الميزانية الإجمالية', message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
@@ -1459,7 +1459,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       recentActivity,
       accountActivity,
       monthTotals,
-      monthFunding,
+      monthLedgerNow,
       monthlyTrend,
       financialHealthScore,
       addPerson(input: AddPersonInput) {

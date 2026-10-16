@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { usePreviousFunded } from '../hooks/usePreviousFunded'
+import { useSavingsIds } from '../hooks/useSavingsIds'
 import { PreviousTag } from './PreviousTag'
 import { ActivityAmount, ActivityIcon } from './ActivityIcon'
 import { CategoryIconBox } from './CategoryVisual'
@@ -130,7 +130,7 @@ export function GroupedActivity({
   swipeFor: (item: ActivityItem) => { leftSwipe?: SwipeAction; rightSwipe?: SwipeAction }
   onOpen: (item: ActivityItem) => void
 }) {
-  const previousFunded = usePreviousFunded()
+  const savingsIds = useSavingsIds()
   return (
     <>
       {groupByDay(items).map((group) => {
@@ -168,7 +168,7 @@ export function GroupedActivity({
                           {item.note?.trim() ? `${item.note.trim()} · ` : ''}
                           {item.subtitle}
                         </div>
-                        {item.kind === 'expense' && previousFunded.has(item.id) && <PreviousTag partial={previousFunded.get(item.id)!.amount < Math.abs(item.amount)} />}
+                        {item.kind === 'expense' && item.accountIds.some((a) => savingsIds.has(a)) && <PreviousTag />}
                       </div>
                       <ActivityAmount item={item} hidden={hidden} />
                     </button>

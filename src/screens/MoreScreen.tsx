@@ -14,7 +14,7 @@ import { TabHeader, HeaderIconButton, FLOATING_ROW_OFFSET } from '../components/
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { ListGroup, ListItem, SearchField } from '../components/ui'
 import { rise } from '../lib/motion'
-import { TreeIcon } from '../components/SalaryTreeVisuals'
+import { TreeIcon } from '../components/MonthTreeVisuals'
 
 function SearchIcon() {
   return (
@@ -227,7 +227,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
     // شجرة العلاقات: شاشات تربط الفلوس بما حدث لها — المساحة محجوزة لشاشات قادمة.
     title: 'شجرة العلاقات',
-    items: [{ label: 'شجرة المصاريف', full: 'شجرة المصاريف', desc: 'كل راتب ومصاريف فترته', to: '/trail', icon: <TreeIcon /> }],
+    items: [{ label: 'شجرة المصاريف', full: 'شجرة المصاريف', desc: 'كل شهر: اللي دخل ووين راح', to: '/trail', icon: <TreeIcon /> }],
   },
   {
     title: 'الدوري',

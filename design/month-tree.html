@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>شجرة الشهر</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --commit:#5fb3ff; --owed-to:#2ee6c8; --owed-by:#ff9a4d;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+    --stripes:repeating-linear-gradient(135deg,rgba(161,161,173,.85) 0 4px,rgba(161,161,173,.35) 4px 8px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px;display:flex;justify-content:space-between}
+  .plbl b{color:var(--text-2);font-weight:600}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .phone{width:390px;max-width:100%;min-height:800px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;padding:22px 20px 30px;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:28px;padding:18px 14px 24px}}
+  .hdr{display:flex;justify-content:space-between;align-items:center}
+  .gb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+  .h1{font-size:28px;font-weight:700;margin:14px 0 4px}
+  .sub{font-size:11.5px;color:var(--text-3);margin-bottom:14px}
+  .fade{animation:fade .45s var(--expo) both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .hero{position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.09);padding:16px;background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.06),transparent 55%),linear-gradient(165deg,var(--surface-el),var(--bg))}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .fs{font-size:11px;color:var(--text-3)}
+  .ft{font-size:13px;font-weight:600}
+  .amt{font-weight:700;line-height:1.15}
+  .amt span{font-family:var(--font-sans);font-size:.45em;font-weight:500;color:var(--text-3);margin-inline-start:4px}
+  .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+  .sec{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:600;color:var(--text-2);margin:16px 2px 6px}
+  .tree{padding-inline-start:26px}
+  .br{position:relative;padding:9px 0}
+  .br::before{content:'';position:absolute;inset-inline-start:-9px;top:0;height:100%;width:2px;background:var(--border-strong)}
+  .br:last-child::before{height:20px}
+  .br::after{content:'';position:absolute;inset-inline-start:-9px;top:19px;width:11px;height:2px;border-radius:2px;background:var(--border-strong)}
+  .brh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .pct{height:4px;border-radius:99px;background:var(--surface-hi);margin-top:6px;overflow:hidden}
+  .pct i{display:block;height:100%;border-radius:99px;transform-origin:right;animation:growx .7s var(--calm) both}
+  @keyframes growx{from{transform:scaleX(0)}}
+  .subl{margin-top:6px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);padding:2px 10px}
+  .subl div{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-2);padding:5px 0}
+  .subl div+div{border-top:1px solid var(--border)}
+  .eq{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:center;margin-top:12px}
+  .chip{display:inline-flex;flex-direction:column;align-items:center;border-radius:14px;padding:6px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);min-width:64px}
+  .chip b{font-family:var(--font-num);font-size:14px}
+  .chip small{font-size:10px;color:var(--text-3)}
+  .op{color:var(--text-3);font-weight:700}
+  .bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface-hi);gap:2px}
+  .bar i{display:block;height:100%;transform-origin:right;animation:growx .7s var(--calm) both}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11px;color:var(--text-2)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:7px;height:7px;border-radius:50%}
+  .tl{position:relative;padding-inline-start:22px}
+  .tl::before{content:'';position:absolute;inset-inline-start:7px;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--border-strong)}
+  .ti{position:relative;padding:8px 0}
+  .ti .dot{position:absolute;inset-inline-start:-20px;top:13px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg)}
+  .ti .d{font-size:10.5px;color:var(--text-3)}
+  .row{display:flex;align-items:center;gap:8px;margin-top:3px}
+  .row .t{flex:1;font-size:13px;font-weight:600}
+  .row .n{display:block;font-size:11px;color:var(--text-3);font-weight:400}
+  .info{display:flex;gap:10px;align-items:flex-start;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--border);padding:11px 13px;font-size:11.5px;color:var(--text-2);line-height:1.7;margin-top:12px}
+  .info svg{flex-shrink:0;margin-top:2px;color:var(--text-3)}
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:2px}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>شجرة الشهر</h1>
+  <p>كل شهر كشف واضح: <b>اللي دخل</b> (مرحّل من الشهر الماضي + دخل الشهر حسب المصدر + اللي رجع من الناس) = <b>وين راح</b> (صرفت + ادّخرت + عند الناس + باقي يترحّل للشهر الجاي). الحسابات تنقسم تلقائيًا حسب نوعها: يومية (كاش، بنك، محافظ، بطاقات) ومدخرات (ادخار، طوارئ). التحويل داخل نفس المجموعة ما يظهر — نقل فلوس بس.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">الشاشة <b id="nScr"></b></div>
+    <div class="seg" id="segScr">
+      <button data-v="0" class="on">قائمة الأشهر</button>
+      <button data-v="1">شجرة أكتوبر</button>
+      <button data-v="2">المسار الزمني</button>
+      <button data-v="3">شجرة سبتمبر</button>
+    </div>
+  </div>
+  <div id="optBox">
+    <div class="plbl">عرض «اللي دخل = وين راح» <b id="nOpt"></b></div>
+    <div class="seg" id="segOpt">
+      <button data-v="0" class="on"><span class="num">1</span> · شجرتان (دخل ثم راح)</button>
+      <button data-v="1"><span class="num">2</span> · معادلة + شجرة</button>
+    </div>
+  </div>
+</div>
+
+<div class="phone"><div id="root"></div></div>
+<div class="note" id="note"></div>
+
+<script>
+const svg = (p,s=18,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const f = n => Math.abs(n).toLocaleString('en-US')
+const I = {
+  back:svg('<path d="m9 6 6 6-6 6"/>',18,2.2),
+  info:svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',16,2),
+  vault:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M12 9v-1M15 12h1"/>',17),
+  cal:svg('<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',17),
+  carry:svg('<path d="M4 12h12M12 7l5 5-5 5"/><path d="M20 5v14"/>',17,2),
+}
+
+/* ===== بيانات مثال (تحاكي أنماط حقيقية: الكاش مركز، تحويلات للادخار، سلف تُسدَّد على دفعات) ===== */
+const MONTHS = {
+  oct: {
+    title:'أكتوبر 2026', sub:'حتى اليوم · 16 يوم', current:true,
+    carried:481, carriedFrom:'سبتمبر',
+    income:[['راتب',3700,'var(--commit)'],['عمل حر',200,'var(--income)'],['هدايا',28,'var(--sub)']],
+    back:[['نور',207]],
+    spent:1988, cats:[['هدايا',362],['صحة',293],['مطاعم',256],['اشتراكات',219],['ترفيه',190],['أخرى',668]],
+    saved:[['ادخار',2000]],
+    lent:[['شاكر',200],['تميم',100]],
+    left:328,
+    savings:{start:3500, in:2000, out:[['الست اب',3400],['سلفة لنور',1900]], end:200},
+  },
+  sep: {
+    title:'سبتمبر 2026', sub:'شهر مكتمل', current:false,
+    carried:450, carriedFrom:'أغسطس',
+    income:[['راتب',4000,'var(--commit)'],['عمل حر',200,'var(--income)'],['أخرى',70,'var(--text-2)']],
+    back:[['نور',740],['ديو برجر',332]],
+    spent:2811, cats:[['هدايا',654],['ملابس',500],['مطاعم',409],['صيانة السيارة',380],['الكترونيات',248],['أخرى',620]],
+    saved:[['ادخار',2000],['طوارئ',500]],
+    lent:[],
+    left:481,
+    savings:{start:1500, in:2500, out:[['ملابس',500]], end:3500},
+  },
+}
+const sum = a => a.reduce((s,x)=>s+x[1],0)
+const S = { scr:0, opt:0 }
+
+const br = (label,note,amt,color,pct,extra='') => `<div class="br"><div class="brh"><span class="ft">${label}</span><span class="num" style="font-weight:700">${f(amt)}</span></div>${note?`<div class="fs">${note}</div>`:''}<div class="pct"><i style="width:${Math.max(2,pct)}%;background:${color}"></i></div>${extra}</div>`
+const subl = rows => `<div class="subl">${rows.map(([n,v])=>`<div><span>${n}</span><span class="num">${f(v)}</span></div>`).join('')}</div>`
+
+function totals(m){
+  const inc = sum(m.income), back = sum(m.back), inTotal = m.carried + inc + back
+  const saved = sum(m.saved), lent = sum(m.lent), outTotal = m.spent + saved + lent + m.left
+  return {inc, back, inTotal, saved, lent, outTotal}
+}
+
+/* ===== قائمة الأشهر ===== */
+function list(){
+  const card = (key) => {
+    const m = MONTHS[key], t = totals(m), base = t.outTotal
+    return `<div class="card press fade" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="ic" style="background:rgba(255,255,255,.06);color:var(--text)">${I.cal}</span>
+        <div style="flex:1"><div class="ft" style="font-size:14px">${m.title}</div><div class="fs">${m.sub}</div></div>
+        <div style="text-align:left"><div class="fs">دخل الشهر</div><div class="num" style="font-weight:700;color:var(--income)">${f(t.inc)}</div></div>
+      </div>
+      <div class="bar" style="margin-top:12px">
+        <i style="width:${m.spent/base*100}%;background:var(--expense)"></i>
+        <i style="width:${t.saved/base*100}%;background:var(--transfer);animation-delay:60ms"></i>
+        ${t.lent?`<i style="width:${t.lent/base*100}%;background:var(--owed-to);animation-delay:90ms"></i>`:''}
+        <i style="width:${m.left/base*100}%;background:var(--accent);animation-delay:120ms"></i>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--expense)"></i>صرفت <b class="num" style="color:var(--text)">${f(m.spent)}</b></span>
+        <span><i style="background:var(--transfer)"></i>ادّخرت <b class="num" style="color:var(--text)">${f(t.saved)}</b></span>
+        ${t.lent?`<span><i style="background:var(--owed-to)"></i>عند الناس <b class="num" style="color:var(--text)">${f(t.lent)}</b></span>`:''}
+        <span><i style="background:var(--accent)"></i>${m.current?'باقي':'ترحّل'} <b class="num" style="color:var(--text)">${f(m.left)}</b></span>
+      </div>
+    </div>`
+  }
+  return `<div class="hdr"><span class="gb">${I.back}</span><span></span><span style="width:40px"></span></div>
+    <div class="h1">شجرة المصاريف</div><div class="sub">كل شهر: اللي دخل ووين راح</div>
+    ${card('oct')}${card('sep')}
+    <div class="info">${I.info}<div>الأشهر تقويمية. مصادر الدخل (راتب، عمل حر، هدايا…) تظهر داخل الشهر كتصنيف، وما تقسم الفترات.</div></div>`
+}
+
+/* ===== شجرة الشهر ===== */
+function monthTree(key){
+  const m = MONTHS[key], t = totals(m), base = t.inTotal
+  const inTree = `
+    <div class="sec"><span>اللي دخل</span><span class="num" style="color:var(--text)">${f(t.inTotal)}</span></div>
+    <div class="tree">
+      ${br(`مرحّل من ${m.carriedFrom}`,'باقي الشهر الماضي في حساباتك اليومية',m.carried,'var(--accent)',m.carried/base*100)}
+      ${m.income.map(([n,v,c])=>br(n,'دخل',v,c,v/base*100)).join('')}
+      ${m.back.length?br('رجع من الناس',m.back.map(([n,v])=>`${n} ${f(v)}`).join(' · '),t.back,'var(--owed-to)',t.back/base*100):''}
+    </div>`
+  const outTree = `
+    <div class="sec"><span>وين راح</span><span class="num" style="color:var(--text)">${f(t.outTotal)}</span></div>
+    <div class="tree">
+      ${br('صرفت',`${m.cats.length} فئات`,m.spent,'var(--expense)',m.spent/base*100,subl(m.cats))}
+      ${br('ادّخرت',m.saved.map(([n,v])=>`${n} ${f(v)}`).join(' · '),t.saved,'var(--transfer)',t.saved/base*100)}
+      ${t.lent?br('عند الناس',m.lent.map(([n,v])=>`${n} ${f(v)}`).join(' · '),t.lent,'var(--owed-to)',t.lent/base*100):''}
+      ${br(m.current?'باقي لين الآن':`ترحّل لـ${key==='sep'?'أكتوبر':'الشهر الجاي'}`, m.current?'يترحّل للشهر الجاي':'صار «مرحّل» في أول الشهر الجاي', m.left,'var(--accent)',m.left/base*100)}
+    </div>`
+  const eq = `<div class="eq">
+      <span class="chip"><b>${f(m.carried)}</b><small>مرحّل</small></span><span class="op">+</span>
+      <span class="chip"><b style="color:var(--income)">${f(t.inc)}</b><small>دخل</small></span>
+      ${t.back?`<span class="op">+</span><span class="chip"><b style="color:var(--owed-to)">${f(t.back)}</b><small>رجع لك</small></span>`:''}
+      <span class="op">=</span>
+      <span class="chip"><b style="color:var(--expense)">${f(m.spent)}</b><small>صرفت</small></span><span class="op">+</span>
+      <span class="chip"><b style="color:var(--transfer)">${f(t.saved)}</b><small>ادّخرت</small></span>
+      ${t.lent?`<span class="op">+</span><span class="chip"><b style="color:var(--owed-to)">${f(t.lent)}</b><small>عند الناس</small></span>`:''}
+      <span class="op">+</span><span class="chip"><b>${f(m.left)}</b><small>${m.current?'باقي':'ترحّل'}</small></span>
+    </div>`
+  const sv = m.savings
+  const savingsCard = `<div class="card fade" style="margin-top:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="ic" style="background:rgba(139,123,255,.14);color:var(--transfer)">${I.vault}</span>
+        <div style="flex:1"><div class="ft">مدخراتك</div><div class="fs">الادخار والطوارئ · ما تنحسب على دخل الشهر</div></div>
+        <div style="text-align:left"><div class="fs">الآن</div><div class="num" style="font-weight:700">${f(sv.end)}</div></div>
+      </div>
+      <div class="subl" style="margin-top:10px">
+        <div><span>أول الشهر</span><span class="num">${f(sv.start)}</span></div>
+        <div><span>ادّخرت هذا الشهر</span><span class="num" style="color:var(--transfer)">+${f(sv.in)}</span></div>
+        ${sv.out.map(([n,v])=>`<div><span>صرفت منها · ${n}</span><span class="num" dir="ltr" style="color:var(--text)">−${f(v)}</span></div>`).join('')}
+      </div>
+    </div>`
+  return `<div class="hdr"><span class="gb">${I.back}</span><span></span><span style="width:40px"></span></div>
+    <div class="h1">${m.title}</div><div class="sub">${m.sub} · حساباتك اليومية</div>
+    <div class="hero fade">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div><div class="fs" style="font-size:12px;color:var(--text-2)">${m.current?'باقي لين الآن':'ترحّل للشهر الجاي'}</div>
+          <div class="amt num" style="font-size:32px">${f(m.left)}<span>ر.س</span></div></div>
+        <div style="text-align:left"><div class="fs">دخل الشهر</div><div class="num" style="font-weight:700;color:var(--income)">${f(t.inc)}</div></div>
+      </div>
+      ${S.opt===1?eq:''}
+      ${S.opt===0?inTree+outTree:outTree}
+    </div>
+    ${savingsCard}`
+}
+
+/* ===== المسار الزمني ===== */
+function timeline(){
+  const item = (d,dot,rows) => `<div class="ti"><span class="dot" style="background:${dot}"></span><div class="d num">${d}</div>${rows}</div>`
+  const row = (t,n,a,c='var(--text)') => `<div class="row"><span class="t">${t}${n?`<span class="n">${n}</span>`:''}</span><span class="num" style="font-weight:700;color:${c}" dir="ltr">${a}</span></div>`
+  return `<div class="hdr"><span class="gb">${I.back}</span><span></span><span style="width:40px"></span></div>
+    <div class="h1">أكتوبر 2026</div><div class="sub">المسار الزمني</div>
+    <div class="tl">
+      ${item('1 أكتوبر','var(--accent)',row('مرحّل من سبتمبر','باقي في حساباتك اليومية','481'))}
+      ${item('1 أكتوبر','var(--income)',row('راتب','','+3,700','var(--income)'))}
+      ${item('2 أكتوبر','var(--transfer)',row('ادّخرت','تحويل للادخار','2,000','var(--transfer)')+row('سلفة لشاكر','','200','var(--owed-to)'))}
+      ${item('3 أكتوبر','var(--expense)',row('مطاعم','','−86')+row('ترفيه','','−190'))}
+      ${item('4 أكتوبر','var(--expense)',row('الست اب','من مدخراتك · ما تنحسب على الشهر','−3,400','var(--text-2)'))}
+      ${item('5 أكتوبر','var(--income)',row('عمل حر','','+200','var(--income)'))}
+      ${item('10 أكتوبر','var(--owed-to)',row('رجع من نور','3 دفعات','+207','var(--owed-to)'))}
+    </div>
+    <div class="info">${I.info}<div>التحويلات داخل حساباتك اليومية (كاش ← محفظة، كاش ← ريال معدني…) <b style="color:var(--text)">ما تظهر</b> — نقل فلوس بس. والدفعات الصغيرة من نفس الشخص بنفس الأسبوع تنجمع بسطر واحد.</div></div>`
+}
+
+const SCREENS = [list, () => monthTree('oct'), timeline, () => monthTree('sep')]
+const NOTES = [
+  () => '<span class="k">قائمة الأشهر</span>بطاقة لكل شهر تقويمي: دخل الشهر، وشريط وين راح (صرفت · ادّخرت · عند الناس · باقي/ترحّل). مصادر الدخل ما تفتح فترات.',
+  () => S.opt===0
+    ? '<span class="k">خيار 1 — شجرتان</span>فوق: <b>اللي دخل</b> (مرحّل من سبتمبر 481 + الراتب + العمل الحر + الهدايا + رجع من نور). تحت: <b>وين راح</b> (صرفت بفئاتها، ادّخرت، عند الناس، باقي يترحّل). الطرفان متساويان دائمًا (4,616). تحتها بطاقة <b>مدخراتك</b> منفصلة: الشراء من الادخار يظهر هناك وما ينقص من الشهر.'
+    : '<span class="k">خيار 2 — معادلة + شجرة</span>سطر معادلة مختصر <b>481 + 3,928 + 207 = 1,988 + 2,000 + 300 + 328</b> يعطي الصورة بنظرة، وتحته شجرة «وين راح» فقط. أقصر، والمرحّل والمصادر في المعادلة.',
+  () => '<span class="k">المسار الزمني</span>يبدأ بالمرحّل من الشهر الماضي ثم الحركات يومًا بيوم. الادخار والسلف بلونها، والشراء من المدخرات رمادي مع «ما تنحسب على الشهر». التحويلات الداخلية بين الحسابات اليومية مخفية.',
+  () => '<span class="k">سبتمبر (شهر مكتمل)</span>نفس الشكل، وآخر فرع «ترحّل لأكتوبر 481» — نفس الرقم اللي يبدأ فيه أكتوبر كـ«مرحّل من سبتمبر». هذا يربط الأشهر ببعض.',
+]
+
+const root = document.getElementById('root')
+function render(){
+  root.innerHTML = `<div class="fade">${SCREENS[S.scr]()}</div>`
+  document.querySelectorAll('#segScr button').forEach(b=>b.classList.toggle('on',+b.dataset.v===S.scr))
+  document.querySelectorAll('#segOpt button').forEach(b=>b.classList.toggle('on',+b.dataset.v===S.opt))
+  document.getElementById('optBox').style.display = S.scr===1||S.scr===3 ? '' : 'none'
+  document.getElementById('nScr').textContent = document.querySelector(`#segScr button[data-v="${S.scr}"]`).textContent
+  document.getElementById('nOpt').textContent = 'خيار '+(S.opt+1)
+  document.getElementById('note').innerHTML = NOTES[S.scr]()
+}
+document.getElementById('segScr').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.scr=+b.dataset.v;render()}
+document.getElementById('segOpt').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.opt=+b.dataset.v;render()}
+render()
+</script>
+</body>
+</html>

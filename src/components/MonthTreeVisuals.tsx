@@ -20,14 +20,14 @@ export function longDate(iso: string, short = false): string {
   return `${Number(d)} ${MONTHS_AR[Number(m) - 1]}${short ? '' : ` ${y}`}`
 }
 
-/** «راتب أغسطس» من تاريخ الراتب. */
-export function salaryTitle(iso: string): string {
-  return `راتب ${MONTHS_AR[Number(iso.slice(5, 7)) - 1]}`
+/** «أكتوبر 2026» من «2026-10». */
+export function monthTitle(key: string): string {
+  return `${MONTHS_AR[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`
 }
 
-/** «27 أغسطس – 26 سبتمبر»، أو «من 1 أكتوبر · حتى الآن» لآخر راتب. */
-export function periodLabel(from: string, to: string | null): string {
-  return to ? `${longDate(from, true)} – ${longDate(to, true)}` : `من ${longDate(from, true)} · حتى الآن`
+/** اسم الشهر فقط: «أكتوبر». */
+export function monthName(key: string): string {
+  return MONTHS_AR[Number(key.slice(5, 7)) - 1]
 }
 
 /** مبلغ يحترم وضع الإخفاء. */
