@@ -3,23 +3,26 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '../../lib/haptics'
 import { setTourPending, useTourPending } from '../../lib/onboarding'
-import { TOUR_PAGES, TOUR_STEPS, type TourStep } from './tourSteps'
-
-interface Rect {
-  top: number
-  left: number
-  width: number
-  height: number
-}
+import { placeCard, sameRect, spotRect, type Rect } from './tourLayout'
+import { TOUR_PAGES, TOUR_STEPS } from './tourSteps'
 
 const find = (id: string) => document.querySelector<HTMLElement>(`[data-tour="${id}"]`)
 /** أقصى انتظار لظهور عنصر بعد الانتقال لصفحة — بعده تُتخطى الخطوة (مثل بطاقة «جهّز محفظتك» لو مخفية). */
 const FIND_TIMEOUT = 1800
+/** كم إطار متتالي لازم يثبت فيه العنصر (انتهى التمرير، ولحقته الإضاءة) قبل ما تظهر البطاقة. */
+const SETTLE_FRAMES = 14
 
 /**
  * جولة التعريف: تبدأ بالرئيسية ثم تنقل المستخدم بنفسها للحسابات، ثم السلف
  * والديون، ثم المزيد، وتضيء أهم أجزاء كل صفحة. تعيش داخل AppShell حتى تبقى
  * أثناء التنقل بين التبويبات. مرة وحدة بعد الإعداد الأول، أو من «حول التطبيق».
+ *
+ * الإظهار والإخفاء:
+ * - الإضاءة عنصر واحد يبقى مركّبًا طول الجولة وينزلق من عنصر لعنصر (بدون وميض تعتيم).
+ * - البطاقة تختفي بسرعة عند التنقل، وتظهر بمحتوى الخطوة الجديدة بعد ما يثبت
+ *   العنصر في مكانه، بجهة فيها مساحة كافية حتى ما تغطيه.
+ * - مكان العنصر يُتابَع كل إطار، فالإضاءة تلحقه أثناء التمرير أو تغيّر التخطيط.
+ * - الضغط على التعتيم ما يتخطى شيء — الأزرار فقط، و Esc ينهي الجولة.
  */
 export function CoachTour() {
   const pending = useTourPending()
@@ -27,7 +30,9 @@ export function CoachTour() {
   const { pathname } = useLocation()
   const [i, setI] = useState(-1)
   const [rect, setRect] = useState<Rect | null>(null)
-  const [cardH, setCardH] = useState(180)
+  /** الخطوة المعروضة في البطاقة — تتبدّل بعد ما يثبت العنصر الجديد، مو لحظة الضغط. */
+  const [shown, setShown] = useState(-1)
+  const [cardH, setCardH] = useState(0)
   const card = useRef<HTMLDivElement>(null)
   const dir = useRef(1)
 
@@ -38,13 +43,14 @@ export function CoachTour() {
     return () => clearTimeout(t)
   }, [pending])
 
-  const step: TourStep | undefined = i >= 0 ? TOUR_STEPS[i] : undefined
+  const step = i >= 0 ? TOUR_STEPS[i] : undefined
 
   const end = useCallback(
     (goHome: boolean) => {
       setTourPending(false)
-      setRect(null)
       setI(-1)
+      setShown(-1)
+      setRect(null)
       if (goHome) navigate('/')
     },
     [navigate],
@@ -53,15 +59,14 @@ export function CoachTour() {
   const go = useCallback(
     (to: number) => {
       if (to >= TOUR_STEPS.length) return end(true)
-      if (to < 0) return
+      if (to < 0 || to === i) return
       dir.current = to > i ? 1 : -1
-      setRect(null)
       setI(to)
     },
     [i, end],
   )
 
-  // كل خطوة: انتقل لصفحتها لو لزم، انتظر عنصرها، مرّره للوسط، ثم قِسه.
+  // كل خطوة: انتقل لصفحتها لو لزم، انتظر عنصرها، مرّره للوسط، وتابِع مكانه كل إطار.
   useEffect(() => {
     if (!step) return
     if (pathname !== step.route) {
@@ -69,112 +74,130 @@ export function CoachTour() {
       return
     }
     let alive = true
-    const started = performance.now()
+    let raf = 0
     let timer = 0
-    const measure = () => {
+    let still = 0
+    let last: Rect | null = null
+    const started = performance.now()
+
+    const track = () => {
+      if (!alive) return
       const el = find(step.target)
-      if (!el || !alive) return
-      const r = el.getBoundingClientRect()
-      const pad = step.pad ?? 8
-      setRect({ top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 })
+      if (el) {
+        const r = spotRect(el.getBoundingClientRect(), step.pad ?? 8, window.innerWidth, window.innerHeight)
+        if (last && sameRect(last, r)) still++
+        else {
+          still = 0
+          setRect(r)
+        }
+        last = r
+        if (still === SETTLE_FRAMES) setShown(i)
+      }
+      raf = requestAnimationFrame(track)
     }
+
     const wait = () => {
       if (!alive) return
       const el = find(step.target)
       if (el) {
         el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        timer = window.setTimeout(measure, 420)
+        raf = requestAnimationFrame(track)
       } else if (performance.now() - started < FIND_TIMEOUT) {
         timer = window.setTimeout(wait, 100)
       } else {
         // العنصر غير موجود (مثلًا البطاقة مخفية) — نكمل بنفس اتجاه التنقل.
-        setRect(null)
         const next = i + dir.current
         if (next < 0) setI(0)
         else if (next >= TOUR_STEPS.length) end(true)
         else setI(next)
       }
     }
-    timer = window.setTimeout(wait, 120)
-    window.addEventListener('resize', measure)
+    timer = window.setTimeout(wait, 80)
     return () => {
       alive = false
       clearTimeout(timer)
-      window.removeEventListener('resize', measure)
+      cancelAnimationFrame(raf)
     }
   }, [step, pathname, navigate, i, end])
 
+  // ارتفاع البطاقة الفعلي للخطوة المعروضة — قبل ما نحدد مكانها.
   useLayoutEffect(() => {
     if (card.current) setCardH(card.current.offsetHeight)
-  }, [i, rect])
+  }, [shown])
+
+  useEffect(() => {
+    if (!pending || i < 0) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') end(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [pending, i, end])
 
   if (!pending || !step) return null
 
-  const next = TOUR_STEPS[i + 1]
-  const leavesPage = next && next.route !== step.route
-  const page = TOUR_PAGES.find((p) => p.route === step.route)!
-  const pageSteps = TOUR_STEPS.filter((s) => s.route === step.route)
-  const inPage = pageSteps.indexOf(step)
+  const viewIndex = shown >= 0 ? shown : i
+  const view = TOUR_STEPS[viewIndex]
+  const next = TOUR_STEPS[viewIndex + 1]
+  const leavesPage = next && next.route !== view.route
+  const page = TOUR_PAGES.findIndex((p) => p.route === view.route)
+  const pageSteps = TOUR_STEPS.filter((s) => s.route === view.route)
+  const inPage = pageSteps.indexOf(view)
   const nextLabel = !next ? 'خلصنا' : leavesPage ? `إلى ${TOUR_PAGES.find((p) => p.route === next.route)!.name}` : 'التالي'
+
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  // قبل أول قياس: الإضاءة نقطة في المنتصف (التعتيم كامل)، وتتمدد للعنصر بانزلاق.
+  const spot = rect ?? { top: vh / 2, left: vw / 2, width: 0, height: 0 }
+  // البطاقة تظهر فقط لما الخطوة المعروضة = الحالية (يعني عنصرها ثبت في مكانه).
+  const visible = shown === i && cardH > 0 && rect !== null
+  const top = rect ? placeCard(rect, cardH || 180, vh) : vh / 2
 
   function onNext() {
     haptic('tick')
     go(i + 1)
   }
 
-  const vh = window.innerHeight
-  const below = rect ? rect.top + rect.height / 2 < vh / 2 : true
-  const cardTop = !rect ? vh / 2 - cardH / 2 : below ? Math.min(rect.top + rect.height + 14, vh - cardH - 16) : Math.max(16, rect.top - 14 - cardH)
-
   return createPortal(
-    <div dir="rtl" className="fixed inset-0 z-[90]" onClick={onNext}>
-      {rect ? (
-        <div className="qb-ob-spot" style={{ ...rect, borderRadius: step.round ? 999 : 24 }} />
-      ) : (
-        // أثناء الانتقال بين الصفحات: تعتيم بدون إضاءة لين يظهر العنصر.
-        <div className="fixed inset-0" style={{ background: 'rgba(5,5,6,.78)', animation: 'fade-in 200ms ease-out both' }} />
-      )}
+    <div dir="rtl" className="fixed inset-0 z-[90]" aria-modal="true">
+      <div className="qb-ob-spot" data-empty={rect ? undefined : ''} style={{ ...spot, borderRadius: TOUR_STEPS[i].round ? 999 : 24 }} />
       <div
         ref={card}
         role="dialog"
-        aria-label={step.title}
-        onClick={(e) => e.stopPropagation()}
+        aria-label={view.title}
+        aria-hidden={!visible}
         className="fixed inset-x-[18px] z-[91] mx-auto max-w-[440px] rounded-[22px] border border-[var(--color-border-strong)] p-3.5"
         style={{
-          top: cardTop,
-          opacity: rect ? 1 : 0,
+          top,
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'none' : 'translateY(6px) scale(.97)',
+          pointerEvents: visible ? 'auto' : 'none',
           background: 'rgba(28,28,33,.94)',
           backdropFilter: 'blur(20px) saturate(1.6)',
           WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
           boxShadow: '0 20px 40px -12px #000',
-          transition: 'top 600ms var(--ease-out-expo), opacity 220ms ease',
+          // الظهور نابض، والاختفاء سريع؛ المكان يتغيّر بس والبطاقة مخفية.
+          transition: visible ? 'opacity 220ms ease, transform 420ms var(--ease-spring)' : 'opacity 120ms ease, transform 120ms ease',
         }}
       >
-        {/* الصفحات الأربع: الحالية بيضاء، والمنتهية بخط ممتلئ */}
+        {/* الصفحات الأربع: الحالية بيضاء، والمنتهية بخلفية خفيفة */}
         <div className="mb-2.5 flex gap-1">
-          {TOUR_PAGES.map((p, j) => {
-            const cur = TOUR_PAGES.indexOf(page)
-            return (
-              <span
-                key={p.route}
-                className="flex h-6 flex-1 items-center justify-center rounded-full text-[10.5px] font-semibold"
-                style={
-                  j === cur
-                    ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
-                    : { background: j < cur ? 'rgba(255,255,255,.1)' : 'transparent', color: j < cur ? 'var(--color-text-2)' : 'var(--color-text-3)', border: '1px solid var(--color-border)' }
-                }
-              >
-                {p.name}
-              </span>
-            )
-          })}
+          {TOUR_PAGES.map((p, j) => (
+            <span
+              key={p.route}
+              className="flex h-6 flex-1 items-center justify-center rounded-full text-[10.5px] font-semibold"
+              style={
+                j === page
+                  ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
+                  : { background: j < page ? 'rgba(255,255,255,.1)' : 'transparent', color: j < page ? 'var(--color-text-2)' : 'var(--color-text-3)', border: '1px solid var(--color-border)' }
+              }
+            >
+              {p.name}
+            </span>
+          ))}
         </div>
-        <b key={`t${i}`} className="qb-rise block text-[15px]">
-          {step.title}
-        </b>
-        <p key={`p${i}`} className="qb-rise mt-1 text-[12px] leading-[1.75] text-[var(--color-text-2)]">
-          {step.body}
-        </p>
+        <b className="block text-[15px]">{view.title}</b>
+        <p className="mt-1 text-[12px] leading-[1.75] text-[var(--color-text-2)]">{view.body}</p>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-1">
             {pageSteps.map((s, j) => (
@@ -182,7 +205,7 @@ export function CoachTour() {
             ))}
           </div>
           <div className="flex items-center">
-            {i > 0 && (
+            {viewIndex > 0 && (
               <button onClick={() => go(i - 1)} className="px-2 text-[12px] font-semibold text-[var(--color-text-3)]">
                 السابق
               </button>
