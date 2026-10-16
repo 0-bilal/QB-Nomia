@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>قسم شجرة العلاقات</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c; --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --owed-to:#2ee6c8;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:16px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+  .intro,.panel,.note{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .phone{width:390px;max-width:100%;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;padding:22px 16px 30px}
+  @media (max-width:440px){.phone{border-radius:28px;padding:18px 14px 24px}}
+  .h1{font-size:30px;font-weight:700;margin:6px 4px 16px}
+  .sec{margin-bottom:24px;animation:fade .45s var(--expo) both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .st{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0 4px 14px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 8px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .tile i{width:60px;height:60px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(160deg,var(--surface-hi),var(--surface));border:1px solid var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .tile span{font-size:11.5px;font-weight:500;color:var(--text-2);line-height:1.25;min-height:30px}
+  .wide{display:block;width:100%;text-align:right;border-radius:22px;border:1px solid var(--border);padding:14px;background:radial-gradient(90% 80% at 100% 0%,rgba(255,255,255,.06),transparent 60%),linear-gradient(165deg,var(--surface-el),var(--bg))}
+  .wh{display:flex;align-items:center;gap:12px}
+  .ic{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+  .wt{font-size:14.5px;font-weight:600}
+  .wd{font-size:11.5px;color:var(--text-3);margin-top:2px}
+  .chev{color:var(--text-3);margin-inline-start:auto}
+  .bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface-hi);gap:2px;margin-top:12px}
+  .bar b{display:block;height:100%;transform-origin:right;animation:growx .7s var(--calm) both}
+  @keyframes growx{from{transform:scaleX(0)}}
+  .lg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11px;color:var(--text-2)}
+  .lg span{display:inline-flex;align-items:center;gap:5px}
+  .lg i{width:7px;height:7px;border-radius:50%}
+  .lg em{font-style:normal;font-weight:700;color:var(--text)}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--border)}
+  .row .ic{width:40px;height:40px;border-radius:14px;background:var(--surface-hi)}
+  .note{font-size:12px;color:var(--text-2);line-height:1.85;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:4px}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>قسم شجرة العلاقات</h1>
+  <p>المشكلة: القسم فيه زر واحد بين أقسام فيها أربعة، فيبان فراغ ثلاث خانات. ثلاثة اقتراحات بأرقام أمثلة.</p>
+</div>
+
+<div class="panel">
+  <div class="plbl">الاقتراح</div>
+  <div class="seg" id="seg">
+    <button data-v="0" class="on"><span class="num">1</span> · بطاقة حيّة</button>
+    <button data-v="1"><span class="num">2</span> · صف بعرض الشاشة</button>
+    <button data-v="2"><span class="num">3</span> · داخل التقارير</button>
+    <button data-v="3">الحالي</button>
+  </div>
+</div>
+
+<div class="phone"><div class="h1">المزيد</div><div id="root"></div></div>
+<div class="note" id="note"></div>
+
+<script>
+const svg = (p, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I = {
+  tx: svg('<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>'), tag: svg('<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.2"/>'),
+  inc: svg('<path d="M12 19V5M6 11l6-6 6 6"/>'), goal: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>'),
+  sub: svg('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>'), com: svg('<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
+  rec: svg('<path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/>'), car: svg('<path d="M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2M19 16v2"/><circle cx="8" cy="13" r=".8"/><circle cx="16" cy="13" r=".8"/>'),
+  chart: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), cmp: svg('<path d="M8 4v16M16 4v16M4 8h8M12 16h8"/>'), exp: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'), calc: svg('<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/>'),
+  tree: svg('<path d="M12 21v-8M12 13 7 9M12 13l5-4M7 9V5M17 9V5M12 13V8"/><circle cx="7" cy="4" r="1.4"/><circle cx="17" cy="4" r="1.4"/><circle cx="12" cy="7" r="1.4"/>'),
+  chev: svg('<path d="m15 6-6 6 6 6"/>', 18),
+}
+const tiles = (arr) => `<div class="grid">${arr.map(([l, ic]) => `<button class="tile press"><i>${I[ic]}</i><span>${l}</span></button>`).join('')}</div>`
+const sec = (t, body, d = 0) => `<section class="sec" style="animation-delay:${d * 50}ms"><div class="st">${t}</div>${body}</section>`
+const FIN = sec('المالية', tiles([['الحركات', 'tx'], ['الفئات', 'tag'], ['الدخل', 'inc'], ['الأهداف', 'goal']]))
+const REC = sec('الدوري', tiles([['اشتراكات', 'sub'], ['التزامات', 'com'], ['متكررة', 'rec'], ['السيارة', 'car']]), 2)
+const REP = sec('التقارير', tiles([['تقارير', 'chart'], ['مقارنة', 'cmp'], ['تصدير', 'exp'], ['حاسبة', 'calc']]), 3)
+const live = `<button class="wide press">
+  <div class="wh"><span class="ic">${I.tree}</span><div><div class="wt">شجرة المصاريف</div><div class="wd">أكتوبر حتى اليوم · اللي دخل ووين راح</div></div><span class="chev">${I.chev}</span></div>
+  <div class="bar"><b style="width:46%;background:var(--expense)"></b><b style="width:30%;background:var(--transfer);animation-delay:50ms"></b><b style="width:4%;background:var(--owed-to);animation-delay:100ms"></b><b style="width:20%;background:var(--accent);animation-delay:150ms"></b></div>
+  <div class="lg"><span><i style="background:var(--expense)"></i>صرفت <em class="num">2,300</em></span><span><i style="background:var(--transfer)"></i>ادّخرت <em class="num">1,500</em></span><span><i style="background:var(--owed-to)"></i>عند الناس <em class="num">200</em></span><span><i style="background:var(--accent)"></i>باقي <em class="num">1,000</em></span></div>
+</button>`
+const V = [
+  () => FIN + sec('شجرة العلاقات', live, 1) + REC + REP,
+  () => FIN + sec('شجرة العلاقات', `<button class="row press" style="width:100%;text-align:right"><span class="ic">${I.tree}</span><div style="flex:1"><div class="wt" style="font-size:14px">شجرة المصاريف</div><div class="wd">كل شهر: اللي دخل ووين راح</div></div><span class="chev">${I.chev}</span></button>`, 1) + REC + REP,
+  () => FIN + REC + sec('التقارير', `<div style="margin-bottom:16px">${live}</div>` + tiles([['تقارير', 'chart'], ['مقارنة', 'cmp'], ['تصدير', 'exp'], ['حاسبة', 'calc']]), 2),
+  () => FIN + sec('شجرة العلاقات', tiles([['شجرة المصاريف', 'tree']]), 1) + REC + REP,
+]
+const N = [
+  '<span class="k">١ · بطاقة حيّة (أنصح فيه)</span>القسم يبقى، والزر يصير <b>بطاقة بعرض الشاشة</b> فيها ملخص الشهر الحالي: شريط صرفت · ادّخرت · عند الناس · باقي. الفراغ يصير معلومة مفيدة، وتطابق «تدفّق هذا الشهر» والشجرة. لما تنضاف شاشات علاقات جديدة تنزل تحتها كأزرار عادية. تحترم وضع الإخفاء.',
+  '<span class="k">٢ · صف بعرض الشاشة</span>نفس القسم لكن الزر <b>صف واحد بعرض الشاشة</b> بأيقونة ووصف وسهم، بدون أرقام. أبسط وأهدى، لكنه مختلف عن باقي الأقسام ويبان أفقر من البطاقة.',
+  '<span class="k">٣ · داخل التقارير</span>نشيل قسم «شجرة العلاقات» ونحط <b>البطاقة الحيّة أعلى قسم التقارير</b> فوق أزراره الأربعة. أقسام أقل وكلها مكتملة، لكن نخسر القسم المحجوز لشاشات العلاقات القادمة (ينرجع لما تجي).',
+  '<span class="k">الحالي</span>زر واحد في شبكة من أربع خانات، فيبان فراغ ثلاث خانات بين أقسام مكتملة.',
+]
+let v = 0
+function render() { document.getElementById('root').innerHTML = V[v](); document.getElementById('note').innerHTML = N[v] }
+document.querySelectorAll('#seg button').forEach((b) => b.onclick = () => { document.querySelectorAll('#seg button').forEach((x) => x.classList.toggle('on', x === b)); v = +b.dataset.v; render() })
+render()
+</script>
+</body>
+</html>
