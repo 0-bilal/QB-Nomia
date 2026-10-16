@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>من دخل الشهر ومن رصيدك السابق</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --owed-to:#2ee6c8; --owed-by:#ff9a4d;
+    --prev:#a1a1ad;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+    --stripes:repeating-linear-gradient(135deg,rgba(161,161,173,.85) 0 4px,rgba(161,161,173,.35) 4px 8px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px;display:flex;justify-content:space-between}
+  .plbl b{color:var(--text-2);font-weight:600}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .phone{width:390px;max-width:100%;min-height:780px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;padding:22px 20px 30px;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}
+  @media (max-width:440px){.phone{border-radius:28px;padding:18px 14px 24px}}
+  .hdr{display:flex;justify-content:space-between;align-items:center}
+  .gb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+  .h1{font-size:28px;font-weight:700;margin:14px 0 4px}
+  .sub{font-size:11.5px;color:var(--text-3);margin-bottom:16px}
+  .fade{animation:fade .45s var(--expo) both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:16px}
+  .hero{position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.09);padding:16px;background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.06),transparent 55%),linear-gradient(165deg,var(--surface-el),var(--bg))}
+  .lbl{font-size:13px;font-weight:500;color:var(--text-2)}
+  .fs{font-size:11px;color:var(--text-3)}
+  .leg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3)}
+  .leg i{width:7px;height:7px;border-radius:50%}
+  .amt{font-weight:700;line-height:1.15}
+  .amt span{font-family:var(--font-sans);font-size:.6em;font-weight:500;color:var(--text-3);margin-inline-start:4px}
+  .col{width:30px;height:110px;border-radius:10px;background:rgba(255,255,255,.04);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+  .col i{display:block;width:100%;transform-origin:bottom;animation:grow .9s var(--expo) both}
+  @keyframes grow{from{transform:scaleY(0)}}
+  .netbar{margin-top:14px;border-radius:14px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;background:rgba(28,28,33,.75);border:1px solid var(--border)}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 0}
+  .row+.row{border-top:1px solid var(--border)}
+  .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+  .ft{font-size:13px;font-weight:600}
+  .tag{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:600;background:rgba(161,161,173,.12);color:var(--text-2)}
+  .bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface-hi);gap:2px}
+  .bar i{display:block;height:100%;transform-origin:right;animation:growx .7s var(--calm) both}
+  @keyframes growx{from{transform:scaleX(0)}}
+  .tree{padding-inline-start:26px}
+  .br{position:relative;padding:10px 0}
+  .br::before{content:'';position:absolute;inset-inline-start:-9px;top:0;height:100%;width:2px;background:var(--border-strong)}
+  .br:last-child::before{height:21px}
+  .br::after{content:'';position:absolute;inset-inline-start:-9px;top:20px;width:11px;height:2px;border-radius:2px;background:var(--border-strong)}
+  .brh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .pct{height:4px;border-radius:99px;background:var(--surface-hi);margin-top:6px;overflow:hidden}
+  .pct i{display:block;height:100%;border-radius:99px;transform-origin:right;animation:growx .7s var(--calm) both}
+  .grp{display:flex;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--text-3);margin:16px 6px 8px}
+  .tx{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px}
+  .info{display:flex;gap:10px;align-items:flex-start;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--border);padding:11px 13px;font-size:11.5px;color:var(--text-2);line-height:1.7;margin-top:12px}
+  .info svg{flex-shrink:0;margin-top:2px;color:var(--text-3)}
+  .alert{display:flex;gap:10px;align-items:center;border-radius:18px;padding:11px 13px;font-size:12px;margin-top:12px}
+  .note{width:100%;max-width:420px;font-size:12px;color:var(--text-2);line-height:1.8;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:2px}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>من دخل الشهر ومن رصيدك السابق</h1>
+  <p>كل حساب فيه نوعين من الفلوس خلال الفترة: «فلوس الفترة» (الدخل وما تحوّل منه) و«رصيد سابق» (اللي كان فيه قبل الفترة). المصروف يأخذ من فلوس الفترة أولًا، والزائد من الرصيد السابق. فالشراء من الادخار ما يطلع عجز، ويظهر واضح ومنفصل. تلقائي لكل الحسابات بدون إعداد.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">الشاشة <b id="nScr"></b></div>
+    <div class="seg" id="segScr">
+      <button data-v="0" class="on">الرئيسية</button>
+      <button data-v="1">شجرة الراتب</button>
+      <button data-v="2">الحركات</button>
+      <button data-v="3">سحب من الادخار</button>
+    </div>
+  </div>
+  <div id="optBox">
+    <div class="plbl">عرض المصروف في «تدفّق هذا الشهر» <b id="nOpt"></b></div>
+    <div class="seg" id="segOpt">
+      <button data-v="0" class="on"><span class="num">1</span> · عمود مقسوم</button>
+      <button data-v="1"><span class="num">2</span> · سطر تحت البطاقة</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">مقارنة <b id="nMode"></b></div>
+    <div class="seg" id="segMode">
+      <button data-v="1" class="on">بعد التعديل</button>
+      <button data-v="0">الحالي (المشكلة)</button>
+    </div>
+  </div>
+</div>
+
+<div class="phone"><div id="root"></div></div>
+<div class="note" id="note"></div>
+
+<script>
+const svg = (p,s=18,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I = {
+  back:svg('<path d="m9 6 6 6-6 6"/>',18,2.2),
+  info:svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',16,2),
+  vault:svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="3"/><path d="M12 9v-1M15 12h1"/>',17),
+  bank:svg('<path d="M3 10h18L12 4zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',17),
+  tree:svg('<circle cx="12" cy="4.5" r="2"/><circle cx="5" cy="19.5" r="2"/><circle cx="12" cy="19.5" r="2"/><circle cx="19" cy="19.5" r="2"/><path d="M12 6.5v11M12 11c-5 0-7 2-7 6.5M12 11c5 0 7 2 7 6.5"/>',17),
+  phone:svg('<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',18),
+  food:svg('<path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8a2 2 0 0 1-2 2M17 21V3c-2 1-3 4-3 7h3"/>',18),
+  swap:svg('<path d="M7 7h11l-3-3M17 17H6l3 3"/>',17,2),
+  warn:svg('<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2h.01"/>',16,2),
+  check:svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>',15,2.6),
+}
+const f = n => n.toLocaleString('en-US')
+const S = { scr:0, opt:0, mode:1 }
+
+/* ===== الرئيسية: تدفّق هذا الشهر ===== */
+function home(){
+  const after = S.mode===1
+  const max = 5000
+  const incH = 3000/max*100, monthH = 3000/max*100, prevH = 2000/max*100
+  const expCol = after && S.opt===0
+    ? `<div class="col"><i style="height:${prevH}%;background:var(--stripes);animation-delay:.25s"></i><i style="height:${monthH}%;background:var(--expense);border-top:2px solid var(--bg);animation-delay:.15s"></i></div>`
+    : `<div class="col"><i style="height:100%;background:var(--expense);animation-delay:.15s"></i></div>`
+  const expNumbers = after && S.opt===0
+    ? `<div class="leg"><i style="background:var(--expense)"></i>المصروف</div>
+       <div class="amt num" style="font-size:22px">5,000<span>ر.س</span></div>
+       <div class="fs" style="margin-top:4px;line-height:1.7">من دخل الشهر <b class="num" style="color:var(--text)">3,000</b><br><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--stripes);vertical-align:middle;margin-inline-end:4px"></span>من رصيدك السابق <b class="num" style="color:var(--text)">2,000</b></div>`
+    : `<div class="leg"><i style="background:var(--expense)"></i>المصروف</div><div class="amt num" style="font-size:22px">5,000<span>ر.س</span></div>`
+  const net = after
+    ? `<div class="netbar"><span class="fs" style="font-size:12px">صافي الشهر</span><span class="num" style="font-weight:700;color:var(--text)">0</span></div>`
+    : `<div class="netbar" style="border-color:rgba(255,95,109,.35)"><span class="fs" style="font-size:12px">صافي الشهر</span><span class="num" dir="ltr" style="font-weight:700;color:var(--expense)">−2,000</span></div>`
+  const prevLine = after && S.opt===1 ? `
+    <div class="card fade" style="margin-top:10px;padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="ic" style="background:rgba(161,161,173,.12);color:var(--text-2)">${I.vault}</span>
+        <div style="flex:1"><div class="ft">صرفت من رصيدك السابق</div><div class="fs">من الادخار · ما انحسب على دخل الشهر</div></div>
+        <span class="num" style="font-weight:700">2,000</span>
+      </div>
+    </div>` : ''
+  const sources = after && S.opt===0 ? `
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div class="fs" style="margin-bottom:6px">الرصيد السابق اللي صرفت منه</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px">
+          <span class="ic" style="width:28px;height:28px;border-radius:9px;background:rgba(161,161,173,.12);color:var(--text-2)">${svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="3"/>',14)}</span>
+          <span style="flex:1;font-weight:600">الادخار</span><span class="num" style="font-weight:700">2,000</span>
+        </div>
+      </div>` : ''
+  const budget = after
+    ? `<div class="card fade" style="margin-top:10px;padding:12px 14px">
+         <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="ft">ميزانية الشهر</span><span class="fs"><span class="num" style="color:var(--text)">3,000</span> من <span class="num">4,000</span></span></div>
+         <div class="bar" style="margin-top:8px"><i style="width:75%;background:var(--sub)"></i></div>
+         <div class="fs" style="margin-top:6px">باقي <span class="num" style="color:var(--text)">1,000</span> · الشراء من الادخار ما ينحسب عليها</div>
+       </div>`
+    : `<div class="alert fade" style="background:rgba(255,95,109,.1);border:1px solid rgba(255,95,109,.3);color:var(--expense)">${I.warn}<div><b>تجاوزت ميزانية الشهر</b><div class="fs" style="color:rgba(255,95,109,.8)">صرفت 5,000 من 4,000 · وعندك عجز 2,000</div></div></div>`
+  return `<div class="hdr"><span class="gb">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',17)}</span><span class="fs" style="font-size:12px">أكتوبر 2026</span><span class="gb">${svg('<path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"/>',17)}</span></div>
+    <div class="hero fade" style="margin-top:18px">
+      <div class="lbl">تدفّق هذا الشهر</div>
+      <div style="display:flex;gap:14px;margin-top:14px;align-items:flex-end">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div class="col"><i style="height:${incH}%;background:var(--income)"></i></div>
+          ${expCol}
+        </div>
+        <div style="flex:1;display:grid;gap:12px">
+          <div><div class="leg"><i style="background:var(--income)"></i>الدخل</div><div class="amt num" style="font-size:22px">3,000<span>ر.س</span></div></div>
+          <div>${expNumbers}</div>
+        </div>
+      </div>
+      ${sources}
+      ${net}
+    </div>
+    ${prevLine}
+    ${budget}`
+}
+
+/* ===== شجرة الراتب ===== */
+function tree(){
+  const after = S.mode===1
+  const br = (label,note,amt,color,pct,extra='') => `<div class="br"><div class="brh"><span class="ft">${label}</span><span class="num" style="font-weight:700">${amt}</span></div><div class="fs">${note}</div><div class="pct"><i style="width:${pct}%;background:${color}"></i></div>${extra}</div>`
+  const rows = after
+    ? br('مطاعم','12 مصروف','900','#45C8FF',30) + br('إلكترونيات','2 مصروف · 1 من رصيد سابق','2,600','#E4E4EA',87) + br('فواتير','3 مصروف','500','#2EE6C8',17) +
+      br('من رصيد سابق','الادخار · ما ينقص من الراتب','2,000','var(--stripes)',67) + br('باقي من الراتب','لين الآن','1,000','var(--accent)',33)
+    : br('مطاعم','12 مصروف','900','#45C8FF',18) + br('إلكترونيات','2 مصروف','2,600','#E4E4EA',52) + br('فواتير','3 مصروف','500','#2EE6C8',10)
+  return `<div class="hdr"><span class="gb">${I.back}</span><span></span><span style="width:40px"></span></div>
+    <div class="h1">راتب أكتوبر</div><div class="sub">من 1 أكتوبر · حتى الآن · الراجحي</div>
+    <div class="hero fade">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div><div class="fs" style="font-size:12px;color:var(--text-2)">${after?'باقي من الراتب':'تجاوزت الراتب بـ'}</div>
+          <div class="amt num" style="font-size:30px;color:${after?'var(--text)':'var(--expense)'}">${after?'1,000':'1,000'}<span>ر.س</span></div>
+          <div class="fs" style="margin-top:4px">${after?'صُرف من الراتب <span class="num" style="color:var(--text-2)">2,000</span> · من رصيد سابق <span class="num" style="color:var(--text-2)">2,000</span>':'صُرف <span class="num" style="color:var(--text-2)">4,000</span>'}</div>
+        </div>
+        <div style="text-align:left"><div class="fs">من أصل</div><div class="num" style="font-weight:700;color:var(--text-2)">3,000</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;border-top:1px solid var(--border);margin-top:14px;padding-top:12px">
+        <span class="ic" style="background:rgba(62,224,143,.15);color:var(--income)">${I.tree}</span>
+        <div style="flex:1"><div class="ft">راتب أكتوبر</div><div class="fs">17 مصروف خلال الفترة</div></div><span class="num" style="font-weight:700">3,000</span>
+      </div>
+      <div class="tree">${rows}</div>
+    </div>
+    ${after?`<div class="info">${I.info}<div>جوال بـ 2,000 اشتريته من حساب الادخار: يبقى على فئة «إلكترونيات»، لكنه من <b style="color:var(--text)">رصيد سابق</b>، فما ينقص من باقي الراتب.</div></div>`:''}`
+}
+
+/* ===== الحركات ===== */
+function txs(){
+  const after = S.mode===1
+  const t = (icon,bg,c,title,sub,amt,tag='') => `<div class="tx"><span class="ic" style="background:${bg};color:${c}">${icon}</span><div style="flex:1;min-width:0"><div class="ft">${title}</div><div class="fs" style="margin-top:2px">${sub}</div>${tag}</div><div class="num" dir="ltr" style="font-weight:700">${amt}</div></div>`
+  return `<div class="h1">كل الحركات</div><div class="sub">أكتوبر 2026</div>
+    <div class="grp"><span>اليوم</span><span class="num" dir="ltr">−2,120</span></div>
+    ${t(I.phone,'rgba(228,228,234,.12)','#E4E4EA','إلكترونيات','الادخار','−2,000 ر.س', after?`<div style="margin-top:5px"><span class="tag">${svg('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="12" cy="12" r="3"/>',11,2.2)} من رصيد سابق</span></div>`:'')}
+    ${t(I.food,'rgba(69,200,255,.14)','#45C8FF','مطاعم','الراجحي','−120 ر.س')}
+    ${after?`<div class="info">${I.info}<div>المصروف يبقى بالأحمر وعلى فئته. الشارة «من رصيد سابق» تظهر فقط لما يكون المصروف أكبر من فلوس الفترة في حسابه — يعني طلع من فلوس كانت قبل.</div></div>`:''}`
+}
+
+/* ===== سحب من الادخار ===== */
+function withdraw(){
+  const after = S.mode===1
+  return `<div class="hdr"><span class="gb">${svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>',17)}</span><span class="fs" style="font-size:12px">أكتوبر 2026</span><span style="width:40px"></span></div>
+    <div class="fs" style="margin:14px 4px 8px;font-size:12px">السيناريو: راتب 3,000 في الراجحي، حوّلت 2,000 من الادخار للراجحي، وصرفت 5,000 من الراجحي.</div>
+    <div class="hero fade">
+      <div class="lbl">تدفّق هذا الشهر</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div><div class="leg"><i style="background:var(--income)"></i>الدخل</div><div class="amt num" style="font-size:20px">3,000<span>ر.س</span></div></div>
+        <div><div class="leg"><i style="background:var(--expense)"></i>المصروف</div><div class="amt num" style="font-size:20px">5,000<span>ر.س</span></div></div>
+      </div>
+      ${after?`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div class="row" style="padding:6px 0"><span class="ic" style="width:30px;height:30px;border-radius:10px;background:rgba(139,123,255,.14);color:var(--transfer)">${I.swap}</span><div style="flex:1"><div class="ft" style="font-size:12.5px">سحبت من الادخار</div><div class="fs">تحويل للراجحي · صار رصيد سابق متاح</div></div><span class="num" style="font-weight:700;color:var(--transfer)">2,000</span></div>
+        <div class="fs" style="margin-top:4px">المصروف: من دخل الشهر <b class="num" style="color:var(--text)">3,000</b> · من رصيدك السابق <b class="num" style="color:var(--text)">2,000</b></div>
+      </div>
+      <div class="netbar"><span class="fs" style="font-size:12px">صافي الشهر</span><span class="num" style="font-weight:700">0</span></div>`
+      :`<div class="netbar" style="border-color:rgba(255,95,109,.35)"><span class="fs" style="font-size:12px">صافي الشهر</span><span class="num" dir="ltr" style="font-weight:700;color:var(--expense)">−2,000</span></div>`}
+    </div>
+    ${after?`<div class="info">${I.info}<div>التحويل من الادخار يدخل الراجحي كـ<b style="color:var(--text)">رصيد سابق</b> (لأنه فلوس قديمة)، فالمصروف اللي يزيد عن الراتب ينحسب منه، وما يطلع عجز. التحويل نفسه ما يُحسب دخلًا ولا مصروفًا.</div></div>`:''}`
+}
+
+const SCREENS = [home, tree, txs, withdraw]
+const NOTES = [
+  () => S.mode===0
+    ? '<span class="k">الحالي</span>المصروف 5,000 كله ينحسب على دخل الشهر 3,000، فيطلع <b>صافي −2,000</b> و<b>تجاوز الميزانية</b> مع إن 2,000 منه من الادخار.'
+    : S.opt===0
+      ? '<span class="k">خيار 1 — عمود مقسوم</span>عمود المصروف قسمين: <b>أحمر</b> من دخل الشهر، و<b>رمادي مخطّط</b> من رصيدك السابق. تحت الأرقام سطران، وتحت البطاقة «الرصيد السابق اللي صرفت منه» بالحساب. الصافي 0، والميزانية تحسب 3,000 فقط.'
+      : '<span class="k">خيار 2 — سطر تحت البطاقة</span>البطاقة تبقى كما هي (المصروف 5,000 بعمود واحد)، وتحتها بطاقة مستقلة «صرفت من رصيدك السابق 2,000 · من الادخار». الصافي 0 والميزانية 3,000. أبسط، لكن الربط بين الرقمين أقل وضوحًا من العمود المقسوم.',
+  () => S.mode===0
+    ? '<span class="k">الحالي</span>الشجرة تحسب الجوال على الراتب، فيطلع «تجاوزت الراتب بـ 1,000».'
+    : '<span class="k">شجرة الراتب</span>المصاريف تبقى على فئاتها (الجوال في «إلكترونيات»). فرع جديد <b>«من رصيد سابق ← الادخار 2,000»</b> بلون رمادي مخطّط، وما ينقص من باقي الراتب. الباقي 1,000 بدل «تجاوزت».',
+  () => S.mode===0
+    ? '<span class="k">الحالي</span>ما فيه أي فرق بين مصروف من الراتب ومصروف من الادخار.'
+    : '<span class="k">الحركات</span>شارة رمادية «من رصيد سابق» تحت المصروف اللي طلع (كله أو جزء منه) من فلوس كانت في الحساب قبل الفترة. المبلغ يبقى أحمر.',
+  () => S.mode===0
+    ? '<span class="k">الحالي</span>التحويل من الادخار ما يأثر، فالمصروف الزائد يطلع عجز.'
+    : '<span class="k">سحب من الادخار</span>اقتراحك المعتمد: سطر «سحبت من الادخار 2,000» بلون التحويل، والمصروف ينقسم: 3,000 من دخل الشهر + 2,000 من الرصيد السابق. الصافي 0.',
+]
+
+const root = document.getElementById('root')
+function render(){
+  root.innerHTML = `<div class="fade">${SCREENS[S.scr]()}</div>`
+  document.querySelectorAll('#segScr button').forEach(b=>b.classList.toggle('on',+b.dataset.v===S.scr))
+  document.querySelectorAll('#segOpt button').forEach(b=>b.classList.toggle('on',+b.dataset.v===S.opt))
+  document.querySelectorAll('#segMode button').forEach(b=>b.classList.toggle('on',+b.dataset.v===S.mode))
+  document.getElementById('optBox').style.display = S.scr===0 && S.mode===1 ? '' : 'none'
+  document.getElementById('nScr').textContent = document.querySelector(`#segScr button[data-v="${S.scr}"]`).textContent
+  document.getElementById('nOpt').textContent = 'خيار '+(S.opt+1)
+  document.getElementById('nMode').textContent = S.mode ? 'بعد' : 'قبل'
+  document.getElementById('note').innerHTML = NOTES[S.scr]()
+}
+document.getElementById('segScr').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.scr=+b.dataset.v;render()}
+document.getElementById('segOpt').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.opt=+b.dataset.v;render()}
+document.getElementById('segMode').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.mode=+b.dataset.v;render()}
+render()
+</script>
+</body>
+</html>
