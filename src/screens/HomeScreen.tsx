@@ -25,7 +25,6 @@ import { ledgerDaySeries, savingsAccountIds, savingsSpentByAccount } from '../li
 import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { SetupCard } from '../components/onboarding/SetupCard'
-import { CoachTour } from '../components/onboarding/CoachTour'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 
@@ -376,7 +375,6 @@ export function HomeScreen() {
         )}
       </div>
 
-      <CoachTour />
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
       <TotalAccountsSheet open={totalSheetOpen} onClose={() => setTotalSheetOpen(false)} />
 

@@ -214,7 +214,7 @@ export function AboutScreen() {
       <div className="qb-card">
         {(
           [
-            ['جولة الرئيسية', 'تعريف سريع بأقسام الشاشة الرئيسية', () => (setTourPending(true), setChecklistHidden(false), navigate('/'))],
+            ['جولة التعريف', 'الرئيسية، الحسابات، السلف، والمزيد', () => (setTourPending(true), setChecklistHidden(false), navigate('/'))],
             ['جهّز محفظتك', 'خطوات التشغيل وحالة كل خطوة', () => navigate('/getting-started')],
           ] as [string, string, () => void][]
         ).map(([title, desc, onClick], i) => (

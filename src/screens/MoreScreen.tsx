@@ -214,6 +214,9 @@ interface MoreItem {
   icon: ReactElement
 }
 
+/** أقسام تعلّمها جولة التعريف (CoachTour). */
+const MORE_TOUR: Record<string, string | undefined> = { المالية: 'more-finance', التقارير: 'more-reports', النظام: 'more-system' }
+
 const SECTIONS: { title: string; items: MoreItem[] }[] = [
   {
     title: 'المالية',
@@ -438,7 +441,9 @@ export function MoreScreen() {
 
       <ProfileCard profile={profile} onOpen={() => navigate(profile ? '/profile' : '/welcome')} />
 
-      <SearchField value={query} onChange={setQuery} placeholder="ابحث عن أداة أو إعداد..." className="mb-6" />
+      <div data-tour="more-search">
+        <SearchField value={query} onChange={setQuery} placeholder="ابحث عن أداة أو إعداد..." className="mb-6" />
+      </div>
       <div ref={searchEndRef} aria-hidden="true" />
       {recentItems.length > 0 && <RecentCapsule visible={pastSearch && !trimmedQuery} items={recentItems} onOpen={goTo} />}
 
@@ -476,7 +481,7 @@ export function MoreScreen() {
           )}
 
           {SECTIONS.map((section, si) => (
-            <section key={section.title} className="qb-rise mb-6" style={rise(si + 1)}>
+            <section key={section.title} data-tour={MORE_TOUR[section.title]} className="qb-rise mb-6" style={rise(si + 1)}>
               <div className="qb-section-title mb-3.5 px-1">{section.title}</div>
               {section.items.length === 1 && section.title !== 'النظام' ? (
                 // قسم بزر واحد (مثل «شجرة العلاقات» حاليًا): صف بعرض الشاشة بدل خانة وحيدة وثلاث فاضية — يرجع شبكة لما تنضاف شاشات.

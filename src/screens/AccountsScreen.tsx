@@ -605,14 +605,14 @@ export function AccountsScreen() {
         actions={
           <>
             <EyeToggleButton hidden={hidden} onToggle={() => setHidden((h) => !h)} />
-            <HeaderIconButton accent label="إضافة حساب" onClick={() => navigate('/accounts/new')}>
+            <HeaderIconButton accent tour="accounts-add" label="إضافة حساب" onClick={() => navigate('/accounts/new')}>
               <PlusGlyph />
             </HeaderIconButton>
           </>
         }
       />
 
-      <div className="qb-card-elevated qb-rise mb-5 select-none p-5" data-own-gesture style={{ touchAction: 'pan-y' }} {...handlers}>
+      <div data-tour="accounts-total" className="qb-card-elevated qb-rise mb-5 select-none p-5" data-own-gesture style={{ touchAction: 'pan-y' }} {...handlers}>
         <div className="relative">
           <div className="mb-2 text-[12.5px] font-medium text-[var(--color-text-2)]">
             {scrub === null ? 'إجمالي الأرصدة' : `رصيدك في ${sparkDayLabel(scrub, totalValues.length)}`}
@@ -678,7 +678,7 @@ export function AccountsScreen() {
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between px-1">
+      <div data-tour="accounts-list" className="mb-3 flex items-center justify-between px-1">
         <h2 className="text-[15px] font-semibold">الحسابات</h2>
         <div role="tablist" className="flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-[3px]">
           {([['list', 'قائمة', <ListGlyph key="l" />], ['cards', 'بطاقات', <CardGlyph key="c" />]] as const).map(([mode, label, glyph]) => (

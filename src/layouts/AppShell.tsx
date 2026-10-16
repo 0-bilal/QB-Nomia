@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BottomNav } from '../components/BottomNav'
+import { CoachTour } from '../components/onboarding/CoachTour'
 import { TAB_ROUTES, TAB_LABELS } from '../lib/tabs'
 import { useData } from '../state/DataContext'
 import { notifyNewCriticalItems } from '../lib/deviceNotify'
@@ -134,6 +135,7 @@ export function AppShell() {
         </div>
       </div>
       <BottomNav />
+      <CoachTour />
     </div>
   )
 }
