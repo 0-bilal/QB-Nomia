@@ -24,6 +24,8 @@ import { categoryShares, monthFlowSeries } from '../lib/monthFlow'
 import { ledgerDaySeries, savingsAccountIds, savingsSpentByAccount } from '../lib/monthLedger'
 import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
+import { SetupCard } from '../components/onboarding/SetupCard'
+import { CoachTour } from '../components/onboarding/CoachTour'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 
@@ -374,11 +376,12 @@ export function HomeScreen() {
         )}
       </div>
 
+      <CoachTour />
       <NotificationsSheet open={notificationsOpen} notifications={notifications} onClose={() => setNotificationsOpen(false)} />
       <TotalAccountsSheet open={totalSheetOpen} onClose={() => setTotalSheetOpen(false)} />
 
       {/* الرصيد الإجمالي — العنصر البطل بالشاشة، فوق منحنى الرصيد (مثل شاشات الأسهم) */}
-      <section className="qb-rise relative -mx-5 overflow-hidden px-6 pb-6 pt-3" style={{ ...rise(0), minHeight: 190 }}>
+      <section data-tour="balance" className="qb-rise relative -mx-5 overflow-hidden px-6 pb-6 pt-3" style={{ ...rise(0), minHeight: 190 }}>
         <BalanceChart values={chartValues} onScrub={setScrubIndex} />
         <div
           className="pointer-events-none absolute inset-0 z-0"
@@ -446,8 +449,10 @@ export function HomeScreen() {
 
       <div ref={balanceEndRef} aria-hidden="true" />
 
+      <SetupCard />
+
       {/* اختصارات سريعة */}
-      <section className="qb-rise mb-6 flex items-start justify-between gap-2" style={rise(1)}>
+      <section data-tour="actions" className="qb-rise mb-6 flex items-start justify-between gap-2" style={rise(1)}>
         <QuickAction primary label="مصروف" icon={<ArrowDownIcon />} onClick={() => navigate('/add/transaction?type=expense')} />
         <QuickAction label="دخل" color="var(--color-income)" icon={<ArrowUpIcon />} onClick={() => navigate('/add/transaction?type=income')} />
         <QuickAction label="تحويل" color="var(--color-transfer)" icon={<SwapIcon />} onClick={() => navigate('/add/transaction?type=transfer')} />

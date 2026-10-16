@@ -72,3 +72,40 @@ export async function pushToSheets(snapshot: DataSnapshot): Promise<void> {
   }
   markSynced()
 }
+
+export type ProbeStage = 'reach' | 'token'
+
+export class SheetsProbeError extends Error {
+  readonly stage: ProbeStage
+  constructor(stage: ProbeStage, message: string) {
+    super(message)
+    this.stage = stage
+  }
+}
+
+/**
+ * يجرّب رابطًا ورمزًا قبل حفظهما (معالج الإعداد): يصل للسكربت ثم يتأكد إنه
+ * يقبل الرمز. يرجّع هل فيه نسخة محفوظة مسبقًا. الخطأ يحدد أي مرحلة فشلت.
+ */
+export async function probeSheets(webAppUrl: string, secretToken: string): Promise<{ hasData: boolean }> {
+  let res: Response
+  try {
+    res = await fetch(`${webAppUrl.trim()}?action=pull&token=${encodeURIComponent(secretToken)}`, { method: 'GET' })
+  } catch {
+    throw new SheetsProbeError('reach', 'ما قدرنا نوصل للسكربت. تأكد إنك نشرته بـ «Who has access: Anyone» ونسخت رابط /exec')
+  }
+  if (!res.ok) throw new SheetsProbeError('reach', `السكربت ما رد (HTTP ${res.status}). تأكد من النشر كـ Web app`)
+  let json: ApiResult<string>
+  try {
+    json = (await res.json()) as ApiResult<string>
+  } catch {
+    throw new SheetsProbeError('reach', 'الرابط ما يرجّع رد السكربت. غالبًا السكربت يطلب تسجيل دخول: خلّ «Who has access» على Anyone')
+  }
+  if (!json.ok) {
+    const err = json.error ?? ''
+    if (err.includes('SECRET_TOKEN')) throw new SheetsProbeError('token', 'الكود المنشور ما فيه رمزك. انسخ الكود من الخطوة 3 مرة ثانية وانشر نسخة جديدة')
+    if (err.includes('رمز')) throw new SheetsProbeError('token', 'الرمز ما يطابق الكود المنشور. انسخ الكود من الخطوة 3 مرة ثانية وانشر نسخة جديدة')
+    throw new SheetsProbeError('token', err || 'رد غير متوقع من السكربت')
+  }
+  return { hasData: Boolean(json.data) }
+}

@@ -8,28 +8,24 @@
  * التطبيق نفسه بنفس الرمز السري — جوجل شيت (وأي شخص يشوفه) يرى نصًا
  * عشوائيًا غير مفهوم فقط.
  *
- * التركيب:
- *   1. أنشئ جدول بيانات Google Sheets جديد فارغ (sheets.new).
- *   2. من القائمة: Extensions ← Apps Script.
- *   3. احذف كل محتوى Code.gs الافتراضي، والصق محتوى هذا الملف كاملًا.
- *   4. غيّر قيمة SECRET_TOKEN بالأسفل لأي نص عشوائي طويل تختاره أنت —
- *      هذا نفس الرمز اللي بتدخله لاحقًا بإعدادات التطبيق (المزيد ← مزامنة
- *      Google Sheets، خطوة 7 بملف README.md)، نفس القيمة بالضبط بالمكانين
- *      لأنه يُستخدم مفتاح تشفير من طرف التطبيق ورمز دخول يتحقق منه هذا
- *      السكربت.
- *   5. من محرر Apps Script اختر الدالة setup ثم اضغط ▶ Run — ينشئ ورقة
- *      واحدة (sync_data) لتخزين النص المشفّر. أول مرة بيطلب صلاحيات
- *      (Authorize access) — وافق (يشتغل بحسابك أنت على جدولك أنت فقط).
- *   6. Deploy ← New deployment ← Web app:
+ * التركيب (الأسهل من داخل التطبيق: المزيد ← المزامنة ← «إعداد خطوة بخطوة»،
+ * يعطيك هذا الكود جاهزًا وفيه رمزك):
+ *   1. افتح script.google.com/create (أو من أي جدول: Extensions ← Apps Script).
+ *   2. احذف كل محتوى Code.gs الافتراضي، والصق محتوى هذا الملف كاملًا.
+ *   3. غيّر قيمة SECRET_TOKEN بالأسفل لنص عشوائي طويل — نفس الرمز اللي تدخله
+ *      بإعدادات التطبيق، لأنه مفتاح التشفير ورمز الدخول في نفس الوقت.
+ *   4. اختر الدالة setup ثم ▶ Run ووافق على الصلاحيات — تنشئ جدول
+ *      "QB-Nomia Backup" (لو السكربت مو مربوط بجدول) وورقة sync_data.
+ *   5. Deploy ← New deployment ← Web app:
  *        - Execute as: Me
  *        - Who has access: Anyone
  *      انسخ الرابط المنتهي بـ /exec وألصقه بإعدادات التطبيق (مو بالكود —
  *      المستودع عام، فأي رابط/رمز بالكود يصير مرئي للجميع).
- *   7. أي تعديل لاحق على هذا الكود يحتاج Deploy ← Manage deployments
+ *   6. أي تعديل لاحق على هذا الكود يحتاج Deploy ← Manage deployments
  *      ← ✎ تعديل ← Version: New version ← Deploy.
  */
 
-// غيّر هذا لنفس القيمة الموجودة بـ src/config/sheetsSync.ts (SHEETS_SECRET_TOKEN)
+// نفس الرمز السري المحفوظ بإعدادات التطبيق (المزيد ← المزامنة)
 var SECRET_TOKEN = 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET'
 
 var SHEET_NAME = 'sync_data'
@@ -38,18 +34,31 @@ var ROW_KEY = 'snapshot'
 // (snapshot، snapshot#1، snapshot#2 ...) بحد أقصى أقل من الحد الرسمي بهامش أمان.
 var CHUNK_SIZE = 45000
 
-/** شغّلها يدويًا مرة واحدة فقط من محرر Apps Script لإنشاء ورقة التخزين. */
+/** شغّلها يدويًا مرة واحدة فقط من محرر Apps Script: تنشئ الجدول (لو ما فيه) وورقة التخزين. */
 function setup() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet()
-  var sheet = ss.getSheetByName(SHEET_NAME)
-  if (!sheet) sheet = ss.insertSheet(SHEET_NAME)
-  sheet.getRange(1, 1, 1, 3).setValues([['key', 'encrypted_value', 'updated_at']])
-  sheet.setFrozenRows(1)
+  var ss = getSpreadsheet()
+  getSheet()
 
   var def = ss.getSheetByName('Sheet1')
   if (def && ss.getSheets().length > 1) ss.deleteSheet(def)
 
-  Logger.log('تم إنشاء ورقة التخزين المشفّر بنجاح: ' + SHEET_NAME)
+  Logger.log('جاهز — جدول التخزين المشفّر: ' + ss.getUrl())
+}
+
+/**
+ * الجدول المرتبط بالسكربت (لو فُتح من Extensions ← Apps Script)، وإلا جدول
+ * مستقل يُنشأ أول مرة باسم "QB-Nomia Backup" ويُحفظ معرّفه في خصائص السكربت.
+ * بهذا يشتغل السكربت سواء أُنشئ من داخل جدول أو مباشرة من script.google.com.
+ */
+function getSpreadsheet() {
+  var active = SpreadsheetApp.getActiveSpreadsheet()
+  if (active) return active
+  var props = PropertiesService.getScriptProperties()
+  var id = props.getProperty('SHEET_ID')
+  if (id) return SpreadsheetApp.openById(id)
+  var ss = SpreadsheetApp.create('QB-Nomia Backup')
+  props.setProperty('SHEET_ID', ss.getId())
+  return ss
 }
 
 function doGet(e) {
@@ -89,7 +98,7 @@ function checkToken(token) {
 }
 
 function getSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet()
+  var ss = getSpreadsheet()
   var sheet = ss.getSheetByName(SHEET_NAME)
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME)

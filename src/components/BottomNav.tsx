@@ -328,6 +328,7 @@ export function BottomNav() {
         </div>
 
         <div
+          data-tour="nav"
           className="pointer-events-auto relative mx-auto flex h-[66px] max-w-[420px] items-center rounded-full border border-[var(--color-border-strong)] px-2 shadow-[0_24px_50px_-16px_rgba(0,0,0,0.95)]"
           style={{ background: 'rgba(18,18,22,0.82)', backdropFilter: 'blur(24px) saturate(1.6)', WebkitBackdropFilter: 'blur(24px) saturate(1.6)' }}
         >
@@ -337,6 +338,7 @@ export function BottomNav() {
           {/* زر + غائر داخل الشريط: تجويف داكن كأنه محفور في الكبسولة وفي وسطه زر أبيض صغير — ضغطة تفتح كبسولة الأنواع، وسحب منه يختار مباشرة. */}
           <button
             ref={fabRef}
+            data-tour="plus"
             onPointerDown={onFabDown}
             onPointerMove={onFabMove}
             onPointerUp={onFabUp}

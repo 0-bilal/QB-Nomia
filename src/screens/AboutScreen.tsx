@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { setChecklistHidden, setTourPending } from '../lib/onboarding'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AppLogoMark } from '../components/AppLogo'
@@ -208,6 +209,26 @@ export function AboutScreen() {
           </div>
         </>
       )}
+
+      <SectionHead title="البداية" />
+      <div className="qb-card">
+        {(
+          [
+            ['جولة الرئيسية', 'تعريف سريع بأقسام الشاشة الرئيسية', () => (setTourPending(true), setChecklistHidden(false), navigate('/'))],
+            ['جهّز محفظتك', 'خطوات التشغيل وحالة كل خطوة', () => navigate('/getting-started')],
+          ] as [string, string, () => void][]
+        ).map(([title, desc, onClick], i) => (
+          <button key={title} onClick={onClick} className={`qb-press flex w-full items-center gap-3 px-4 py-3.5 text-right ${i ? 'border-t border-[var(--color-border)]' : ''}`}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-semibold">{title}</div>
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-3)]">{desc}</div>
+            </div>
+            <Svg size={16}>
+              <path d="m15 6-6 6 6 6" />
+            </Svg>
+          </button>
+        ))}
+      </div>
 
       <SectionHead title="تطبيق أندرويد" />
       <div className="qb-card flex items-center gap-3.5 p-4">
