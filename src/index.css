@@ -775,7 +775,12 @@ textarea:focus {
   z-index: 90;
   pointer-events: none;
   box-shadow: 0 0 0 200vmax rgba(5, 5, 6, 0.78);
-  transition: all 600ms var(--ease-out-expo);
+  /* ينزلق من عنصر لعنصر بدل ما يختفي ويرجع؛ التعتيم يظهر مرة وحدة بداية الجولة. */
+  transition: top 420ms var(--ease-out-expo), left 420ms var(--ease-out-expo), width 420ms var(--ease-out-expo), height 420ms var(--ease-out-expo), border-radius 420ms var(--ease-out-expo);
+  animation: fade-in 260ms ease-out both;
+}
+.qb-ob-spot[data-empty]::after {
+  display: none;
 }
 .qb-ob-spot::after {
   content: '';
