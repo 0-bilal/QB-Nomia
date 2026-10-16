@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تدفّق هذا الشهر</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1);
+    --stripes:repeating-linear-gradient(135deg,rgba(161,161,173,.85) 0 4px,rgba(161,161,173,.35) 4px 8px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:16px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .intro,.panel,.note{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500;margin-bottom:7px}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .phone{width:390px;max-width:100%;background:var(--bg);border-radius:36px;border:1px solid #1d1d22;padding:20px 16px 24px}
+  .flow{position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--border);background:radial-gradient(90% 70% at 100% 0%,rgba(255,255,255,.06),transparent 60%),linear-gradient(165deg,var(--surface-el),var(--bg));animation:fade .45s var(--expo) both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .spark{position:absolute;left:0;right:92px;top:52px;height:120px;pointer-events:none}
+  .scrim{position:absolute;inset:0;pointer-events:none;background:radial-gradient(34% 42% at 62% 30%,rgba(18,18,21,.82),rgba(18,18,21,.4) 60%,transparent 100%)}
+  .in{position:relative;padding:16px 16px 0}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .top b{font-size:13px;font-weight:500;color:var(--text-2)}
+  .top span{font-size:11px;color:var(--text-3)}
+  .body{display:flex;align-items:flex-end;gap:16px}
+  .cols{display:flex;align-items:flex-end;gap:8px}
+  .col{width:30px;height:96px;border-radius:10px;background:rgba(255,255,255,.04);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+  .col i{display:block;width:100%;transform-origin:bottom;animation:grow .9s var(--expo) both}
+  @keyframes grow{from{transform:scaleY(0)}}
+  .leg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3)}
+  .leg i{width:7px;height:7px;border-radius:50%}
+  .amt{font-weight:700;font-size:20px;line-height:1.2}
+  .amt span{font-family:var(--font-sans);font-size:.6em;font-weight:500;color:var(--text-3);margin-inline-start:4px}
+  .sm{margin-top:4px;font-size:11px;line-height:1.75;color:var(--text-3);text-shadow:0 2px 10px rgba(5,5,6,.9)}
+  .sm b{color:var(--text);font-weight:600}
+  .sq{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--stripes);margin-inline-end:4px;vertical-align:-1px}
+  .list{position:relative;margin-top:12px;border-top:1px solid var(--border);padding:10px 0 4px;background:linear-gradient(180deg,rgba(10,10,12,.0),rgba(10,10,12,.85) 30%)}
+  .list .h{font-size:11px;color:var(--text-3);margin-bottom:2px}
+  .li{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12.5px}
+  .li .n{flex:1;font-weight:600}
+  .li .n small{font-weight:400;color:var(--text-3)}
+  .foot{position:relative;margin-top:12px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding:10px 16px;background:rgba(10,10,12,.7)}
+  .foot .l{font-size:12px;color:var(--text-3)}
+  .foot .l small{display:block;font-size:10.5px;margin-top:1px}
+  .foot .v{font-size:15px;font-weight:700}
+  .foot .v span{font-family:var(--font-sans);font-size:.62em;font-weight:500;color:var(--text-3);margin-inline-start:4px}
+  .bad{outline:2px dashed rgba(255,95,109,.75);outline-offset:3px;border-radius:8px;position:relative}
+  .pin{position:absolute;top:-9px;inset-inline-end:-9px;width:18px;height:18px;border-radius:50%;background:var(--expense);color:#fff;font:700 10px/18px var(--font-num);text-align:center;z-index:3}
+  .note{font-size:12px;color:var(--text-2);line-height:1.85;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:4px}
+  .note b{color:var(--text);font-weight:600}
+  .note ol{padding-inline-start:18px}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>تدفّق هذا الشهر</h1>
+  <p>نفس حساب شجرة المصاريف: «صرفت» = صرف حساباتك اليومية، والصرف من الادخار والطوارئ سطر منفصل «من مدخراتك». الأرقام هنا أمثلة.</p>
+</div>
+
+<div class="panel">
+  <div>
+    <div class="plbl">الحالة</div>
+    <div class="seg" id="segS">
+      <button data-v="0" class="on">شراء من الادخار</button>
+      <button data-v="1">سحب من الادخار ثم صرف</button>
+      <button data-v="2">عجز فعلي</button>
+    </div>
+  </div>
+  <div>
+    <div class="plbl">مقارنة</div>
+    <div class="seg" id="segM">
+      <button data-v="1" class="on">بعد التعديل</button>
+      <button data-v="0">الحالي (الأخطاء)</button>
+    </div>
+  </div>
+</div>
+
+<div class="phone"><div id="root"></div></div>
+<div class="note" id="note"></div>
+
+<script>
+const fmt = (v) => Math.round(Math.abs(v)).toLocaleString('en-US')
+// كشف الشهر: مرحّل + دخل + سحبت من مدخراتك = صرفت + ادّخرت + باقي
+const S = [
+  { name: 'شراء من الادخار', carried: 600, income: 4200, withdrawn: 0, spent: 2300, saved: 1500, fromSav: [['ادخار', 3200]], incDays: [[1, 4000], [9, 200]], spDays: [[2, 300], [4, 400], [6, 250], [9, 500], [12, 450], [14, 400]], savDay: 7 },
+  { name: 'سحب من الادخار ثم صرف', carried: 0, income: 3000, withdrawn: 1500, spent: 4000, saved: 0, fromSav: [], incDays: [[1, 3000]], spDays: [[2, 600], [5, 900], [8, 1400], [11, 500], [14, 600]], savDay: 0 },
+  { name: 'عجز فعلي', carried: 200, income: 3000, withdrawn: 0, spent: 3600, saved: 0, fromSav: [], incDays: [[1, 3000]], spDays: [[2, 700], [5, 900], [8, 800], [11, 700], [14, 500]], savDay: 0 },
+]
+let s = 0, m = 1
+const DAYS = 16
+const cum = (pts) => { const a = new Array(DAYS).fill(0); for (const [d, v] of pts) a[d - 1] += v; for (let i = 1; i < DAYS; i++) a[i] += a[i - 1]; return a }
+
+function spark(series, max) {
+  const W = 300, H = 120
+  const path = (vals) => vals.map((v, i) => `${i ? 'L' : 'M'}${(i / (DAYS - 1)) * W},${H - (v / max) * (H - 10) - 4}`).join(' ')
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${series.map(([c, v]) => `<path d="${path(v)} L${W},${H} L0,${H} Z" fill="${c}" opacity=".08"/><path d="${path(v)}" fill="none" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join('')}</svg>`
+}
+const bad = (n, html) => (m === 0 ? `<span class="bad"><span class="pin">${n}</span>${html}</span>` : html)
+
+function render() {
+  const x = S[s]
+  const savTotal = x.fromSav.reduce((a, r) => a + r[1], 0)
+  const inc = cum(x.incDays), daily = cum(x.spDays)
+  const all = cum([...x.spDays, ...(savTotal ? [[x.savDay, savTotal]] : [])])
+  const left = x.carried + x.income + x.withdrawn - x.spent - x.saved
+  const net = x.income - x.spent
+  let h
+  if (m === 0) {
+    // الحالي
+    const expense = x.spent + savTotal
+    const max = Math.max(x.income, expense)
+    const fromCarried = net < 0 && x.carried >= -net
+    const netColor = net < 0 && !fromCarried ? 'var(--expense)' : net < 0 ? 'var(--text-2)' : 'var(--income)'
+    h = `<div class="flow">${spark([['var(--income)', inc], ['var(--expense)', all]], max)}<div class="scrim"></div>
+      <div class="in"><div class="top"><b>تدفّق هذا الشهر</b><span>دخل مقابل مصروف</span></div>
+      <div class="body"><div class="cols">
+        <div class="col"><i style="height:${(x.income / max) * 100}%;background:linear-gradient(180deg,var(--income),rgba(62,224,143,.5))"></i></div>
+        ${bad(2, `<div class="col"><i style="height:${(savTotal / max) * 100}%;background:var(--stripes)"></i><i style="height:${(x.spent / max) * 100}%;background:linear-gradient(180deg,var(--expense),rgba(255,95,109,.5))"></i></div>`)}
+      </div><div style="flex:1;display:flex;flex-direction:column;gap:12px">
+        <div><div class="leg"><i style="background:var(--income)"></i>الدخل</div><div class="amt num" style="color:var(--income)">${fmt(x.income)}<span>ر.س</span></div></div>
+        <div><div class="leg"><i style="background:var(--expense)"></i>المصروف</div>${bad(1, `<div class="amt num" style="color:var(--expense)">${fmt(expense)}<span>ر.س</span></div>`)}
+        ${savTotal ? `<div class="sm"><div>من حساباتك اليومية <b class="num">${fmt(x.spent)}</b></div><div><span class="sq"></span>من مدخراتك <b class="num">${fmt(savTotal)}</b></div></div>` : ''}</div>
+      </div></div>
+      ${savTotal || fromCarried ? `<div class="list" style="background:none"><div class="h">صرفت من خارج دخل الشهر</div>${x.fromSav.map(([n, v]) => `<div class="li"><span class="sq"></span><span class="n">من مدخراتك · ${n}</span>${bad(6, `<span class="num" style="font-weight:700">${fmt(v)}</span>`)}</div>`).join('')}</div>` : ''}
+      </div>
+      <div class="foot"><div class="l">الصافي حتى اليوم</div>${bad(net < 0 && !fromCarried ? (x.withdrawn ? 3 : 4) : 5, `<div class="v num" style="color:${netColor}">${net > 0 ? '+' : net < 0 ? '−' : ''}${fmt(net)}<span>ر.س</span></div>`)}</div></div>`
+  } else {
+    // بعد التعديل
+    const max = Math.max(x.income, x.spent)
+    const gap = Math.max(0, -net)
+    const cov = []
+    let g = gap
+    const take = (label, v) => { const t = Math.min(g, v); if (t > 0) { cov.push([label, t]); g -= t } }
+    take('من مرحّل الشهر الماضي', x.carried)
+    take('سحبت من مدخراتك', x.withdrawn)
+    const leftColor = left < 0 ? 'var(--expense)' : 'var(--text)'
+    h = `<div class="flow">${spark([['var(--income)', inc], ['var(--expense)', daily]], max)}<div class="scrim"></div>
+      <div class="in"><div class="top"><b>تدفّق هذا الشهر</b><span>دخل مقابل صرف</span></div>
+      <div class="body"><div class="cols">
+        <div class="col"><i style="height:${(x.income / max) * 100}%;background:linear-gradient(180deg,var(--income),rgba(62,224,143,.5))"></i></div>
+        <div class="col"><i style="height:${(x.spent / max) * 100}%;background:linear-gradient(180deg,var(--expense),rgba(255,95,109,.5))"></i></div>
+      </div><div style="flex:1;display:flex;flex-direction:column;gap:12px">
+        <div><div class="leg"><i style="background:var(--income)"></i>دخل الشهر</div><div class="amt num" style="color:var(--income)">${fmt(x.income)}<span>ر.س</span></div></div>
+        <div><div class="leg"><i style="background:var(--expense)"></i>صرفت</div><div class="amt num" style="color:var(--expense)">${fmt(x.spent)}<span>ر.س</span></div>
+        ${cov.length ? `<div class="sm">${cov.map(([l, v]) => `<div><span class="sq"></span>منها ${l} <b class="num">${fmt(v)}</b></div>`).join('')}</div>` : ''}</div>
+      </div></div>
+      ${savTotal ? `<div class="list"><div class="h">ومن مدخراتك · ما ينحسب على الشهر</div>${x.fromSav.map(([n, v]) => `<div class="li"><span class="sq"></span><span class="n">${n}</span><span class="num" style="font-weight:700">${fmt(v)}</span></div>`).join('')}</div>` : ''}
+      </div>
+      <div class="foot"><div class="l">${left < 0 ? 'عجز هذا الشهر' : 'باقي لين الآن'}<small>نفس شجرة المصاريف</small></div><div class="v num" style="color:${leftColor}">${fmt(left)}<span>ر.س</span></div></div></div>`
+  }
+  document.getElementById('root').innerHTML = h
+  document.getElementById('note').innerHTML = m === 0
+    ? `<span class="k">الأخطاء الحالية</span><ol>
+      <li>«المصروف» يجمع الصرف من المدخرات، والشجرة تقول «صرفت» أقل.</li>
+      <li>العمود والخط الأحمر يشملون المدخرات فيطلعون فوق الدخل كأنه تجاوز.</li>
+      <li>السحب من الادخار ثم الصرف يطلع عجز أحمر.</li>
+      <li>العجز يتجاهل المرحّل لو ما غطّى الفرق كله، فيطلع أكبر من الحقيقي.</li>
+      <li>«الصافي» (دخل − صرف) رقم غير «باقي» الشجرة.</li>
+      <li>مبلغ المدخرات مكتوب فوق الرسم.</li></ol>`
+    : `<span class="k">بعد التعديل</span>
+      <b>دخل الشهر</b> مقابل <b>صرفت</b> (حساباتك اليومية) في الأرقام والأعمدة والخط. لو صرفت أكثر من الدخل، تحت «صرفت» يظهر وش غطّى الفرق: <b>من مرحّل الشهر الماضي</b> ثم <b>سحبت من مدخراتك</b>.
+      الصرف من الادخار والطوارئ تحت البطاقة «ومن مدخراتك · ما ينحسب على الشهر» على خلفية معتمة.
+      وتحت: <b>باقي لين الآن</b> = نفس رقم الشجرة (مرحّل + دخل + سحب − صرف − ادّخار − سلف)، ويصير <b>عجز</b> أحمر بس لو فعلًا سالب.`
+}
+function bind(id, set) {
+  document.querySelectorAll(`#${id} button`).forEach((b) => b.onclick = () => {
+    document.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle('on', x === b))
+    set(+b.dataset.v); render()
+  })
+}
+bind('segS', (v) => (s = v)); bind('segM', (v) => (m = v))
+render()
+</script>
+</body>
+</html>
