@@ -50,18 +50,47 @@ function Column({ value, max, color, delay }: { value: number; max: number; colo
   )
 }
 
+/** خلفية مخطّطة رمادية لـ«من رصيدك السابق» — فلوس كانت عندك من قبل، مو صرف جديد على الشهر. */
+export const PREVIOUS_STRIPES = 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-text-2) 85%, transparent) 0 4px, color-mix(in srgb, var(--color-text-2) 35%, transparent) 4px 8px)'
+
+/** عمود المصروف مقسوم: الأحمر من دخل الشهر تحت، والمخطّط من الرصيد السابق فوقه. */
+function SplitColumn({ fromPeriod, fromPrevious, max, delay }: { fromPeriod: number; fromPrevious: number; max: number; delay: number }) {
+  const total = fromPeriod + fromPrevious
+  const h = max > 0 ? Math.max(total > 0 ? 4 : 0, (total / max) * 100) : 0
+  const prevShare = total > 0 ? (fromPrevious / total) * 100 : 0
+  return (
+    <div className="flex h-[96px] w-[30px] items-end overflow-hidden rounded-[10px] bg-white/[0.04]">
+      <div className="qb-col-grow flex w-full flex-col overflow-hidden rounded-[10px]" style={{ height: `${h}%`, animationDelay: `${delay}ms` }}>
+        {prevShare > 0 && <div style={{ height: `${prevShare}%`, background: PREVIOUS_STRIPES, borderBottom: prevShare < 100 ? '2px solid var(--color-bg)' : undefined }} />}
+        <div className="flex-1" style={{ background: `linear-gradient(180deg, ${EXPENSE}, color-mix(in srgb, ${EXPENSE} 55%, transparent))` }} />
+      </div>
+    </div>
+  )
+}
+
+export interface PreviousSourceRow {
+  name: string
+  amount: number
+  /** منه: ما وصل للمصروف بتحويل لحساب ثاني («سحبت منه»). */
+  viaTransfer: number
+}
+
 /**
  * «تدفّق هذا الشهر»: عمودان للدخل والمصروف + الأرقام، وخلف البطاقة سبارك بخطّين تراكميين (أخضر للدخل، أحمر للمصروف)
  * من أول الشهر لليوم. السحب الأفقي على البطاقة يختار يومًا فتتغيّر الأرقام والأعمدة والصافي لذلك اليوم.
+ * عمود المصروف مقسوم: «من دخل الشهر» (أحمر) و«من رصيدك السابق» (رمادي مخطّط، مثل الشراء من الادخار)،
+ * والصافي = الدخل − المصروف من دخل الشهر، فالصرف من الرصيد السابق ما يطلع عجز.
  */
-export function MonthFlowCard({ flow, hidden, monthIndex }: { flow: MonthFlow; hidden: boolean; monthIndex: number }) {
+export function MonthFlowCard({ flow, hidden, monthIndex, sources = [] }: { flow: MonthFlow; hidden: boolean; monthIndex: number; sources?: PreviousSourceRow[] }) {
   const n = flow.income.length
   const chartRef = useRef<HTMLDivElement>(null)
   const { scrub, handlers } = useSparkScrub(n, chartRef)
   const i = scrub ?? n - 1
   const income = flow.income[i] ?? 0
   const expense = flow.expense[i] ?? 0
-  const net = income - expense
+  const fromPeriod = Math.min(expense, flow.fromPeriod[i] ?? expense)
+  const fromPrevious = Math.max(0, Math.round((expense - fromPeriod) * 100) / 100)
+  const net = income - fromPeriod
   const colMax = Math.max(income, expense)
 
   const netColor = net < 0 ? EXPENSE : INCOME
@@ -99,7 +128,7 @@ export function MonthFlowCard({ flow, hidden, monthIndex }: { flow: MonthFlow; h
         <div className="flex items-end gap-4">
           <div className="flex items-end gap-2">
             <Column value={income} max={colMax} color={INCOME} delay={120} />
-            <Column value={expense} max={colMax} color={EXPENSE} delay={200} />
+            <SplitColumn fromPeriod={fromPeriod} fromPrevious={fromPrevious} max={colMax} delay={200} />
           </div>
           <div className="flex flex-1 flex-col gap-3">
             <div>
@@ -109,9 +138,35 @@ export function MonthFlowCard({ flow, hidden, monthIndex }: { flow: MonthFlow; h
             <div>
               <Legend color={EXPENSE} label="المصروف" />
               <Amount value={expense} hidden={hidden} instant={scrub !== null} size={20} color={EXPENSE} />
+              {fromPrevious > 0 && (
+                <div className="mt-1 text-[11px] leading-relaxed text-[var(--color-text-3)]" style={{ textShadow: '0 2px 10px rgba(5,5,6,0.9)' }}>
+                  <div>
+                    من دخل الشهر <b className="num font-semibold text-[var(--color-text)]">{hidden ? '•••' : formatAmount(fromPeriod)}</b>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
+                    من رصيدك السابق <b className="num font-semibold text-[var(--color-text)]">{hidden ? '•••' : formatAmount(fromPrevious)}</b>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+        {scrub === null && sources.length > 0 && (
+          <div className="mt-3 border-t border-[var(--color-border)] pt-2.5">
+            <div className="mb-1 text-[11px] text-[var(--color-text-3)]">الرصيد السابق اللي صرفت منه</div>
+            {sources.map((src) => (
+              <div key={src.name} className="flex items-center gap-2 py-1 text-[12.5px]">
+                <span className="h-2 w-2 flex-shrink-0 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
+                <span className="min-w-0 flex-1 truncate font-semibold">
+                  {src.name}
+                  {src.viaTransfer > 0 && <span className="font-normal text-[var(--color-text-3)]"> · سحبت منه لحساب ثاني</span>}
+                </span>
+                <span className="num font-bold">{hidden ? '•••' : formatAmount(src.amount)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="h-[22px]" />
       </div>
 

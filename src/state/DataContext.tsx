@@ -10,6 +10,7 @@ import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
 import { formatMoney } from '../lib/format'
 import { localIso } from '../lib/homeFeed'
 import { reconcileDiff } from '../lib/reconcile'
+import { fundMonth, type PeriodFunding } from '../lib/periodFunding'
 import type {
   Account,
   BillingCycle,
@@ -468,6 +469,8 @@ interface DataContextValue {
   recentActivity: (limit?: number) => ActivityItem[]
   accountActivity: (accountId: string, limit?: number) => ActivityItem[]
   monthTotals: () => { income: number; expense: number }
+  /** الشهر الحالي: المصروف من دخل الشهر ومن الرصيد السابق (lib/periodFunding). الميزانية والصافي على `fromPeriod`. */
+  monthFunding: () => PeriodFunding
   monthlyTrend: (months?: number) => { label: string; income: number; expense: number }[]
   financialHealthScore: () => number | null
   exportSnapshot: () => DataSnapshot
@@ -787,6 +790,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    function monthFunding(): PeriodFunding {
+      const now = new Date()
+      return fundMonth(transactions, loanTransactions, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+    }
+
     function monthlyTrend(months = 6): { label: string; income: number; expense: number }[] {
       const now = new Date()
       const result: { label: string; income: number; expense: number }[] = []
@@ -809,7 +817,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
      * لا معنى له بدون دخل مسجّل هذا الشهر فيرجع null.
      */
     function financialHealthScore(): number | null {
-      const { income, expense } = monthTotals()
+      // المصروف من الرصيد السابق (مثل الشراء من الادخار) ما يُحسب على دخل الشهر.
+      const { income, fromPeriod: expense } = monthFunding()
       if (income <= 0) return null
       const savingsRate = (income - expense) / income
       const subscriptionBurden = totalMonthlySubscriptions / income
@@ -1067,7 +1076,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       if (monthlyBudgetLimit) {
-        const spent = monthTotals().expense
+        const spent = monthFunding().fromPeriod
         const pct = (spent / monthlyBudgetLimit) * 100
         if (pct >= 100) {
           list.push({ id: `overall-budget-${today.slice(0, 7)}`, kind: 'budget', severity: 'critical', title: 'الميزانية الإجمالية', message: `تجاوزت الميزانية الشهرية (${Math.round(pct)}%)`, color: 'var(--color-expense)', to: '/categories' })
@@ -1450,6 +1459,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       recentActivity,
       accountActivity,
       monthTotals,
+      monthFunding,
       monthlyTrend,
       financialHealthScore,
       addPerson(input: AddPersonInput) {

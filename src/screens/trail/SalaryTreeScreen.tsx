@@ -9,6 +9,7 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { EyeToggleButton } from '../../components/EyeToggleButton'
 import { EmptyState } from '../../components/ui'
 import { TreeIcon, money, periodLabel, salaryTitle } from '../../components/SalaryTreeVisuals'
+import { PREVIOUS_STRIPES } from '../../components/MonthSummary'
 
 /** شجرة المصاريف: كل راتب بطاقة، وفيها كم صُرف منه خلال فترته وكم باقي. */
 export function SalaryTreeScreen() {
@@ -32,8 +33,10 @@ export function SalaryTreeScreen() {
       ) : (
         periods.map((p, i) => {
           const over = p.left < 0
-          const total = Math.max(p.salary.amount, p.spent + p.transferred + p.lent) || 1
-          const spentPct = (p.spent / total) * 100
+          const fromSalary = p.spent - p.fromPrevious
+          const total = Math.max(p.salary.amount, fromSalary + p.transferred + p.lent) + p.fromPrevious || 1
+          const spentPct = (fromSalary / total) * 100
+          const prevPct = (p.fromPrevious / total) * 100
           const movedPct = (p.transferred / total) * 100
           const lentPct = (p.lent / total) * 100
           return (
@@ -55,13 +58,20 @@ export function SalaryTreeScreen() {
                 <span className="qb-trail-grow block h-full" style={{ width: `${spentPct}%`, background: 'var(--color-expense)' }} />
                 {p.transferred > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${movedPct}%`, background: 'var(--color-transfer)', animationDelay: '60ms' }} />}
                 {p.lent > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${lentPct}%`, background: 'var(--color-owed-to)', animationDelay: '90ms' }} />}
-                {!over && p.left > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${100 - spentPct - movedPct - lentPct}%`, background: 'var(--color-accent)', animationDelay: '120ms' }} />}
+                {!over && p.left > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${(p.left / total) * 100}%`, background: 'var(--color-accent)', animationDelay: '120ms' }} />}
+                {p.fromPrevious > 0 && <span className="qb-trail-grow block h-full" style={{ width: `${prevPct}%`, background: PREVIOUS_STRIPES, animationDelay: '150ms' }} />}
               </div>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-2)]">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-[7px] w-[7px] rounded-full bg-[var(--color-expense)]" />
-                  صُرف <b className="num text-[var(--color-text)]">{money(p.spent, hidden)}</b>
+                  صُرف <b className="num text-[var(--color-text)]">{money(fromSalary, hidden)}</b>
                 </span>
+                {p.fromPrevious > 0 && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-[7px] w-[7px] rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
+                    من رصيد سابق <b className="num text-[var(--color-text)]">{money(p.fromPrevious, hidden)}</b>
+                  </span>
+                )}
                 {p.transferred > 0 && (
                   <span className="inline-flex items-center gap-1.5">
                     <span className="h-[7px] w-[7px] rounded-full bg-[var(--color-transfer)]" />

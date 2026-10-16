@@ -163,6 +163,7 @@ export function HomeScreen() {
     categories,
     categorySpentThisMonth,
     monthTotals,
+    monthFunding,
     subscriptions,
     recurringTransactions,
     monthlyBudgetLimit,
@@ -193,14 +194,18 @@ export function HomeScreen() {
 
   const activity = recentActivity(8)
   const { income: monthIncome, expense: monthExpense } = monthTotals()
-  const monthNet = monthIncome - monthExpense
+  // الصرف من الرصيد السابق (مثل الشراء من الادخار) ما ينحسب على دخل الشهر ولا ميزانيته.
+  const funding = useMemo(() => monthFunding(), [monthFunding])
+  const monthPeriodExpense = funding.fromPeriod
+  const monthNet = monthIncome - monthPeriodExpense
   const flowTotal = monthIncome + monthExpense
 
   const categoryRows = categoryShares(
     categories.filter((c) => c.kind === 'expense').map((c) => ({ ...c, spent: categorySpentThisMonth(c.id) })),
     monthExpense,
   )
-  const monthFlow = useMemo(() => monthFlowSeries(transactions, new Date()), [transactions])
+  const monthFlow = useMemo(() => monthFlowSeries(transactions, new Date(), funding.fromPeriodByDate), [transactions, funding])
+  const previousSources = funding.previousSources.map((p) => ({ name: accounts.find((a) => a.id === p.accountId)?.name ?? 'حساب محذوف', amount: p.amount, viaTransfer: p.viaTransfer }))
 
   const activeCommitments = commitments.filter((c) => c.status === 'active')
 
@@ -211,8 +216,9 @@ export function HomeScreen() {
   // الترحيب: مصروف اليوم، وميزانية اليوم (المتبقي من ميزانية الشهر ÷ الأيام الباقية)، ونزول الراتب اليوم.
   const todayIso = localIso(now)
   const todaySpent = transactions.filter((x) => x.type === 'expense' && x.date === todayIso).reduce((s, x) => s + x.amount, 0)
-  const monthBudgetLeft = monthlyBudgetLimit ? monthlyBudgetLimit - monthExpense : null
-  const dailyBudget = monthBudgetLeft !== null ? Math.max(0, Math.round((monthBudgetLeft + todaySpent) / (totalDaysInMonth - daysElapsedInMonth + 1))) : null
+  const todayPeriodSpent = funding.fromPeriodByDate.get(todayIso) ?? 0
+  const monthBudgetLeft = monthlyBudgetLimit ? monthlyBudgetLimit - monthPeriodExpense : null
+  const dailyBudget = monthBudgetLeft !== null ? Math.max(0, Math.round((monthBudgetLeft + todayPeriodSpent) / (totalDaysInMonth - daysElapsedInMonth + 1))) : null
   const salaryToday = transactions.some((x) => x.type === 'income' && x.incomeSourceId === SALARY_INCOME_SOURCE_ID && x.date === todayIso)
   // منحنى الرصيد خلف الإجمالي: رصيد نهاية كل يوم لفترة مختارة، والتمرير عليه يعرض رصيد يوم معيّن.
   const chartSeries = useMemo(() => {
@@ -267,7 +273,7 @@ export function HomeScreen() {
   }
   if (monthlyBudgetLimit) {
     const daysLeft = totalDaysInMonth - daysElapsedInMonth + 1
-    const remaining = monthlyBudgetLimit - monthExpense
+    const remaining = monthlyBudgetLimit - monthPeriodExpense
     insights.push(
       remaining > 0
         ? {
@@ -469,7 +475,7 @@ export function HomeScreen() {
 
       {/* ملخص الشهر: التدفّق مع السبارك، ثم الاشتراكات والالتزامات */}
       <section className="qb-rise mb-3" style={rise(4)}>
-        <MonthFlowCard flow={monthFlow} hidden={hidden} monthIndex={now.getMonth()} />
+        <MonthFlowCard flow={monthFlow} hidden={hidden} monthIndex={now.getMonth()} sources={previousSources} />
       </section>
 
       {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (

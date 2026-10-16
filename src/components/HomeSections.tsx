@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { usePreviousFunded } from '../hooks/usePreviousFunded'
+import { PreviousTag } from './PreviousTag'
 import { ActivityAmount, ActivityIcon } from './ActivityIcon'
 import { CategoryIconBox } from './CategoryVisual'
 import { SwipeableRow, type SwipeAction } from './SwipeableRow'
@@ -128,6 +130,7 @@ export function GroupedActivity({
   swipeFor: (item: ActivityItem) => { leftSwipe?: SwipeAction; rightSwipe?: SwipeAction }
   onOpen: (item: ActivityItem) => void
 }) {
+  const previousFunded = usePreviousFunded()
   return (
     <>
       {groupByDay(items).map((group) => {
@@ -165,6 +168,7 @@ export function GroupedActivity({
                           {item.note?.trim() ? `${item.note.trim()} · ` : ''}
                           {item.subtitle}
                         </div>
+                        {item.kind === 'expense' && previousFunded.has(item.id) && <PreviousTag partial={previousFunded.get(item.id)!.amount < Math.abs(item.amount)} />}
                       </div>
                       <ActivityAmount item={item} hidden={hidden} />
                     </button>

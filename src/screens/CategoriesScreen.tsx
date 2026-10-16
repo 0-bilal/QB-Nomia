@@ -10,6 +10,10 @@ import { EmptyState, HeaderAddButton } from '../components/ui'
 import { BUDGET_STATE_COLOR, budgetLeftLabel, budgetState, categoryColor, monthProgress, type BudgetState } from '../lib/categoryStats'
 import type { Category } from '../types'
 import { haptic } from '../lib/haptics'
+import { fundMonth } from '../lib/periodFunding'
+import { localIso } from '../lib/homeFeed'
+import { monthKey, shiftMonth } from '../lib/txFilters'
+import { PREVIOUS_STRIPES } from '../components/MonthSummary'
 import { CATEGORY_PERIOD_LABEL, allTimeStats, changePct, inComparison, inPeriod, periodMonthNumber, spentByCategory, type CategoryPeriod } from '../lib/categoryPeriod'
 
 type Filter = 'all' | 'over' | 'near' | 'none'
@@ -178,6 +182,18 @@ function Meter({ pct, color, height = 10, marker }: { pct: number; color: string
       {marker !== undefined && (
         <span className="absolute rounded-sm bg-white/50" style={{ top: -2, bottom: -2, width: 2, right: `${Math.min(100, marker)}%` }} title="المتوقع حتى اليوم" />
       )}
+    </div>
+  )
+}
+
+/** تحت مقياس السقف: كم من مصروف الشهر كان من الرصيد السابق (ما ينحسب على السقف). */
+function PreviousNote({ amount }: { amount: number }) {
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--color-text-3)]">
+      <span className="inline-block h-2 w-2 flex-shrink-0 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
+      <span>
+        منها <b className="num font-semibold text-[var(--color-text-2)]">{formatAmount(amount)}</b> من رصيدك السابق · ما تنحسب على السقف
+      </span>
     </div>
   )
 }
@@ -410,7 +426,7 @@ function CategoryDetailSheet({
 }
 
 export function CategoriesScreen() {
-  const { categories, transactions, monthlyBudgetLimit, setMonthlyBudgetLimit, moveCategoryUp, moveCategoryDown, updateCategory } = useData()
+  const { categories, transactions, loanTransactions, monthlyBudgetLimit, setMonthlyBudgetLimit, moveCategoryUp, moveCategoryDown, updateCategory } = useData()
   const navigate = useNavigate()
   const [overallDialogOpen, setOverallDialogOpen] = useState(false)
   const [budgetFor, setBudgetFor] = useState<Category | null>(null)
@@ -444,9 +460,17 @@ export function CategoriesScreen() {
   const monthExpense = [...spentMap.values()].reduce((a, b) => a + b, 0)
   const prevExpense = prevMap ? [...prevMap.values()].reduce((a, b) => a + b, 0) : 0
   const { day, days, daysLeft } = monthProgress()
-  const overallState = budgetState(monthExpense, monthlyBudgetLimit ?? undefined)
-  const overallPct = monthlyBudgetLimit ? (monthExpense / monthlyBudgetLimit) * 100 : 0
-  const remaining = monthlyBudgetLimit ? Math.max(0, monthlyBudgetLimit - monthExpense) : 0
+  // السقف الشهري يحسب المصروف من دخل الشهر فقط — الصرف من الرصيد السابق (مثل الادخار) ما ينحسب عليه.
+  const fromPrevious = useMemo(() => {
+    if (period === 'all') return 0
+    const cur = monthKey(localIso(new Date()))
+    return fundMonth(transactions, loanTransactions, period === 'cur' ? cur : shiftMonth(cur, -1)).fromPrevious
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, loanTransactions, period, todayKey])
+  const capExpense = Math.max(0, monthExpense - fromPrevious)
+  const overallState = budgetState(capExpense, monthlyBudgetLimit ?? undefined)
+  const overallPct = monthlyBudgetLimit ? (capExpense / monthlyBudgetLimit) * 100 : 0
+  const remaining = monthlyBudgetLimit ? Math.max(0, monthlyBudgetLimit - capExpense) : 0
   const lastMonthDays = new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate()
 
   const totalSpent = expenseCategories.reduce((s, c) => s + spentOf(c.id), 0)
@@ -550,6 +574,7 @@ export function CategoriesScreen() {
                     مقارنة بأول <span className="num">{day}</span> أيام من الشهر الماضي
                   </span>
                 </div>
+                {fromPrevious > 0 && <PreviousNote amount={fromPrevious} />}
                 <StatRow
                   items={[
                     { v: formatAmount(remaining), k: overallState === 'over' ? 'تجاوزت السقف' : 'متبقي' },
@@ -578,6 +603,7 @@ export function CategoriesScreen() {
                     </span>
                     <span>شهر مكتمل</span>
                   </div>
+                  {fromPrevious > 0 && <PreviousNote amount={fromPrevious} />}
                 </>
               ) : (
                 <div className="mt-1 text-[11.5px] text-[var(--color-text-3)]">شهر مكتمل</div>
@@ -586,9 +612,9 @@ export function CategoriesScreen() {
                 items={[
                   monthlyBudgetLimit
                     ? {
-                        v: formatAmount(Math.abs(monthlyBudgetLimit - monthExpense)),
-                        k: monthExpense > monthlyBudgetLimit ? 'تجاوزت السقف' : 'وفّرت من السقف',
-                        color: monthExpense > monthlyBudgetLimit ? 'var(--color-expense)' : 'var(--color-income)',
+                        v: formatAmount(Math.abs(monthlyBudgetLimit - capExpense)),
+                        k: capExpense > monthlyBudgetLimit ? 'تجاوزت السقف' : 'وفّرت من السقف',
+                        color: capExpense > monthlyBudgetLimit ? 'var(--color-expense)' : 'var(--color-income)',
                       }
                     : { v: String(periodCount), k: 'حركة' },
                   { v: formatAmount(Math.round(monthExpense / lastMonthDays)), k: 'متوسط يومي' },
