@@ -295,3 +295,66 @@ export function savingsSpentByAccount(transactions: Transaction[], savingsIds: S
   for (const t of transactions) if (t.type === 'expense' && t.date.startsWith(month) && savingsIds.has(t.accountId)) m.set(t.accountId, (m.get(t.accountId) ?? 0) + toC(t.amount))
   return [...m.entries()].map(([accountId, c]) => ({ accountId, amount: toS(c) })).sort((a, b) => b.amount - a.amount)
 }
+
+export interface LedgerDaySeries {
+  /** «باقي» في نهاية كل يوم (الفهرس 0 = يوم 1) — آخر نقطة = `left`. */
+  left: number[]
+  /** المسحوب من المدخرات للحسابات اليومية، تراكمي. */
+  withdrawn: number[]
+  /** السلف المستلمة في الحسابات اليومية، تراكمي. */
+  received: number[]
+}
+
+/**
+ * كشف الشهر يومًا بيوم لأول `days` يوم — لبطاقة «تدفّق هذا الشهر» والسحب عليها.
+ * الحركات بتاريخ بعد `days` تُحسب في آخر يوم (مثل monthFlowSeries).
+ */
+export function ledgerDaySeries(l: MonthLedger, savingsIds: Set<string>, days: number): LedgerDaySeries {
+  const delta = new Array<number>(days).fill(0)
+  const wd = new Array<number>(days).fill(0)
+  const rc = new Array<number>(days).fill(0)
+  for (const s of l.steps) {
+    const i = Math.min(days, Number(s.date.slice(8, 10))) - 1
+    if (i < 0) continue
+    const c = toC(s.amount)
+    switch (s.kind) {
+      case 'income':
+        if (!savingsIds.has(s.accountId ?? '')) delta[i] += c
+        break
+      case 'expense':
+      case 'given':
+        delta[i] -= c
+        break
+      case 'saved':
+        // الدخل اللي نزل مباشرة في حساب ادخار ما مرّ على الحسابات اليومية — التحويل وحده ينقصها.
+        delta[i] -= c
+        break
+      case 'withdrawn':
+        delta[i] += c
+        wd[i] += c
+        break
+      case 'received':
+        delta[i] += c
+        rc[i] += c
+        break
+      case 'adjust':
+        delta[i] += c
+        break
+    }
+  }
+  const left: number[] = []
+  const withdrawn: number[] = []
+  const received: number[] = []
+  let a = toC(l.carried)
+  let w = 0
+  let r = 0
+  for (let i = 0; i < days; i++) {
+    a += delta[i]
+    w += wd[i]
+    r += rc[i]
+    left.push(toS(a))
+    withdrawn.push(toS(w))
+    received.push(toS(r))
+  }
+  return { left, withdrawn, received }
+}

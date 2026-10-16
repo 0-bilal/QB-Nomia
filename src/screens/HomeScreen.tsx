@@ -21,7 +21,7 @@ import { QuickSyncButton } from '../components/QuickSyncButton'
 import { BalanceCapsule, GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
 import { daysBetween, daysLeftLabel, localIso, upcomingItems } from '../lib/homeFeed'
 import { categoryShares, monthFlowSeries } from '../lib/monthFlow'
-import { savingsAccountIds, savingsSpentByAccount } from '../lib/monthLedger'
+import { ledgerDaySeries, savingsAccountIds, savingsSpentByAccount } from '../lib/monthLedger'
 import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { getHideBalancesDefault } from '../lib/privacy'
@@ -207,11 +207,9 @@ export function HomeScreen() {
     monthExpense,
   )
   const monthFlow = useMemo(() => monthFlowSeries(transactions, new Date(), savingsIds), [transactions, savingsIds])
-  // خارج دخل الشهر: المرحّل من الشهر الماضي، والصرف من المدخرات بالحساب.
-  const outsideIncome = {
-    carried: ledger.carried,
-    savings: savingsSpentByAccount(transactions, savingsIds, ledger.month).map((p) => ({ name: accounts.find((a) => a.id === p.accountId)?.name ?? 'حساب محذوف', amount: p.amount })),
-  }
+  // كشف الشهر يومًا بيوم (باقي، سحب من المدخرات، سلف مستلمة) — نفس أرقام شجرة المصاريف.
+  const ledgerDays = useMemo(() => ledgerDaySeries(ledger, savingsIds, monthFlow.income.length), [ledger, savingsIds, monthFlow])
+  const savingsSpend = savingsSpentByAccount(transactions, savingsIds, ledger.month).map((p) => ({ name: accounts.find((a) => a.id === p.accountId)?.name ?? 'حساب محذوف', amount: p.amount }))
 
   const activeCommitments = commitments.filter((c) => c.status === 'active')
 
@@ -481,7 +479,7 @@ export function HomeScreen() {
 
       {/* ملخص الشهر: التدفّق مع السبارك، ثم الاشتراكات والالتزامات */}
       <section className="qb-rise mb-3" style={rise(4)}>
-        <MonthFlowCard flow={monthFlow} hidden={hidden} monthIndex={now.getMonth()} outside={outsideIncome} />
+        <MonthFlowCard flow={monthFlow} days={ledgerDays} carried={ledger.carried} savings={savingsSpend} hidden={hidden} monthIndex={now.getMonth()} />
       </section>
 
       {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (

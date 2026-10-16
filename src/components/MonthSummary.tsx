@@ -4,6 +4,7 @@ import { MONTHS_AR } from '../lib/txFilters'
 import { useCountUp } from '../hooks/useCountUp'
 import { categoryColor } from '../lib/categoryStats'
 import type { CategoryShare, MonthFlow } from '../lib/monthFlow'
+import type { LedgerDaySeries } from '../lib/monthLedger'
 import type { Category } from '../types'
 import { CategoryIconBox } from './CategoryVisual'
 import { SparkLines } from './SparkLines'
@@ -53,49 +54,59 @@ function Column({ value, max, color, delay }: { value: number; max: number; colo
 /** خلفية مخطّطة رمادية لـ«من مدخراتك» و«من مرحّل الشهر الماضي» — فلوس كانت عندك، مو صرف جديد على الشهر. */
 export const PREVIOUS_STRIPES = 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-text-2) 85%, transparent) 0 4px, color-mix(in srgb, var(--color-text-2) 35%, transparent) 4px 8px)'
 
-/** عمود المصروف مقسوم: الأحمر من الحسابات اليومية تحت، والمخطّط من المدخرات فوقه. */
-function SplitColumn({ daily, fromSavings, max, delay }: { daily: number; fromSavings: number; max: number; delay: number }) {
-  const total = daily + fromSavings
-  const h = max > 0 ? Math.max(total > 0 ? 4 : 0, (total / max) * 100) : 0
-  const prevShare = total > 0 ? (fromSavings / total) * 100 : 0
-  return (
-    <div className="flex h-[96px] w-[30px] items-end overflow-hidden rounded-[10px] bg-white/[0.04]">
-      <div className="qb-col-grow flex w-full flex-col overflow-hidden rounded-[10px]" style={{ height: `${h}%`, animationDelay: `${delay}ms` }}>
-        {prevShare > 0 && <div style={{ height: `${prevShare}%`, background: PREVIOUS_STRIPES, borderBottom: prevShare < 100 ? '2px solid var(--color-bg)' : undefined }} />}
-        <div className="flex-1" style={{ background: `linear-gradient(180deg, ${EXPENSE}, color-mix(in srgb, ${EXPENSE} 55%, transparent))` }} />
-      </div>
-    </div>
-  )
-}
-
-/** خارج دخل الشهر: المرحّل من الشهر الماضي (رصيد الحسابات اليومية أول الشهر)، والصرف من المدخرات بالحساب. */
-export interface OutsideIncome {
-  carried: number
-  savings: { name: string; amount: number }[]
+/** صرف الشهر من المدخرات بالحساب — يظهر تحت البطاقة ولا ينحسب على الشهر. */
+export interface SavingsSpendRow {
+  name: string
+  amount: number
 }
 
 /**
- * «تدفّق هذا الشهر»: عمودان للدخل والمصروف + الأرقام، وخلف البطاقة سبارك بخطّين تراكميين (أخضر للدخل، أحمر للمصروف)
- * من أول الشهر لليوم. السحب الأفقي على البطاقة يختار يومًا فتتغيّر الأرقام والأعمدة والصافي لذلك اليوم.
- * عمود المصروف مقسوم: «من حساباتك اليومية» (أحمر) و«من مدخراتك» (رمادي مخطّط، ادخار وطوارئ)،
- * والصافي = الدخل − مصروف الحسابات اليومية. ولو صرفت أكثر من دخل الشهر والمرحّل يغطّي الفرق،
- * يطلع «من مرحّل الشهر الماضي» بالرمادي بدل عجز (نفس كشف الشهر في lib/monthLedger).
+ * «تدفّق هذا الشهر» — نفس كشف الشهر في شجرة المصاريف (lib/monthLedger):
+ * عمودان ورقمان «دخل الشهر» مقابل «صرفت» (مصروف الحسابات اليومية)، وخلفهما سبارك تراكمي من أول الشهر لليوم.
+ * لو صرفت أكثر من دخل الشهر، تحت «صرفت» وش غطّى الفرق: المرحّل ثم السحب من المدخرات ثم السلف المستلمة.
+ * الصرف من الادخار والطوارئ تحت البطاقة «ومن مدخراتك» وما ينحسب على الشهر.
+ * والسطر الأخير «باقي لين الآن» = باقي الشجرة، و«عجز» بالأحمر بس لو سالب. السحب الأفقي يختار يومًا.
  */
-export function MonthFlowCard({ flow, hidden, monthIndex, outside = { carried: 0, savings: [] } }: { flow: MonthFlow; hidden: boolean; monthIndex: number; outside?: OutsideIncome }) {
+export function MonthFlowCard({
+  flow,
+  days,
+  carried,
+  savings = [],
+  hidden,
+  monthIndex,
+}: {
+  flow: MonthFlow
+  /** كشف الشهر يومًا بيوم (lib/monthLedger → ledgerDaySeries) بنفس طول `flow`. */
+  days: LedgerDaySeries
+  carried: number
+  savings?: SavingsSpendRow[]
+  hidden: boolean
+  monthIndex: number
+}) {
   const n = flow.income.length
   const chartRef = useRef<HTMLDivElement>(null)
   const { scrub, handlers } = useSparkScrub(n, chartRef)
   const i = scrub ?? n - 1
   const income = flow.income[i] ?? 0
-  const expense = flow.expense[i] ?? 0
-  const daily = Math.min(expense, flow.daily[i] ?? expense)
-  const fromSavings = Math.max(0, Math.round((expense - daily) * 100) / 100)
-  const net = Math.round((income - daily) * 100) / 100
-  const colMax = Math.max(income, expense)
-  // صرف أكثر من دخل الشهر والمرحّل يغطّيه = صرف من فلوس الشهر الماضي، مو عجز.
-  const fromCarried = net < 0 && outside.carried >= -net
+  const spent = flow.daily[i] ?? 0
+  const left = days.left[i] ?? 0
+  const colMax = Math.max(income, spent)
 
-  const netColor = net < 0 && !fromCarried ? EXPENSE : net < 0 ? 'var(--color-text-2)' : INCOME
+  // وش غطّى الصرف الزائد عن دخل الشهر — بالترتيب، ولين حد الفرق.
+  let gap = Math.max(0, Math.round((spent - income) * 100) / 100)
+  const covered: { label: string; amount: number }[] = []
+  for (const [label, have] of [
+    ['من مرحّل الشهر الماضي', Math.max(0, carried)],
+    ['سحبت من مدخراتك', days.withdrawn[i] ?? 0],
+    ['من سلف استلمتها', days.received[i] ?? 0],
+  ] as const) {
+    const t = Math.min(gap, have)
+    if (t > 0) {
+      covered.push({ label, amount: t })
+      gap = Math.round((gap - t) * 100) / 100
+    }
+  }
+
   return (
     <div
       data-own-gesture
@@ -107,73 +118,65 @@ export function MonthFlowCard({ flow, hidden, monthIndex, outside = { carried: 0
       }}
       {...handlers}
     >
-      {/* السبارك ينتهي قبل العمودين مباشرة: نقطة «اليوم» تلتقي بالعمودين اللي يمثّلان قيمة اليوم. */}
-      <div ref={chartRef} className="pointer-events-none absolute left-0 right-[92px] top-[52px] bottom-[50px]">
+      {/* السبارك ينتهي قبل العمودين مباشرة، وارتفاعه بحدود منطقة الأرقام فما يدخل تحت قائمة المدخرات. */}
+      <div ref={chartRef} className="pointer-events-none absolute left-0 right-[92px] top-[52px] h-[128px]">
         {n > 1 && (
           <SparkLines
             series={[
               { color: INCOME, values: flow.income },
-              { color: EXPENSE, values: flow.expense },
+              { color: EXPENSE, values: flow.daily },
             ]}
             scrub={scrub}
           />
         )}
       </div>
       {/* تعتيم بيضاوي خلف الأرقام فقط حتى تبقى مقروءة فوق الخطوط */}
-      <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(34% 42% at 62% 46%, rgba(18,18,21,0.82), rgba(18,18,21,0.4) 60%, transparent 100%)' }} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[200px]" style={{ background: 'radial-gradient(34% 42% at 62% 46%, rgba(18,18,21,0.82), rgba(18,18,21,0.4) 60%, transparent 100%)' }} />
 
       <div className="pointer-events-none relative px-4 pt-4">
         <div className="mb-3.5 flex items-center justify-between">
           <div className="text-[13px] font-medium text-[var(--color-text-2)]">تدفّق هذا الشهر</div>
-          <div className="text-[11px] text-[var(--color-text-3)]">دخل مقابل مصروف</div>
+          <div className="text-[11px] text-[var(--color-text-3)]">دخل مقابل صرف</div>
         </div>
         <div className="flex items-end gap-4">
           <div className="flex items-end gap-2">
             <Column value={income} max={colMax} color={INCOME} delay={120} />
-            <SplitColumn daily={daily} fromSavings={fromSavings} max={colMax} delay={200} />
+            <Column value={spent} max={colMax} color={EXPENSE} delay={200} />
           </div>
           <div className="flex flex-1 flex-col gap-3">
             <div>
-              <Legend color={INCOME} label="الدخل" />
+              <Legend color={INCOME} label="دخل الشهر" />
               <Amount value={income} hidden={hidden} instant={scrub !== null} size={20} color={INCOME} />
             </div>
             <div>
-              <Legend color={EXPENSE} label="المصروف" />
-              <Amount value={expense} hidden={hidden} instant={scrub !== null} size={20} color={EXPENSE} />
-              {fromSavings > 0 && (
+              <Legend color={EXPENSE} label="صرفت" />
+              <Amount value={spent} hidden={hidden} instant={scrub !== null} size={20} color={EXPENSE} />
+              {covered.length > 0 && (
                 <div className="mt-1 text-[11px] leading-relaxed text-[var(--color-text-3)]" style={{ textShadow: '0 2px 10px rgba(5,5,6,0.9)' }}>
-                  <div>
-                    من حساباتك اليومية <b className="num font-semibold text-[var(--color-text)]">{hidden ? '•••' : formatAmount(daily)}</b>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
-                    من مدخراتك <b className="num font-semibold text-[var(--color-text)]">{hidden ? '•••' : formatAmount(fromSavings)}</b>
-                  </div>
+                  {covered.map((c) => (
+                    <div key={c.label} className="flex items-center gap-1">
+                      <span className="inline-block h-2 w-2 flex-shrink-0 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
+                      منها {c.label} <b className="num font-semibold text-[var(--color-text)]">{hidden ? '•••' : formatAmount(c.amount)}</b>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
         </div>
-        {scrub === null && (outside.savings.length > 0 || fromCarried) && (
-          <div className="mt-3 border-t border-[var(--color-border)] pt-2.5">
-            <div className="mb-1 text-[11px] text-[var(--color-text-3)]">صرفت من خارج دخل الشهر</div>
-            {fromCarried && (
-              <div className="flex items-center gap-2 py-1 text-[12.5px]">
-                <span className="h-2 w-2 flex-shrink-0 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
-                <span className="min-w-0 flex-1 truncate font-semibold">من مرحّل الشهر الماضي</span>
-                <span className="num font-bold">{hidden ? '•••' : formatAmount(-net)}</span>
-              </div>
-            )}
-            {outside.savings.map((src) => (
+        {scrub === null && savings.length > 0 && (
+          <div className="relative mt-3 border-t border-[var(--color-border)] pt-2.5">
+            <div className="mb-1 text-[11px] text-[var(--color-text-3)]">ومن مدخراتك · ما ينحسب على الشهر</div>
+            {savings.map((src) => (
               <div key={src.name} className="flex items-center gap-2 py-1 text-[12.5px]">
                 <span className="h-2 w-2 flex-shrink-0 rounded-[2px]" style={{ background: PREVIOUS_STRIPES }} />
-                <span className="min-w-0 flex-1 truncate font-semibold">من مدخراتك · {src.name}</span>
+                <span className="min-w-0 flex-1 truncate font-semibold">{src.name}</span>
                 <span className="num font-bold">{hidden ? '•••' : formatAmount(src.amount)}</span>
               </div>
             ))}
           </div>
         )}
-        <div className="h-[22px]" />
+        <div className="h-[18px]" />
       </div>
 
       <div
@@ -181,23 +184,17 @@ export function MonthFlowCard({ flow, hidden, monthIndex, outside = { carried: 0
         style={{ background: 'rgba(10,10,12,0.7)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
       >
         <div className="text-[12px] text-[var(--color-text-3)]">
+          {left < 0 ? 'عجز' : 'باقي'}{' '}
           {scrub === null ? (
-            'الصافي حتى اليوم'
+            'لين الآن'
           ) : (
             <>
-              الصافي حتى <span className="num">{scrub + 1}</span> {MONTHS_AR[monthIndex]}
+              حتى <span className="num">{scrub + 1}</span> {MONTHS_AR[monthIndex]}
             </>
           )}
         </div>
-        <div className="num text-[15px] font-bold" style={{ color: netColor, transition: 'color 200ms' }}>
-          {hidden ? (
-            '•••••'
-          ) : (
-            <span dir="ltr">
-              {net > 0 ? '+' : net < 0 ? '−' : ''}
-              {formatAmount(Math.abs(net))}
-            </span>
-          )}
+        <div className="num text-[15px] font-bold" style={{ color: left < 0 ? EXPENSE : 'var(--color-text)', transition: 'color 200ms' }}>
+          {hidden ? '•••••' : formatAmount(Math.abs(left))}
           <span className="font-sans text-[0.62em] font-medium text-[var(--color-text-3)]" style={{ marginInlineStart: 4 }}>
             ر.س
           </span>

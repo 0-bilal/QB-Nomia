@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ledgerMonths, monthLedger, type LedgerInput } from './monthLedger'
+import { ledgerDaySeries, ledgerMonths, monthLedger, type LedgerInput } from './monthLedger'
 import type { Account, LoanTransaction, Transaction } from '../types'
 
 let seq = 0
@@ -108,5 +108,25 @@ describe('ledgerMonths', () => {
     const input = build({}, TYPES, [tx({ type: 'income', amount: 1, date: '2026-07-05', accountId: 'cash' })])
     expect(ledgerMonths(input, '2026-10-16')).toEqual(['2026-10', '2026-09', '2026-08', '2026-07'])
     expect(ledgerMonths(build({}, TYPES, []), '2026-10-16')).toEqual(['2026-10'])
+  })
+})
+
+describe('ledgerDaySeries', () => {
+  it('آخر نقطة = باقي الشهر، والسحب تراكمي', () => {
+    const txs = [
+      tx({ type: 'income', amount: 1000, date: '2026-10-01', accountId: 'cash' }),
+      tx({ type: 'transfer', amount: 2000, date: '2026-10-02', accountId: 'sav', transferToAccountId: 'cash' }),
+      tx({ type: 'transfer', amount: 300, date: '2026-10-03', accountId: 'cash', transferToAccountId: 'emg' }),
+      tx({ type: 'expense', amount: 2500, date: '2026-10-05', accountId: 'cash' }),
+      tx({ type: 'expense', amount: 400, date: '2026-10-04', accountId: 'sav' }),
+      tx({ type: 'income', amount: 500, date: '2026-10-04', accountId: 'sav' }),
+    ]
+    const input = build({ cash: 100, sav: 5000 }, TYPES, txs, [loan('received', 50, '2026-10-09', 'cash', 'noor')])
+    const l = monthLedger(input, '2026-10')
+    const d = ledgerDaySeries(l, new Set(['sav', 'emg']), 5)
+    expect(d.left).toEqual([1100, 3100, 2800, 2800, 300 + 50])
+    expect(d.left.at(-1)).toBe(l.left)
+    expect(d.withdrawn).toEqual([0, 2000, 2000, 2000, 2000])
+    expect(d.received.at(-1)).toBe(50)
   })
 })
