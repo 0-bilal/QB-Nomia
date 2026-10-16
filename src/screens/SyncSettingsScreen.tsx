@@ -9,6 +9,7 @@ import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, s
 import { formatDate } from '../lib/format'
 import { getLastBackupExportedAt, markBackupExported } from '../lib/backup'
 import { dismissNotice, notify } from '../lib/notify'
+import { rise } from '../lib/motion'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -155,12 +156,6 @@ function ActionRow({ icon, iconStyle, title, desc, onClick }: { icon: ReactNode;
     </button>
   )
 }
-
-const STEPS: ReactNode[] = [
-  <>انسخ <strong className="font-semibold text-[var(--color-text)]">سكربت QB-Nomia</strong> إلى Google Apps Script وضع فيه رمزًا سريًا من اختيارك.</>,
-  <>انشره كـ <strong className="font-semibold text-[var(--color-text)]">Web App</strong> بصلاحية «Anyone» وانسخ الرابط المنتهي بـ <span dir="ltr" className="num">/exec</span>.</>,
-  <>الصق <strong className="font-semibold text-[var(--color-text)]">الرابط والرمز</strong> في الأسفل واضغط «ربط».</>,
-]
 
 export function SyncSettingsScreen() {
   const navigate = useNavigate()
@@ -401,21 +396,22 @@ export function SyncSettingsScreen() {
         )}
       </div>
 
-      {/* خطوات الربط — قبل الربط فقط */}
+      {/* قبل الربط: المعالج خطوة بخطوة (الرمز والكود جاهزين)، والحقول تحت للربط اليدوي. */}
       {!configured && (
-        <>
-          <SectionHead title="طريقة الربط" hint="٣ خطوات" />
-          <div className="qb-card px-4 py-1.5">
-            {STEPS.map((step, i) => (
-              <div key={i} className="flex items-start gap-3 border-t border-[var(--color-border)] py-3 first:border-t-0">
-                <span className="num flex flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-high)] text-[11.5px] font-bold" style={{ width: 24, height: 24 }}>
-                  {i + 1}
-                </span>
-                <div className="text-[12.5px] leading-relaxed text-[var(--color-text-2)]">{step}</div>
-              </div>
-            ))}
+        <button
+          onClick={() => navigate('/sync-settings/setup')}
+          className="qb-press qb-card-elevated qb-rise mt-3 flex w-full items-center gap-3.5 p-4 text-right"
+          style={rise(1)}
+        >
+          <div className="flex flex-shrink-0 items-center justify-center rounded-[14px]" style={{ width: 44, height: 44, background: 'var(--color-accent)', color: 'var(--color-on-accent)' }}>
+            <CloudIcon />
           </div>
-        </>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-semibold">إعداد خطوة بخطوة</div>
+            <div className="mt-0.5 text-[11.5px] leading-relaxed text-[var(--color-text-3)]">نجهّز لك الرمز والكود، ونوريك وين تضغط في Google. حوالي 5 دقائق.</div>
+          </div>
+          <ChevronStart />
+        </button>
       )}
 
       {/* إعدادات الربط */}

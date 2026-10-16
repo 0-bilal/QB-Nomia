@@ -4,13 +4,15 @@ import { HomeGreeting } from '../components/HomeGreeting'
 import { ProfileAvatar } from '../components/ProfileAvatar'
 import { BirthDateField, ColorPicker, FieldLabel, GenderSegment, NameInput, PrivacyNote } from '../components/ProfileFields'
 import { greetingSubline } from '../lib/greeting'
-import { DEFAULT_PREFS, getProfile, markProfileOnboarded, saveProfile, type Gender } from '../lib/profile'
+import { DEFAULT_PREFS, getProfile, isProfileOnboarded, markProfileOnboarded, saveProfile, type Gender } from '../lib/profile'
 import { haptic } from '../lib/haptics'
+import { setTourPending } from '../lib/onboarding'
 
 /** "عرّفنا بنفسك" — تظهر مرة واحدة بعد إنشاء الرقم السري (قابلة للتخطي). */
 export function ProfileSetupScreen() {
   const navigate = useNavigate()
   const existing = getProfile()
+  const [firstRun] = useState(() => !isProfileOnboarded())
   const [name, setName] = useState(existing?.name ?? '')
   const [gender, setGender] = useState<Gender>(existing?.gender ?? 'm')
   const [birthDate, setBirthDate] = useState(existing?.birthDate ?? '')
@@ -24,7 +26,15 @@ export function ProfileSetupScreen() {
       saveProfile({ ...draft, name: name.trim() })
       haptic('success')
     } else markProfileOnboarded()
-    navigate('/', { replace: true })
+    startSetup()
+  }
+
+  // أول تشغيل: بعد التعريف «جهّز محفظتك»، وجولة الرئيسية تنتظر أول دخول لها.
+  // لو فُتحت لاحقًا من صورة الرئيسية ترجع للرئيسية مباشرة.
+  function startSetup() {
+    if (!firstRun) return navigate('/', { replace: true })
+    setTourPending(true)
+    navigate('/getting-started', { replace: true })
   }
 
   return (
@@ -73,7 +83,7 @@ export function ProfileSetupScreen() {
         <button
           onClick={() => {
             markProfileOnboarded()
-            navigate('/', { replace: true })
+            startSetup()
           }}
           className="w-full py-3.5 text-[13px] font-semibold text-[var(--color-text-3)]"
         >

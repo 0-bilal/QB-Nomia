@@ -683,3 +683,128 @@ textarea:focus {
     animation-duration: 1ms;
   }
 }
+
+/* ===== الإعداد الأول: قصص الترحيب، معالج النسخة الاحتياطية، جولة الرئيسية ===== */
+.qb-ob-copy > * {
+  animation: qb-ob-copy 600ms var(--ease-out-expo) backwards;
+}
+.qb-ob-copy > :nth-child(2) { animation-delay: 60ms; }
+.qb-ob-copy > :nth-child(3) { animation-delay: 120ms; }
+@keyframes qb-ob-copy {
+  from { opacity: 0; transform: translateY(12px); }
+}
+.qb-ob-scene {
+  transition: opacity 400ms var(--ease-out-expo), transform 600ms var(--ease-out-expo);
+}
+.qb-ob-mini {
+  position: relative;
+  overflow: hidden;
+  width: 250px;
+  height: 330px;
+  border-radius: 34px;
+  padding: 30px 18px 18px;
+  background: linear-gradient(170deg, #141418, #08080a);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9), inset 0 0 0 6px var(--color-void);
+}
+.qb-ob-mini::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 70px;
+  height: 18px;
+  margin-left: -35px;
+  border-radius: 12px;
+  background: #000;
+}
+.qb-ob-speed i {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.25), transparent);
+  animation: qb-ob-speed 2.4s linear infinite;
+}
+@keyframes qb-ob-speed {
+  0% { transform: translateX(30px); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateX(-40px); opacity: 0; }
+}
+.qb-ob-draw { animation: qb-ob-draw 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards; }
+@keyframes qb-ob-draw { to { stroke-dashoffset: 0; } }
+.qb-ob-fade { opacity: 0; animation: qb-ob-fade 0.8s ease forwards; }
+@keyframes qb-ob-fade { to { opacity: 1; } }
+.qb-ob-run { opacity: 0; animation: qb-ob-run 2.6s linear 2.1s infinite; }
+@keyframes qb-ob-run {
+  0% { opacity: 1; stroke-dashoffset: 0; }
+  100% { opacity: 1; stroke-dashoffset: -448; }
+}
+.qb-ob-grow { transform: scaleY(0); transform-origin: bottom; animation: qb-ob-grow 1s var(--ease-spring) forwards; }
+@keyframes qb-ob-grow { to { transform: none; } }
+.qb-ob-slide { opacity: 0; transform: translateX(-16px); animation: qb-ob-slide 550ms var(--ease-out-expo) forwards; }
+@keyframes qb-ob-slide { to { opacity: 1; transform: none; } }
+.qb-ob-pop { opacity: 0; transform: scale(0.6); animation: qb-ob-pop 450ms var(--ease-spring) forwards; }
+@keyframes qb-ob-pop { to { opacity: 1; transform: none; } }
+.qb-ob-blink { animation: qb-ob-blink 1s steps(1) infinite; }
+@keyframes qb-ob-blink { 50% { opacity: 0; } }
+.qb-ob-halo { animation: qb-ob-halo 2.4s infinite; }
+@keyframes qb-ob-halo {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
+  100% { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0); }
+}
+.qb-ob-wire { animation: qb-ob-dash 1s linear infinite; }
+@keyframes qb-ob-dash { to { stroke-dashoffset: -9; } }
+.qb-ob-target { outline: 1.5px solid transparent; outline-offset: 2px; animation: qb-ob-target 1.4s ease-in-out infinite; }
+@keyframes qb-ob-target { 50% { outline-color: rgba(255, 255, 255, 0.75); } }
+.qb-ob-click::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  animation: qb-ob-click 500ms ease-out forwards;
+}
+@keyframes qb-ob-click {
+  from { transform: scale(0.3); opacity: 1; }
+  to { transform: scale(1.8); opacity: 0; }
+}
+.qb-ob-spot {
+  position: fixed;
+  z-index: 90;
+  pointer-events: none;
+  box-shadow: 0 0 0 200vmax rgba(5, 5, 6, 0.78);
+  transition: all 600ms var(--ease-out-expo);
+}
+.qb-ob-spot::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: inherit;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  animation: qb-ob-spot 1.8s infinite;
+}
+@keyframes qb-ob-spot {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qb-ob-copy > *,
+  .qb-ob-speed i,
+  .qb-ob-run,
+  .qb-ob-halo,
+  .qb-ob-wire,
+  .qb-ob-target,
+  .qb-ob-spot::after {
+    animation: none;
+  }
+  .qb-ob-draw,
+  .qb-ob-fade,
+  .qb-ob-grow,
+  .qb-ob-slide,
+  .qb-ob-pop {
+    animation-duration: 1ms;
+    animation-delay: 0ms !important;
+  }
+}

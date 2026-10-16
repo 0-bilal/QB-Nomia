@@ -41,10 +41,16 @@ import { VehicleScreen } from './screens/VehicleScreen'
 import { LogVehicleScreen } from './screens/LogVehicleScreen'
 import { MonthTreeScreen } from './screens/trail/MonthTreeScreen'
 import { MonthTreeDetailScreen } from './screens/trail/MonthTreeDetailScreen'
+import { IntroScreen } from './screens/onboarding/IntroScreen'
+import { RestoreScreen } from './screens/onboarding/RestoreScreen'
+import { GettingStartedScreen } from './screens/onboarding/GettingStartedScreen'
+import { BackupWizardScreen } from './screens/onboarding/BackupWizardScreen'
+import { isIntroSeen } from './lib/onboarding'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
-  if (!hasPin) return <Navigate to="/setup" replace />
+  // مستخدم جديد: قصص الترحيب أولًا (مرة وحدة)، ثم إنشاء الرقم السري.
+  if (!hasPin) return <Navigate to={isIntroSeen() ? '/setup' : '/intro'} replace />
   if (!unlocked) return <Navigate to="/login" replace />
   return <Outlet />
 }
@@ -52,6 +58,8 @@ function RequireUnlocked() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/intro" element={<IntroScreen />} />
+      <Route path="/restore" element={<RestoreScreen />} />
       <Route path="/setup" element={<PinSetupScreen />} />
       <Route path="/login" element={<PinLoginScreen />} />
 
@@ -63,6 +71,7 @@ export default function App() {
           <Route path="more" element={<MoreScreen />} />
         </Route>
         <Route path="welcome" element={<ProfileSetupScreen />} />
+        <Route path="getting-started" element={<GettingStartedScreen />} />
         <Route path="profile" element={<ProfileScreen />} />
         <Route path="add" element={<AddChooserScreen />} />
         <Route path="accounts/new" element={<AddAccountScreen />} />
@@ -99,6 +108,7 @@ export default function App() {
         <Route path="debts/advance/:id/edit" element={<SalaryAdvanceFormScreen />} />
         <Route path="debts/violations/:id/edit" element={<ViolationEditScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
+        <Route path="sync-settings/setup" element={<BackupWizardScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
         <Route path="comparisons" element={<ComparisonsScreen />} />
         <Route path="export-report" element={<ExportReportScreen />} />
