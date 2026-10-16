@@ -5,6 +5,8 @@ export interface MonthFlow {
   income: number[]
   /** المصروف التراكمي بنفس الترتيب. */
   expense: number[]
+  /** المصروف التراكمي اللي غطّاه دخل الشهر (بدون الرصيد السابق) — الصافي عليه. يساوي `expense` لو ما انمرّر توزيع. */
+  fromPeriod: number[]
 }
 
 /**
@@ -12,7 +14,7 @@ export interface MonthFlow {
  * الحركات بتاريخ لاحق داخل نفس الشهر تُحسب في اليوم الحالي، فآخر نقطة = مجموع الشهر (مثل `monthTotals`).
  * التحويلات لا تدخل.
  */
-export function monthFlowSeries(transactions: Transaction[], now: Date): MonthFlow {
+export function monthFlowSeries(transactions: Transaction[], now: Date, fromPeriodByDate?: Map<string, number>): MonthFlow {
   const days = now.getDate()
   const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`
   const inc = new Array<number>(days).fill(0)
@@ -23,11 +25,20 @@ export function monthFlowSeries(transactions: Transaction[], now: Date): MonthFl
     if (i < 0) continue
     ;(t.type === 'income' ? inc : exp)[i] += t.amount
   }
+  const fp = fromPeriodByDate ? new Array<number>(days).fill(0) : null
+  if (fp && fromPeriodByDate) {
+    for (const [date, v] of fromPeriodByDate) {
+      if (!date.startsWith(prefix)) continue
+      const i = Math.min(days, Number(date.slice(8, 10))) - 1
+      if (i >= 0) fp[i] += v
+    }
+  }
   for (let i = 1; i < days; i++) {
     inc[i] += inc[i - 1]
     exp[i] += exp[i - 1]
+    if (fp) fp[i] += fp[i - 1]
   }
-  return { income: inc, expense: exp }
+  return { income: inc, expense: exp, fromPeriod: fp ?? exp }
 }
 
 export interface CategoryShare<T> {

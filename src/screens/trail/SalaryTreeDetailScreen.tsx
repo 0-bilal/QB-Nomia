@@ -11,6 +11,7 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { EyeToggleButton } from '../../components/EyeToggleButton'
 import { BigAmount } from '../../components/BigAmount'
 import { TreeIcon, longDate, money, periodLabel, salaryTitle } from '../../components/SalaryTreeVisuals'
+import { PREVIOUS_STRIPES } from '../../components/MonthSummary'
 
 interface Branch {
   key: string
@@ -79,22 +80,36 @@ export function SalaryTreeDetailScreen() {
         : { key: `received-${g.personId}`, label: `استلمت من ${personName(g.personId)}`, note: `${g.count} سلفة · ما تنحسب من الراتب`, amount: g.amount, color: 'var(--color-owed-by)' },
     )
   }
+  // من رصيد سابق: مصروف غطّاه رصيد كان قبل الراتب (مثل الشراء من الادخار) — ما ينقص من الراتب.
+  for (const p of period.previousSources) {
+    branches.push({
+      key: `prev-${p.accountId}`,
+      label: `من رصيد سابق ← ${accountName(p.accountId)}`,
+      note: p.viaTransfer > 0 ? 'سحبته لحساب ثاني · ما ينقص من الراتب' : 'ما ينقص من الراتب',
+      amount: p.amount,
+      color: PREVIOUS_STRIPES,
+    })
+  }
   if (period.left > 0) branches.push({ key: 'left', label: 'باقي من الراتب', note: period.to ? 'ما انصرف ولا طلع خلال فترته' : 'لين الآن', amount: period.left, color: 'var(--color-accent)' })
-  const base = Math.max(salary.amount, period.spent + period.transferred + period.lent, ...branches.map((b) => b.amount)) || 1
+  const base = Math.max(salary.amount, period.spent - period.fromPrevious + period.transferred + period.lent, ...branches.map((b) => b.amount)) || 1
 
   // المسار الزمني: كل حركات الفترة مجمّعة باليوم (المصروف ثم التحويل ثم السلفة داخل اليوم).
   const steps: (Step & { order: number })[] = [
-    ...period.expenses.map((t) => ({
+    ...period.expenses.map((t) => {
+      const prev = period.expensePrevious.get(t.id)
+      const prevNote = prev ? `${prev.amount < t.amount ? `${money(prev.amount, hidden)} ` : ''}من رصيد ${prev.accountIds.map(accountName).join(' و')} السابق` : ''
+      return {
       key: t.id,
       date: t.date,
       title: categoryName(t.categoryId ?? ''),
-      note: t.note,
+      note: [t.note, prevNote].filter(Boolean).join(' · ') || undefined,
       amount: t.amount,
       sign: '−' as const,
       dot: colorOf(t.categoryId ?? ''),
       to: `/add/transaction/${t.id}`,
       order: ORDER.expense,
-    })),
+      }
+    }),
     ...period.transfers.map((t) => ({
       key: t.id,
       date: t.date,
@@ -127,7 +142,8 @@ export function SalaryTreeDetailScreen() {
   const days = [...groupByDay(steps)].reverse()
 
   const summary = [
-    { label: 'صُرف', value: period.spent, color: 'var(--color-text-2)', show: true },
+    { label: period.fromPrevious > 0 ? 'صُرف من الراتب' : 'صُرف', value: period.spent - period.fromPrevious, color: 'var(--color-text-2)', show: true },
+    { label: 'من رصيد سابق', value: period.fromPrevious, color: 'var(--color-text-2)', show: period.fromPrevious > 0 },
     { label: 'حوّلت', value: period.transferred, color: 'var(--color-transfer)', show: period.transferred > 0 },
     { label: 'أعطيت', value: period.lent, color: 'var(--color-owed-to)', show: period.lent > 0 },
     { label: 'استلمت', value: period.borrowed, color: 'var(--color-owed-by)', show: period.borrowed > 0 },

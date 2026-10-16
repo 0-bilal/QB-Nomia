@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { fundMonth } from '../lib/periodFunding'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
@@ -37,7 +38,9 @@ export function ReportsScreen() {
   const monthTxns = useMemo(() => transactions.filter((t) => t.date >= startISO && t.date < endISO), [transactions, startISO, endISO])
   const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const expense = monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const net = income - expense
+  // الصرف من الرصيد السابق (مثل الشراء من الادخار) ما ينحسب على دخل الشهر — الصافي والمؤشر والسقف عليه.
+  const fromPrevious = useMemo(() => fundMonth(transactions, loanTransactions, monthValue).fromPrevious, [transactions, loanTransactions, monthValue])
+  const net = income - (expense - fromPrevious)
 
   const thisMonth = currentMonthValue()
   const isCurrentMonth = monthValue === thisMonth
@@ -49,15 +52,16 @@ export function ReportsScreen() {
   const elapsedDays = isCurrentMonth ? new Date().getDate() : daily.length
   const busiest = useMemo(() => busiestWeekday(monthValue, daily, elapsedDays), [monthValue, daily, elapsedDays])
   const notes = useMemo(
-    () => monthNotes({ monthValue, transactions, categories, monthlyBudgetLimit, today: new Date() }),
-    [monthValue, transactions, categories, monthlyBudgetLimit],
+    () => monthNotes({ monthValue, transactions, categories, monthlyBudgetLimit, today: new Date(), fromPrevious }),
+    [monthValue, transactions, categories, monthlyBudgetLimit, fromPrevious],
   )
 
   const score = income > 0
     ? Math.round(Math.max(0, Math.min(1, net / income)) * 70 + Math.max(0, Math.min(1, 1 - totalMonthlySubscriptions / income)) * 30)
     : null
 
-  const trend = useMemo(() => monthlyTrendEndingAt(monthValue, transactions, 6), [monthValue, transactions])
+  const trend = useMemo(() => monthlyTrendEndingAt(monthValue, transactions, 6, loanTransactions), [monthValue, transactions, loanTransactions])
+  const prevFromPrevious = useMemo(() => fundMonth(transactions, loanTransactions, prevMonth).fromPrevious, [transactions, loanTransactions, prevMonth])
   const [flowPick, setFlowPick] = useState<{ month: string; index: number } | null>(null)
   // الشهر المختار بالرسم يرجع لآخر شهر عند تغيير الشهر من الشريط العلوي.
   const flowSelected = flowPick && flowPick.month === monthValue ? flowPick.index : trend.length - 1
@@ -104,6 +108,8 @@ export function ReportsScreen() {
           prevExpense={prevTotals.expense}
           prevName={prevName}
           pctChange={pctChange}
+          fromPrevious={fromPrevious}
+          prevFromPrevious={prevFromPrevious}
         />
       </div>
 

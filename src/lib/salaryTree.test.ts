@@ -62,11 +62,26 @@ describe('salaryPeriods', () => {
     expect(aug.left).toBe(2400)
   })
 
-  it('المصاريف الأكبر من الراتب تعطي باقي سالب', () => {
+  it('الشراء من الادخار: يبقى على فئته، لكنه من رصيد سابق فما ينقص من الراتب', () => {
+    const s = salary(3000, '2026-10-01')
+    const food = tx({ type: 'expense', amount: 1000, date: '2026-10-03', categoryId: 'food' })
+    const phone = tx({ type: 'expense', amount: 2000, date: '2026-10-08', accountId: 'sav', categoryId: 'tech' })
+    const [p] = salaryPeriods([phone, food, s], 'src-salary')
+    expect(p.spent).toBe(3000)
+    expect(p.fromPrevious).toBe(2000)
+    expect(p.previousSources).toEqual([{ accountId: 'sav', amount: 2000, viaTransfer: 0 }])
+    expect(p.expensePrevious.get(phone.id)?.amount).toBe(2000)
+    expect(p.byCategory.map((c) => c.categoryId)).toEqual(['tech', 'food'])
+    expect(p.left).toBe(2000)
+  })
+
+  it('المصاريف الأكبر من الراتب: الزائد من رصيد الحساب السابق، فما يطلع عجز', () => {
     const s = salary(1000, '2026-01-01')
     const e = tx({ type: 'expense', amount: 1200, date: '2026-01-05' })
     const [p] = salaryPeriods([e, s], 'src-salary')
-    expect(p.left).toBe(-200)
+    expect(p.fromPrevious).toBe(200)
+    expect(p.previousSources).toEqual([{ accountId: 'a', amount: 200, viaTransfer: 0 }])
+    expect(p.left).toBe(0)
     expect(p.byCategory).toEqual([{ categoryId: '', amount: 1200, count: 1 }])
   })
 

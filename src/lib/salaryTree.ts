@@ -1,10 +1,12 @@
 import type { LoanTransaction, Transaction } from '../types'
+import { fundPeriod, type PreviousSource } from './periodFunding'
 
 /**
  * شجرة المصاريف: كل راتب وتحته المصاريف المسجّلة خلال فترته — بدون تتبّع سلف أو فلوس بين الحسابات.
  * فترة الراتب: من يوم نزوله لين اليوم اللي قبل الراتب التالي، وآخر راتب مفتوح لليوم.
  * التحويلات: اللي تطلع من حساب الراتب خلال الفترة — ما تنحسب مصروفًا، لكنها تنقص من الباقي.
  * السلف خلال الفترة: المعطاة لأي شخص تنقص من الباقي، والمستلمة تظهر بس (ما هي من الراتب).
+ * المصروف اللي غطّاه رصيد سابق (مثل الشراء من الادخار — lib/periodFunding) يبقى على فئته، لكن ما ينقص من الباقي.
  */
 export interface SalaryPeriod {
   /** حركة الراتب نفسها. */
@@ -29,7 +31,12 @@ export interface SalaryPeriod {
   borrowed: number
   /** السلف حسب الشخص والاتجاه، الأكبر أولًا. */
   byPerson: { personId: string; direction: LoanTransaction['direction']; amount: number; count: number }[]
-  /** الراتب − المصاريف − التحويلات − السلف المعطاة (سالب = تجاوزت الراتب). */
+  /** من مصاريف الفترة: اللي غطّاه رصيد سابق، وحساباته الأصلية. */
+  fromPrevious: number
+  previousSources: PreviousSource[]
+  /** لكل مصروف غطّاه رصيد سابق: المبلغ والحسابات الأصلية. */
+  expensePrevious: Map<string, { amount: number; accountIds: string[] }>
+  /** الراتب − (المصاريف − اللي من رصيد سابق) − التحويلات − السلف المعطاة (سالب = تجاوزت الراتب). */
   left: number
   /** المصاريف حسب الفئة، الأكبر أولًا. المفتاح '' = بدون فئة. */
   byCategory: { categoryId: string; amount: number; count: number }[]
@@ -83,6 +90,8 @@ export function salaryPeriods(transactions: Transaction[], salarySourceId: strin
       g.count++
       people.set(key, g)
     }
+    const funding = fundPeriod(transactions, loanTransactions, salary.date, to ?? '9999-12-31')
+    const fromPrevious = next && next.date === salary.date ? 0 : funding.fromPrevious
     const cats = new Map<string, { amount: number; count: number }>()
     let spent = 0
     for (const e of list) {
@@ -106,7 +115,10 @@ export function salaryPeriods(transactions: Transaction[], salarySourceId: strin
       lent: round(lent),
       borrowed: round(borrowed),
       byPerson: [...people.values()].map((g) => ({ ...g, amount: round(g.amount) })).sort((a, b) => b.amount - a.amount),
-      left: round(salary.amount - spent - transferred - lent),
+      fromPrevious,
+      previousSources: fromPrevious > 0 ? funding.previousSources : [],
+      expensePrevious: fromPrevious > 0 ? funding.expensePrevious : new Map(),
+      left: round(salary.amount - (spent - fromPrevious) - transferred - lent),
       byCategory: [...cats.entries()].map(([categoryId, c]) => ({ categoryId, amount: round(c.amount), count: c.count })).sort((a, b) => b.amount - a.amount),
     }
   })
