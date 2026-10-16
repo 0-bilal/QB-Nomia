@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الترحيب والإعداد الأول</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13); --accent-line:rgba(255,255,255,.28);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --commit:#5fb3ff; --owed-to:#2ee6c8; --owed-by:#ff9a4d;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif; --font-code:'JetBrains Mono',ui-monospace,monospace;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  a{color:inherit;text-decoration:none}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.96)}
+  svg.i{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2}
+
+  /* ===== لوحة التحكم ===== */
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+
+  /* ===== الجهاز ===== */
+  .phone{width:390px;max-width:100%;height:820px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9);isolation:isolate}
+  @media (max-width:440px){.phone{border-radius:28px;height:86vh;min-height:680px}}
+  .scr{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transform:translateX(-28px);transition:opacity .35s var(--expo),transform .55s var(--expo)}
+  .scr.on{opacity:1;pointer-events:auto;transform:none}
+  .scr.back{transform:translateX(28px)}
+  .aurora{position:absolute;inset:-10% -10% auto;height:320px;pointer-events:none;z-index:0;background:radial-gradient(60% 70% at 70% 10%,rgba(255,255,255,.12),transparent 70%),radial-gradient(50% 60% at 15% 0%,rgba(139,123,255,.10),transparent 70%)}
+  .grain{position:absolute;inset:0;opacity:.06;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .btn{height:54px;border-radius:18px;font-size:15px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent);transition:transform .18s var(--spring),opacity .2s}
+  .btn:active{transform:scale(.97)}
+  .btn[disabled]{opacity:.35;pointer-events:none}
+  .btn.ghost{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--border-strong);font-weight:600}
+  .btn.sm{height:44px;border-radius:15px;font-size:13.5px}
+  .link{font-size:13px;font-weight:600;color:var(--text-3);padding:12px;text-align:center;width:100%}
+  .glass-circle{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .capsule{position:relative;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 12px 30px -12px rgba(0,0,0,.8);font-size:12px;font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600}
+
+  /* ======================================================
+     ١) قصص الترحيب
+     ====================================================== */
+  .bars{position:relative;z-index:3;display:flex;gap:5px;padding:18px 20px 0}
+  .bars span{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}
+  .bars i{display:block;height:100%;width:100%;background:var(--accent);transform:scaleX(0);transform-origin:right}
+  .st-top{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:center;padding:12px 20px 0}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+  .logo b{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent);font:800 13px var(--font-num)}
+  .stage{position:relative;z-index:1;flex:1;display:grid;place-items:center;padding:8px 22px 0}
+  .tapzone{position:absolute;top:70px;bottom:210px;width:50%;z-index:2}
+  .tapzone.l{left:0}.tapzone.r{right:0}
+  .scene{position:absolute;inset:8px 22px 0;display:grid;place-items:center;opacity:0;transform:scale(.94) translateY(10px);transition:opacity .4s var(--expo),transform .6s var(--expo)}
+  .scene.on{opacity:1;transform:none}
+  .st-copy{position:relative;z-index:3;padding:0 24px 8px;min-height:120px}
+  .st-copy h2{font-size:26px;font-weight:700;line-height:1.35}
+  .st-copy p{font-size:13.5px;color:var(--text-2);line-height:1.8;margin-top:6px}
+  .st-copy .k{font-size:11.5px;font-weight:600;color:var(--text-3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .st-copy .k .num{color:var(--text-2)}
+  .copy-in>*{animation:copyIn .6s var(--expo) both}
+  .copy-in>*:nth-child(2){animation-delay:.06s}.copy-in>*:nth-child(3){animation-delay:.12s}
+  @keyframes copyIn{from{opacity:0;transform:translateY(12px)}}
+  .st-foot{position:relative;z-index:3;padding:8px 24px 26px;display:flex;flex-direction:column;gap:4px}
+
+  /* الإطار الصغير داخل المشهد (مثل نموذج المتجر) */
+  .mini{width:250px;height:330px;border-radius:34px;background:linear-gradient(170deg,#141418,#08080a);border:1px solid rgba(255,255,255,.1);box-shadow:0 30px 80px -30px rgba(0,0,0,.9),inset 0 0 0 6px #0b0b0d;position:relative;overflow:hidden;padding:30px 18px 18px}
+  .mini::before{content:'';position:absolute;top:10px;left:50%;width:70px;height:18px;margin-left:-35px;border-radius:12px;background:#000}
+  .speed{position:absolute;right:-70px;top:120px;display:flex;flex-direction:column;gap:14px;pointer-events:none}
+  .speed i{display:block;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.25),transparent);animation:speed 2.4s linear infinite}
+  .speed i:nth-child(1){width:60px}.speed i:nth-child(2){width:90px;animation-delay:.4s}.speed i:nth-child(3){width:50px;animation-delay:.9s}.speed i:nth-child(4){width:80px;animation-delay:1.3s}
+  @keyframes speed{0%{transform:translateX(30px);opacity:0}30%{opacity:1}100%{transform:translateX(-40px);opacity:0}}
+
+  /* مشهد ١: الرصيد والمنحنى */
+  .s1 .lbl{font-size:11px;color:var(--text-3)}
+  .s1 .big{font:700 34px var(--font-num);margin-top:2px;letter-spacing:-.03em}
+  .s1 .big small{font:500 12px var(--font-sans);color:var(--text-3);margin-right:4px}
+  .s1 .delta{margin-top:6px}
+  .s1>svg{position:absolute;left:0;right:0;bottom:46px;width:100%;height:150px}
+  .s1 .area{fill:url(#ga);opacity:0}
+  .s1 .ln{fill:none;stroke:var(--income);stroke-width:2;stroke-dasharray:420;stroke-dashoffset:420}
+  .s1 .run{fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:28 420;opacity:0}
+  .s1 .dot{fill:var(--income);opacity:0}
+  .s1 .accs{position:absolute;bottom:14px;left:16px;right:16px;display:flex;gap:6px}
+  .s1 .accs span{flex:1;height:26px;border-radius:9px;background:var(--surface-hi);opacity:0;transform:translateY(8px)}
+  .play .s1 .ln{animation:draw 1.8s var(--calm) .3s forwards}
+  .play .s1 .area{animation:fade .8s 1.4s forwards}
+  .play .s1 .run{animation:run 2.6s linear 2.1s infinite}
+  .play .s1 .dot{animation:fade .3s 2s forwards,pulse 1.6s 2.2s infinite}
+  .play .s1 .accs span{animation:rise .5s var(--spring) forwards}
+  .play .s1 .accs span:nth-child(2){animation-delay:.12s}.play .s1 .accs span:nth-child(3){animation-delay:.24s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes fade{to{opacity:1}}
+  @keyframes run{0%{opacity:1;stroke-dashoffset:0}100%{opacity:1;stroke-dashoffset:-448}}
+  @keyframes pulse{50%{r:6}}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* مشهد ٢: تسجيل مصروف */
+  .s2 .amt{text-align:center;font:700 38px var(--font-num);height:50px;color:var(--expense);display:flex;align-items:center;justify-content:center;gap:4px}
+  .s2 .amt small{font:500 12px var(--font-sans);color:var(--text-3)}
+  .s2 .caret{width:2px;height:30px;background:var(--expense);animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .s2 .cat{display:flex;justify-content:center;margin:6px 0 10px;height:26px}
+  .s2 .cat .chip{background:color-mix(in srgb,var(--owed-by) 16%,transparent);color:var(--owed-by);opacity:0;transform:scale(.6)}
+  .s2 .cat .chip.on{animation:pop .45s var(--spring) forwards}
+  @keyframes pop{to{opacity:1;transform:none}}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;direction:ltr}
+  .pad span{height:34px;border-radius:11px;background:var(--surface);display:grid;place-items:center;font:600 14px var(--font-num);color:var(--text-2);transition:background .15s,transform .2s var(--spring),color .15s}
+  .pad span.hit{background:var(--accent);color:var(--on-accent);transform:scale(.92)}
+  .pad span.save{grid-column:span 3;background:color-mix(in srgb,var(--expense) 18%,transparent);color:var(--expense);font-family:var(--font-sans);font-size:12px}
+  .pad span.save.hit{background:var(--expense);color:var(--on-accent)}
+  .toast{position:absolute;left:50%;top:44px;transform:translate(-50%,-14px) scale(.6);opacity:0;white-space:nowrap}
+  .toast.on{transition:opacity .22s,transform .42s var(--spring);opacity:1;transform:translate(-50%,0)}
+  .toast svg{color:var(--income)}
+
+  /* مشهد ٣: الفئات والتدفق */
+  .s3 .flow{display:flex;align-items:flex-end;gap:10px;height:110px;padding:0 6px;border-bottom:1px solid var(--border)}
+  .s3 .col{flex:1;border-radius:10px 10px 4px 4px;transform:scaleY(0);transform-origin:bottom}
+  .play .s3 .col{animation:grow 1s var(--spring) forwards}
+  .play .s3 .col:nth-child(2){animation-delay:.18s}
+  @keyframes grow{to{transform:none}}
+  .s3 .cap{display:flex;gap:10px;padding:6px 6px 0;font-size:10.5px;color:var(--text-3)}
+  .s3 .cap div{flex:1}.s3 .cap b{display:block;font:700 14px var(--font-num);color:var(--text)}
+  .s3 .rings{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+  .s3 .rings div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:var(--text-3)}
+  .s3 .rings svg{width:52px;height:52px;transform:rotate(-90deg)}
+  .s3 .rings circle{fill:none;stroke-width:5}
+  .s3 .rings .tr{stroke:var(--surface-hi)}
+  .s3 .rings .fl{stroke-linecap:round;stroke-dasharray:138;stroke-dashoffset:138;transition:stroke-dashoffset 1.2s var(--calm)}
+
+  /* مشهد ٤: السلف */
+  .prow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);opacity:0;transform:translateX(-16px)}
+  .play .prow{animation:slideIn .55s var(--expo) forwards}
+  .play .prow:nth-child(2){animation-delay:.15s}.play .prow:nth-child(3){animation-delay:.3s}.play .prow:nth-child(4){animation-delay:.45s}
+  @keyframes slideIn{to{opacity:1;transform:none}}
+  .av{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+  .prow .t{flex:1;font-size:12.5px;font-weight:600}.prow .t small{display:block;font-size:10px;color:var(--text-3);font-weight:400}
+  .prow .a{font:700 13px var(--font-num)}
+  .s4 .bell{margin-top:12px;opacity:0}
+  .play .s4 .bell{animation:pop .5s var(--spring) 1.2s forwards}
+
+  /* مشهد ٥: التشفير والنسخة */
+  .s5{width:300px;height:330px;position:relative}
+  .s5 .node{position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10.5px;color:var(--text-3)}
+  .s5 .box{width:74px;height:74px;border-radius:22px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border-strong)}
+  .s5 .n1{top:0;right:0}.s5 .n2{top:118px;left:50%;margin-left:-37px}.s5 .n3{bottom:0;left:0}
+  .s5 .n2 .box{background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent);box-shadow:0 0 0 0 rgba(255,255,255,.35);animation:halo 2.4s infinite}
+  @keyframes halo{0%{box-shadow:0 0 0 0 rgba(255,255,255,.35)}100%{box-shadow:0 0 0 22px rgba(255,255,255,0)}}
+  .s5 .plain{position:absolute;top:22px;right:92px;font-size:11px;color:var(--text-2);white-space:nowrap}
+  .s5 .cipher{position:absolute;bottom:4px;right:0;text-align:left;font:500 10px var(--font-code);color:var(--text-3);direction:ltr;width:120px;line-height:1.5;word-break:break-all}
+  .s5 .sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:8px;width:74px;height:74px}
+  .s5 .sheet i{border-radius:3px;background:var(--surface-hi);transition:background .3s}
+  .s5 .sheet i.f{background:var(--income)}
+  .s5 svg.path{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .s5 .wire{fill:none;stroke:rgba(255,255,255,.12);stroke-width:1.4;stroke-dasharray:4 5}
+  .s5 .pkt{fill:#fff}
+
+  /* ======================================================
+     ٢) الرقم السري
+     ====================================================== */
+  .pin-wrap{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;padding:70px 28px 34px}
+  .stepcap{border-radius:999px;border:1px solid var(--border);background:var(--surface);padding:4px 12px;font-size:11.5px;font-weight:500;color:var(--text-2);margin-top:26px}
+  .pin-title{font-size:19px;font-weight:600;margin-top:14px}
+  .pin-sub{font-size:13px;color:var(--text-2);margin-top:4px;text-align:center}
+  .dots{display:flex;gap:16px;margin-top:30px}
+  .dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--text-3);transition:background .2s,transform .3s var(--spring),border-color .2s}
+  .dots i.f{background:var(--accent);border-color:var(--accent);transform:scale(1.15)}
+  .dots.err i{border-color:var(--expense);background:var(--expense);animation:shake .4s}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .pinpad{direction:ltr;margin-top:auto;display:grid;grid-template-columns:repeat(3,72px);gap:14px 28px}
+  .pinpad button{width:72px;height:72px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font:600 26px var(--font-num);transition:transform .18s var(--spring),background .15s}
+  .pinpad button:active{transform:scale(.92);background:var(--surface-hi)}
+  .pinpad .nob{background:none;border:0;display:grid;place-items:center;color:var(--text-2)}
+  .why{display:flex;gap:10px;align-items:flex-start;margin-top:18px;padding:12px;border-radius:18px;background:var(--surface);border:1px solid var(--border);font-size:11.5px;color:var(--text-2);line-height:1.7;max-width:310px}
+  .why svg{flex:none;color:var(--text);margin-top:2px}
+
+  /* ======================================================
+     ٣) خطوات التشغيل
+     ====================================================== */
+  .scroll{position:relative;z-index:1;flex:1;overflow-y:auto;scrollbar-width:none;padding:0 20px 20px}
+  .scroll::-webkit-scrollbar{display:none}
+  .hdr{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px;min-height:62px}
+  .hdr .capsule{position:absolute;left:50%;transform:translateX(-50%)}
+  .big-title{font-size:28px;font-weight:700;margin-top:4px}
+  .lead{font-size:12.5px;color:var(--text-3);margin-top:4px;line-height:1.8}
+  .ck-hero{display:flex;align-items:center;gap:16px;margin:16px 0 14px;padding:16px;border-radius:22px;background:linear-gradient(165deg,var(--surface-el),var(--bg));border:1px solid var(--border);position:relative;overflow:hidden}
+  .ck-hero::after{content:'';position:absolute;top:-60px;left:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%)}
+  .ring-big{width:70px;height:70px;position:relative;flex:none}
+  .ring-big svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring-big circle{fill:none;stroke-width:6}
+  .ring-big .fl{stroke:var(--accent);stroke-linecap:round;stroke-dasharray:188.5;transition:stroke-dashoffset .9s var(--spring),stroke .3s}
+  .ring-big .v{position:absolute;inset:0;display:grid;place-items:center;font:700 17px var(--font-num)}
+  .ck-hero .t{font-size:15px;font-weight:600}.ck-hero .d{font-size:11.5px;color:var(--text-3);margin-top:3px;line-height:1.7}
+  .task{display:flex;align-items:center;gap:12px;padding:13px;border-radius:20px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;width:100%;text-align:right;transition:transform .18s var(--spring),border-color .3s,background .3s;animation:copyIn .55s var(--expo) both;animation-delay:calc(var(--i)*60ms)}
+  .task:active{transform:scale(.98)}
+  .task.next{border-color:var(--accent-line);background:var(--surface-el)}
+  .task .ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none;transition:background .3s,color .3s}
+  .task .tx{flex:1;min-width:0}
+  .task .tx b{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+  .task .tx small{display:block;font-size:11px;color:var(--text-3);margin-top:3px;line-height:1.6}
+  .task .st{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--text-3);display:grid;place-items:center;flex:none;transition:all .35s var(--spring)}
+  .task.done .st{background:var(--income);border-color:var(--income);color:var(--on-accent);transform:scale(1.08)}
+  .task.done .tx b{color:var(--text-2)}
+  .task.done .ico{background:color-mix(in srgb,var(--income) 15%,transparent)!important;color:var(--income)!important}
+  .tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px}
+  .footbar{position:relative;z-index:2;padding:10px 20px 22px;background:linear-gradient(transparent,var(--bg) 30%)}
+
+  /* ======================================================
+     ٤) معالج النسخة الاحتياطية
+     ====================================================== */
+  .wz-steps{display:flex;gap:4px;margin:10px 0 4px}
+  .wz-steps span{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.12);transition:background .4s}
+  .wz-steps span.on{background:var(--accent)}
+  .wz-k{font-size:11.5px;color:var(--text-3);font-weight:600;margin-top:12px}
+  .wz-pane{display:none}
+  .wz-pane.on{display:block;animation:copyIn .5s var(--expo)}
+  .wz-pane h2{font-size:24px;font-weight:700;margin-top:2px;line-height:1.4}
+  .wz-pane .lead{margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px}
+  .pts{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+  .pt{display:flex;gap:12px;align-items:flex-start}
+  .pt .ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--surface-hi)}
+  .pt b{font-size:13px;font-weight:600}.pt p{font-size:11.5px;color:var(--text-3);line-height:1.7;margin-top:2px}
+  .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .meta .chip{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-2)}
+
+  .diagram{height:150px;position:relative;margin-bottom:6px}
+  .diagram .d{position:absolute;top:38px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10.5px;color:var(--text-3);width:76px;text-align:center}
+  .diagram .d .box{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border-strong)}
+  .diagram .d1{right:4px}.diagram .d2{left:50%;margin-left:-38px}.diagram .d3{left:4px}
+  .diagram .d2 .box{background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent)}
+  .diagram>svg{position:absolute;inset:0;width:100%;height:100%}
+  .diagram .wire{fill:none;stroke:rgba(255,255,255,.14);stroke-width:1.4;stroke-dasharray:4 5;animation:dash 1s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-9}}
+
+  .tokenbox{direction:ltr;text-align:left;font:500 15px var(--font-code);letter-spacing:.04em;padding:16px;border-radius:18px;background:var(--void);border:1px solid var(--border-strong);word-break:break-all;line-height:1.6;position:relative}
+  .tokenbox .scr-ch{color:var(--text-3)}
+  .row-btns{display:flex;gap:8px;margin-top:10px}
+  .warn{display:flex;gap:10px;margin-top:12px;padding:12px;border-radius:18px;background:color-mix(in srgb,var(--sub) 10%,transparent);border:1px solid color-mix(in srgb,var(--sub) 32%,transparent);font-size:11.5px;line-height:1.75;color:var(--text-2)}
+  .warn svg{color:var(--sub);flex:none;margin-top:2px}
+  .warn b{color:var(--text)}
+  .check{display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--border);font-size:12.5px;width:100%;text-align:right}
+  .check .bx{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--text-3);display:grid;place-items:center;flex:none;transition:all .3s var(--spring)}
+  .check.on .bx{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+  /* العرض الحي لواجهة جوجل */
+  .demo{border-radius:20px;background:#0d0d10;border:1px solid var(--border-strong);overflow:hidden;position:relative}
+  .demo .chrome{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);direction:ltr}
+  .demo .chrome i{width:7px;height:7px;border-radius:50%;background:var(--surface-hi)}
+  .demo .chrome .url{flex:1;margin-left:6px;height:22px;border-radius:999px;background:var(--surface);font:500 10px var(--font-num);color:var(--text-2);display:flex;align-items:center;padding:0 10px}
+  .demo .stagebox{height:200px;position:relative;direction:ltr;font-family:var(--font-num)}
+  .frame{position:absolute;inset:0;padding:12px;opacity:0;transition:opacity .35s var(--expo);font-size:11px;color:var(--text-2)}
+  .frame.on{opacity:1}
+  .g-btn{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:7px;background:var(--surface-hi);color:var(--text);font-size:10.5px;font-weight:600;position:relative}
+  .g-btn.blue{background:#e8e8ee;color:var(--on-accent)}
+  .g-menu{position:absolute;background:var(--surface-el);border:1px solid var(--border-strong);border-radius:8px;padding:4px;min-width:130px;box-shadow:0 12px 30px -10px #000}
+  .g-menu div{padding:6px 8px;border-radius:5px;font-size:10.5px;color:var(--text-2)}
+  .g-menu div.hl{background:rgba(255,255,255,.08);color:var(--text)}
+  .g-dlg{position:absolute;inset:16px 22px;background:var(--surface-el);border:1px solid var(--border-strong);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+  .g-dlg b{font-size:12px;color:var(--text)}
+  .g-dlg .bar{display:flex;justify-content:flex-end;gap:6px;margin-top:auto}
+  .g-code{font:400 9.5px/1.6 var(--font-code);color:var(--text-3);white-space:pre}
+  .g-code .sel{background:rgba(139,123,255,.28);color:var(--text)}
+  .g-field{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:6px;background:var(--surface);margin-top:5px;font-size:10px}
+  .g-field b{color:var(--text);font-weight:600}
+  .tgt{outline:1.5px solid transparent;outline-offset:2px}
+  .frame.on .tgt{animation:tgt 1.4s ease-in-out infinite}
+  @keyframes tgt{0%,100%{outline-color:rgba(255,255,255,.0)}50%{outline-color:rgba(255,255,255,.75)}}
+  .cursor{position:absolute;top:0;left:0;width:18px;height:18px;z-index:5;pointer-events:none;transition:transform .7s var(--calm);filter:drop-shadow(0 2px 4px #000)}
+  .cursor.click::after{content:'';position:absolute;left:-6px;top:-6px;width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;animation:clk .5s ease-out forwards}
+  @keyframes clk{from{transform:scale(.3);opacity:1}to{transform:scale(1.8);opacity:0}}
+  .demo-cap{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--border);min-height:52px}
+  .demo-cap .n{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 11px var(--font-num);display:grid;place-items:center;flex:none}
+  .demo-cap p{font-size:12px;line-height:1.6;color:var(--text);animation:copyIn .4s var(--expo)}
+  .demo-dots{display:flex;gap:4px;justify-content:center;padding:0 0 10px}
+  .demo-dots i{width:5px;height:5px;border-radius:3px;background:var(--surface-hi);transition:width .3s var(--spring),background .3s}
+  .demo-dots i.on{width:14px;background:var(--accent)}
+  .demo-ctl{position:absolute;top:6px;right:8px;z-index:6}
+  .demo-ctl button{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--text-2)}
+
+  .codewrap{margin-top:12px;border-radius:18px;background:var(--void);border:1px solid var(--border-strong);overflow:hidden}
+  .codehead{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 8px 12px;border-bottom:1px solid var(--border);font-size:11.5px;color:var(--text-2)}
+  .codehead .f{font:500 11px var(--font-code);direction:ltr}
+  pre.code{direction:ltr;text-align:left;font:400 10.5px/1.7 var(--font-code);color:var(--text-2);padding:10px 12px;max-height:210px;overflow:auto;counter-reset:ln}
+  pre.code .cm{color:var(--text-3)}
+  pre.code .kw{color:var(--transfer)}
+  pre.code .s{color:var(--owed-to)}
+  pre.code .tok{background:color-mix(in srgb,var(--income) 16%,transparent);color:var(--income);border-radius:4px;padding:0 2px}
+  .copied{background:var(--income)!important;color:var(--on-accent)!important}
+  .ordered{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .ordered div{display:flex;gap:10px;font-size:12px;line-height:1.7;color:var(--text-2)}
+  .ordered .n{width:20px;height:20px;border-radius:50%;background:var(--surface-hi);color:var(--text);font:700 10.5px var(--font-num);display:grid;place-items:center;flex:none;margin-top:2px}
+  .ordered b{color:var(--text);font-weight:600}
+  .kbd{font:500 10.5px var(--font-num);padding:1px 6px;border-radius:5px;background:var(--surface-hi);border:1px solid var(--border-strong);color:var(--text);direction:ltr;display:inline-block}
+
+  .field{display:flex;align-items:center;gap:8px;height:52px;border-radius:17px;background:var(--surface);border:1px solid var(--border);padding:0 6px 0 14px;transition:border-color .2s}
+  .field:focus-within{border-color:var(--accent-line)}
+  .field input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font:500 12px var(--font-num);direction:ltr;text-align:left}
+  .field input::placeholder{color:var(--text-3)}
+  .field .paste{height:38px;padding:0 12px;border-radius:13px;background:var(--surface-hi);font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
+  .hint{font-size:11.5px;margin-top:8px;min-height:20px;display:flex;align-items:center;gap:6px;color:var(--text-3)}
+  .hint.ok{color:var(--income)}.hint.bad{color:var(--expense)}
+  .tests{display:flex;flex-direction:column;gap:2px;margin-top:14px}
+  .tline{display:flex;align-items:center;gap:10px;padding:10px 4px;font-size:12.5px;color:var(--text-3);transition:color .3s}
+  .tline .s{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--surface-hi);display:grid;place-items:center;flex:none;position:relative}
+  .tline.run{color:var(--text)}
+  .tline.run .s{border-color:rgba(255,255,255,.15);border-top-color:#fff;animation:spin .8s linear infinite}
+  .tline.ok{color:var(--text-2)}
+  .tline.ok .s{background:var(--income);border-color:var(--income);color:var(--on-accent);animation:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .prog{height:4px;border-radius:4px;background:var(--surface-hi);overflow:hidden;margin:4px 36px 0 0}
+  .prog i{display:block;height:100%;width:0;background:var(--income);transition:width .2s linear}
+
+  .done-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:20px}
+  .done-hero .ok{width:96px;height:96px;border-radius:32px;display:grid;place-items:center;background:color-mix(in srgb,var(--income) 15%,transparent);color:var(--income);position:relative}
+  .done-hero .ok::before{content:'';position:absolute;inset:-8px;border-radius:40px;border:1px solid color-mix(in srgb,var(--income) 35%,transparent);animation:halo2 2.2s infinite}
+  @keyframes halo2{from{transform:scale(.9);opacity:1}to{transform:scale(1.25);opacity:0}}
+  .done-hero .ok path{stroke-dasharray:40;stroke-dashoffset:40}
+  .wz-pane.on .done-hero .ok path{animation:draw .6s var(--calm) .25s forwards}
+  .kv{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+  .kv:last-child{border:0}.kv span{color:var(--text-3)}
+
+  /* ======================================================
+     ٥) جولة الرئيسية
+     ====================================================== */
+  .home{position:relative;z-index:1;flex:1;padding:0 20px;overflow:hidden}
+  .h-top{display:flex;justify-content:space-between;align-items:center;padding:16px 0 10px}
+  .h-greet{display:flex;align-items:center;gap:10px}
+  .h-greet .av{width:40px;height:40px;border-radius:50%;background:var(--surface-hi)}
+  .h-greet b{font-size:15px}.h-greet small{display:block;font-size:11px;color:var(--text-3)}
+  .h-bal{padding:12px 0 6px}
+  .h-bal .big{font:700 46px var(--font-num);letter-spacing:-.03em}
+  .h-bal .big small{font:500 13px var(--font-sans);color:var(--text-3)}
+  .h-card{border-radius:22px;background:var(--surface);border:1px solid var(--border);padding:14px;margin-top:12px}
+  .setup-mini{display:flex;align-items:center;gap:12px;background:linear-gradient(165deg,var(--surface-el),var(--bg))}
+  .setup-mini .ring-big{width:44px;height:44px}
+  .setup-mini .ring-big .v{font-size:11px}
+  .setup-mini b{font-size:13.5px}.setup-mini small{display:block;font-size:11px;color:var(--text-3);margin-top:2px}
+  .nav{position:absolute;left:16px;right:16px;bottom:18px;height:66px;border-radius:999px;background:rgba(18,18,22,.82);border:1px solid var(--border-strong);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:2}
+  .nav .tab{width:44px;height:44px;border-radius:999px;display:grid;place-items:center;color:var(--text-3)}
+  .nav .tab.on{width:auto;padding:0 14px;display:flex;gap:6px;background:rgba(255,255,255,.1);color:var(--text);font-size:12px;font-weight:600}
+  .nav .plus{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#2a2a31,#121216);box-shadow:inset 0 2px 6px rgba(0,0,0,.6)}
+  .nav .plus span{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+  .spot{position:absolute;z-index:8;border-radius:22px;box-shadow:0 0 0 2000px rgba(5,5,6,.78);transition:all .6s var(--expo);pointer-events:none}
+  .spot::after{content:'';position:absolute;inset:-5px;border-radius:inherit;border:1.5px solid rgba(255,255,255,.6);animation:halo3 1.8s infinite}
+  @keyframes halo3{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.06)}}
+  .coach{position:absolute;left:18px;right:18px;z-index:9;padding:14px;border-radius:22px;background:rgba(28,28,33,.94);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 20px 40px -12px #000;transition:top .6s var(--expo),opacity .3s}
+  .coach .k{font-size:11px;color:var(--text-3);font-weight:600}
+  .coach b{display:block;font-size:15px;margin-top:4px}
+  .coach p{font-size:12px;color:var(--text-2);line-height:1.75;margin-top:4px}
+  .coach .bar{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+  .coach .bar .d{display:flex;gap:4px}
+  .coach .bar .d i{width:5px;height:5px;border-radius:3px;background:var(--surface-hi);transition:all .3s var(--spring)}
+  .coach .bar .d i.on{width:14px;background:var(--accent)}
+  .coach .bar button.n{height:36px;padding:0 16px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:12.5px;font-weight:700}
+  .coach .bar button.s{font-size:12px;color:var(--text-3);font-weight:600;padding:0 8px}
+
+  /* ===== شرح التنفيذ ===== */
+  .doc{width:100%;max-width:720px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:18px;font-size:13px;line-height:1.9;color:var(--text-2)}
+  .doc h2{font-size:18px;color:var(--text);margin-bottom:6px}
+  .doc h3{font-size:14px;color:var(--text);margin:16px 0 4px}
+  .doc ul,.doc ol{padding-right:18px}
+  .doc code{font:500 11.5px var(--font-code);background:var(--surface-hi);padding:1px 6px;border-radius:5px;color:var(--text);direction:ltr;unicode-bidi:embed}
+  .doc .q{margin-top:14px;padding:12px;border-radius:16px;border:1px solid color-mix(in srgb,var(--sub) 32%,transparent);background:color-mix(in srgb,var(--sub) 8%,transparent)}
+
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>الترحيب والإعداد الأول</h1>
+  <p>أول مرة يفتح فيها المستخدم التطبيق: قصص ترحيب متحركة تشرح ليش التطبيق، ثم الرقم السري، ثم «جهّز محفظتك» بخطوات التشغيل، ومنها معالج النسخة الاحتياطية خطوة بخطوة (الكود جاهز للنسخ وفيه رمزك)، وأخيرًا جولة قصيرة على الرئيسية. الحركة الحية مستوحاة من الإطار المتحرك في المرجع، لكن بهوية Mono: أبيض للفعل، والألوان للدلالة فقط.</p>
+</div>
+
+<div class="panel">
+  <div class="plbl">انتقل لأي مرحلة (التدفق نفسه يمشي تلقائيًا من الأولى)</div>
+  <div class="seg" id="jump">
+    <button data-go="welcome" class="on">١ الترحيب</button>
+    <button data-go="pin">٢ الرقم السري</button>
+    <button data-go="checklist">٣ جهّز محفظتك</button>
+    <button data-go="backup">٤ النسخة الاحتياطية</button>
+    <button data-go="tour">٥ جولة الرئيسية</button>
+  </div>
+</div>
+
+<div class="phone" id="phone">
+  <div class="grain"></div>
+
+  <!-- ============ ١ قصص الترحيب ============ -->
+  <section class="scr on" id="s-welcome">
+    <div class="aurora"></div>
+    <div class="bars" id="bars"></div>
+    <div class="st-top">
+      <div class="logo"><b>QB</b>Nomia</div>
+      <button class="capsule press" id="skipIntro">تخطي</button>
+    </div>
+    <div class="stage" id="stage">
+      <div class="speed"><i></i><i></i><i></i><i></i></div>
+
+      <!-- مشهد ١ -->
+      <div class="scene" data-s="0">
+        <div class="mini s1">
+          <div class="lbl">إجمالي حساباتك</div>
+          <div class="big"><span class="num" id="cnt">0</span><small>ر.س</small></div>
+          <div class="delta"><span class="chip" style="background:color-mix(in srgb,var(--income) 15%,transparent);color:var(--income)"><svg class="i" width="12" height="12" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M7 17 17 7M9 7h8v8"/></svg><span class="num" dir="ltr">+1,240</span> هذا الشهر</span></div>
+          <svg viewBox="0 0 214 150" preserveAspectRatio="none">
+            <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3ee08f" stop-opacity=".22"/><stop offset="1" stop-color="#3ee08f" stop-opacity="0"/></linearGradient></defs>
+            <path class="area" d="M0 120 C30 110 40 128 70 100 S110 92 130 70 S170 74 214 30 V150 H0Z"/>
+            <path class="ln" d="M0 120 C30 110 40 128 70 100 S110 92 130 70 S170 74 214 30"/>
+            <path class="run" d="M0 120 C30 110 40 128 70 100 S110 92 130 70 S170 74 214 30"/>
+            <circle class="dot" cx="210" cy="32" r="4"/>
+          </svg>
+          <div class="accs"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <!-- مشهد ٢ -->
+      <div class="scene" data-s="1">
+        <div class="mini s2">
+          <div class="capsule toast" id="toast2"><svg class="i" width="14" height="14" viewBox="0 0 24 24" style="stroke-width:2.8"><path d="M5 12l5 5L20 7"/></svg>انحفظت</div>
+          <div class="amt"><span class="num" id="amt2"></span><span class="caret"></span><small>ر.س</small></div>
+          <div class="cat"><span class="chip" id="cat2"><svg class="i" width="13" height="13" viewBox="0 0 24 24"><path d="M5 8h12v5a6 6 0 0 1-12 0zM17 9h1.5a2.5 2.5 0 0 1 0 5H17M8 3v2M12 3v2"/></svg>قهوة</span></div>
+          <div class="pad" id="pad2">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+            <span class="save">حفظ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- مشهد ٣ -->
+      <div class="scene" data-s="2">
+        <div class="mini s3">
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:10px">تدفّق هذا الشهر</div>
+          <div class="flow"><div class="col" style="height:100%;background:color-mix(in srgb,var(--income) 70%,transparent)"></div><div class="col" style="height:62%;background:color-mix(in srgb,var(--expense) 70%,transparent)"></div></div>
+          <div class="cap"><div>دخل الشهر<b>9,500</b></div><div>صرفت<b>5,870</b></div></div>
+          <div class="rings" id="rings3">
+            <div><svg viewBox="0 0 52 52"><circle class="tr" cx="26" cy="26" r="22"/><circle class="fl" cx="26" cy="26" r="22" style="stroke:var(--owed-by)" data-p=".42"/></svg>مطاعم</div>
+            <div><svg viewBox="0 0 52 52"><circle class="tr" cx="26" cy="26" r="22"/><circle class="fl" cx="26" cy="26" r="22" style="stroke:var(--commit)" data-p=".28"/></svg>سيارة</div>
+            <div><svg viewBox="0 0 52 52"><circle class="tr" cx="26" cy="26" r="22"/><circle class="fl" cx="26" cy="26" r="22" style="stroke:var(--transfer)" data-p=".18"/></svg>تسوّق</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- مشهد ٤ -->
+      <div class="scene" data-s="3">
+        <div class="mini s4">
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">السلف والديون</div>
+          <div>
+            <div class="prow"><div class="av" style="background:color-mix(in srgb,var(--owed-to) 16%,transparent);color:var(--owed-to)">ع</div><div class="t">عبدالله<small>سلف لك</small></div><div class="a" style="color:var(--owed-to)">500</div></div>
+            <div class="prow"><div class="av" style="background:color-mix(in srgb,var(--owed-by) 16%,transparent);color:var(--owed-by)">س</div><div class="t">سعد<small>سلف عليك</small></div><div class="a" style="color:var(--owed-by)">300</div></div>
+            <div class="prow"><div class="av" style="background:color-mix(in srgb,var(--commit) 16%,transparent);color:var(--commit)"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></div><div class="t">سلفة راتب<small>باقي 3 أقساط</small></div><div class="a">1,500</div></div>
+            <div class="prow"><div class="av" style="background:var(--surface-hi);color:var(--text-2)"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><path d="M4 9h16l-1 10H5zM8 9V6a4 4 0 0 1 8 0v3"/></svg></div><div class="t">بقالة الحي<small>دَين متجر</small></div><div class="a">85</div></div>
+          </div>
+          <div class="capsule bell"><svg class="i" width="14" height="14" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg>تذكير: موعد سداد سعد بكرة</div>
+        </div>
+      </div>
+
+      <!-- مشهد ٥ -->
+      <div class="scene" data-s="4">
+        <div class="s5">
+          <svg class="path" viewBox="0 0 300 330"><path id="wire5" class="wire" d="M262 40 C240 100 200 120 150 155 S70 220 38 290"/><circle class="pkt" id="pkt5" r="3.5" cx="-10" cy="-10"/></svg>
+          <div class="node n1"><div class="box"><svg class="i" width="26" height="26" viewBox="0 0 24 24" style="stroke-width:1.8"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>جوالك</div>
+          <div class="plain" id="plain5">قهوة · 45 ر.س</div>
+          <div class="node n2"><div class="box"><svg class="i" width="28" height="28" viewBox="0 0 24 24" style="stroke-width:2"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>تشفير بجوالك</div>
+          <div class="cipher" id="ciph5"></div>
+          <div class="node n3"><div class="box"><div class="sheet" id="sheet5"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>جدولك في Google</div>
+        </div>
+      </div>
+      <button class="tapzone r" id="tapPrev" aria-label="السابق"></button>
+      <button class="tapzone l" id="tapNext" aria-label="التالي"></button>
+    </div>
+    <div class="st-copy" id="stCopy"></div>
+    <div class="st-foot" id="stFoot"></div>
+  </section>
+
+  <!-- ============ ٢ الرقم السري ============ -->
+  <section class="scr" id="s-pin">
+    <div class="aurora"></div>
+    <div class="pin-wrap">
+      <div class="logo" style="font-size:18px"><b style="width:44px;height:44px;border-radius:14px;font-size:18px">QB</b></div>
+      <div class="stepcap" id="pinStep">الخطوة 1 من 2</div>
+      <div class="pin-title" id="pinTitle">أنشئ رقمًا سريًا</div>
+      <div class="pin-sub" id="pinSub">اختر 4 أرقام لحماية QB-Nomia</div>
+      <div class="dots" id="pinDots"><i></i><i></i><i></i><i></i></div>
+      <div class="why"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>الرقم يفتح التطبيق على هذا الجهاز بس. تقدر تضيف البصمة بعدين من خطوات التشغيل.</span></div>
+      <div class="pinpad" id="pinpad"></div>
+    </div>
+  </section>
+
+  <!-- ============ ٣ جهّز محفظتك ============ -->
+  <section class="scr" id="s-checklist">
+    <div class="aurora"></div>
+    <div class="hdr"><span></span><span class="capsule" style="opacity:0">جهّز محفظتك</span><button class="glass-circle press" data-go="tour" title="للرئيسية"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></button></div>
+    <div class="scroll">
+      <div class="big-title">جهّز محفظتك</div>
+      <div class="lead">خمس خطوات وتشتغل الحسابات صح من أول يوم. كل خطوة تتعلّم تلقائيًا لما تخلّصها، وتقدر تكمّلها لاحقًا من بطاقة في الرئيسية.</div>
+      <div class="ck-hero">
+        <div class="ring-big"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" style="stroke:var(--surface-hi)"/><circle class="fl" id="ckRing" cx="35" cy="35" r="30" style="stroke-dashoffset:188.5"/></svg><div class="v num" id="ckVal">0/5</div></div>
+        <div><div class="t" id="ckT">لنبدأ بالحسابات</div><div class="d" id="ckD">الرصيد الصحيح أساس كل الأرقام اللي بتشوفها.</div></div>
+      </div>
+      <div id="tasks"></div>
+    </div>
+    <div class="footbar">
+      <button class="btn press" id="ckNext">أكمل الخطوة التالية</button>
+      <button class="link" data-go="tour">أكمّل لاحقًا</button>
+    </div>
+  </section>
+
+  <!-- ============ ٤ النسخة الاحتياطية ============ -->
+  <section class="scr" id="s-backup">
+    <div class="aurora"></div>
+    <div class="hdr">
+      <button class="glass-circle press" id="wzBack" title="رجوع"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="m9 6 6 6-6 6"/></svg></button>
+      <span class="capsule">النسخة الاحتياطية</span>
+      <span class="capsule num" id="wzCount" style="position:static;transform:none">1/7</span>
+    </div>
+    <div class="scroll" id="wzScroll">
+      <div class="wz-steps" id="wzSteps"></div>
+
+      <!-- 0: كيف تشتغل -->
+      <div class="wz-pane on" data-w="0">
+        <div class="wz-k">قبل ما نبدأ</div>
+        <h2>نسخة مشفّرة في جدول بحسابك أنت</h2>
+        <div class="lead">بياناتك تعيش على جوالك. النسخة الاحتياطية ترسل صورة منها <b style="color:var(--text)">مشفّرة</b> إلى Google Sheets عن طريق سكربت صغير تنشئه أنت في Google Apps Script. ما فيه سيرفر لنا، ولا أحد يشوف أرقامك.</div>
+        <div class="card">
+          <div class="diagram">
+            <svg viewBox="0 0 330 150" preserveAspectRatio="none"><path class="wire" d="M262 66 H200"/><path class="wire" d="M130 66 H68"/></svg>
+            <div class="d d1"><div class="box"><svg class="i" width="24" height="24" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>جوالك</div>
+            <div class="d d2"><div class="box"><svg class="i" width="24" height="24" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>تشفير برمزك</div>
+            <div class="d d3"><div class="box"><svg class="i" width="24" height="24" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></div>Apps Script + جدولك</div>
+          </div>
+          <div class="pts">
+            <div class="pt"><div class="ico"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></div><div><b>تلقائية بعد كل تعديل</b><p>أي حركة تضيفها ترتفع بالخلفية خلال ثانيتين، بدون ما تضغط شيء.</p></div></div>
+            <div class="pt"><div class="ico"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div><div><b>مشفّرة قبل ما تطلع</b><p>الجدول يحفظ نص عشوائي. فكّه يحتاج رمزك السري، وهو على جوالك بس.</p></div></div>
+            <div class="pt"><div class="ico"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg></div><div><b>ترجع لها من أي جهاز</b><p>جوال جديد؟ تدخل الرابط والرمز وترجع كل بياناتك.</p></div></div>
+          </div>
+          <div class="meta">
+            <span class="chip"><svg class="i" width="12" height="12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>حوالي <span class="num">5</span> دقائق</span>
+            <span class="chip">حساب Google</span>
+            <span class="chip">يُفضّل من كمبيوتر أو متصفح الجوال</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1: الرمز السري -->
+      <div class="wz-pane" data-w="1">
+        <div class="wz-k">الخطوة <span class="num">1</span> · رمزك السري</div>
+        <h2>هذا مفتاح بياناتك</h2>
+        <div class="lead">سوّينا لك رمزًا عشوائيًا قويًا. نفس الرمز بيكون داخل الكود اللي بتلصقه، وبه تتشفّر النسخة وتنفك. ما تحتاج تكتبه بيدك.</div>
+        <div class="tokenbox" id="tokenBox"></div>
+        <div class="row-btns">
+          <button class="btn sm press" id="copyToken"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>انسخ الرمز</button>
+          <button class="btn sm ghost press" id="newToken" style="width:auto;padding:0 16px" title="رمز جديد"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/></svg></button>
+        </div>
+        <div class="warn"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17.5v.5"/></svg><span><b>احفظه بمكان آمن</b> (مدير كلمات المرور، أو ملاحظة مقفلة). لو ضاع جوالك وضاع الرمز معه، النسخة ما تنفك، ولا حتى نحن نقدر نرجّعها.</span></div>
+        <button class="check" id="savedChk"><span class="bx"><svg class="i" width="13" height="13" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg></span>حفظت الرمز بمكان آمن</button>
+      </div>
+
+      <!-- 2: افتح Apps Script -->
+      <div class="wz-pane" data-w="2">
+        <div class="wz-k">الخطوة <span class="num">2</span> · افتح Google Apps Script</div>
+        <h2>أنشئ مشروعًا جديدًا</h2>
+        <div class="lead">الزر يفتح لك مشروعًا فارغًا مباشرة. سجّل دخولك بحساب Google لو طلب، وسمّ المشروع <b style="color:var(--text)">QB-Nomia Backup</b>. الجدول نفسه بينشأ تلقائيًا في الخطوة الرابعة.</div>
+        <div class="demo" data-demo="open"></div>
+        <a class="btn press" style="margin-top:12px" href="https://script.google.com/create" target="_blank" rel="noopener"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>افتح Google Apps Script</a>
+        <div class="hint" style="justify-content:center">ارجع هنا بعد ما يفتح المحرر، وكمّل.</div>
+      </div>
+
+      <!-- 3: الصق الكود -->
+      <div class="wz-pane" data-w="3">
+        <div class="wz-k">الخطوة <span class="num">3</span> · الكود</div>
+        <h2>انسخ الكود والصقه</h2>
+        <div class="lead">الكود جاهز وفيه رمزك (السطر الملوّن). امسح الموجود في المحرر والصق هذا مكانه.</div>
+        <div class="demo" data-demo="paste"></div>
+        <div class="codewrap">
+          <div class="codehead"><span class="f">Code.gs</span><button class="capsule press" id="copyCode" style="height:30px"><svg class="i" width="14" height="14" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg><span>انسخ الكود كاملًا</span></button></div>
+          <pre class="code" id="codeView"></pre>
+        </div>
+        <div class="ordered">
+          <div><span class="n num">1</span><span>في المحرر اضغط <span class="kbd">Ctrl + A</span> ثم <span class="kbd">Delete</span> لمسح <b>myFunction</b>.</span></div>
+          <div><span class="n num">2</span><span>الصق بـ <span class="kbd">Ctrl + V</span> (أو اضغط مطوّلًا ثم «لصق» في الجوال).</span></div>
+          <div><span class="n num">3</span><span>احفظ بـ <span class="kbd">Ctrl + S</span> أو أيقونة الحفظ.</span></div>
+        </div>
+      </div>
+
+      <!-- 4: شغّل setup -->
+      <div class="wz-pane" data-w="4">
+        <div class="wz-k">الخطوة <span class="num">4</span> · التشغيل والصلاحيات</div>
+        <h2>شغّل setup مرة وحدة</h2>
+        <div class="lead">هذا ينشئ الجدول في حسابك ويعطي السكربت إذنًا يكتب فيه. جوجل بيعرض تحذير «غير موثّق»، وهذا طبيعي لأن السكربت حقك أنت مو تطبيق منشور.</div>
+        <div class="demo" data-demo="run"></div>
+        <div class="ordered">
+          <div><span class="n num">1</span><span>من القائمة فوق اختر <b>setup</b> ثم <b>Run</b> (تشغيل).</span></div>
+          <div><span class="n num">2</span><span><b>Review permissions</b> ← اختر حسابك.</span></div>
+          <div><span class="n num">3</span><span><b>Advanced</b> (متقدّم) ← <b>Go to QB-Nomia Backup (unsafe)</b>.</span></div>
+          <div><span class="n num">4</span><span><b>Allow</b> (سماح)، وانتظر «Execution completed».</span></div>
+        </div>
+      </div>
+
+      <!-- 5: النشر -->
+      <div class="wz-pane" data-w="5">
+        <div class="wz-k">الخطوة <span class="num">5</span> · النشر</div>
+        <h2>انشره كتطبيق ويب</h2>
+        <div class="lead">النشر يعطيك رابطًا يكلّمه التطبيق. الإعدادين تحت لازم يكونون بالضبط كذا.</div>
+        <div class="demo" data-demo="deploy"></div>
+        <div class="card" style="margin-top:12px;padding:4px 14px">
+          <div class="kv"><span>Execute as (التشغيل باسم)</span><b class="num">Me</b></div>
+          <div class="kv"><span>Who has access (من يصل)</span><b class="num">Anyone</b></div>
+        </div>
+        <div class="warn" style="background:rgba(255,255,255,.04);border-color:var(--border-strong)"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:var(--text-2)"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg><span>«Anyone» ما يعني أن أحد يقدر يقرأ بياناتك: السكربت يرفض أي طلب بدون رمزك، والمحفوظ مشفّر أصلًا.</span></div>
+      </div>
+
+      <!-- 6: الرابط والاختبار -->
+      <div class="wz-pane" data-w="6">
+        <div class="wz-k">الخطوة <span class="num">6</span> · الربط</div>
+        <h2>الصق الرابط وجرّب</h2>
+        <div class="lead">انسخ رابط <b style="color:var(--text)">Web app</b> من نافذة النشر (ينتهي بـ <span class="num" dir="ltr">/exec</span>) والصقه هنا.</div>
+        <div class="field"><input id="urlIn" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false"><button class="paste press" id="pasteBtn"><svg class="i" width="14" height="14" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9 4V3h6v1"/></svg>لصق</button></div>
+        <div class="hint" id="urlHint">جرّب «لصق» لتعبئة رابط تجريبي في النموذج.</div>
+        <div class="tests" id="tests">
+          <div class="tline"><span class="s"><svg class="i" width="12" height="12" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg></span>الوصول للسكربت</div>
+          <div class="tline"><span class="s"><svg class="i" width="12" height="12" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg></span>تطابق الرمز السري</div>
+          <div class="tline"><span class="s"><svg class="i" width="12" height="12" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg></span>تشفير بياناتك</div>
+          <div class="tline" style="flex-wrap:wrap"><span class="s"><svg class="i" width="12" height="12" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg></span>أول نسخة احتياطية<div class="prog" style="flex-basis:100%"><i id="upProg"></i></div></div>
+        </div>
+      </div>
+
+      <!-- 7: تم -->
+      <div class="wz-pane" data-w="7">
+        <div class="done-hero">
+          <div class="ok"><svg class="i" width="44" height="44" viewBox="0 0 24 24" style="stroke-width:2.6"><path d="M5 12l5 5L20 7"/></svg></div>
+          <h2 style="margin-top:20px">نسختك الاحتياطية شغّالة</h2>
+          <div class="lead" style="max-width:290px">من الحين أي تعديل يرتفع لحاله، وتشوف خطًا رفيعًا فوق أثناء الحفظ. تقدر تدير كل شيء من المزيد ← المزامنة.</div>
+        </div>
+        <div class="card" style="margin-top:16px;padding:4px 14px">
+          <div class="kv"><span>آخر نسخة</span><b>قبل لحظات</b></div>
+          <div class="kv"><span>الحجم بعد الضغط</span><b class="num">38 KB</b></div>
+          <div class="kv"><span>الرفع التلقائي</span><b style="color:var(--income)">مفعّل</b></div>
+        </div>
+        <div class="warn" style="background:rgba(255,255,255,.04);border-color:var(--border-strong)"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="color:var(--text-2)"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg><span>على جهاز ثاني: افتح التطبيق، واختر «عندي نسخة احتياطية» من أول شاشة، والصق نفس الرابط والرمز.</span></div>
+      </div>
+    </div>
+    <div class="footbar">
+      <button class="btn press" id="wzNext">يلا نبدأ</button>
+      <button class="link" id="wzLater">ليس الآن</button>
+    </div>
+  </section>
+
+  <!-- ============ ٥ جولة الرئيسية ============ -->
+  <section class="scr" id="s-tour">
+    <div class="aurora"></div>
+    <div class="home" id="home">
+      <div class="h-top">
+        <div class="h-greet"><div class="av"></div><div><b>مساء الخير</b><small>ما صرفت شيء اليوم</small></div></div>
+        <div style="display:flex;gap:8px"><span class="glass-circle"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="glass-circle"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg></span></div>
+      </div>
+      <div class="h-bal" id="t-bal">
+        <div style="font-size:12px;color:var(--text-3)">إجمالي الحسابات</div>
+        <div class="big"><span class="num">12,480</span> <small>ر.س</small></div>
+      </div>
+      <div class="h-card setup-mini" id="t-setup">
+        <div class="ring-big"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" style="stroke:var(--surface-hi)"/><circle class="fl" id="miniRing" cx="35" cy="35" r="30" style="stroke-dashoffset:75"/></svg><div class="v num" id="miniVal">3/5</div></div>
+        <div style="flex:1"><b>جهّز محفظتك</b><small id="miniSub">باقي: النسخة الاحتياطية، البصمة</small></div>
+        <svg class="i" width="16" height="16" viewBox="0 0 24 24" style="color:var(--text-3)"><path d="m15 6-6 6 6 6"/></svg>
+      </div>
+      <div class="h-card" id="t-flow">
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">تدفّق هذا الشهر</div>
+        <div style="display:flex;gap:16px">
+          <div style="flex:1"><div style="font-size:11px;color:var(--text-3)">دخل الشهر</div><div class="num" style="font-size:20px;font-weight:700;color:var(--income)">9,500</div></div>
+          <div style="flex:1"><div style="font-size:11px;color:var(--text-3)">صرفت</div><div class="num" style="font-size:20px;font-weight:700">5,870</div></div>
+        </div>
+        <div style="height:6px;border-radius:6px;background:var(--surface-hi);margin-top:12px;overflow:hidden"><div style="width:62%;height:100%;background:var(--expense);border-radius:6px"></div></div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:8px">باقي لين الآن <span class="num" style="color:var(--text)">3,630</span> ر.س · المسموح يوميًا <span class="num" style="color:var(--text)">242</span></div>
+      </div>
+    </div>
+    <div class="nav" id="t-nav">
+      <span class="tab on"><svg class="i" width="18" height="18" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>الرئيسية</span>
+      <span class="tab"><svg class="i" width="20" height="20" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></span>
+      <span class="plus" id="t-plus"><span><svg class="i" width="16" height="16" viewBox="0 0 24 24" style="stroke-width:2.8"><path d="M12 5v14M5 12h14"/></svg></span></span>
+      <span class="tab"><svg class="i" width="20" height="20" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg></span>
+      <span class="tab"><svg class="i" width="20" height="20" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span>
+    </div>
+    <div class="spot" id="spot"></div>
+    <div class="coach" id="coach">
+      <div class="k" id="coachK">1 من 5</div>
+      <b id="coachT"></b>
+      <p id="coachP"></p>
+      <div class="bar"><div class="d" id="coachD"></div><div style="display:flex;align-items:center"><button class="s" id="coachSkip">تخطي الجولة</button><button class="n press" id="coachN">التالي</button></div></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ كيف سينفذ ============ -->
+<div class="doc">
+  <h2>كيف سينفّذ</h2>
+  <h3>١) متى تظهر كل مرحلة</h3>
+  <ul>
+    <li><b>قصص الترحيب:</b> مسار جديد <code>/intro</code> يسبق <code>/setup</code>. يظهر فقط إذا ما فيه رقم سري ولا علامة <code>qbnomia.onboarding.introSeen</code>. المستخدم الحالي ما يشوفها.</li>
+    <li>5 قصص بأشرطة تقدّم (تقدّم تلقائي كل 6 ثوانٍ، الضغط يسار للتالي ويمين للسابق، الضغط المطوّل يوقف). آخر قصة فيها خياران: «ابدأ من جديد» أو «عندي نسخة احتياطية» (رابط + رمز ← سحب ← ثم الرقم السري).</li>
+    <li><b>الرقم السري ثم «عرّفنا بنفسك»:</b> كما هي اليوم (<code>PinSetupScreen</code> و<code>ProfileSetupScreen</code>)، وبعدها تنتقل إلى «جهّز محفظتك» بدل الرئيسية مباشرة.</li>
+    <li><b>جولة الرئيسية:</b> تظهر مرة وحدة أول دخول للرئيسية (<code>qbnomia.onboarding.tourSeen</code>)، وتقدر تعيدها من «عن التطبيق».</li>
+  </ul>
+  <h3>٢) «جهّز محفظتك» تتعلّم لحالها</h3>
+  <ul>
+    <li><code>src/lib/onboarding.ts</code>: دالة نقية <code>setupSteps(data, prefs)</code> تحسب حالة كل خطوة من البيانات الفعلية: حساب واحد على الأقل، مصدر دخل، فئة لها سقف، <code>isSheetsSyncConfigured()</code>، البصمة مفعّلة. ما فيه علامات يدوية تضيع. مع اختبارات <code>onboarding.test.ts</code>.</li>
+    <li>شاشة <code>/getting-started</code> + بطاقة صغيرة في الرئيسية فوق «تدفّق هذا الشهر» تختفي لما تكتمل الخمس، أو لو المستخدم أخفاها.</li>
+  </ul>
+  <h3>٣) معالج النسخة الاحتياطية</h3>
+  <ul>
+    <li>شاشة <code>/sync-settings/setup</code> (<code>BackupWizardScreen</code>) تُفتح من الخطوة الرابعة ومن «المزامنة» لو ما فيه ربط. شاشة المزامنة الحالية تبقى للإدارة بعد الربط.</li>
+    <li><b>الرمز يتولّد بالتطبيق</b> (<code>crypto.getRandomValues</code>، 32 حرفًا) ويُحقن داخل الكود. ما عاد المستخدم يكتب رمزًا بيده أو يغيّر سطرًا في الكود.</li>
+    <li><b>مصدر واحد للكود:</b> <code>import code from '../../google-apps-script/Code.gs?raw'</code> ثم استبدال <code>CHANGE-ME-TO-A-LONG-RANDOM-SECRET</code> بالرمز في <code>src/lib/scriptCode.ts</code> (مع اختبار). أي تحديث للسكربت يوصل للمعالج تلقائيًا.</li>
+    <li><b>تعديل صغير في <code>Code.gs</code>:</b> يشتغل بدون جدول مفتوح. لو ما فيه جدول مرتبط، <code>setup()</code> ينشئ «QB-Nomia Backup» ويحفظ معرّفه في <code>ScriptProperties</code>. بهذا زر «افتح Google Apps Script» يروح مباشرة لـ <code>script.google.com/create</code> وتنحذف خطوة إنشاء الجدول. السكربتات القديمة المربوطة بجدول تشتغل كما هي.</li>
+    <li>العروض الحية لواجهة جوجل (المؤشر والإطارات) مكوّن واحد <code>GuideDemo</code> يأخذ قائمة إطارات SVG/HTML وتعليقاتها، ويحترم تقليل الحركة.</li>
+    <li>التحقق من الرابط فوري (<code>script.google.com/macros/s/…/exec</code>)، و«اختبار الاتصال» يستدعي <code>pull</code> للتأكد من الوصول والرمز، ثم أول <code>push</code> بشريط تقدّم، والنجاح عبر <code>notify('success')</code>.</li>
+  </ul>
+  <h3>٤) الملفات</h3>
+  <ul>
+    <li>جديد: <code>screens/onboarding/IntroStories.tsx</code>، <code>screens/onboarding/GettingStartedScreen.tsx</code>، <code>screens/onboarding/BackupWizardScreen.tsx</code>، <code>components/onboarding/CoachTour.tsx</code>، <code>components/onboarding/GuideDemo.tsx</code>، <code>lib/onboarding.ts</code>، <code>lib/scriptCode.ts</code> + اختباراتها.</li>
+    <li>تعديل: <code>App.tsx</code> (المسارات)، <code>PinSetupScreen</code>/<code>ProfileSetupScreen</code> (الوجهة بعدها)، <code>HomeScreen</code> (البطاقة والجولة)، <code>google-apps-script/Code.gs</code> و<code>README.md</code>.</li>
+  </ul>
+  <div class="q"><b style="color:var(--text)">رقم الإصدار:</b> ميزة جديدة، فالمقترح <span class="num">2.31.2 ← 2.32.0</span>. ولو تعتبرها مجموعة ميزات كبيرة تنزل مع بعض فتكون <span class="num">3.0.0</span>، القرار لك.</div>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s)
+const $$ = (s, r = document) => [...r.querySelectorAll(s)]
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const ICON_CHECK = '<svg class="i" width="13" height="13" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg>'
+
+/* ================= التنقل بين المراحل ================= */
+const ORDER = ['welcome', 'pin', 'checklist', 'backup', 'tour']
+let current = 'welcome'
+function go(name) {
+  if (name === current) return
+  const back = ORDER.indexOf(name) < ORDER.indexOf(current)
+  $$('.scr').forEach(s => { s.classList.remove('on', 'back'); if (back) s.classList.add('back') })
+  $('#s-' + name).classList.add('on')
+  current = name
+  $$('#jump button').forEach(b => b.classList.toggle('on', b.dataset.go === name))
+  if (name === 'welcome') startStories(0); else stopStories()
+  if (name === 'pin') resetPin()
+  if (name === 'checklist') renderTasks()
+  if (name === 'backup') wzShow(wz)
+  if (name === 'tour') startTour(); else stopDemos()
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go) })
+
+/* ================= ١ قصص الترحيب ================= */
+const STORIES = [
+  { k: 'مرحبًا', t: 'محفظتك كلها<br>بمكان واحد', p: 'حساباتك، مصاريفك، سلفك والتزاماتك. كل ريال تعرف وين هو، بدون جداول ولا حسابات بالراس.' },
+  { k: 'بثانية', t: 'سجّل مصروفك<br>قبل ما تنساه', p: 'المبلغ، الفئة، حفظ. التطبيق يحدّث الرصيد والميزانية والتقارير لحاله.' },
+  { k: 'افهم شهرك', t: 'اعرف وين<br>راحت فلوسك', p: 'تدفّق الشهر، أكثر الفئات صرفًا، والمسموح لك يوميًا عشان توصل للراتب الجاي.' },
+  { k: 'بدون إحراج', t: 'السلف والديون<br>بدون نسيان', p: 'لك وعليك، سلفة الراتب، ودَين البقالة. مع تذكير قبل موعد السداد.' },
+  { k: 'خصوصيتك', t: 'بياناتك عندك،<br>ونسختها مشفّرة', p: 'ما فيه حسابات ولا سيرفرات لنا. النسخة الاحتياطية تتشفّر بجوالك وتنحفظ في جدول بحسابك أنت.' },
+]
+const DUR = 6000
+let sIdx = 0, sT0 = 0, sRaf = 0, sPaused = false, sElapsed = 0, sToken = 0
+$('#bars').innerHTML = STORIES.map(() => '<span><i></i></span>').join('')
+
+function startStories(i) { sIdx = i; showStory(); cancelAnimationFrame(sRaf); sRaf = requestAnimationFrame(tickStory) }
+function stopStories() { cancelAnimationFrame(sRaf); sToken++ }
+function tickStory(now) {
+  if (!sT0) sT0 = now
+  if (!sPaused) sElapsed += now - sT0
+  sT0 = now
+  const p = Math.min(1, sElapsed / DUR)
+  $$('#bars i').forEach((b, j) => b.style.transform = `scaleX(${j < sIdx ? 1 : j === sIdx ? p : 0})`)
+  if (p >= 1 && sIdx < STORIES.length - 1) { sIdx++; showStory() }
+  sRaf = requestAnimationFrame(tickStory)
+}
+function showStory() {
+  sElapsed = 0; sT0 = 0
+  const s = STORIES[sIdx], last = sIdx === STORIES.length - 1
+  $$('.scene').forEach(sc => { const on = +sc.dataset.s === sIdx; sc.classList.toggle('on', on); sc.classList.remove('play'); if (on) { void sc.offsetWidth; sc.classList.add('play') } })
+  $('#stCopy').innerHTML = `<div class="copy-in"><div class="k"><span class="num">${sIdx + 1}/${STORIES.length}</span> · ${s.k}</div><h2>${s.t}</h2><p>${s.p}</p></div>`
+  $('#stFoot').innerHTML = last
+    ? '<button class="btn press" data-go="pin">ابدأ من جديد</button><button class="link" id="restoreLink">عندي نسخة احتياطية، أبي أرجّعها</button>'
+    : '<button class="btn press" id="stNext">التالي</button>'
+  $('#skipIntro').style.visibility = last ? 'hidden' : 'visible'
+  const n = $('#stNext'); if (n) n.onclick = () => { sIdx++; showStory() }
+  const r = $('#restoreLink'); if (r) r.onclick = () => alert('مسار الاسترجاع: الصق رابط Web App والرمز السري ← سحب النسخة وفكّها ← ثم إنشاء الرقم السري. (يُصمَّم بنفس شاشة الخطوة 6 في المعالج)')
+  playScene(sIdx, ++sToken)
+}
+$('#tapNext').onclick = () => { if (sIdx < STORIES.length - 1) { sIdx++; showStory() } }
+$('#tapPrev').onclick = () => { if (sIdx > 0) { sIdx--; showStory() } else showStory() }
+$('#skipIntro').onclick = () => { sIdx = STORIES.length - 1; showStory() }
+const stage = $('#stage')
+let holdT
+stage.addEventListener('pointerdown', () => { holdT = setTimeout(() => sPaused = true, 220) })
+;['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => stage.addEventListener(ev, () => { clearTimeout(holdT); setTimeout(() => sPaused = false, 0) }))
+
+async function playScene(i, tok) {
+  const alive = () => tok === sToken && current === 'welcome'
+  if (i === 0) {
+    const el = $('#cnt'), target = 12480, t0 = performance.now()
+    const step = now => { if (!alive()) return; const p = Math.min(1, (now - t0) / 1600), e = 1 - Math.pow(1 - p, 3); el.textContent = Math.round(target * e).toLocaleString('en-US'); if (p < 1) requestAnimationFrame(step) }
+    requestAnimationFrame(step)
+  }
+  if (i === 1) {
+    const amt = $('#amt2'), keys = $$('#pad2 span'), toast = $('#toast2'), cat = $('#cat2')
+    amt.textContent = ''; cat.classList.remove('on'); toast.classList.remove('on')
+    const press = async (k, ms = 380) => { k.classList.add('hit'); await sleep(170); k.classList.remove('hit'); await sleep(ms) }
+    await sleep(600); if (!alive()) return
+    await press(keys[3]); if (!alive()) return; amt.textContent = '4'
+    await press(keys[4]); if (!alive()) return; amt.textContent = '45'
+    await sleep(300); if (!alive()) return; cat.classList.add('on')
+    await sleep(800); if (!alive()) return
+    await press(keys[9], 100); if (!alive()) return
+    toast.classList.add('on'); await sleep(1600); if (alive()) toast.classList.remove('on')
+  }
+  if (i === 2) {
+    $$('#rings3 .fl').forEach(c => { c.style.transition = 'none'; c.style.strokeDashoffset = 138 })
+    await sleep(60); if (!alive()) return
+    $$('#rings3 .fl').forEach((c, j) => { c.style.transition = `stroke-dashoffset 1.2s cubic-bezier(.22,1,.36,1) ${0.5 + j * 0.15}s`; c.style.strokeDashoffset = 138 * (1 - c.dataset.p) })
+  }
+  if (i === 4) {
+    const plain = $('#plain5'), ciph = $('#ciph5'), cells = $$('#sheet5 i'), pkt = $('#pkt5'), wire = $('#wire5')
+    const src = 'قهوة · 45 ر.س', CH = 'ABCDEFabcdef0123456789+/='
+    cells.forEach(c => c.classList.remove('f')); ciph.textContent = ''; plain.textContent = src; plain.style.opacity = 1
+    await sleep(900); if (!alive()) return
+    for (let r = 0; r < 10; r++) { plain.textContent = [...src].map(c => c === ' ' ? ' ' : (Math.random() < r / 10 ? CH[Math.random() * CH.length | 0] : c)).join(''); await sleep(70); if (!alive()) return }
+    plain.style.opacity = 0
+    const len = wire.getTotalLength()
+    for (let c = 0; c < cells.length && alive(); c++) {
+      ciph.textContent = Array.from({ length: 40 + c * 6 }, () => CH[Math.random() * CH.length | 0]).join('')
+      const t0 = performance.now()
+      await new Promise(res => { const f = now => { if (!alive()) return res(); const p = Math.min(1, (now - t0) / 420), pt = wire.getPointAtLength(len * p); pkt.setAttribute('cx', pt.x); pkt.setAttribute('cy', pt.y); p < 1 ? requestAnimationFrame(f) : res() }; requestAnimationFrame(f) })
+      cells[c].classList.add('f')
+    }
+    pkt.setAttribute('cx', -10)
+  }
+}
+
+/* ================= ٢ الرقم السري ================= */
+let pinStage = 'enter', pinVal = '', pinFirst = ''
+$('#pinpad').innerHTML = ['1','2','3','4','5','6','7','8','9','', '0', 'del'].map(k =>
+  k === '' ? '<span></span>' : k === 'del'
+    ? '<button class="nob" data-k="del" aria-label="حذف"><svg class="i" width="24" height="24" viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12zM16 9l-4 6M12 9l4 6"/></svg></button>'
+    : `<button data-k="${k}">${k}</button>`).join('')
+function resetPin() { pinStage = 'enter'; pinVal = ''; pinFirst = ''; renderPin() }
+function renderPin(err) {
+  $('#pinStep').textContent = `الخطوة ${pinStage === 'enter' ? 1 : 2} من 2`
+  $('#pinTitle').textContent = pinStage === 'enter' ? 'أنشئ رقمًا سريًا' : 'أكّد الرقم السري'
+  $('#pinSub').textContent = err ? 'الرقمان غير متطابقين، حاول مرة أخرى' : pinStage === 'enter' ? 'اختر 4 أرقام لحماية QB-Nomia' : 'اكتبه مرة ثانية'
+  $('#pinSub').style.color = err ? 'var(--expense)' : ''
+  $('#pinDots').classList.toggle('err', !!err)
+  $$('#pinDots i').forEach((d, i) => d.classList.toggle('f', i < pinVal.length))
+}
+$('#pinpad').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return
+  if (b.dataset.k === 'del') { pinVal = pinVal.slice(0, -1); return renderPin() }
+  if (pinVal.length >= 4) return
+  pinVal += b.dataset.k; renderPin()
+  if (pinVal.length < 4) return
+  if (pinStage === 'enter') { pinFirst = pinVal; setTimeout(() => { pinVal = ''; pinStage = 'confirm'; renderPin() }, 220) }
+  else if (pinVal === pinFirst) setTimeout(() => go('checklist'), 300)
+  else { renderPin(true); setTimeout(resetPin, 900) }
+})
+
+/* ================= ٣ جهّز محفظتك ================= */
+const TASKS = [
+  { id: 'acc', t: 'أضف حساباتك وأرصدتها', d: 'البنك والكاش والمدخرات بالرصيد الحالي. كل الأرقام تبدأ من هنا.', c: 'var(--text)', tag: ['ضروري', 'var(--text)'], ic: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/>' },
+  { id: 'inc', t: 'حدّد دخلك وموعد الراتب', d: 'عشان نحسب الشهر والمسموح لك يوميًا لين الراتب الجاي.', c: 'var(--commit)', ic: '<path d="M12 3v18M17 7.5C17 5.6 14.8 4.5 12 4.5S7 5.6 7 7.5 9.2 10.5 12 11s5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3"/>' },
+  { id: 'cat', t: 'اضبط الفئات والسقف', d: 'اختياري: سقف شهري لكل فئة، ونبّهك لما تقرب منه.', c: 'var(--owed-by)', ic: '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 4"/>' },
+  { id: 'bak', t: 'فعّل النسخة الاحتياطية', d: 'Google Sheets مشفّرة. تحميك لو ضاع جوالك أو غيّرته.', c: 'var(--income)', tag: ['موصى به', 'var(--income)'], ic: '<path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8.5a4 4 0 0 1-1 9.5zM12 11v6M9.5 13.5 12 11l2.5 2.5"/>' },
+  { id: 'bio', t: 'الدخول بالبصمة', d: 'افتح التطبيق بلمسة بدل الرقم السري.', c: 'var(--transfer)', ic: '<path d="M12 11v4M8.5 7.5a5 5 0 0 1 8.5 3.5v2M7 11v2a5 5 0 0 0 2 4M17 16a5 5 0 0 1-1.5 2.5M4 9a9 9 0 0 1 16 0M12 7a4 4 0 0 0-4 4"/>' },
+]
+const done = new Set()
+function renderTasks() {
+  const nextIdx = TASKS.findIndex(t => !done.has(t.id))
+  $('#tasks').innerHTML = TASKS.map((t, i) => `
+    <button class="task ${done.has(t.id) ? 'done' : ''} ${i === nextIdx ? 'next' : ''}" data-t="${t.id}" style="--i:${i}">
+      <span class="ico" style="background:color-mix(in srgb,${t.c} 15%,transparent);color:${t.c}"><svg class="i" width="20" height="20" viewBox="0 0 24 24">${t.ic}</svg></span>
+      <span class="tx"><b>${t.t}${t.tag && !done.has(t.id) ? `<span class="tag" style="background:color-mix(in srgb,${t.tag[1]} 14%,transparent);color:${t.tag[1]}">${t.tag[0]}</span>` : ''}</b><small>${t.d}</small></span>
+      <span class="st">${done.has(t.id) ? ICON_CHECK : ''}</span>
+    </button>`).join('')
+  const n = done.size
+  $('#ckRing').style.strokeDashoffset = 188.5 * (1 - n / 5)
+  $('#ckRing').style.stroke = n === 5 ? 'var(--income)' : ''
+  $('#ckVal').textContent = `${n}/5`
+  const nx = TASKS[nextIdx]
+  $('#ckT').textContent = n === 5 ? 'محفظتك جاهزة' : n === 0 ? 'لنبدأ بالحسابات' : `الخطوة الجاية: ${nx.t}`
+  $('#ckD').textContent = n === 5 ? 'كل شيء مضبوط. الأرقام اللي تشوفها الحين دقيقة.' : nx.d
+  $('#ckNext').textContent = n === 5 ? 'إلى الرئيسية' : 'أكمل الخطوة التالية'
+  $('#miniVal').textContent = `${n}/5`
+  $('#miniRing').style.strokeDashoffset = 188.5 * (1 - n / 5)
+  const left = TASKS.filter(t => !done.has(t.id)).map(t => t.t)
+  $('#miniSub').textContent = left.length ? 'باقي: ' + left.join('، ') : 'كل الخطوات مكتملة'
+}
+$('#tasks').addEventListener('click', e => { const b = e.target.closest('.task'); if (b) openTask(b.dataset.t) })
+$('#ckNext').onclick = () => { const t = TASKS.find(t => !done.has(t.id)); t ? openTask(t.id) : go('tour') }
+function openTask(id) {
+  if (id === 'bak') { wz = 0; return go('backup') }
+  // في التطبيق تفتح شاشة الخطوة الفعلية، والحالة تُحسب من البيانات. هنا نحاكي الإكمال.
+  done.has(id) ? done.delete(id) : done.add(id); renderTasks()
+}
+
+/* ================= ٤ معالج النسخة الاحتياطية ================= */
+const WZ_N = 8
+let wz = 0, savedOk = false, testsOk = false
+$('#wzSteps').innerHTML = Array.from({ length: WZ_N - 1 }, () => '<span></span>').join('')
+function wzShow(i) {
+  wz = i
+  $$('.wz-pane').forEach(p => p.classList.toggle('on', +p.dataset.w === i))
+  $$('#wzSteps span').forEach((s, j) => s.classList.toggle('on', j < i || (i === WZ_N - 1)))
+  $('#wzCount').textContent = i === WZ_N - 1 ? 'تم' : `${i + 1}/${WZ_N - 1}`
+  $('#wzScroll').scrollTop = 0
+  const next = $('#wzNext'), later = $('#wzLater')
+  next.disabled = false; later.style.display = ''
+  const labels = ['يلا نبدأ', 'التالي', 'فتحته، التالي', 'لصقته وحفظته', 'شغّلته ووافقت', 'نشرته ونسخت الرابط', 'اختبر الاتصال', 'رجوع لخطوات التشغيل']
+  next.textContent = labels[i]
+  if (i === 1) next.disabled = !savedOk
+  if (i === 6) { next.disabled = !validUrl($('#urlIn').value); if (testsOk) next.textContent = 'التالي' }
+  if (i === 7) later.style.display = 'none'
+  stopDemos()
+  const d = $(`.wz-pane[data-w="${i}"] .demo`); if (d) runDemo(d)
+}
+$('#wzNext').onclick = async () => {
+  if (wz === 6 && !testsOk) return runTests()
+  if (wz === 7) { done.add('bak'); return go('checklist') }
+  wzShow(wz + 1)
+}
+$('#wzBack').onclick = () => wz > 0 && wz < 7 ? wzShow(wz - 1) : go('checklist')
+$('#wzLater').onclick = () => go('checklist')
+
+// الرمز
+const ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+let token = ''
+function genToken() {
+  const a = crypto.getRandomValues(new Uint32Array(32))
+  token = [...a].map(n => ALPH[n % ALPH.length]).join('')
+  const box = $('#tokenBox'); let r = 0
+  const iv = setInterval(() => {
+    box.innerHTML = [...token].map((c, i) => i < r ? c : `<span class="scr-ch">${ALPH[Math.random() * ALPH.length | 0]}</span>`).join('').replace(/(.{8})/g, '$1 ')
+    if (++r > token.length) { clearInterval(iv); box.textContent = token.replace(/(.{8})/g, '$1 ').trim() }
+  }, 22)
+  renderCode()
+}
+function flash(btn, txt) { const old = btn.innerHTML; btn.classList.add('copied'); btn.innerHTML = ICON_CHECK + txt; setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = old }, 1600) }
+async function copy(text) { try { await navigator.clipboard.writeText(text) } catch {} }
+$('#copyToken').onclick = e => { copy(token); flash(e.currentTarget, 'انتسخ') }
+$('#newToken').onclick = () => { genToken(); savedOk = false; $('#savedChk').classList.remove('on'); wzShow(1) }
+$('#savedChk').onclick = e => { savedOk = !savedOk; e.currentTarget.classList.toggle('on', savedOk); $('#wzNext').disabled = !savedOk }
+
+// الكود (المقترح: يدعم مشروعًا مستقلًا بدون جدول مفتوح)
+const CODE = `/**
+ * QB-Nomia — النسخة الاحتياطية المشفّرة
+ * هذا السكربت يحفظ نصًا مشفّرًا فقط، ولا يقدر يقرأ بياناتك.
+ */
+
+var SECRET_TOKEN = '__TOKEN__'
+
+var SHEET_NAME = 'sync_data'
+var ROW_KEY = 'snapshot'
+var CHUNK_SIZE = 45000
+
+/** شغّلها مرة وحدة: تنشئ الجدول وورقة التخزين. */
+function setup() {
+  var ss = getSpreadsheet()
+  var sheet = getSheet()
+  var def = ss.getSheetByName('Sheet1')
+  if (def && ss.getSheets().length > 1) ss.deleteSheet(def)
+  Logger.log('جاهز: ' + ss.getUrl())
+}
+
+/** الجدول المرتبط، أو جدول جديد يُنشأ أول مرة ويُحفظ معرّفه. */
+function getSpreadsheet() {
+  var active = SpreadsheetApp.getActiveSpreadsheet()
+  if (active) return active
+  var props = PropertiesService.getScriptProperties()
+  var id = props.getProperty('SHEET_ID')
+  if (id) return SpreadsheetApp.openById(id)
+  var ss = SpreadsheetApp.create('QB-Nomia Backup')
+  props.setProperty('SHEET_ID', ss.getId())
+  return ss
+}
+
+function doGet(e) {
+  try {
+    checkToken(e.parameter.token)
+    if (e.parameter.action === 'pull') return jsonResponse({ ok: true, data: readValue() })
+    return jsonResponse({ ok: false, error: 'إجراء غير معروف' })
+  } catch (err) {
+    return jsonResponse({ ok: false, error: String(err) })
+  }
+}
+
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents)
+    checkToken(body.token)
+    if (body.action === 'push') { writeValue(body.data); return jsonResponse({ ok: true }) }
+    return jsonResponse({ ok: false, error: 'إجراء غير معروف' })
+  } catch (err) {
+    return jsonResponse({ ok: false, error: String(err) })
+  }
+}
+
+function checkToken(token) {
+  if (token !== SECRET_TOKEN) throw new Error('رمز الدخول غير صحيح')
+}
+
+// … باقي الدوال (getSheet، readValue، writeValue، jsonResponse)
+// كما هي في google-apps-script/Code.gs بدون تغيير.
+`
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;') }
+function renderCode() {
+  const html = esc(CODE).split('\n').map(l => {
+    if (/^\s*(\/\/|\/\*\*|\*)/.test(l)) return `<span class="cm">${l}</span>`
+    if (l.includes('__TOKEN__')) return l.replace("'__TOKEN__'", `<span class="tok">'${token}'</span>`).replace('var', '<span class="kw">var</span>')
+    return l.replace(/\b(var|function|return|if|try|catch|throw|new)\b/g, '<span class="kw">$1</span>').replace(/('[^']*')/g, '<span class="s">$1</span>')
+  }).join('\n')
+  $('#codeView').innerHTML = html
+}
+$('#copyCode').onclick = e => { copy(CODE.replace('__TOKEN__', token)); flash(e.currentTarget, 'انتسخ الكود') }
+
+// الرابط والاختبار
+const validUrl = v => /^https:\/\/script\.google\.com\/macros\/s\/[\w-]{20,}\/exec\/?$/.test(v.trim())
+function checkUrl() {
+  const v = $('#urlIn').value, h = $('#urlHint')
+  if (!v) { h.className = 'hint'; h.textContent = 'جرّب «لصق» لتعبئة رابط تجريبي في النموذج.' }
+  else if (validUrl(v)) { h.className = 'hint ok'; h.innerHTML = ICON_CHECK + 'الرابط سليم' }
+  else if (/\/dev\/?$/.test(v)) { h.className = 'hint bad'; h.textContent = 'هذا رابط الاختبار (/dev). انسخ رابط Web app اللي ينتهي بـ /exec' }
+  else { h.className = 'hint bad'; h.textContent = 'لازم يبدأ بـ script.google.com/macros/s/ وينتهي بـ /exec' }
+  if (wz === 6 && !testsOk) $('#wzNext').disabled = !validUrl(v)
+}
+$('#urlIn').addEventListener('input', () => { testsOk = false; $$('#tests .tline').forEach(t => t.className = 'tline'); checkUrl() })
+$('#pasteBtn').onclick = () => { $('#urlIn').value = 'https://script.google.com/macros/s/AKfycbx7Qm2nB_demo9hKe0LwPq3rTz/exec'; $('#urlIn').dispatchEvent(new Event('input')) }
+async function runTests() {
+  const btn = $('#wzNext'); btn.disabled = true; btn.textContent = 'جارٍ الاختبار…'
+  const lines = $$('#tests .tline'), prog = $('#upProg')
+  for (let i = 0; i < lines.length; i++) {
+    lines[i].className = 'tline run'
+    if (i === 3) { for (let p = 0; p <= 100; p += 4) { prog.style.width = p + '%'; await sleep(40) } }
+    else await sleep(700)
+    lines[i].className = 'tline ok'
+  }
+  testsOk = true; btn.disabled = false; btn.textContent = 'التالي'
+}
+
+/* ===== العروض الحية لواجهة جوجل ===== */
+const CURSOR = '<svg class="cursor" viewBox="0 0 24 24"><path d="M4 2l15 9-6.5 1.5L16 20l-3 1.5-3.5-7.5L4 18z" fill="#fff" stroke="#000" stroke-width="1"/></svg>'
+const BAR = (extra = '') => `<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><b style="color:var(--text);font-size:11px">QB-Nomia Backup</b><span style="flex:1"></span>${extra}</div>`
+const DEMOS = {
+  open: { url: 'script.google.com/create', frames: [
+    [`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px"><div style="width:36px;height:36px;border-radius:10px;border:2px solid var(--text-3)"></div><div>Sign in to continue</div><span class="g-btn blue tgt">Next</span></div>`, 'سجّل دخولك بحساب Google لو طلب.'],
+    [`${BAR()}<div style="display:flex;gap:8px;height:150px"><div style="width:70px;border-left:1px solid var(--border);padding-right:4px"><div class="g-field" style="margin:0"><b>Code.gs</b></div></div><div class="g-code" style="flex:1">function myFunction() {\n\n}</div></div>`.replace('QB-Nomia Backup', '<span class="tgt" style="padding:2px 4px">Untitled project</span>'), 'المحرر فتح. اضغط على «Untitled project» فوق.'],
+    [`${BAR()}<div class="g-dlg" style="inset:40px 30px auto;height:100px"><b>Rename project</b><div class="g-field"><b>QB-Nomia Backup</b></div><div class="bar"><span class="g-btn blue tgt">Rename</span></div></div>`, 'اكتب QB-Nomia Backup واضغط Rename.'],
+  ]},
+  paste: { url: 'script.google.com/…/edit', frames: [
+    [`${BAR()}<div class="g-code"><span class="sel tgt">function myFunction() {\n\n}</span></div>`, 'حدّد كل الموجود Ctrl + A وامسحه.'],
+    [`${BAR()}<div class="g-code tgt" style="display:inline-block">var SECRET_TOKEN = '••••••••'\n\nvar SHEET_NAME = 'sync_data'\n…\nfunction setup() {\n  var ss = getSpreadsheet()</div>`, 'الصق الكود اللي نسخته من تحت.'],
+    [`${BAR('<span class="g-btn tgt">Save</span>')}<div class="g-code">var SECRET_TOKEN = '••••••••'\n\nvar SHEET_NAME = 'sync_data'\n…</div>`, 'احفظ المشروع: Ctrl + S أو أيقونة الحفظ.'],
+  ]},
+  run: { url: 'script.google.com/…/edit', frames: [
+    [`${BAR('<span class="g-btn tgt">setup</span><span class="g-btn">Run</span>')}<div class="g-code">function setup() {\n  var ss = getSpreadsheet()\n  …</div>`, 'اختر الدالة setup من القائمة.'],
+    [`${BAR('<span class="g-btn">setup</span><span class="g-btn tgt">Run</span>')}<div class="g-code">function setup() {\n  var ss = getSpreadsheet()\n  …</div>`, 'اضغط Run (تشغيل).'],
+    [`<div class="g-dlg"><b>Authorization required</b><div>QB-Nomia Backup needs your permission to access your data on Google.</div><div class="bar"><span class="g-btn">Cancel</span><span class="g-btn blue tgt">Review permissions</span></div></div>`, 'Review permissions، ثم اختر حسابك.'],
+    [`<div class="g-dlg"><b>Google hasn't verified this app</b><div>The app is requesting access to sensitive info…</div><div class="bar"><span class="g-btn tgt">Advanced</span><span class="g-btn blue">Back to safety</span></div></div>`, 'تحذير طبيعي لسكربتك الخاص. اضغط Advanced.'],
+    [`<div class="g-dlg"><b>Google hasn't verified this app</b><div>Continue only if you understand the risks and trust the developer (you).</div><div class="tgt" style="text-decoration:underline;color:var(--text);margin-top:4px;align-self:flex-start">Go to QB-Nomia Backup (unsafe)</div></div>`, 'اضغط Go to QB-Nomia Backup (unsafe).'],
+    [`<div class="g-dlg"><b>QB-Nomia Backup wants to access your Google Account</b><div>See, edit, create and delete your spreadsheets</div><div class="bar"><span class="g-btn">Cancel</span><span class="g-btn blue tgt">Allow</span></div></div>`, 'اضغط Allow (سماح).'],
+    [`${BAR('<span class="g-btn">setup</span><span class="g-btn">Run</span>')}<div style="border-top:1px solid var(--border);padding-top:8px"><div style="font-size:10px;color:var(--text-3)">Execution log</div><div class="g-field tgt"><span>Execution completed</span><b style="color:var(--income)"><svg class="i" width="12" height="12" viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"/></svg></b></div></div>`, 'ظهرت «Execution completed»؟ تمام، الجدول انخلق.'],
+  ]},
+  deploy: { url: 'script.google.com/…/edit', frames: [
+    [`${BAR('<span class="g-btn blue tgt">Deploy</span>')}<div class="g-code">…</div>`, 'اضغط Deploy (نشر) فوق يمين.'],
+    [`${BAR('<span class="g-btn blue">Deploy</span>')}<div class="g-menu" style="right:12px;top:40px"><div class="hl tgt">New deployment</div><div>Manage deployments</div><div>Test deployments</div></div>`, 'اختر New deployment.'],
+    [`<div class="g-dlg"><b>New deployment</b><div style="display:flex;align-items:center;gap:6px">Select type <span class="g-btn tgt"><svg class="i" width="12" height="12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span></div><div class="g-menu" style="position:static;margin-top:4px"><div class="hl">Web app</div><div>API Executable</div></div></div>`, 'من الترس اختر Web app.'],
+    [`<div class="g-dlg"><b>Web app</b><div class="g-field"><span>Execute as</span><b class="tgt">Me</b></div><div class="g-field"><span>Who has access</span><b class="tgt">Anyone</b></div><div class="bar"><span class="g-btn blue">Deploy</span></div></div>`, 'Execute as: Me — Who has access: Anyone.'],
+    [`<div class="g-dlg"><b>Web app</b><div class="g-field"><span>Execute as</span><b>Me</b></div><div class="g-field"><span>Who has access</span><b>Anyone</b></div><div class="bar"><span class="g-btn blue tgt">Deploy</span></div></div>`, 'اضغط Deploy.'],
+    [`<div class="g-dlg"><b>Deployment successfully updated</b><div style="font-size:10px">Web app URL</div><div class="g-field"><span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">https://script.google.com/macros/s/AKfy…/exec</span><span class="g-btn tgt">Copy</span></div></div>`, 'انسخ رابط Web app. نحتاجه في الخطوة الجاية.'],
+  ]},
+}
+let demoTimers = []
+function stopDemos() { demoTimers.forEach(clearTimeout); demoTimers = [] }
+function runDemo(el) {
+  const d = DEMOS[el.dataset.demo]
+  el.innerHTML = `<div class="chrome"><i></i><i></i><i></i><span class="url">${d.url}</span></div>
+    <div class="stagebox">${d.frames.map(f => `<div class="frame">${f[0]}</div>`).join('')}${CURSOR}</div>
+    <div class="demo-cap"><span class="n num">1</span><p></p></div>
+    <div class="demo-dots">${d.frames.map(() => '<i></i>').join('')}</div>`
+  const frames = $$('.frame', el), cur = $('.cursor', el), box = $('.stagebox', el)
+  let i = 0
+  const show = () => {
+    frames.forEach((f, j) => f.classList.toggle('on', j === i))
+    $$('.demo-dots i', el).forEach((dt, j) => dt.classList.toggle('on', j === i))
+    $('.demo-cap .n', el).textContent = i + 1
+    const p = $('.demo-cap p', el); p.textContent = d.frames[i][1]; p.style.animation = 'none'; void p.offsetWidth; p.style.animation = ''
+    const t = $('.tgt', frames[i])
+    if (t) {
+      const br = box.getBoundingClientRect(), tr = t.getBoundingClientRect()
+      cur.style.opacity = 1
+      cur.style.transform = `translate(${tr.left - br.left + tr.width / 2}px,${tr.top - br.top + tr.height / 2}px)`
+      demoTimers.push(setTimeout(() => { cur.classList.remove('click'); void cur.offsetWidth; cur.classList.add('click') }, 900))
+    }
+    demoTimers.push(setTimeout(() => { i = (i + 1) % frames.length; show() }, 2600))
+  }
+  show()
+}
+
+/* ================= ٥ جولة الرئيسية ================= */
+const TOUR = [
+  { el: '#t-bal', t: 'إجمالي حساباتك', p: 'مجموع أرصدة حساباتك كلها. اضغط عليه تشوف منحنى الرصيد، واسحب عليه تشوف أي يوم.' },
+  { el: '#t-setup', t: 'خطوات التشغيل', p: 'البطاقة تبقى هنا لين تخلّص الخطوات الخمس، وتعرض اللي باقي لك. بعدها تختفي لحالها.' },
+  { el: '#t-flow', t: 'تدفّق الشهر', p: 'دخلك مقابل صرفك، وكم باقي لين الآن، والمسموح يوميًا عشان توصل للراتب.' },
+  { el: '#t-plus', t: 'سجّل أي حركة', p: 'اضغط + لمصروف أو دخل أو تحويل أو سلفة. أو اسحب منه مباشرة للنوع اللي تبيه.', pad: 6, round: true },
+  { el: '#t-nav', t: 'تنقّل بسرعة', p: 'الحسابات، السلف والديون، والمزيد: فيه التقارير والفئات والمزامنة. واسحب يمين ويسار بين التبويبات.', round: true },
+]
+let tIdx = 0
+$('#coachD').innerHTML = TOUR.map(() => '<i></i>').join('')
+function startTour() { tIdx = 0; $('#spot').style.opacity = 1; $('#coach').style.opacity = 1; showTour() }
+function showTour() {
+  const s = TOUR[tIdx], ph = $('#phone').getBoundingClientRect(), r = $(s.el).getBoundingClientRect(), pad = s.pad ?? 8
+  const spot = $('#spot')
+  Object.assign(spot.style, { left: r.left - ph.left - pad + 'px', top: r.top - ph.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px', borderRadius: s.round ? '999px' : '24px' })
+  const coach = $('#coach'), below = r.top - ph.top < ph.height / 2
+  coach.style.top = below ? (r.bottom - ph.top + pad + 14) + 'px' : (r.top - ph.top - pad - 14 - coach.offsetHeight) + 'px'
+  $('#coachK').innerHTML = `<span class="num">${tIdx + 1}</span> من <span class="num">${TOUR.length}</span>`
+  $('#coachT').textContent = s.t; $('#coachP').textContent = s.p
+  $$('#coachD i').forEach((d, j) => d.classList.toggle('on', j === tIdx))
+  $('#coachN').textContent = tIdx === TOUR.length - 1 ? 'خلصنا' : 'التالي'
+  requestAnimationFrame(() => { coach.style.top = below ? (r.bottom - ph.top + pad + 14) + 'px' : (r.top - ph.top - pad - 14 - coach.offsetHeight) + 'px' })
+}
+function endTour() { $('#spot').style.opacity = 0; $('#coach').style.opacity = 0 }
+$('#coachN').onclick = () => tIdx < TOUR.length - 1 ? (tIdx++, showTour()) : endTour()
+$('#coachSkip').onclick = endTour
+$('#t-setup').onclick = () => go('checklist')
+
+/* ===== البدء ===== */
+genToken()
+renderTasks()
+startStories(0)
+</script>
+</body>
+</html>
