@@ -478,12 +478,30 @@ export function MoreScreen() {
           {SECTIONS.map((section, si) => (
             <section key={section.title} className="qb-rise mb-6" style={rise(si + 1)}>
               <div className="qb-section-title mb-3.5 px-1">{section.title}</div>
-              <div className="grid grid-cols-4 gap-x-2 gap-y-4">
-                {section.items.map((item) => (
-                  <AppTile key={item.to} label={item.label} icon={item.icon} onClick={() => goTo(item)} />
-                ))}
-                {section.title === 'النظام' && <AppTile label="تحديث" icon={<RefreshIcon />} badge={updateAvailable} onClick={() => setUpdateOpen(true)} />}
-              </div>
+              {section.items.length === 1 && section.title !== 'النظام' ? (
+                // قسم بزر واحد (مثل «شجرة العلاقات» حاليًا): صف بعرض الشاشة بدل خانة وحيدة وثلاث فاضية — يرجع شبكة لما تنضاف شاشات.
+                <ListGroup>
+                  {section.items.map((item) => (
+                    <ListItem
+                      key={item.to}
+                      onClick={() => goTo(item)}
+                      leading={
+                        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[14px] bg-[var(--color-surface-high)] text-[var(--color-text)]">{item.icon}</span>
+                      }
+                      title={item.full}
+                      subtitle={item.desc}
+                      chevron
+                    />
+                  ))}
+                </ListGroup>
+              ) : (
+                <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                  {section.items.map((item) => (
+                    <AppTile key={item.to} label={item.label} icon={item.icon} onClick={() => goTo(item)} />
+                  ))}
+                  {section.title === 'النظام' && <AppTile label="تحديث" icon={<RefreshIcon />} badge={updateAvailable} onClick={() => setUpdateOpen(true)} />}
+                </div>
+              )}
             </section>
           ))}
         </>
