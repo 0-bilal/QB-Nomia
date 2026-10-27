@@ -187,6 +187,7 @@ export function SyncSettingsScreen() {
     backupSnapshot.subscriptions.length +
     (backupSnapshot.commitments?.length ?? 0) +
     (backupSnapshot.recurringTransactions?.length ?? 0) +
+    (backupSnapshot.businessClients?.length ?? 0) +
     backupSnapshot.categories.length +
     backupSnapshot.incomeSources.length
 

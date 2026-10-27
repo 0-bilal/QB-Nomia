@@ -15,6 +15,9 @@ import { useScrolledPast } from '../hooks/useScrolledPast'
 import { ListGroup, ListItem, SearchField } from '../components/ui'
 import { rise } from '../lib/motion'
 import { TreeIcon } from '../components/MonthTreeVisuals'
+import { useData } from '../state/DataContext'
+import { clientViews } from '../lib/business'
+import { localIso } from '../lib/homeFeed'
 
 function SearchIcon() {
   return (
@@ -24,6 +27,14 @@ function SearchIcon() {
     </svg>
   )
 }
+function BusinessIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12" />
+    </svg>
+  )
+}
+
 function TagIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -176,7 +187,23 @@ function LockIcon() {
 
 
 /** أيقونة تطبيق بشبكة "المزيد" — دائرة/مربع ناعم أحادي اللون بنمط شاشة تطبيقات الهاتف، والتسمية تحتها بسطرين كحد أقصى. */
-function AppTile({ label, icon, onClick, highlight = false, badge = false }: { label: string; icon: ReactElement; onClick: () => void; highlight?: boolean; badge?: boolean }) {
+function AppTile({
+  label,
+  icon,
+  onClick,
+  highlight = false,
+  badge = false,
+  badgeColor = 'var(--color-income)',
+  badgeLabel = 'يتوفر تحديث',
+}: {
+  label: string
+  icon: ReactElement
+  onClick: () => void
+  highlight?: boolean
+  badge?: boolean
+  badgeColor?: string
+  badgeLabel?: string
+}) {
   return (
     <button onClick={onClick} className="qb-press flex flex-col items-center gap-2 text-center">
       <span
@@ -193,9 +220,9 @@ function AppTile({ label, icon, onClick, highlight = false, badge = false }: { l
         {icon}
         {badge && (
           <span
-            aria-label="يتوفر تحديث"
+            aria-label={badgeLabel}
             className="absolute rounded-full"
-            style={{ top: -3, left: -3, width: 13, height: 13, background: 'var(--color-income)', border: '2.5px solid var(--color-bg)' }}
+            style={{ top: -3, left: -3, width: 13, height: 13, background: badgeColor, border: '2.5px solid var(--color-bg)' }}
           />
         )}
       </span>
@@ -225,6 +252,7 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       { label: 'الفئات', full: 'فئات المصاريف', desc: 'الفئات والميزانيات', to: '/categories', icon: <TagIcon /> },
       { label: 'الدخل', full: 'مصادر الدخل', desc: 'مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon /> },
       { label: 'الأهداف', full: 'أهداف الادخار', desc: 'تتبّع الأهداف والزكاة', to: '/goals', icon: <GoalIcon /> },
+      { label: 'برمجيات QB', full: 'برمجيات QB', desc: 'العملاء والاشتراكات والتحصيل', to: '/business', icon: <BusinessIcon /> },
     ],
   },
   {
@@ -413,6 +441,11 @@ export function MoreScreen() {
   const [searchEndRef, pastSearch] = useScrolledPast<HTMLDivElement>(FLOATING_ROW_OFFSET)
 
   const trimmedQuery = query.trim()
+  const { businessClients, transactions } = useData()
+  const businessLate = useMemo(() => {
+    const today = localIso(new Date())
+    return clientViews(businessClients, transactions, today).filter((v) => v.status.key === 'late').length
+  }, [businessClients, transactions])
   const searchResults = trimmedQuery ? ALL_ITEMS.filter((i) => i.full.includes(trimmedQuery) || i.desc.includes(trimmedQuery)) : null
 
   const lastSynced = isSheetsSyncConfigured() ? getLastSyncedAt() : null
@@ -502,7 +535,7 @@ export function MoreScreen() {
               ) : (
                 <div className="grid grid-cols-4 gap-x-2 gap-y-4">
                   {section.items.map((item) => (
-                    <AppTile key={item.to} label={item.label} icon={item.icon} onClick={() => goTo(item)} />
+                    <AppTile key={item.to} label={item.label} icon={item.icon} onClick={() => goTo(item)} badge={item.to === '/business' && businessLate > 0} badgeColor="var(--color-expense)" badgeLabel={`${businessLate} تجديد متأخر`} />
                   ))}
                   {section.title === 'النظام' && <AppTile label="تحديث" icon={<RefreshIcon />} badge={updateAvailable} onClick={() => setUpdateOpen(true)} />}
                 </div>

@@ -62,12 +62,13 @@ const UPCOMING_META: Record<UpcomingKind, { label: string; color: string }> = {
   subscription: { label: 'اشتراك', color: 'var(--color-subscription)' },
   commitment: { label: 'التزام', color: 'var(--color-commitment)' },
   recurring: { label: 'متكررة', color: 'var(--color-income)' },
+  renewal: { label: 'برمجيات QB', color: 'var(--color-income)' },
 }
 
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 /** "القادم": المدفوعات والدخل المتوقع خلال الأيام القادمة بتاريخ واضح وكم يوم باقي. */
-export function UpcomingList({ items, hidden, onOpen }: { items: UpcomingItem[]; hidden: boolean; onOpen: (kind: UpcomingKind) => void }) {
+export function UpcomingList({ items, hidden, onOpen }: { items: UpcomingItem[]; hidden: boolean; onOpen: (item: UpcomingItem) => void }) {
   return (
     <div className="qb-card px-3.5 py-1">
       {items.map((it) => {
@@ -78,7 +79,7 @@ export function UpcomingList({ items, hidden, onOpen }: { items: UpcomingItem[];
         return (
           <button
             key={it.id}
-            onClick={() => onOpen(it.kind)}
+            onClick={() => onOpen(it)}
             className="flex w-full items-center gap-3 border-t border-[var(--color-border)] py-2.5 text-right first:border-t-0"
           >
             <span

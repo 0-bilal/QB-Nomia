@@ -16,6 +16,7 @@ import {
   upcomingObligations,
 } from '../lib/reportData'
 import { busiestWeekday, categorySpendForMonth, dailyExpenseForMonth, monthIncomeExpense, monthName, monthNotes, pctChange, shiftMonth } from '../lib/reportInsights'
+import { BusinessIncomeReport } from './business/BusinessWidgets'
 import { CategoryDonut, FlowChart, MonthNotes, MonthSummary, MonthSwitcher, SpendingCalendar } from '../components/ReportSections'
 import { colorFor } from '../components/Avatar'
 import { HeroCard, HeroLabel, IconBubble, ListGroup, ListItem, RingProgress, SectionTitle } from '../components/ui'
@@ -33,6 +34,8 @@ export function ReportsScreen() {
   const navigate = useNavigate()
   const { transactions, categories, incomeSources, accounts, loanTransactions, zakatPayments, subscriptions, commitments, recurringTransactions, totalMonthlySubscriptions, monthlyBudgetLimit } = useData()
   const [monthValue, setMonthValue] = useState(currentMonthValue())
+  const { businessClients } = useData()
+  const hasBusiness = businessClients.length > 0 || transactions.some((t) => t.clientId)
 
   const { startISO, endISO, label: periodLabel } = monthRange(monthValue)
   const monthTxns = useMemo(() => transactions.filter((t) => t.date >= startISO && t.date < endISO), [transactions, startISO, endISO])
@@ -141,6 +144,15 @@ export function ReportsScreen() {
       <div className="qb-rise mb-6" style={rise(2)}>
         <FlowChart trend={trend} selected={flowSelected} onSelect={(index) => setFlowPick({ month: monthValue, index })} />
       </div>
+
+      {hasBusiness && (
+        <>
+          <SectionTitle title="الراتب و«برمجيات QB»" hint="دخل آخر 6 أشهر" />
+          <div className="qb-rise mb-6" style={rise(3)}>
+            <BusinessIncomeReport />
+          </div>
+        </>
+      )}
 
       <SectionTitle title="صافي الثروة" hint="آخر 6 أشهر" />
       <div className="qb-card qb-rise mb-6 p-4" style={rise(3)}>

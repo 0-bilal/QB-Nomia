@@ -11,6 +11,7 @@ import { formatMoney } from '../lib/format'
 import { localIso } from '../lib/homeFeed'
 import { reconcileDiff } from '../lib/reconcile'
 import { monthLedger, type MonthLedger } from '../lib/monthLedger'
+import { BUSINESS_NAME, BUSINESS_SOURCE_ID, clientSchedule, daysBetween, daysWord } from '../lib/business'
 import type {
   Account,
   BillingCycle,
@@ -38,6 +39,9 @@ import type {
   Transaction,
   TransactionType,
   ZakatPayment,
+  BusinessClient,
+  BusinessClientKind,
+  BusinessClientStatus,
 } from '../types'
 
 const ACCOUNTS_KEY = 'qbnomia.accounts'
@@ -67,6 +71,7 @@ const STORE_DEBTS_KEY = 'qbnomia.storeDebts'
 const STORE_DEBT_PAYMENTS_KEY = 'qbnomia.storeDebtPayments'
 const CONTRIBUTIONS_KEY = 'qbnomia.contributions'
 const RECONCILIATIONS_KEY = 'qbnomia.reconciliations'
+const BUSINESS_CLIENTS_KEY = 'qbnomia.businessClients'
 /** فئة مخصَّصة لحركات سداد ديون المتاجر — نفس مبدأ REQUIRED_DEFAULT_CATEGORIES. */
 const STORE_DEBT_CATEGORY_ID = 'cat-store-debt'
 
@@ -347,7 +352,7 @@ export function compareActivityDesc(a: Pick<ActivityItem, 'date' | 'createdAt'>,
 
 export interface AppNotification {
   id: string
-  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle' | 'salary-advance' | 'store-debt'
+  kind: 'subscription' | 'commitment' | 'budget' | 'loan' | 'recurring' | 'zakat' | 'backup' | 'vehicle' | 'salary-advance' | 'store-debt' | 'business'
   severity: 'critical' | 'warning'
   title: string
   message: string
@@ -389,6 +394,16 @@ interface DataContextValue {
   deleteSalaryViolation: (id: string) => void
   storeDebts: StoreDebt[]
   storeDebtPayments: StoreDebtPayment[]
+  /** عملاء «برمجيات QB» — التحصيل حركات دخل تحمل clientId (lib/business). */
+  businessClients: BusinessClient[]
+  addBusinessClient: (input: BusinessClientInput) => string
+  /** تعديل العميل؛ تغيير القيمة أو الدورة أو الموعد يعيد ضبط أساس الجدول. */
+  updateBusinessClient: (id: string, input: BusinessClientInput) => void
+  setBusinessClientStatus: (id: string, status: BusinessClientStatus) => void
+  deleteBusinessClient: (id: string) => void
+  restoreBusinessClient: (client: BusinessClient) => void
+  /** تحصيل من عميل: حركة دخل بمصدر النشاط في الحساب المختار. */
+  collectClientPayment: (input: { clientId: string; amount: number; accountId: string; date: string; note?: string }) => void
   contributions: Contribution[]
   reconciliations: Reconciliation[]
   /** يعتمد مطابقة حساب ويرجّع سجلها — بدون فرق يحفظ التاريخ فقط. */
@@ -477,6 +492,17 @@ interface DataContextValue {
   importSnapshot: (snapshot: DataSnapshot) => void
 }
 
+export interface BusinessClientInput {
+  name: string
+  kind: BusinessClientKind
+  phone?: string
+  service: string
+  amount: number
+  cycleMonths: number
+  /** موعد التجديد القادم. */
+  nextDueDate: string
+}
+
 export interface DataSnapshot {
   accounts: Account[]
   people: Person[]
@@ -499,6 +525,7 @@ export interface DataSnapshot {
   salaryViolations?: SalaryViolationDeduction[]
   storeDebts?: StoreDebt[]
   storeDebtPayments?: StoreDebtPayment[]
+  businessClients?: BusinessClient[]
   contributions?: Contribution[]
   reconciliations?: Reconciliation[]
   /** الملف الشخصي (الاسم، المخاطبة، تاريخ الميلاد...) — محفوظ خارج حالة البيانات (lib/profile). */
@@ -613,6 +640,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [salaryViolations, setSalaryViolations] = useState<SalaryViolationDeduction[]>(() => loadJSON(SALARY_VIOLATIONS_KEY, []))
   const [storeDebts, setStoreDebts] = useState<StoreDebt[]>(() => loadJSON(STORE_DEBTS_KEY, []))
   const [storeDebtPayments, setStoreDebtPayments] = useState<StoreDebtPayment[]>(() => loadJSON(STORE_DEBT_PAYMENTS_KEY, []))
+  const [businessClients, setBusinessClients] = useState<BusinessClient[]>(() => loadJSON(BUSINESS_CLIENTS_KEY, []))
   const [contributions, setContributions] = useState<Contribution[]>(() => loadJSON(CONTRIBUTIONS_KEY, []))
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>(() => loadJSON(RECONCILIATIONS_KEY, []))
 
@@ -702,6 +730,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setStoreDebtPayments(next)
     saveJSON(STORE_DEBT_PAYMENTS_KEY, next)
   }
+  function persistBusinessClients(next: BusinessClient[]) {
+    setBusinessClients(next)
+    saveJSON(BUSINESS_CLIENTS_KEY, next)
+  }
   function persistContributions(next: Contribution[]) {
     setContributions(next)
     saveJSON(CONTRIBUTIONS_KEY, next)
@@ -749,13 +781,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       salaryViolations,
       storeDebts,
       storeDebtPayments,
+      businessClients,
       contributions,
       reconciliations,
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions, reconciliations])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, businessClients, contributions, reconciliations])
 
   const value = useMemo<DataContextValue>(() => {
+    const clientNextDue = (c: BusinessClient) => clientSchedule(c, transactions).nextDueDate
     function personBalance(personId: string): number {
       return loanTransactions
         .filter((t) => t.personId === personId)
@@ -988,6 +1022,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } else if (days <= 3) {
           list.push({ id: `sub-${s.id}-${s.nextRenewalDate}`, kind: 'subscription', severity: 'warning', title: s.name, message: `يتجدد خلال ${days} ${days === 1 ? 'يوم' : 'أيام'}`, color: 'var(--color-subscription)', to: '/subscriptions' })
         }
+      }
+
+      // تجديدات عملاء برمجيات QB: دخل متوقع — متأخر = حرج، وخلال 3 أيام = تنبيه.
+      for (const bc of businessClients) {
+        if (bc.status !== 'active') continue
+        const due = clientNextDue(bc)
+        const days = daysBetween(today, due)
+        const base = { id: `biz-${bc.id}-${due}`, kind: 'business' as const, title: bc.name, color: 'var(--color-income)', to: `/business/${bc.id}` }
+        if (days < 0) list.push({ ...base, severity: 'critical', message: `تجديد ${bc.service} متأخر ${daysWord(-days)}` })
+        else if (days === 0) list.push({ ...base, severity: 'critical', message: `يتجدد اليوم · ${formatMoney(bc.amount)}` })
+        else if (days <= 3) list.push({ ...base, severity: 'warning', message: `يتجدد بعد ${daysWord(days)} · ${formatMoney(bc.amount)}` })
       }
 
       for (const c of commitments) {
@@ -1428,6 +1473,80 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistAccounts(withTransactionEffect(accounts, txn, 1))
         const payment: StoreDebtPayment = { id: makeId(), debtId: input.debtId, amount: input.amount, date: input.date, accountId: input.accountId, transactionId: txnId }
         persistStoreDebtPayments([payment, ...storeDebtPayments])
+      },
+      businessClients,
+      addBusinessClient(input: BusinessClientInput) {
+        const now = new Date().toISOString()
+        const client: BusinessClient = {
+          id: makeId(),
+          name: input.name.trim(),
+          kind: input.kind,
+          phone: input.phone?.trim() || undefined,
+          service: input.service.trim(),
+          amount: input.amount,
+          cycleMonths: input.cycleMonths,
+          baseDueDate: input.nextDueDate,
+          baseAt: now,
+          status: 'active',
+          since: localIso(new Date()),
+          createdAt: now,
+        }
+        persistBusinessClients([...businessClients, client])
+        // مصدر دخل النشاط يُنشأ مع أول عميل، حتى يظهر في الدخل والتقارير كمصدر مستقل.
+        if (!incomeSources.some((src) => src.id === BUSINESS_SOURCE_ID)) {
+          persistIncomeSources([...incomeSources, { id: BUSINESS_SOURCE_ID, name: BUSINESS_NAME }])
+        }
+        return client.id
+      },
+      updateBusinessClient(id: string, input: BusinessClientInput) {
+        persistBusinessClients(
+          businessClients.map((c) => {
+            if (c.id !== id) return c
+            const next = {
+              ...c,
+              name: input.name.trim(),
+              kind: input.kind,
+              phone: input.phone?.trim() || undefined,
+              service: input.service.trim(),
+              amount: input.amount,
+              cycleMonths: input.cycleMonths,
+            }
+            const current = clientNextDue(c)
+            const rebase = c.amount !== input.amount || c.cycleMonths !== input.cycleMonths || current !== input.nextDueDate
+            return rebase ? { ...next, baseDueDate: input.nextDueDate, baseAt: new Date().toISOString() } : next
+          }),
+        )
+      },
+      setBusinessClientStatus(id: string, status: BusinessClientStatus) {
+        persistBusinessClients(businessClients.map((c) => (c.id === id ? { ...c, status } : c)))
+      },
+      deleteBusinessClient(id: string) {
+        // حركات التحصيل تبقى في الحركات والتقارير (دخل حصل فعلًا).
+        persistBusinessClients(businessClients.filter((c) => c.id !== id))
+      },
+      restoreBusinessClient(client: BusinessClient) {
+        if (businessClients.some((c) => c.id === client.id)) return
+        persistBusinessClients([...businessClients, client])
+      },
+      collectClientPayment(input: { clientId: string; amount: number; accountId: string; date: string; note?: string }) {
+        const client = businessClients.find((c) => c.id === input.clientId)
+        if (!client || input.amount <= 0) return
+        const txn: Transaction = {
+          id: makeId(),
+          type: 'income',
+          amount: input.amount,
+          date: input.date,
+          accountId: input.accountId,
+          incomeSourceId: BUSINESS_SOURCE_ID,
+          note: input.note?.trim() || `${client.service} — ${client.name}`,
+          createdAt: new Date().toISOString(),
+          clientId: client.id,
+        }
+        persistTransactions([txn, ...transactions])
+        persistAccounts(withTransactionEffect(accounts, txn, 1))
+        if (!incomeSources.some((src) => src.id === BUSINESS_SOURCE_ID)) {
+          persistIncomeSources([...incomeSources, { id: BUSINESS_SOURCE_ID, name: BUSINESS_NAME }])
+        }
       },
       deleteStoreDebtPayment(id: string) {
         const payment = storeDebtPayments.find((p) => p.id === id)
@@ -2053,6 +2172,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           salaryViolations,
           storeDebts,
           storeDebtPayments,
+          businessClients,
           contributions,
           reconciliations,
           profile: getProfile(),
@@ -2081,6 +2201,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         persistSalaryViolations(snapshot.salaryViolations ?? [])
         persistStoreDebts(snapshot.storeDebts ?? [])
         persistStoreDebtPayments(snapshot.storeDebtPayments ?? [])
+        persistBusinessClients(snapshot.businessClients ?? [])
         persistContributions(snapshot.contributions ?? [])
         persistReconciliations(snapshot.reconciliations ?? [])
         // نسخة قديمة بدون ملف شخصي ما تمسح الملف الحالي.
@@ -2088,7 +2209,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, contributions, reconciliations])
+  }, [accounts, people, loanTransactions, categories, incomeSources, transactions, subscriptions, commitments, recurringTransactions, monthlyBudgetLimit, zakatPayments, vehicleOdometerKm, vehicleOilIntervalKm, vehicleOilBaselineKm, oilChanges, fuelTankCapacityL, fuelLogs, salaryAdvances, salaryViolations, storeDebts, storeDebtPayments, businessClients, contributions, reconciliations])
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

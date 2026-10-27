@@ -1,6 +1,6 @@
 import type { Commitment, RecurringTransaction, Subscription } from '../types'
 
-export type UpcomingKind = 'subscription' | 'commitment' | 'recurring'
+export type UpcomingKind = 'subscription' | 'commitment' | 'recurring' | 'renewal'
 
 export interface UpcomingItem {
   id: string
@@ -10,6 +10,8 @@ export interface UpcomingItem {
   /** موجب للدخل المتكرر، سالب للمدفوعات، undefined للالتزام بدون تكلفة. */
   amount?: number
   daysLeft: number
+  /** للتجديدات (renewal): العميل المرتبط. */
+  refId?: string
 }
 
 export function localIso(d: Date): string {

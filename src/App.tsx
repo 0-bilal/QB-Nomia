@@ -46,6 +46,10 @@ import { RestoreScreen } from './screens/onboarding/RestoreScreen'
 import { GettingStartedScreen } from './screens/onboarding/GettingStartedScreen'
 import { BackupWizardScreen } from './screens/onboarding/BackupWizardScreen'
 import { isIntroSeen } from './lib/onboarding'
+import { BusinessScreen } from './screens/business/BusinessScreen'
+import { BusinessClientScreen } from './screens/business/BusinessClientScreen'
+import { BusinessClientFormScreen } from './screens/business/BusinessClientFormScreen'
+import { CollectPaymentScreen } from './screens/business/CollectPaymentScreen'
 
 function RequireUnlocked() {
   const { hasPin, unlocked } = useAuth()
@@ -109,6 +113,11 @@ export default function App() {
         <Route path="debts/violations/:id/edit" element={<ViolationEditScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="sync-settings/setup" element={<BackupWizardScreen />} />
+        <Route path="business" element={<BusinessScreen />} />
+        <Route path="business/new" element={<BusinessClientFormScreen />} />
+        <Route path="business/:id" element={<BusinessClientScreen />} />
+        <Route path="business/:id/edit" element={<BusinessClientFormScreen />} />
+        <Route path="business/:id/collect" element={<CollectPaymentScreen />} />
         <Route path="reports" element={<ReportsScreen />} />
         <Route path="comparisons" element={<ComparisonsScreen />} />
         <Route path="export-report" element={<ExportReportScreen />} />
