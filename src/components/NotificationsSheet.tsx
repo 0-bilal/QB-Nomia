@@ -126,6 +126,14 @@ function CheckIcon() {
   )
 }
 
+function BusinessIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12" />
+    </svg>
+  )
+}
+
 const KIND_ICON: Record<AppNotification['kind'], () => React.ReactElement> = {
   subscription: SubscriptionIcon,
   commitment: CommitmentIcon,
@@ -137,6 +145,7 @@ const KIND_ICON: Record<AppNotification['kind'], () => React.ReactElement> = {
   vehicle: VehicleIcon,
   'salary-advance': SalaryAdvanceIcon,
   'store-debt': StoreDebtIcon,
+  business: BusinessIcon,
 }
 
 export function NotificationBellButton({ notifications, onClick }: { notifications: AppNotification[]; onClick: () => void }) {

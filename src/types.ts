@@ -190,6 +190,34 @@ export interface Transaction {
   createdAt?: string
   /** مصروف بسلفة من شخص: السلفة المربوطة (accountId فارغ — لا أثر على أي رصيد). */
   loanId?: string
+  /** تحصيل اشتراك من عميل في «برمجيات QB» — جدول التجديد يُحسب من هذه الحركات (lib/business). */
+  clientId?: string
+}
+
+/** عميل في النشاط التجاري (برمجيات QB): خدمة باشتراك دوري. */
+export type BusinessClientKind = 'restaurant' | 'store' | 'cafe' | 'services'
+export type BusinessClientStatus = 'active' | 'paused'
+
+export interface BusinessClient {
+  id: string
+  name: string
+  kind: BusinessClientKind
+  phone?: string
+  service: string
+  /** قيمة الدورة الواحدة. */
+  amount: number
+  /** طول الدورة بالأشهر: 1، 3، 6، 12. */
+  cycleMonths: number
+  /**
+   * أساس الجدول: موعد التجديد عند baseAt. الموعد الحالي = الأساس + دورة لكل
+   * قيمة دورة كاملة حُصّلت بعده (حركات clientId المنشأة بعد baseAt).
+   * يُعاد ضبطه عند تعديل القيمة أو الدورة أو الموعد.
+   */
+  baseDueDate: string
+  baseAt: string
+  status: BusinessClientStatus
+  since: string
+  createdAt: string
 }
 
 export type BillingCycle = 'monthly' | 'yearly'

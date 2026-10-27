@@ -19,7 +19,9 @@ import { FloatingHeaderRow, FLOATING_ROW_OFFSET } from '../components/TabHeader'
 import { useScrolledPast } from '../hooks/useScrolledPast'
 import { QuickSyncButton } from '../components/QuickSyncButton'
 import { BalanceCapsule, GroupedActivity, InsightsStrip, UpcomingList, type Insight } from '../components/HomeSections'
-import { daysBetween, daysLeftLabel, localIso, upcomingItems } from '../lib/homeFeed'
+import { daysBetween, daysLeftLabel, localIso, upcomingItems, type UpcomingItem } from '../lib/homeFeed'
+import { clientViews } from '../lib/business'
+import { IncomeSourcesStrip } from './business/BusinessWidgets'
 import { categoryShares, monthFlowSeries } from '../lib/monthFlow'
 import { ledgerDaySeries, savingsAccountIds, savingsSpentByAccount } from '../lib/monthLedger'
 import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
@@ -172,6 +174,7 @@ export function HomeScreen() {
     storeDebts,
     storeDebtPayments,
     transactions,
+    businessClients,
   } = useData()
   const profile = useProfile()
   // وقت آخر فتح قبل هذه الجلسة — لبطاقة "الرجوع بعد غياب" (يُقرأ مرة لكل تركيب).
@@ -254,7 +257,11 @@ export function HomeScreen() {
   const today = localIso(now)
   const nextSubscription = subscriptions.filter((x) => x.status === 'active').sort((a, b) => a.nextRenewalDate.localeCompare(b.nextRenewalDate))[0]
   const nextCommitment = activeCommitments.slice().sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate))[0]
-  const upcoming = upcomingItems(subscriptions, commitments, recurringTransactions, today, 14).slice(0, 4)
+  // تجديدات عملاء برمجيات QB تنضاف لـ«القادم» كدخل متوقع (المتبقي من الدورة).
+  const renewals: UpcomingItem[] = clientViews(businessClients, transactions, today)
+    .filter((v) => v.client.status === 'active' && v.status.days <= 14)
+    .map((v) => ({ id: `b-${v.client.id}`, kind: 'renewal', name: `تجديد ${v.client.name}`, date: v.schedule.nextDueDate, amount: v.schedule.remaining, daysLeft: v.status.days, refId: v.client.id }))
+  const upcoming = [...upcomingItems(subscriptions, commitments, recurringTransactions, today, 14), ...renewals].sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 4)
 
   /** "يحتاج انتباهك": الميزانيات، المسموح يوميًا من السقف، اشتراكات تتجدد خلال يومين، وديون متاجر متأخرة. */
   const insights: Insight[] = []
@@ -484,6 +491,7 @@ export function HomeScreen() {
       <section className="qb-rise mb-3" style={rise(4)}>
         <MonthFlowCard flow={monthFlow} days={ledgerDays} carried={ledger.carried} savings={savingsSpend} hidden={hidden} monthIndex={now.getMonth()} />
       </section>
+      <IncomeSourcesStrip month={today.slice(0, 7)} hidden={hidden} />
 
       {(totalMonthlySubscriptions > 0 || activeCommitments.length > 0) && (
         <section className="qb-rise mb-4 grid grid-cols-2 gap-3" style={rise(5)}>
@@ -538,7 +546,9 @@ export function HomeScreen() {
           <UpcomingList
             items={upcoming}
             hidden={hidden}
-            onOpen={(kind) => navigate(kind === 'subscription' ? '/subscriptions' : kind === 'commitment' ? '/commitments' : '/recurring')}
+            onOpen={(it) =>
+              navigate(it.kind === 'renewal' ? `/business/${it.refId}` : it.kind === 'subscription' ? '/subscriptions' : it.kind === 'commitment' ? '/commitments' : '/recurring')
+            }
           />
         </section>
       )}
