@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QB-Nomia — ريل تسويقي</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /*
+    ريل تسويقي عمودي 9:16 (540×960 منطقي = 1080×1920 عند التصدير).
+    كل الحركة CSS بتأخيرات مطلقة من بداية الريل (--d / --s / --e بالثواني)،
+    والساعة واحدة: apply(t) تضبط currentTime لكل الحركات والعدّادات،
+    فالعرض الحي والتصدير إطارًا إطارًا يطلعون نفس الشي بالضبط.
+  */
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --commit:#5fb3ff; --owed:#2ee6c8; --owed-by:#ff9a4d;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#000;height:100%;overflow:hidden}
+  body{font-family:var(--font-sans);color:var(--text);display:grid;place-items:center}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  svg{display:block}
+  .ic{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+
+  #stage{width:540px;height:960px;position:relative;overflow:hidden;background:var(--bg);transform-origin:center}
+  body.render{display:block}
+  body.render #stage{transform:none!important}
+
+  /* الهالة الخلفية */
+  .aurora{position:absolute;inset:-200px;pointer-events:none;
+    background:radial-gradient(30% 22% at 70% 28%,rgba(180,180,190,.10),transparent 70%),radial-gradient(26% 18% at 25% 70%,rgba(180,180,190,.06),transparent 70%);
+    animation:drift 34s linear both}
+  @keyframes drift{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(-40px,30px) rotate(8deg)}100%{transform:translate(0,0) rotate(0)}}
+
+  /* المحرّك: مشاهد ودخول عناصر بتأخير مطلق */
+  .scene{position:absolute;inset:0;
+    animation:sIn .7s var(--expo) both, sOut .45s ease-in forwards;
+    animation-delay:calc(var(--s)*1s), calc(var(--e)*1s - .45s)}
+  @keyframes sIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
+  @keyframes sOut{to{opacity:0;transform:translateY(-18px) scale(.985)}}
+  .screen{position:absolute;inset:0;
+    animation:scIn .55s var(--expo) both, scOut .35s ease-in forwards;
+    animation-delay:calc(var(--s)*1s), calc(var(--e)*1s - .35s)}
+  @keyframes scIn{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+  @keyframes scOut{to{opacity:0;transform:translateX(36px)}}
+
+  .a{animation-duration:.7s;animation-fill-mode:both;animation-timing-function:var(--calm);animation-delay:calc(var(--d)*1s)}
+  .rise{animation-name:rise}
+  .pop{animation-name:pop;animation-timing-function:var(--spring);animation-duration:.6s}
+  .fade{animation-name:fade}
+  .draw{animation-name:draw;animation-duration:1.6s}
+  .grow{animation-name:grow;animation-duration:1s;animation-timing-function:var(--expo);transform-origin:bottom}
+  .ring{animation-name:ringFill;animation-duration:1.1s}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  @keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  @keyframes ringFill{from{stroke-dashoffset:100}to{stroke-dashoffset:var(--off)}}
+
+  /* ───── المشهد 1: السؤال ───── */
+  .hook{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
+  .hook .l1{font-size:34px;font-weight:600;color:var(--text-2)}
+  .hook .l2{font-size:34px;font-weight:600;color:var(--text-2)}
+  .hook .l3{font-size:64px;font-weight:700;margin-top:10px;letter-spacing:-.01em}
+  .chipw{position:absolute;animation:floatUp 4s linear both;animation-delay:calc(var(--d)*1s)}
+  @keyframes floatUp{from{transform:translateY(0)}to{transform:translateY(-70px)}}
+  .chip{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;
+    background:rgba(28,28,33,.9);border:1px solid var(--border-strong);box-shadow:0 12px 30px -12px rgba(0,0,0,.8);font-size:14px;font-weight:500;white-space:nowrap}
+  .chip .t{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
+  .chip .v{color:var(--expense);font-weight:600;font-size:14px}
+
+  /* ───── المشهد 2: التسرّب ───── */
+  .cap{position:absolute;top:118px;left:30px;right:30px;text-align:center}
+  .cap h2{font-size:32px;font-weight:700;line-height:1.35}
+  .cap p{font-size:16px;color:var(--text-2);margin-top:8px}
+  .drain{position:absolute;top:330px;left:40px;right:40px;height:300px;border-radius:26px;overflow:hidden;
+    background:linear-gradient(165deg,var(--surface-el),var(--bg));border:1px solid var(--border)}
+  .drain::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 50% at 85% 0%,rgba(255,255,255,.06),transparent 70%)}
+  .drain .lbl{position:absolute;top:28px;right:28px;font-size:14px;color:var(--text-3)}
+  .drain .amt{position:absolute;top:52px;right:28px;font-size:54px;font-weight:700}
+  .drain .amt small,.hero-amt small{font-family:var(--font-sans);font-size:16px;font-weight:500;color:var(--text-3);margin-right:6px}
+  .drain svg{position:absolute;bottom:0;left:0;width:100%;height:180px}
+  .drain .dates{position:absolute;bottom:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:12px;color:var(--text-3)}
+
+  /* ───── المشهد 3: الشعار ───── */
+  .brand{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .logo-big{width:132px;height:132px;border-radius:34px;display:grid;place-items:center;position:relative;
+    background:linear-gradient(150deg,#fff,#f4f4f6 55%,#a9a9b3);box-shadow:0 30px 80px -24px rgba(255,255,255,.35)}
+  .halo{position:absolute;width:132px;height:132px;border-radius:40px;border:1.5px solid rgba(255,255,255,.35);
+    animation:haloOut 1.6s var(--calm) both;animation-delay:calc(var(--d)*1s)}
+  @keyframes haloOut{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(2.4)}}
+  .brand .name{font-family:var(--font-num);font-size:50px;font-weight:800;letter-spacing:-.03em;margin-top:34px;direction:ltr}
+  .brand .tag{font-size:19px;color:var(--text-2);margin-top:6px}
+
+  /* ───── الجوال ───── */
+  .phone{position:absolute;left:105px;top:244px;width:330px;height:680px;border-radius:48px;background:var(--bg);
+    border:1px solid #232329;overflow:hidden;box-shadow:0 0 0 7px #0d0d10,0 0 0 8px #1f1f25,0 60px 120px -30px rgba(0,0,0,.95)}
+  .phone-wrap{position:absolute;inset:0;
+    animation:phIn 1s var(--expo) both, sOut .5s ease-in forwards;
+    animation-delay:calc(var(--s)*1s), calc(var(--e)*1s - .5s)}
+  @keyframes phIn{from{opacity:0;transform:translateY(160px) scale(.94)}to{opacity:1;transform:none}}
+  .phone .aur{position:absolute;top:-90px;left:-60px;right:-60px;height:300px;pointer-events:none;
+    background:radial-gradient(50% 60% at 70% 40%,rgba(180,180,190,.10),transparent 70%)}
+  .notch{position:absolute;top:10px;left:50%;width:96px;height:26px;margin-left:-48px;border-radius:999px;background:#000;z-index:5}
+  .pad-x{padding:0 16px}
+
+  /* الرئيسية */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:50px 16px 0}
+  .who{display:flex;align-items:center;gap:9px}
+  .logo-s{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(150deg,#fff,#f4f4f6 55%,#a9a9b3)}
+  .hi{font-size:14px;font-weight:700}
+  .dt{font-size:10.5px;color:var(--text-3)}
+  .rb{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-2)}
+  .hero{position:relative;height:178px;margin-top:6px}
+  .hero>svg{position:absolute;left:0;right:0;bottom:0;width:100%;height:120px}
+  .hero .lbl{position:absolute;top:14px;right:16px;font-size:12px;color:var(--text-3)}
+  .hero-amt{position:absolute;top:32px;right:16px;font-size:40px;font-weight:700;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+  .hero-amt small{font-size:14px}
+  .badge{position:absolute;top:88px;right:16px;display:flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:600;
+    color:var(--income);background:color-mix(in srgb,var(--income) 15%,transparent)}
+  .sec{font-size:13px;font-weight:600;color:var(--text-2);margin:10px 16px 8px}
+  .row{display:flex;align-items:center;gap:11px;padding:10px 12px;margin:0 16px 7px;border-radius:18px;background:var(--surface);border:1px solid var(--border)}
+  .tile{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
+  .row .nm{font-size:13px;font-weight:600}
+  .row .ds{font-size:10.5px;color:var(--text-3);margin-top:1px}
+  .row .vl{margin-right:auto;font-size:13.5px;font-weight:600;direction:ltr}
+  .row .vl small{font-family:var(--font-sans);font-size:10px;color:var(--text-3);font-weight:500;margin-left:3px}
+
+  .nav{position:absolute;left:14px;right:14px;bottom:16px;height:62px;border-radius:999px;display:flex;align-items:center;justify-content:space-around;
+    background:rgba(18,18,22,.82);border:1px solid var(--border-strong);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);color:var(--text-3)}
+  .nav .act{display:flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:999px;background:rgba(244,244,246,.1);color:var(--text);font-size:12px;font-weight:600}
+  .well{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#2a2a31,#121216);box-shadow:inset 0 2px 6px rgba(0,0,0,.7)}
+  .plus{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent);
+    animation:rot .45s var(--spring) both;animation-delay:calc(var(--d)*1s)}
+  @keyframes rot{from{transform:none}to{transform:rotate(45deg)}}
+  .press{animation:press .32s ease both;animation-delay:calc(var(--d)*1s)}
+  @keyframes press{0%,100%{transform:none}45%{transform:scale(.86)}}
+
+  /* الكبسولة الذكية */
+  .capsule{position:absolute;display:flex;align-items:center;gap:4px;height:40px;padding:4px;border-radius:999px;
+    background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);
+    box-shadow:0 12px 30px -12px rgba(0,0,0,.8)}
+  .capsule::before{content:"";position:absolute;inset:-12px -16px;z-index:-1;background:rgba(5,5,6,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    -webkit-mask-image:radial-gradient(closest-side,#000 60%,transparent 100%);mask-image:radial-gradient(closest-side,#000 60%,transparent 100%)}
+  .capsule .on{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--on-accent);background:var(--c)}
+  .capsule .ci{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--c)}
+  .cap-in{animation:capIn .42s var(--spring) both;animation-delay:calc(var(--d)*1s);transform-origin:center bottom}
+  @keyframes capIn{from{opacity:0;transform:translateY(8px) scale(.6)}to{opacity:1;transform:none}}
+  .island-in{animation:islIn .5s var(--spring) both;animation-delay:calc(var(--d)*1s);transform-origin:top center}
+  @keyframes islIn{from{opacity:0;transform:translateY(-8px) scale(.6)}to{opacity:1;transform:none}}
+
+  /* إضافة مصروف */
+  .hdr-cap{position:absolute;top:46px;left:50%;transform:translateX(-50%);height:34px;padding:0 16px;border-radius:999px;display:flex;align-items:center;
+    background:rgba(28,28,33,.9);border:1px solid var(--border-strong);font-size:12.5px;font-weight:600}
+  .hide{animation:hideOut .2s ease forwards;animation-delay:calc(var(--d)*1s)}
+  @keyframes hideOut{to{opacity:0}}
+  .seg{display:flex;gap:4px;margin:96px 16px 0;padding:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border)}
+  .seg span{flex:1;text-align:center;height:30px;line-height:30px;border-radius:999px;font-size:12px;color:var(--text-3)}
+  .seg .on{background:var(--expense);color:var(--on-accent);font-weight:600}
+  .amount{text-align:center;margin-top:26px;font-size:60px;font-weight:700;height:74px;direction:ltr}
+  .amount small{font-family:var(--font-sans);font-size:16px;color:var(--text-3);font-weight:500;margin-left:6px}
+  .caret{display:inline-block;width:2px;height:46px;background:var(--text);vertical-align:-4px;margin-left:3px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .chips{display:flex;gap:6px;justify-content:center;margin-top:10px}
+  .cchip{height:30px;padding:0 12px;border-radius:999px;display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text-2);background:var(--surface);border:1px solid var(--border)}
+  .cchip.sel{animation:sel .4s var(--spring) both;animation-delay:calc(var(--d)*1s)}
+  @keyframes sel{from{background:var(--surface);color:var(--text-2);border-color:var(--border)}to{background:color-mix(in srgb,var(--expense) 16%,transparent);color:var(--expense);border-color:color-mix(in srgb,var(--expense) 40%,transparent)}}
+  .acct{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:12px;font-size:11.5px;color:var(--text-3)}
+  .acct b{color:var(--text);font-weight:600}
+  .keys{position:absolute;left:12px;right:12px;bottom:14px;padding:10px;border-radius:26px;background:var(--surface-el);border:1px solid var(--border)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;direction:ltr}
+  .key{height:42px;border-radius:14px;display:grid;place-items:center;font-size:19px;font-weight:600;background:var(--surface-hi)}
+  .key.hit{animation:hit .4s ease both;animation-delay:calc(var(--d)*1s)}
+  @keyframes hit{0%,100%{transform:none;background:var(--surface-hi)}40%{transform:scale(.9);background:#3a3a42}}
+  .save{margin-top:8px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--on-accent);background:linear-gradient(150deg,#fff,#a9a9b3)}
+  .island{position:absolute;top:44px;left:50%;margin-left:-118px;width:236px;z-index:6;height:40px;padding:4px 14px 4px 4px;gap:9px;font-size:12px;font-weight:600}
+  .island .ok{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--income) 18%,transparent);color:var(--income)}
+  .island .v{margin-right:auto;color:var(--text-2);direction:ltr}
+
+  /* الشهر */
+  .big-t{font-size:24px;font-weight:700;margin:58px 16px 2px}
+  .sub-t{font-size:12px;color:var(--text-3);margin:0 16px 12px}
+  .card{margin:0 16px 10px;padding:14px;border-radius:22px;background:linear-gradient(165deg,var(--surface-el),var(--bg));border:1px solid var(--border);position:relative;overflow:hidden}
+  .flow{display:flex;align-items:flex-end;gap:14px}
+  .flow .nums{flex:1}
+  .flow .k{font-size:11px;color:var(--text-3)}
+  .flow .n{font-size:22px;font-weight:700;margin-bottom:8px}
+  .cols{display:flex;align-items:flex-end;gap:10px;height:118px}
+  .col{width:34px;border-radius:10px 10px 6px 6px}
+  .rest{border-top:1px solid var(--border);margin-top:12px;padding-top:10px;display:flex;justify-content:space-between;font-size:12px;color:var(--text-2)}
+  .rest b{color:var(--text);font-size:14px}
+  .rings{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 6px;margin-top:4px}
+  .rg{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .rg .w{position:relative;width:56px;height:56px}
+  .rg .w b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-num);font-size:12.5px;font-weight:700}
+  .rg .w circle{fill:none;stroke-width:5;stroke-linecap:round}
+  .rg span{font-size:10.5px;color:var(--text-2)}
+
+  /* السلف والاشتراكات والنشاط */
+  .fc{margin:0 16px 10px;padding:13px;border-radius:22px;background:var(--surface);border:1px solid color-mix(in srgb,var(--c) 30%,transparent)}
+  .fc .hd{display:flex;align-items:center;gap:10px}
+  .fc .hd .k{font-size:11px;color:var(--text-3)}
+  .fc .hd .n{font-size:20px;font-weight:700;direction:ltr;text-align:right}
+  .fc .hd .n small{font-family:var(--font-sans);font-size:10.5px;color:var(--text-3);font-weight:500;margin-left:3px}
+  .fc .ln{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--text-2);margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+  .pill{height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+  .wa{height:26px;padding:0 11px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--on-accent);background:var(--accent)}
+
+  /* الخصوصية */
+  .fp{position:absolute;top:350px;left:50%;width:120px;height:120px;margin-left:-60px}
+  .fp .core{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;color:var(--text);
+    background:rgba(28,28,33,.9);border:1px solid var(--border-strong);box-shadow:0 20px 50px -20px rgba(0,0,0,.9)}
+  .pulse{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.28);animation:pulse 2.2s var(--calm) infinite;animation-delay:calc(var(--d)*1s)}
+  @keyframes pulse{0%{opacity:0;transform:scale(1)}15%{opacity:1}100%{opacity:0;transform:scale(2.3)}}
+  .arc{position:absolute;inset:-8px;animation:spin 1.4s linear infinite;animation-delay:calc(var(--d)*1s)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .feats{position:absolute;top:560px;left:40px;right:40px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .feat{display:flex;align-items:center;gap:10px;height:46px;padding:0 18px 0 7px;border-radius:999px;font-size:15px;font-weight:500;
+    background:rgba(28,28,33,.9);border:1px solid var(--border-strong)}
+  .feat .t{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--text)}
+
+  /* الختام */
+  .cta{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:250px}
+  .cta .logo-big{width:104px;height:104px;border-radius:28px}
+  .cta .name{font-family:var(--font-num);font-size:44px;font-weight:800;letter-spacing:-.03em;margin-top:26px;direction:ltr}
+  .cta h3{font-size:30px;font-weight:700;margin-top:30px;line-height:1.35}
+  .cta p{font-size:16px;color:var(--text-2);margin-top:8px}
+  .cta .btn{margin-top:30px;height:56px;padding:0 30px;border-radius:18px;display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--on-accent);
+    background:linear-gradient(150deg,#fff,#a9a9b3);box-shadow:0 20px 50px -20px rgba(255,255,255,.4)}
+  .cta .url{margin-top:16px;font-size:15px;color:var(--text-3);direction:ltr}
+  .shine{position:absolute;inset:0;border-radius:inherit;overflow:hidden}
+  .shine::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);
+    animation:shine 2.4s var(--calm) infinite;animation-delay:inherit}
+  @keyframes shine{0%{left:-60%}45%,100%{left:130%}}
+
+  /* شريط التقدّم (العرض الحي فقط) */
+  .bar{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.5);width:0}
+  body.render .bar{display:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="aurora"></div>
+
+  <!-- ═══ 1. السؤال (0 – 3.8) ═══ -->
+  <section class="scene" style="--s:0;--e:3.8">
+    <div class="chipw" style="--d:.3;top:150px;right:40px"><div class="chip a pop" style="--d:.5"><span class="t" style="--c:var(--owed-by)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg></span>قهوة <span class="v num" dir="ltr">−18</span></div></div>
+    <div class="chipw" style="--d:.3;top:230px;left:34px"><div class="chip a pop" style="--d:.8"><span class="t" style="--c:var(--expense)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2"><path d="M5 12h14"/><path d="M5 12l3-6h8l3 6"/><circle cx="7.5" cy="16" r="2"/><circle cx="16.5" cy="16" r="2"/></svg></span>توصيل <span class="v num" dir="ltr">−46</span></div></div>
+    <div class="chipw" style="--d:.3;top:690px;right:56px"><div class="chip a pop" style="--d:1.1"><span class="t" style="--c:var(--sub)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></span>اشتراك <span class="v num" dir="ltr">−29</span></div></div>
+    <div class="chipw" style="--d:.3;top:770px;left:50px"><div class="chip a pop" style="--d:1.4"><span class="t" style="--c:var(--transfer)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>تسوّق <span class="v num" dir="ltr">−230</span></div></div>
+    <div class="chipw" style="--d:.3;top:880px;left:170px"><div class="chip a pop" style="--d:1.7"><span class="t" style="--c:var(--commit)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/><path d="M3 22h12"/><path d="M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/><path d="M7 7h4"/></svg></span>بنزين <span class="v num" dir="ltr">−120</span></div></div>
+    <div class="hook">
+      <div class="l1 a rise" style="--d:.2">الراتب نزل...</div>
+      <div class="l2 a rise" style="--d:1.0">وبعد أسبوعين</div>
+      <div class="l3 a pop" style="--d:1.9;--dur:.7s">وين راح؟</div>
+    </div>
+  </section>
+
+  <!-- ═══ 2. التسرّب (3.8 – 7.2) ═══ -->
+  <section class="scene" style="--s:3.8;--e:7.2">
+    <div class="cap">
+      <h2 class="a rise" style="--d:4.0">مصاريف صغيرة كل يوم<br>تاكل الراتب بصمت</h2>
+      <p class="a rise" style="--d:4.4">وآخر الشهر ما تدري وين راحت</p>
+    </div>
+    <div class="drain a rise" style="--d:4.5">
+      <div class="lbl">رصيد الحساب</div>
+      <div class="amt num"><span data-count data-from="8500" data-to="312" data-t0="4.9" data-t1="6.6">8,500</span><small>ر.س</small></div>
+      <svg viewBox="0 0 460 180" preserveAspectRatio="none">
+        <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5f6d" stop-opacity=".22"/><stop offset="1" stop-color="#ff5f6d" stop-opacity="0"/></linearGradient></defs>
+        <path class="a fade" style="--d:5.6" d="M0 40 L60 48 L110 70 L150 74 L200 96 L250 104 L300 126 L350 134 L400 152 L460 166 L460 180 L0 180Z" fill="url(#dg)"/>
+        <path class="a draw" style="--d:4.9;stroke-dasharray:1" pathLength="1" d="M0 40 L60 48 L110 70 L150 74 L200 96 L250 104 L300 126 L350 134 L400 152 L460 166" fill="none" stroke="#ff5f6d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <div class="dates num"><span>27</span><span>20</span><span>13</span><span>1</span></div>
+    </div>
+  </section>
+
+  <!-- ═══ 3. الشعار (7.2 – 10.0) ═══ -->
+  <section class="scene" style="--s:7.2;--e:10.0">
+    <div class="brand">
+      <div style="position:relative;display:grid;place-items:center">
+        <div class="halo" style="--d:7.7"></div>
+        <div class="logo-big a pop" style="--d:7.4">
+          <svg viewBox="0 0 512 512" width="132" height="132" style="position:absolute;inset:0">
+            <path class="a draw" style="--d:7.75;stroke-dasharray:1;animation-duration:.9s" pathLength="1" d="M138 312 L226 196 L290 262 L376 150" fill="none" stroke="#0A0A0C" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="a draw" style="--d:8.45;stroke-dasharray:1;animation-duration:.5s" pathLength="1" d="M302 150 H376 V224" fill="none" stroke="#0A0A0C" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle class="a pop" style="--d:8.7;transform-origin:150px 384px" cx="150" cy="384" r="44" fill="#6B6B75" stroke="#FFFFFF" stroke-width="14"/>
+          </svg>
+        </div>
+      </div>
+      <div class="name a rise" style="--d:8.3">QB-Nomia</div>
+      <div class="tag a rise" style="--d:8.6">محفظتك المالية الشخصية</div>
+    </div>
+  </section>
+
+  <!-- ═══ عناوين مشاهد الجوال ═══ -->
+  <section class="scene" style="--s:10.0;--e:14.3"><div class="cap" style="top:96px">
+    <h2 class="a rise" style="--d:10.2">كل فلوسك في مكان واحد</h2>
+    <p class="a rise" style="--d:10.45">حساباتك ورصيدك وآخر حركاتك</p></div></section>
+  <section class="scene" style="--s:14.3;--e:18.8"><div class="cap" style="top:96px">
+    <h2 class="a rise" style="--d:14.4">سجّل مصروفك بثواني</h2>
+    <p class="a rise" style="--d:14.6">أقل من 4 نقرات، ويوصلك تأكيد فوري</p></div></section>
+  <section class="scene" style="--s:18.8;--e:22.9"><div class="cap" style="top:96px">
+    <h2 class="a rise" style="--d:18.9">اعرف وين راح كل ريال</h2>
+    <p class="a rise" style="--d:19.1">دخلك مقابل صرفك، وفئاتك بالنسبة</p></div></section>
+  <section class="scene" style="--s:22.9;--e:26.8"><div class="cap" style="top:96px">
+    <h2 class="a rise" style="--d:23.0">السلف والاشتراكات ونشاطك</h2>
+    <p class="a rise" style="--d:23.2">كل موعد يجيك تنبيه قبله</p></div></section>
+
+  <!-- ═══ 4–7. الجوال (10.0 – 26.8) ═══ -->
+  <div class="phone-wrap" style="--s:10.0;--e:26.8">
+    <div class="phone">
+      <div class="aur"></div>
+      <div class="notch"></div>
+
+      <!-- الرئيسية -->
+      <div class="screen" style="--s:10.0;--e:15.1">
+        <div class="top">
+          <div class="who">
+            <div class="logo-s"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.6" style="stroke:#0a0a0c"><path d="M4 17 L10 9 L14 13 L20 5"/><path d="M15 5 H20 V10"/></svg></div>
+            <div><div class="hi">مساء الخير</div><div class="dt">31 أكتوبر 2026</div></div>
+          </div>
+          <div class="rb"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" stroke-width="1.9"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></div>
+        </div>
+        <div class="hero">
+          <svg viewBox="0 0 330 120" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3ee08f" stop-opacity=".22"/><stop offset="1" stop-color="#3ee08f" stop-opacity="0"/></linearGradient>
+              <linearGradient id="hf" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#050506" stop-opacity=".85"/><stop offset=".55" stop-color="#050506" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path class="a fade" style="--d:11.6" d="M0 96 C30 92 50 80 80 84 S130 70 160 66 S210 74 240 52 S290 40 330 22 L330 120 L0 120Z" fill="url(#hg)"/>
+            <path class="a draw" style="--d:10.6;stroke-dasharray:1" pathLength="1" d="M0 96 C30 92 50 80 80 84 S130 70 160 66 S210 74 240 52 S290 40 330 22" fill="none" stroke="#3ee08f" stroke-width="2.4" stroke-linecap="round"/>
+            <rect width="330" height="120" fill="url(#hf)"/>
+          </svg>
+          <div class="lbl a rise" style="--d:10.4">إجمالي رصيدك</div>
+          <div class="hero-amt num a rise" style="--d:10.5"><span data-count data-from="0" data-to="24380" data-t0="10.6" data-t1="12.0">0</span><small>ر.س</small></div>
+          <div class="badge a pop" style="--d:12.0"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" stroke-width="3"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg><span class="num" dir="ltr">+1,240</span> هذا الشهر</div>
+        </div>
+        <div class="sec a rise" style="--d:12.1">حساباتك</div>
+        <div class="row a rise" style="--d:12.2"><div class="tile" style="--c:#a1a1ad"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.9"><rect x="2" y="6" width="20" height="13" rx="3"/><circle cx="12" cy="12.5" r="2.5"/></svg></div><div><div class="nm">كاش</div><div class="ds">محفظتك</div></div><div class="vl num">1,180<small>ر.س</small></div></div>
+        <div class="row a rise" style="--d:12.35"><div class="tile" style="--c:var(--commit)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.9"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 21h18"/></svg></div><div><div class="nm">حساب الراتب</div><div class="ds">بنكي</div></div><div class="vl num">8,700<small>ر.س</small></div></div>
+        <div class="row a rise" style="--d:12.5"><div class="tile" style="--c:var(--transfer)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.9"><path d="M12 3v18"/><path d="M17 7.5C17 5.6 14.8 4.5 12 4.5S7 5.6 7 7.6s2.2 3 5 3.4 5 1.5 5 3.5-2.2 3-5 3-5-1.1-5-3"/></svg></div><div><div class="nm">الادخار</div><div class="ds">هدف السيارة 58%</div></div><div class="vl num">14,500<small>ر.س</small></div></div>
+        <div class="sec a rise" style="--d:12.65">آخر الحركات</div>
+        <div class="row a rise" style="--d:12.8"><div class="tile" style="--c:var(--income)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="2"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></div><div><div class="nm">راتب أكتوبر</div><div class="ds">حساب الراتب</div></div><div class="vl num" style="color:var(--income)">+9,200</div></div>
+
+        <!-- كبسولة زر + -->
+        <div class="capsule cap-in" style="--d:14.45;left:50%;margin-left:-118px;bottom:94px;width:236px;justify-content:space-between">
+          <span class="on" style="--c:var(--expense)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" stroke-width="2.6"><path d="M12 5v14"/><path d="m18 13-6 6-6-6"/></svg>مصروف</span>
+          <span class="ci" style="--c:var(--income)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2.4"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg></span>
+          <span class="ci" style="--c:var(--transfer)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2.4"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/></svg></span>
+          <span class="ci" style="--c:var(--owed)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="2.2"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M17 8h5M19.5 5.5v5"/></svg></span>
+        </div>
+        <div class="nav">
+          <span class="act"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/></svg>الرئيسية</span>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" stroke-width="1.9"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M2 10h20"/></svg>
+          <div class="well press" style="--d:14.3"><div class="plus" style="--d:14.35"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" stroke-width="2.8"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" stroke-width="1.9"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.6 3 5.2"/></svg>
+          <svg class="ic" width="19" height="19" viewBox="0 0 24 24" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+        </div>
+      </div>
+
+      <!-- إضافة مصروف -->
+      <div class="screen" style="--s:15.1;--e:19.0">
+        <div class="hdr-cap hide" style="--d:17.2">مصروف جديد</div>
+        <div class="seg"><span class="on">مصروف</span><span>دخل</span><span>تحويل</span><span>سلفة</span></div>
+        <div class="amount num"><span data-seq="0@0,4@15.75,45@16.1">0</span><span class="caret"></span><small>ر.س</small></div>
+        <div class="chips">
+          <span class="cchip sel" style="--d:16.5"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" stroke-width="2.2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg>قهوة</span>
+          <span class="cchip">مطاعم</span><span class="cchip">بقالة</span><span class="cchip">مواصلات</span>
+        </div>
+        <div class="acct">من <b>كاش</b> · اليوم</div>
+        <div class="keys">
+          <div class="grid num">
+            <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+            <span class="key hit" style="--d:15.7">4</span><span class="key hit" style="--d:16.05">5</span><span class="key">6</span>
+            <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+            <span class="key">.</span><span class="key">0</span><span class="key"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" stroke-width="2"><path d="M21 5H9l-6 7 6 7h12Z"/><path d="m16 9-5 6M11 9l5 6"/></svg></span>
+          </div>
+          <div class="save press" style="--d:17.0">حفظ</div>
+        </div>
+        <div class="capsule island island-in" style="--d:17.3">
+          <span class="ok"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" stroke-width="3"><path d="m5 12 5 5 9-10"/></svg></span>
+          انحفظ: قهوة
+          <span class="v num">−45 ر.س</span>
+        </div>
+      </div>
+
+      <!-- الشهر -->
+      <div class="screen" style="--s:19.0;--e:23.1">
+        <div class="big-t a rise" style="--d:19.1">أكتوبر 2026</div>
+        <div class="sub-t a rise" style="--d:19.2">تدفّق هذا الشهر</div>
+        <div class="card a rise" style="--d:19.3">
+          <div class="flow">
+            <div class="nums">
+              <div class="k">دخل الشهر</div>
+              <div class="n num" style="color:var(--income)"><span data-count data-from="0" data-to="9200" data-t0="19.6" data-t1="20.8">0</span></div>
+              <div class="k">صرفت</div>
+              <div class="n num" style="color:var(--expense);margin-bottom:0"><span data-count data-from="0" data-to="6140" data-t0="19.8" data-t1="21.0">0</span></div>
+            </div>
+            <div class="cols">
+              <div class="col a grow" style="--d:19.6;height:118px;background:linear-gradient(to top,color-mix(in srgb,var(--income) 30%,transparent),var(--income))"></div>
+              <div class="col a grow" style="--d:19.8;height:79px;background:linear-gradient(to top,color-mix(in srgb,var(--expense) 30%,transparent),var(--expense))"></div>
+            </div>
+          </div>
+          <div class="rest a fade" style="--d:20.9"><span>باقي لك هذا الشهر</span><b class="num">3,060 <span style="font-family:var(--font-sans);font-size:10.5px;color:var(--text-3);font-weight:500">ر.س</span></b></div>
+        </div>
+        <div class="card a rise" style="--d:20.4">
+          <div style="font-size:12.5px;font-weight:600;margin-bottom:10px">وين راحت فلوسك</div>
+          <div class="rings">
+            <div class="rg"><div class="w"><svg viewBox="0 0 56 56" width="56" height="56" style="transform:rotate(-90deg)"><circle cx="28" cy="28" r="23" stroke="rgba(255,255,255,.07)"/><circle class="a ring" style="--d:20.7;--off:72;stroke-dasharray:100" pathLength="100" cx="28" cy="28" r="23" stroke="#ff5f6d"/></svg><b>28%</b></div><span>مطاعم</span></div>
+            <div class="rg"><div class="w"><svg viewBox="0 0 56 56" width="56" height="56" style="transform:rotate(-90deg)"><circle cx="28" cy="28" r="23" stroke="rgba(255,255,255,.07)"/><circle class="a ring" style="--d:20.8;--off:82;stroke-dasharray:100" pathLength="100" cx="28" cy="28" r="23" stroke="#ff9a4d"/></svg><b>18%</b></div><span>مواصلات</span></div>
+            <div class="rg"><div class="w"><svg viewBox="0 0 56 56" width="56" height="56" style="transform:rotate(-90deg)"><circle cx="28" cy="28" r="23" stroke="rgba(255,255,255,.07)"/><circle class="a ring" style="--d:20.9;--off:85;stroke-dasharray:100" pathLength="100" cx="28" cy="28" r="23" stroke="#ffbf47"/></svg><b>15%</b></div><span>تسوّق</span></div>
+            <div class="rg"><div class="w"><svg viewBox="0 0 56 56" width="56" height="56" style="transform:rotate(-90deg)"><circle cx="28" cy="28" r="23" stroke="rgba(255,255,255,.07)"/><circle class="a ring" style="--d:21.0;--off:88;stroke-dasharray:100" pathLength="100" cx="28" cy="28" r="23" stroke="#8b7bff"/></svg><b>12%</b></div><span>فواتير</span></div>
+            <div class="rg"><div class="w"><svg viewBox="0 0 56 56" width="56" height="56" style="transform:rotate(-90deg)"><circle cx="28" cy="28" r="23" stroke="rgba(255,255,255,.07)"/><circle class="a ring" style="--d:21.1;--off:91;stroke-dasharray:100" pathLength="100" cx="28" cy="28" r="23" stroke="#5fb3ff"/></svg><b>9%</b></div><span>اشتراكات</span></div>
+            <div class="rg"><div class="w"><svg viewBox="0 0 56 56" width="56" height="56" style="transform:rotate(-90deg)"><circle cx="28" cy="28" r="23" stroke="rgba(255,255,255,.07)"/><circle class="a ring" style="--d:21.2;--off:82;stroke-dasharray:100" pathLength="100" cx="28" cy="28" r="23" stroke="#62626d"/></svg><b>18%</b></div><span>أخرى</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- السلف والاشتراكات والنشاط -->
+      <div class="screen" style="--s:23.1;--e:26.8">
+        <div class="big-t a rise" style="--d:23.2">ولا موعد يفوتك</div>
+        <div class="sub-t a rise" style="--d:23.3">سلف، اشتراكات، وعملاء نشاطك</div>
+        <div class="fc a rise" style="--c:var(--owed);--d:23.45">
+          <div class="hd"><div class="tile" style="--c:var(--owed)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.9"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.6 3 5.2"/></svg></div>
+            <div><div class="k">لك عند الناس</div><div class="n num" style="color:var(--owed)"><span data-count data-from="0" data-to="1750" data-t0="23.6" data-t1="24.5">0</span><small>ر.س</small></div></div></div>
+          <div class="ln"><span>أحمد · من 12 يوم</span><span class="num" style="color:var(--text)">500</span></div>
+        </div>
+        <div class="fc a rise" style="--c:var(--sub);--d:23.85">
+          <div class="hd"><div class="tile" style="--c:var(--sub)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.9"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>
+            <div><div class="k">اشتراكاتك هذا الشهر</div><div class="n num">214<small>ر.س</small></div></div></div>
+          <div class="ln"><span>باقة الجوال</span><span class="pill a pop" style="--c:var(--sub);--d:24.4">بعد 3 أيام</span></div>
+        </div>
+        <div class="fc a rise" style="--c:var(--income);--d:24.25">
+          <div class="hd"><div class="tile" style="--c:var(--income)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.9"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg></div>
+            <div><div class="k">برمجيات QB · دخلك من النشاط</div><div class="n num" style="color:var(--income)"><span data-count data-from="0" data-to="4800" data-t0="24.4" data-t1="25.3">0</span><small>ر.س</small></div></div></div>
+          <div class="ln"><span>مطعم الريف · تجديد خلال 5 أيام</span><span class="wa a pop" style="--d:25.2"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" stroke-width="2.4"><path d="M21 12a9 9 0 0 1-13.5 7.8L3 21l1.2-4.4A9 9 0 1 1 21 12Z"/></svg>ذكّره</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 8. الخصوصية (26.8 – 30.0) ═══ -->
+  <section class="scene" style="--s:26.8;--e:30.0">
+    <div class="cap">
+      <h2 class="a rise" style="--d:27.0">فلوسك سرّك</h2>
+      <p class="a rise" style="--d:27.2">ما فيه سيرفر غيرك يشوف بياناتك</p>
+    </div>
+    <div class="fp a pop" style="--d:27.3">
+      <span class="pulse" style="--d:27.5"></span><span class="pulse" style="--d:28.2"></span>
+      <svg class="arc" style="--d:27.5" viewBox="0 0 136 136" width="136" height="136"><circle cx="68" cy="68" r="64" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" stroke-linecap="round" stroke-dasharray="70 400"/></svg>
+      <div class="core"><svg class="ic" width="54" height="54" viewBox="0 0 24 24" stroke-width="1.5"><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/></svg></div>
+    </div>
+    <div class="feats">
+      <div class="feat a rise" style="--d:27.8"><span class="t"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>رقم سري وبصمة</div>
+      <div class="feat a rise" style="--d:28.1"><span class="t"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" stroke-width="2"><path d="M2 8.8a15 15 0 0 1 20 0"/><path d="M5.5 12.3a10 10 0 0 1 13 0"/><path d="M9 15.8a5 5 0 0 1 6 0"/><path d="M12 19.3h.01"/><path d="M3 3l18 18"/></svg></span>يشتغل بدون نت</div>
+      <div class="feat a rise" style="--d:28.4"><span class="t"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 9h16M4 15h16M10 3v18"/></svg></span>نسختك الاحتياطية في Google Sheets حقّك</div>
+    </div>
+  </section>
+
+  <!-- ═══ 9. الختام (30.0 – النهاية) ═══ -->
+  <section class="scene" style="--s:30.0;--e:99">
+    <div class="cta">
+      <div class="logo-big a pop" style="--d:30.2">
+        <svg viewBox="0 0 512 512" width="104" height="104"><path d="M138 312 L226 196 L290 262 L376 150" fill="none" stroke="#0A0A0C" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/><path d="M302 150 H376 V224" fill="none" stroke="#0A0A0C" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/><circle cx="150" cy="384" r="44" fill="#6B6B75" stroke="#FFFFFF" stroke-width="14"/></svg>
+      </div>
+      <div class="name a rise" style="--d:30.5">QB-Nomia</div>
+      <h3 class="a rise" style="--d:30.8">من اليوم، كل ريال<br>تعرف وين راح</h3>
+      <p class="a rise" style="--d:31.0">افتحه من المتصفح وثبّته على جوالك</p>
+      <div class="btn a pop" style="--d:31.4;position:relative">
+        <span class="shine" style="animation-delay:32s"></span>
+        <svg class="ic" width="18" height="18" viewBox="0 0 24 24" stroke-width="2.4"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>ثبّت التطبيق
+      </div>
+      <div class="url num a fade" style="--d:31.8">0-bilal.github.io/QB-Nomia</div>
+    </div>
+  </section>
+
+  <div class="bar" id="bar"></div>
+</div>
+
+<script>
+  const DURATION = 34;          // طول الريل بالثواني
+  const params = new URLSearchParams(location.search);
+  const RENDER = params.has('render');
+  if (RENDER) document.body.classList.add('render');
+
+  const stage = document.getElementById('stage');
+  const bar = document.getElementById('bar');
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  const easeOut = x => 1 - Math.pow(1 - x, 3);
+
+  const counters = [...document.querySelectorAll('[data-count]')].map(el => ({
+    el, from: +el.dataset.from, to: +el.dataset.to, t0: +el.dataset.t0, t1: +el.dataset.t1,
+  }));
+  const seqs = [...document.querySelectorAll('[data-seq]')].map(el => ({
+    el, steps: el.dataset.seq.split(',').map(s => { const [v, t] = s.split('@'); return { v, t: +t }; }),
+  }));
+
+  function fit() {
+    if (RENDER) return;
+    const s = Math.min(innerWidth / 540, innerHeight / 960);
+    stage.style.transform = `scale(${s})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  let anims = [];
+  function collect() {
+    anims = document.getAnimations();
+    anims.forEach(a => a.pause());
+  }
+
+  function apply(t) {
+    const ms = t * 1000;
+    for (const a of anims) a.currentTime = ms;
+    for (const c of counters) {
+      const p = Math.min(1, Math.max(0, (t - c.t0) / (c.t1 - c.t0)));
+      c.el.textContent = fmt(c.from + (c.to - c.from) * easeOut(p));
+    }
+    for (const s of seqs) {
+      let v = s.steps[0].v;
+      for (const st of s.steps) if (t >= st.t) v = st.v;
+      s.el.textContent = v;
+    }
+    bar.style.width = (t / DURATION * 100) + '%';
+  }
+
+  window.__duration = DURATION;
+  window.__seek = t => apply(t);
+  window.__ready = (async () => {
+    await document.fonts.ready;
+    await Promise.all(['400 16px "Readex Pro"', '600 16px "Readex Pro"', '700 16px "Readex Pro"', '700 16px Inter', '800 16px Inter']
+      .map(f => document.fonts.load(f, 'أب12')));
+    collect();
+    apply(0);
+  })();
+
+  if (!RENDER) {
+    window.__ready.then(() => {
+      let start = performance.now();
+      let paused = false, pausedAt = 0;
+      // مسافة = إيقاف/تشغيل، يمين/يسار = تقديم/ترجيع ثانيتين
+      addEventListener('keydown', e => {
+        const now = (performance.now() - start) / 1000;
+        if (e.code === 'Space') { paused = !paused; if (paused) pausedAt = now; else start = performance.now() - pausedAt * 1000; }
+        if (e.code === 'ArrowLeft') start += 2000;
+        if (e.code === 'ArrowRight') start -= 2000;
+      });
+      stage.addEventListener('click', () => { start = performance.now(); paused = false; });
+      (function loop() {
+        if (!paused) apply(((performance.now() - start) / 1000) % DURATION);
+        else apply(pausedAt % DURATION);
+        requestAnimationFrame(loop);
+      })();
+    });
+  }
+</script>
+</body>
+</html>
