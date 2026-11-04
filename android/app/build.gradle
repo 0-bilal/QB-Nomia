@@ -7,8 +7,8 @@ android {
         applicationId "com.qbsoftware.qbnomia"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 48
-        versionName "3.4.0"
+        versionCode 49
+        versionName "3.4.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // توقيع الإصدار بمفتاح ثابت: يُقرأ من متغيرات بيئة يضبطها CI من GitHub Secrets، والمفتاح نفسه لا يُرفع للمستودع أبدًا.
+    // نفس المفتاح في كل بناء يخلّي التحديث ينزل فوق التطبيق المثبّت بدون حذفه (وبدون ضياع البيانات).
+    def releaseKeystore = System.getenv('QB_KEYSTORE_FILE')
+    signingConfigs {
+        if (releaseKeystore) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv('QB_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('QB_KEY_ALIAS')
+                keyPassword System.getenv('QB_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

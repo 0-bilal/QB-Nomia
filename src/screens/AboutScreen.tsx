@@ -245,7 +245,7 @@ export function AboutScreen() {
         </div>
       </div>
       <a
-        href="https://github.com/0-bilal/QB-Nomia/releases/latest/download/app-debug.apk"
+        href="https://github.com/0-bilal/QB-Nomia/releases/latest/download/qb-nomia.apk"
         className="qb-btn-primary mt-2.5 flex w-full items-center justify-center gap-2 py-3.5 text-[13.5px]"
       >
         <Svg size={17}>
