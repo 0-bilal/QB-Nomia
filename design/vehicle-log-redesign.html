@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سجل السيارة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13); --accent-line:rgba(255,255,255,.28);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --sub:#ffbf47; --owed-to:#2ee6c8;
+    --vehicle:#45c8ff; --fuel:#ff8a1a;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .sar{font-family:var(--font-sans);font-size:.62em;color:var(--text-3);font-weight:500;margin-right:3px;letter-spacing:0}
+  svg.i{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2;flex:none}
+  .press{transition:transform .2s var(--spring)}.press:active{transform:scale(.97)}
+  .soft-f{background:color-mix(in srgb,var(--fuel) 16%,transparent);color:var(--fuel)}
+  .soft-v{background:color-mix(in srgb,var(--vehicle) 16%,transparent);color:var(--vehicle)}
+
+  /* لوحة الخيارات */
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.8}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong)}
+  .seg button{flex:1;height:34px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text-2);text-align:center;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .optdesc{font-size:12px;color:var(--text-2);line-height:1.8}
+  .optdesc b{color:var(--text)}
+
+  /* الجهاز */
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9);isolation:isolate}
+  @media (max-width:440px){.phone{border-radius:28px;height:88vh;min-height:700px}}
+  .aurora{position:absolute;inset:-10% -10% auto;height:280px;pointer-events:none;z-index:0;background:radial-gradient(60% 70% at 70% 10%,rgba(255,255,255,.1),transparent 70%),radial-gradient(50% 60% at 15% 0%,rgba(69,200,255,.07),transparent 70%)}
+  .scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:68px 20px 40px;z-index:1}
+  .scroll::-webkit-scrollbar{display:none}
+  .hdr{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;pointer-events:none}
+  .hdr > *{pointer-events:auto}
+  .glass{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6)}
+  .capsule{position:relative;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 12px 30px -12px rgba(0,0,0,.8);font-size:13px;font-weight:600}
+  .capsule::before{content:'';position:absolute;inset:-12px -16px;z-index:-1;background:rgba(5,5,6,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);-webkit-mask-image:radial-gradient(closest-side,#000 60%,transparent 100%);mask-image:radial-gradient(closest-side,#000 60%,transparent 100%)}
+  .big-title{font-size:28px;font-weight:700}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 4px}
+  .stat{padding:13px;border-radius:20px;background:var(--surface);border:1px solid var(--border)}
+  .stat .k{font-size:11px;color:var(--text-3)}
+  .stat .v{font:700 19px var(--font-num);margin-top:3px}
+  .sec{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 10px}
+  .sec b{font-size:15px;font-weight:600}
+  .filter-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-2);position:relative}
+  .filter-btn.on{border-color:var(--accent-line);color:var(--text)}
+  .filter-btn .dot{position:absolute;top:-2px;left:-2px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+  .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 10px;padding:0 20px}
+  .chips::-webkit-scrollbar{display:none}
+  .chips button{flex:none;height:32px;padding:0 13px;border-radius:999px;font-size:12px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-2);display:inline-flex;align-items:center;gap:5px;transition:all .25s var(--spring)}
+  .chips button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .active-f{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 12px}
+  .active-f span{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 6px 0 10px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.07);border:1px solid var(--border-strong)}
+  .active-f span button{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08)}
+  .active-f .clear{font-size:11.5px;color:var(--text-3);font-weight:600;padding:0 6px}
+  .empty{padding:30px 20px;text-align:center;font-size:12.5px;color:var(--text-3);border-radius:22px;border:1px dashed var(--border-strong)}
+
+  /* صف العملية + الانسدال (مشترك) */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:hidden}
+  .entry + .entry{border-top:1px solid var(--border)}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%}
+  .ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:none}
+  .row .t{flex:1;min-width:0}
+  .row .t b{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600}
+  .row .t small{display:block;font-size:11px;color:var(--text-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .e{text-align:left;flex:none}
+  .row .e .a{font:700 14px var(--font-num)}
+  .row .e .l{font:500 11px var(--font-num);color:var(--text-3);margin-top:2px}
+  .badge{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:10px;font-weight:600}
+  .chev{color:var(--text-3);transition:transform .35s var(--spring);flex:none}
+  .entry.open .chev{transform:rotate(180deg);color:var(--text)}
+  .entry.open{background:linear-gradient(180deg,rgba(255,255,255,.025),transparent 60%)}
+  .drawer{display:grid;grid-template-rows:0fr;transition:grid-template-rows .42s var(--expo)}
+  .entry.open .drawer{grid-template-rows:1fr}
+  .drawer > div{overflow:hidden}
+  .det{padding:0 14px 14px;opacity:0;transform:translateY(-6px);transition:opacity .25s,transform .4s var(--expo)}
+  .entry.open .det{opacity:1;transform:none;transition-delay:.06s}
+  .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .dtile{padding:10px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid var(--border)}
+  .dtile .k{font-size:10px;color:var(--text-3)}
+  .dtile .v{font:700 14px var(--font-num);margin-top:3px}
+  .dtile .v small{font:500 10px var(--font-sans);color:var(--text-3);margin-right:2px}
+  .seg-bar{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid var(--border)}
+  .seg-bar .ends{display:flex;justify-content:space-between;font:500 10.5px var(--font-num);color:var(--text-3)}
+  .seg-bar .track{position:relative;height:6px;border-radius:6px;background:var(--surface-hi);margin:7px 0}
+  .seg-bar .track i{position:absolute;inset:0 0 0 auto;border-radius:6px;background:var(--fuel)}
+  .seg-bar .mid{text-align:center;font-size:11.5px;color:var(--text-2)}
+  .cmp{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--text-2)}
+  .cmp .pill{font:600 11px var(--font-num);padding:3px 8px;border-radius:999px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .meta span{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-2)}
+  .acts{display:flex;gap:8px;margin-top:12px}
+  .acts button{flex:1;height:38px;border-radius:13px;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--border-strong)}
+  .acts .del{color:var(--expense);background:color-mix(in srgb,var(--expense) 10%,transparent);border-color:color-mix(in srgb,var(--expense) 28%,transparent);flex:0 0 auto;padding:0 14px}
+
+  /* ١ أشهر برؤوس ثابتة */
+  .mhead{position:sticky;top:-8px;z-index:3;margin:16px -20px 8px;padding:10px 20px 8px;background:linear-gradient(var(--bg) 70%,transparent)}
+  .mhead .r1{display:flex;align-items:baseline;justify-content:space-between}
+  .mhead .r1 b{font-size:14.5px;font-weight:600}
+  .mhead .r1 span{font:700 13px var(--font-num)}
+  .mhead .r2{display:flex;gap:10px;font-size:11px;color:var(--text-3);margin-top:3px}
+  .mhead .r2 b{font-family:var(--font-num);color:var(--text-2);font-weight:600}
+
+  /* ٢ خط زمني */
+  .tl{position:relative;padding-right:22px}
+  .tl::before{content:'';position:absolute;right:8px;top:6px;bottom:6px;width:2px;border-radius:2px;background:linear-gradient(var(--surface-hi),var(--surface-hi))}
+  .tl-month{position:relative;margin:18px 0 10px;display:flex;align-items:center;justify-content:space-between}
+  .tl-month::before{content:'';position:absolute;right:-19px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--bg);border:2px solid var(--text-2)}
+  .tl-month b{font-size:14.5px;font-weight:600}
+  .tl-month span{font-size:11px;color:var(--text-3)}
+  .tl-month span b{font:700 12px var(--font-num);color:var(--text-2)}
+  .tl-gap{position:relative;height:18px;font:500 10.5px var(--font-num);color:var(--text-3);display:flex;align-items:center;padding-right:2px}
+  .tl-item{position:relative;margin-bottom:6px}
+  .tl-item::before{content:'';position:absolute;right:-18px;top:24px;width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px var(--bg)}
+  .tl-item .card{border-radius:18px}
+  .sumrail{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 4px;padding:0 20px}
+  .sumrail::-webkit-scrollbar{display:none}
+  .sumrail button{flex:none;width:116px;padding:11px;border-radius:18px;background:var(--surface);border:1px solid var(--border);transition:all .25s var(--spring)}
+  .sumrail button.on{border-color:var(--accent-line);background:var(--surface-el)}
+  .sumrail .m{font-size:11.5px;font-weight:600;color:var(--text-2)}
+  .sumrail .v{font:700 16px var(--font-num);margin-top:4px}
+  .sumrail .s{font-size:10px;color:var(--text-3);margin-top:2px}
+  .sumrail .bar{height:4px;border-radius:4px;background:var(--surface-hi);margin-top:8px;overflow:hidden}
+  .sumrail .bar i{display:block;height:100%;background:var(--fuel);border-radius:4px}
+
+  /* ٣ بطاقات شهرية تنطوي */
+  .mcard{margin-bottom:10px;border-radius:22px;border:1px solid var(--border);background:linear-gradient(165deg,var(--surface-el),var(--bg));overflow:hidden}
+  .mcard > .mtop{width:100%;padding:14px;display:block}
+  .mcard .l1{display:flex;align-items:center;justify-content:space-between}
+  .mcard .l1 b{font-size:15px;font-weight:600}
+  .mcard .l1 .n{font-size:11px;color:var(--text-3);font-weight:500;margin-right:6px}
+  .mcard .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+  .mcard .kp div{font-size:10px;color:var(--text-3)}
+  .mcard .kp b{display:block;font:700 14px var(--font-num);color:var(--text);margin-top:2px}
+  .mcard .spark{height:34px;margin-top:10px}
+  .mcard .spark svg{width:100%;height:100%;display:block}
+  .mcard .body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s var(--expo)}
+  .mcard.open .body{grid-template-rows:1fr}
+  .mcard .body > div{overflow:hidden}
+  .mcard .inner{border-top:1px solid var(--border);background:var(--surface)}
+  .mcard .mchev{transition:transform .35s var(--spring);color:var(--text-3)}
+  .mcard.open .mchev{transform:rotate(180deg);color:var(--text)}
+
+  /* ورقة الفلترة */
+  .shade{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .25s}
+  .shade.on{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:86%;display:flex;flex-direction:column;border-radius:32px 32px 0 0;background:var(--surface-el);border:1px solid var(--border-strong);border-bottom:0;transform:translateY(100%);transition:transform .5s var(--expo)}
+  .sheet.on{transform:none}
+  .handle{width:38px;height:5px;border-radius:5px;background:var(--surface-hi);margin:10px auto 6px;flex:none}
+  .sheet .top{display:flex;align-items:center;justify-content:space-between;padding:4px 18px 8px;flex:none}
+  .sheet .top b{font-size:17px;font-weight:600}
+  .sheet .top button{font-size:12.5px;color:var(--text-3);font-weight:600}
+  .sheet .content{overflow-y:auto;padding:0 18px;scrollbar-width:none}
+  .fl{font-size:12px;font-weight:600;color:var(--text-2);margin:14px 2px 8px}
+  .opts{display:flex;flex-wrap:wrap;gap:6px}
+  .opts button{height:34px;padding:0 13px;border-radius:999px;font-size:12px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-2);transition:all .25s var(--spring)}
+  .opts button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .range{display:flex;gap:8px}
+  .range div{flex:1;height:44px;border-radius:15px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px;color:var(--text-3)}
+  .range div b{font:600 13px var(--font-num);color:var(--text)}
+  .sheet .foot{padding:14px 18px 20px;flex:none}
+  .btn{height:52px;border-radius:17px;font-size:14.5px;font-weight:700;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(150deg,#fff,#a9a9b3);color:var(--on-accent);text-align:center}
+
+  .island{position:absolute;top:12px;left:50%;z-index:30;transform:translate(-50%,-12px) scale(.6);opacity:0;pointer-events:none;transition:opacity .22s,transform .42s var(--spring);white-space:nowrap}
+  .island.on{opacity:1;transform:translate(-50%,0)}
+
+  .doc{width:100%;max-width:760px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:18px 20px;font-size:13px;line-height:1.95;color:var(--text-2)}
+  .doc h2{font-size:18px;color:var(--text);margin-bottom:6px}
+  .doc h3{font-size:14px;color:var(--text);margin:16px 0 4px}
+  .doc ul{padding-right:18px}
+  .doc code{font:500 11.5px ui-monospace,monospace;background:var(--surface-hi);padding:1px 6px;border-radius:5px;color:var(--text);direction:ltr;unicode-bidi:embed}
+  .doc .q{margin-top:14px;padding:12px 14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--sub) 32%,transparent);background:color-mix(in srgb,var(--sub) 8%,transparent)}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>سجل السيارة: تقسيم وفلترة وتفاصيل تنسدل</h1>
+  <p>ثلاث اقتراحات لقسم «سجل العمليات» في صيانة السيارة. المشترك بينها: تقسيم حسب الشهر بمجاميعه، وفلاتر سريعة وورقة فلترة متقدمة، والضغط على أي عملية يفتح تفاصيلها كاملة تحتها بدل سطر واحد مقصوص. الأرقام من سجلك في الصورة وأشهر قبلها كأمثلة.</p>
+</div>
+
+<div class="panel">
+  <div class="plbl">الاقتراح</div>
+  <div class="seg" id="optSeg">
+    <button data-o="1" class="on">١ أشهر برؤوس</button>
+    <button data-o="2">٢ خط زمني</button>
+    <button data-o="3">٣ بطاقات تنطوي</button>
+  </div>
+  <div class="optdesc" id="optDesc"></div>
+</div>
+
+<div class="phone" id="phone">
+  <div class="aurora"></div>
+  <div class="island" id="island"><div class="capsule" style="height:40px"><svg class="i" width="16" height="16" viewBox="0 0 24 24" style="color:var(--income);stroke-width:2.6"><path d="M5 12l5 5L20 7"/></svg><span id="islandTxt"></span><button id="undoBtn" style="margin-right:6px;font-weight:700;color:var(--text)">تراجع</button></div></div>
+  <div class="hdr">
+    <button class="glass press"><svg class="i" width="18" height="18" viewBox="0 0 24 24" style="stroke-width:2.3"><path d="m9 5 7 7-7 7"/></svg></button>
+    <span class="capsule">صيانة السيارة</span>
+    <span style="width:40px"></span>
+  </div>
+  <div class="scroll" id="scroll">
+    <div class="big-title">صيانة السيارة</div>
+    <div class="stats">
+      <div class="stat"><div class="k">الوقود</div><div class="v num" style="color:var(--fuel)" id="sFuel"></div></div>
+      <div class="stat"><div class="k">الزيت</div><div class="v num" style="color:var(--vehicle)" id="sOil"></div></div>
+    </div>
+
+    <div class="sec"><b>سجل العمليات</b>
+      <button class="filter-btn press" id="openFilter"><svg class="i" width="15" height="15" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>فلترة<span class="dot" id="fDot" style="display:none"></span></button>
+    </div>
+    <div class="chips" id="quick"></div>
+    <div class="active-f" id="activeF"></div>
+    <div id="list"></div>
+  </div>
+
+  <!-- ورقة الفلترة المتقدمة -->
+  <div class="shade" id="shade"></div>
+  <div class="sheet" id="sheet">
+    <div class="handle"></div>
+    <div class="top"><b>فلترة السجل</b><button id="resetF">إعادة ضبط</button></div>
+    <div class="content">
+      <div class="fl">النوع</div><div class="opts" data-k="type"></div>
+      <div class="fl">التعبئة</div><div class="opts" data-k="fill"></div>
+      <div class="fl">الفترة</div><div class="opts" data-k="period"></div>
+      <div class="fl">الحساب</div><div class="opts" data-k="account"></div>
+      <div class="fl">من دفع</div><div class="opts" data-k="payer"></div>
+      <div class="fl">التكلفة</div>
+      <div class="range"><div>من <b class="num">0</b></div><div>إلى <b class="num">100+</b></div></div>
+      <div class="fl">الترتيب</div><div class="opts" data-k="sort"></div>
+      <div style="height:8px"></div>
+    </div>
+    <div class="foot"><button class="btn press" id="applyF"></button></div>
+  </div>
+</div>
+
+<div class="doc">
+  <h2>كيف ينفّذ</h2>
+  <h3>المشترك بين الاقتراحات الثلاثة</h3>
+  <ul>
+    <li><b>التقسيم بالشهر:</b> «نوفمبر 2026» وتحته مجموع الشهر: التكلفة، اللترات، الكيلومترات المقطوعة، ومتوسط الاستهلاك (من التعبئات الكاملة فقط).</li>
+    <li><b>فلاتر سريعة:</b> الكل، وقود، زيت، كاملة، جزئية، دفعها غيري. وزر «فلترة» يفتح ورقة سفلية فيها: النوع، التعبئة، الفترة (هذا الشهر، 3 أشهر، السنة، الكل)، الحساب، من دفع، مدى التكلفة، والترتيب (الأحدث، الأقدم، الأعلى تكلفة، الأفضل استهلاكًا). الزر يعرض النتيجة مباشرة «عرض 9 عمليات»، والفلاتر المفعّلة تظهر كبسولات تنشال بـ×.</li>
+    <li><b>التفاصيل تنسدل تحت العملية:</b> المسافة من التعبئة السابقة (شريط من العداد إلى العداد)، الاستهلاك ومقارنته بمتوسطك (أخضر أفضل، أحمر أسوأ)، سعر اللتر، تكلفة الكيلو لهذي الفترة، كم يوم من التعبئة السابقة، الحساب أو من دفعها. ولتغيير الزيت: المقطوع من التغيير السابق والباقي للتغيير الجاي.</li>
+    <li><b>أزرار جديدة:</b> «تعديل» و«حذف» داخل التفاصيل (مع تراجع). اليوم ما فيه تعديل أو حذف للسجل أصلًا، فتنضاف <code>updateFuelLog</code>/<code>deleteFuelLog</code> و<code>updateOilChange</code>/<code>deleteOilChange</code> مع الحركة المالية المرتبطة.</li>
+    <li><b>عملية وحدة مفتوحة بالمرة:</b> فتح عملية يقفل اللي قبلها، والحركة <code>grid-template-rows</code> بـ<code>ease-out-expo</code> بدون قفز للمحتوى.</li>
+    <li><b>المنطق:</b> <code>lib/vehicleLog.ts</code> (تجميع بالشهر، الفلترة، الترتيب، تفاصيل كل عملية) مع اختبارات، ويعيد استخدام <code>computeFuelGaps</code> الموجود.</li>
+  </ul>
+  <h3>الفرق بين الاقتراحات</h3>
+  <ul>
+    <li><b>١ أشهر برؤوس:</b> الأقرب للتطبيق الحالي. رأس كل شهر يلصق فوق وأنت تمرر، وتحته بطاقة العمليات.</li>
+    <li><b>٢ خط زمني:</b> العمليات على خط عمودي، وبين كل تعبئتين المسافة المقطوعة والأيام. فوقه شريط أشهر أفقي، الضغط على شهر يوصلك له.</li>
+    <li><b>٣ بطاقات تنطوي:</b> كل شهر بطاقة ملخّص فيها سبارك الاستهلاك، مطوية ما عدا الشهر الحالي. الضغط يفتح عملياته، والضغط على عملية يفتح تفاصيلها (طبقتين انسدال).</li>
+  </ul>
+  <div class="q"><b style="color:var(--text)">رقم الإصدار عند التطبيق:</b> تعديل على ميزة موجودة مع إضافة تعديل وحذف للسجل، فالمقترح <span class="num">3.3.0</span>.</div>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s)
+const $$ = (s, r = document) => [...r.querySelectorAll(s)]
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const fmt = (n, d = 0) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+const fmt1 = n => n.toLocaleString('en-US', { maximumFractionDigits: 1 })
+const fmt2 = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5)
+const dDay = d => `${Number(d.slice(8, 10))} ${MONTHS[+d.slice(5, 7) - 1]}`
+
+const FUEL_ICO = '<svg class="i" width="19" height="19" viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3M7 8h5"/></svg>'
+const OIL_ICO = '<svg class="i" width="19" height="19" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>'
+const CHEV = '<svg class="i chev" width="16" height="16" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="m6 9 6 6 6-6"/></svg>'
+
+// السجل (الأحدث من الصورة + أشهر قبلها كأمثلة)
+const fuel = [
+  ['2026-11-04', 140530, 34.05, 68, true, 'الراجحي'],
+  ['2026-11-01', 140200, 28.53, 63, true, 'الراجحي'],
+  ['2026-10-30', 139866, 29.22, 64, true, 'بطاقة الوقود'],
+  ['2026-10-27', 139549, 34.25, 75, true, 'بطاقة الوقود'],
+  ['2026-10-20', 139189, 32.52, 71, true, 'الراجحي'],
+  ['2026-10-14', 138848, 30.6, 67, true, 'الراجحي'],
+  ['2026-10-13', 138764, 11.42, 25, false, 'الراجحي'],
+  ['2026-10-04', 138013, 30.6, 67, true, 'بطاقة الوقود'],
+  ['2026-10-02', 137676, 21, 46, false, null, 'عبدالله'],
+  ['2026-09-26', 137433, 32.1, 70, true, 'بطاقة الوقود'],
+  ['2026-09-18', 137090, 30.1, 66, true, 'الراجحي'],
+  ['2026-09-09', 136760, 33.2, 72, true, null, 'عبدالله'],
+  ['2026-09-01', 136420, 29.5, 64, true, 'الراجحي'],
+  ['2026-08-24', 136090, 31.4, 68, true, 'الراجحي'],
+  ['2026-08-15', 135740, 30.2, 66, true, 'بطاقة الوقود'],
+].map(([date, odo, liters, cost, full, account, payer], i) => ({ id: 'f' + i, kind: 'fuel', date, odo, liters, cost, full, account, payer }))
+const oil = [
+  { id: 'o1', kind: 'oil', date: '2026-10-10', odo: 138700, cost: 100, account: 'الراجحي' },
+  { id: 'o2', kind: 'oil', date: '2026-07-05', odo: 133700, cost: 95, account: 'الراجحي' },
+]
+const OIL_INTERVAL = 5000
+let entries = [...fuel, ...oil]
+
+// اشتقاق تفاصيل كل عملية (نفس منطق computeFuelGaps: المسافة من التعبئة السابقة، والاستهلاك لما تكون التعبئتان كاملتين)
+function derive() {
+  const fs = entries.filter(e => e.kind === 'fuel').sort((a, b) => a.odo - b.odo)
+  fs.forEach((f, i) => {
+    const p = fs[i - 1]
+    f.prev = p || null
+    f.driven = p ? f.odo - p.odo : null
+    f.days = p ? daysBetween(p.date, f.date) : null
+    f.kpl = p && p.full && f.full ? f.driven / f.liters : null
+    f.ppl = f.cost / f.liters
+    f.cpk = f.driven ? f.cost / f.driven : null
+  })
+  const valid = fs.filter(f => f.kpl)
+  avgKpl = valid.reduce((s, f) => s + f.kpl, 0) / (valid.length || 1)
+  const os = entries.filter(e => e.kind === 'oil').sort((a, b) => a.odo - b.odo)
+  const lastOdo = Math.max(...entries.map(e => e.odo))
+  os.forEach((o, i) => { o.since = os[i - 1] ? o.odo - os[i - 1].odo : null; o.nextAt = o.odo + OIL_INTERVAL; o.isLast = i === os.length - 1; o.left = o.nextAt - lastOdo })
+}
+let avgKpl = 0
+
+/* ===== الفلاتر ===== */
+const DEF = { type: 'all', fill: 'all', period: 'all', account: 'all', payer: 'all', sort: 'new' }
+let F = { ...DEF }, draft = { ...DEF }
+const OPTS = {
+  type: [['all', 'الكل'], ['fuel', 'وقود'], ['oil', 'زيت']],
+  fill: [['all', 'الكل'], ['full', 'كاملة'], ['partial', 'جزئية']],
+  period: [['all', 'الكل'], ['month', 'هذا الشهر'], ['3m', 'آخر 3 أشهر'], ['year', 'هذه السنة']],
+  account: [['all', 'كل الحسابات'], ['الراجحي', 'الراجحي'], ['بطاقة الوقود', 'بطاقة الوقود']],
+  payer: [['all', 'الكل'], ['me', 'أنا'], ['others', 'دفعها غيري']],
+  sort: [['new', 'الأحدث'], ['old', 'الأقدم'], ['cost', 'الأعلى تكلفة'], ['kpl', 'الأفضل استهلاكًا']],
+}
+const QUICK = [['all', 'الكل'], ['fuel', 'وقود'], ['oil', 'زيت'], ['full', 'كاملة'], ['partial', 'جزئية'], ['others', 'دفعها غيري']]
+function quickKey() {
+  const nonDefault = Object.keys(F).filter(k => k !== 'sort' && F[k] !== DEF[k])
+  if (nonDefault.length === 0) return 'all'
+  if (nonDefault.length === 1) {
+    const k = nonDefault[0]
+    if (k === 'type') return F.type
+    if (k === 'fill') return F.fill
+    if (k === 'payer' && F.payer === 'others') return 'others'
+  }
+  if (nonDefault.length === 2 && F.type === 'fuel' && F.fill !== 'all') return F.fill
+  return null
+}
+function setQuick(k) {
+  F = { ...DEF, sort: F.sort }
+  if (k === 'fuel' || k === 'oil') F.type = k
+  if (k === 'full' || k === 'partial') { F.type = 'fuel'; F.fill = k }
+  if (k === 'others') { F.type = 'fuel'; F.payer = 'others' }
+}
+function apply(f, list = entries) {
+  const today = '2026-11-04'
+  let out = list.filter(e => {
+    if (f.type !== 'all' && e.kind !== f.type) return false
+    if (f.fill !== 'all' && (e.kind !== 'fuel' || (f.fill === 'full') !== e.full)) return false
+    if (f.period === 'month' && !e.date.startsWith(today.slice(0, 7))) return false
+    if (f.period === '3m' && daysBetween(e.date, today) > 92) return false
+    if (f.period === 'year' && !e.date.startsWith('2026')) return false
+    if (f.account !== 'all' && e.account !== f.account) return false
+    if (f.payer === 'me' && e.payer) return false
+    if (f.payer === 'others' && !e.payer) return false
+    return true
+  })
+  const by = { new: (a, b) => b.date.localeCompare(a.date) || b.odo - a.odo, old: (a, b) => a.date.localeCompare(b.date) || a.odo - b.odo, cost: (a, b) => (b.cost || 0) - (a.cost || 0), kpl: (a, b) => (b.kpl || 0) - (a.kpl || 0) }
+  return out.sort(by[f.sort])
+}
+const label = (k, v) => OPTS[k].find(o => o[0] === v)?.[1]
+
+/* ===== التفاصيل المنسدلة (مشتركة) ===== */
+let openId = null
+function details(e) {
+  if (e.kind === 'oil') {
+    const pct = Math.min(100, Math.max(0, (1 - e.left / OIL_INTERVAL) * 100))
+    return `
+      <div class="dgrid">
+        <div class="dtile"><div class="k">العداد</div><div class="v">${fmt(e.odo)}<small>كم</small></div></div>
+        <div class="dtile"><div class="k">من التغيير السابق</div><div class="v">${e.since ? fmt(e.since) : '—'}<small>${e.since ? 'كم' : ''}</small></div></div>
+        <div class="dtile"><div class="k">التكلفة</div><div class="v">${fmt(e.cost)}<small>ر.س</small></div></div>
+      </div>
+      ${e.isLast ? `<div class="seg-bar"><div class="ends"><span>${fmt(e.odo)}</span><span>${fmt(e.nextAt)}</span></div><div class="track"><i style="width:${pct}%;background:${e.left < 500 ? 'var(--sub)' : 'var(--vehicle)'}"></i></div><div class="mid">باقي <b class="num" style="color:var(--text)">${fmt(Math.max(0, e.left))}</b> كم على التغيير الجاي</div></div>` : ''}
+      <div class="meta"><span>${dDay(e.date)} <span class="num">${e.date.slice(0, 4)}</span></span><span>${e.account}</span></div>
+      <div class="acts"><button class="press" data-edit="${e.id}"><svg class="i" width="15" height="15" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>تعديل</button><button class="press del" data-del="${e.id}"><svg class="i" width="15" height="15" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>حذف</button></div>`
+  }
+  const diff = e.kpl ? (e.kpl - avgKpl) / avgKpl * 100 : null
+  const prevOdo = e.prev ? e.prev.odo : null
+  return `
+    <div class="dgrid">
+      <div class="dtile"><div class="k">الاستهلاك</div><div class="v" style="color:${e.kpl ? 'var(--text)' : 'var(--text-3)'}">${e.kpl ? fmt1(e.kpl) : '—'}<small>${e.kpl ? 'كم/لتر' : ''}</small></div></div>
+      <div class="dtile"><div class="k">سعر اللتر</div><div class="v">${fmt2(e.ppl)}<small>ر.س</small></div></div>
+      <div class="dtile"><div class="k">تكلفة الكيلو</div><div class="v">${e.cpk ? fmt2(e.cpk) : '—'}<small>${e.cpk ? 'ر.س' : ''}</small></div></div>
+      <div class="dtile"><div class="k">اللترات</div><div class="v">${fmt2(e.liters)}<small>لتر</small></div></div>
+      <div class="dtile"><div class="k">العداد</div><div class="v">${fmt(e.odo)}<small>كم</small></div></div>
+      <div class="dtile"><div class="k">من آخر تعبئة</div><div class="v">${e.days ?? '—'}<small>${e.days === null ? '' : e.days === 1 ? 'يوم' : e.days === 2 ? 'يومين' : 'أيام'}</small></div></div>
+    </div>
+    ${prevOdo ? `<div class="seg-bar"><div class="ends"><span>${fmt(prevOdo)} كم</span><span>${fmt(e.odo)} كم</span></div><div class="track"><i style="width:100%"></i></div><div class="mid">قطعت <b class="num" style="color:var(--text)">${fmt(e.driven)}</b> كم من التعبئة السابقة${e.prev && !e.prev.full ? ' (كانت جزئية)' : ''}</div></div>` : ''}
+    ${diff !== null ? `<div class="cmp"><span class="pill" style="background:color-mix(in srgb,${diff >= 0 ? 'var(--income)' : 'var(--expense)'} 15%,transparent);color:${diff >= 0 ? 'var(--income)' : 'var(--expense)'}" dir="ltr">${diff >= 0 ? '▲' : '▼'} ${fmt1(Math.abs(diff))}%</span>${diff >= 0 ? 'أفضل' : 'أسوأ'} من متوسطك <b class="num" style="color:var(--text)">${fmt1(avgKpl)}</b> كم/لتر</div>` : `<div class="cmp" style="color:var(--text-3)">الاستهلاك يُحسب بين تعبئتين كاملتين فقط</div>`}
+    <div class="meta"><span>${dDay(e.date)} <span class="num">${e.date.slice(0, 4)}</span></span>${e.full ? '<span style="color:var(--fuel)">تعبئة كاملة</span>' : '<span>تعبئة جزئية</span>'}${e.payer ? `<span style="color:var(--owed-to)">دفعها ${e.payer} · مساهمة</span>` : `<span>${e.account}</span>`}</div>
+    <div class="acts"><button class="press" data-edit="${e.id}"><svg class="i" width="15" height="15" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>تعديل</button><button class="press del" data-del="${e.id}"><svg class="i" width="15" height="15" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>حذف</button></div>`
+}
+function entryHTML(e) {
+  const isFuel = e.kind === 'fuel'
+  const sub = isFuel
+    ? `${dDay(e.date)} · ${e.driven ? `${fmt(e.driven)} كم` : `${fmt(e.odo)} كم`}${e.kpl ? ` · ${fmt1(e.kpl)} كم/ل` : ''}`
+    : `${dDay(e.date)} · ${fmt(e.odo)} كم`
+  return `<div class="entry ${openId === e.id ? 'open' : ''}" data-id="${e.id}">
+    <button class="row" data-toggle="${e.id}" aria-expanded="${openId === e.id}">
+      <span class="ico ${isFuel ? 'soft-f' : 'soft-v'}">${isFuel ? FUEL_ICO : OIL_ICO}</span>
+      <span class="t"><b>${isFuel ? 'تعبئة وقود' : 'تغيير زيت'}${isFuel && e.full ? '<span class="badge soft-f">كاملة</span>' : ''}${isFuel && e.payer ? '<span class="badge" style="background:color-mix(in srgb,var(--owed-to) 15%,transparent);color:var(--owed-to)">مساهمة</span>' : ''}</b><small>${sub}</small></span>
+      <span class="e"><div class="a">${fmt(e.cost)}<span class="sar">ر.س</span></div>${isFuel ? `<div class="l">${fmt2(e.liters)} لتر</div>` : ''}</span>
+      ${CHEV}
+    </button>
+    <div class="drawer"><div><div class="det">${details(e)}</div></div></div>
+  </div>`
+}
+
+/* ===== تجميع بالشهر ===== */
+function months(list) {
+  const map = new Map()
+  for (const e of list) { const k = e.date.slice(0, 7); if (!map.has(k)) map.set(k, []); map.get(k).push(e) }
+  return [...map.entries()].map(([k, items]) => {
+    const fuelItems = items.filter(e => e.kind === 'fuel')
+    const kpls = fuelItems.filter(e => e.kpl)
+    return {
+      key: k, name: `${MONTHS[+k.slice(5, 7) - 1]} ${k.slice(0, 4)}`, short: MONTHS[+k.slice(5, 7) - 1], items,
+      cost: items.reduce((s, e) => s + (e.cost || 0), 0),
+      liters: fuelItems.reduce((s, e) => s + e.liters, 0),
+      km: fuelItems.reduce((s, e) => s + (e.driven || 0), 0),
+      kpl: kpls.length ? kpls.reduce((s, e) => s + e.kpl, 0) / kpls.length : null,
+      kplSeries: fuelItems.slice().sort((a, b) => a.odo - b.odo).filter(e => e.kpl).map(e => e.kpl),
+      count: items.length,
+    }
+  })
+}
+const sortIsDate = () => F.sort === 'new' || F.sort === 'old'
+
+/* ===== ١ أشهر برؤوس ثابتة ===== */
+function renderV1(list) {
+  if (!sortIsDate()) return `<div class="card">${list.map(entryHTML).join('')}</div>`
+  return months(list).map(m => `
+    <div class="mhead"><div class="r1"><b>${m.name}</b><span>${fmt(m.cost)}<span class="sar">ر.س</span></span></div>
+      <div class="r2"><span>${m.count === 1 ? 'عملية' : m.count === 2 ? 'عمليتين' : `<b>${m.count}</b> عمليات`}</span>${m.liters ? `<span><b>${fmt(m.liters, 1)}</b> لتر</span>` : ''}${m.km ? `<span><b>${fmt(m.km)}</b> كم</span>` : ''}${m.kpl ? `<span>متوسط <b>${fmt1(m.kpl)}</b> كم/لتر</span>` : ''}</div></div>
+    <div class="card">${m.items.map(entryHTML).join('')}</div>`).join('')
+}
+
+/* ===== ٢ خط زمني ===== */
+let railPick = null
+function renderV2(list) {
+  const ms = months(list)
+  const maxCost = Math.max(...ms.map(m => m.cost), 1)
+  const rail = `<div class="sumrail">${ms.map(m => `<button class="press ${railPick === m.key ? 'on' : ''}" data-jump="${m.key}"><div class="m">${m.short}</div><div class="v num">${fmt(m.cost)}<span class="sar">ر.س</span></div><div class="s">${m.kpl ? `${fmt1(m.kpl)} كم/لتر` : `${m.count} عمليات`}</div><div class="bar"><i style="width:${m.cost / maxCost * 100}%"></i></div></button>`).join('')}</div>`
+  if (!sortIsDate()) return rail + `<div class="card">${list.map(entryHTML).join('')}</div>`
+  return rail + `<div class="tl">${ms.map(m => `
+    <div class="tl-month" id="m-${m.key}"><b>${m.name}</b><span><b>${fmt(m.cost)}</b> ر.س · ${m.km ? `<b>${fmt(m.km)}</b> كم` : `${m.count} عمليات`}</span></div>
+    ${m.items.map((e, i) => {
+      const next = m.items[i + 1]
+      const gap = next && e.kind === 'fuel' && e.driven && sortIsDate() && F.sort === 'new' ? `<div class="tl-gap">↑ ${fmt(e.driven)} كم · ${e.days === 1 ? 'يوم' : e.days === 2 ? 'يومين' : e.days + ' أيام'}</div>` : ''
+      return `<div class="tl-item" style="--c:${e.kind === 'fuel' ? 'var(--fuel)' : 'var(--vehicle)'}"><div class="card">${entryHTML(e)}</div></div>${gap}`
+    }).join('')}`).join('')}</div>`
+}
+
+/* ===== ٣ بطاقات شهرية تنطوي ===== */
+let openMonths = new Set(['2026-11'])
+function spark(series) {
+  if (series.length < 2) return '<div style="height:100%;display:flex;align-items:center;font-size:10.5px;color:var(--text-3)">تحتاج تعبئتين كاملتين للمنحنى</div>'
+  const mn = Math.min(...series) - .3, mx = Math.max(...series) + .3
+  const pts = series.map((v, i) => [i / (series.length - 1) * 340, 30 - (v - mn) / (mx - mn) * 26])
+  const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
+  return `<svg viewBox="0 0 340 34" preserveAspectRatio="none" dir="ltr"><path d="${d}" fill="none" stroke="var(--fuel)" stroke-width="2" stroke-linecap="round"/>${pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="var(--fuel)"/>`).join('')}</svg>`
+}
+function renderV3(list) {
+  if (!sortIsDate()) return `<div class="card">${list.map(entryHTML).join('')}</div>`
+  return months(list).map(m => `
+    <div class="mcard ${openMonths.has(m.key) ? 'open' : ''}">
+      <button class="mtop" data-month="${m.key}">
+        <div class="l1"><span style="display:flex;align-items:baseline;gap:6px"><b>${m.name}</b><span class="n" style="margin:0">${m.count === 1 ? 'عملية' : m.count === 2 ? 'عمليتين' : m.count + ' عمليات'}</span></span><svg class="i mchev" width="16" height="16" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="m6 9 6 6 6-6"/></svg></div>
+        <div class="kp"><div>التكلفة<b>${fmt(m.cost)}</b></div><div>لترات<b>${m.liters ? fmt(m.liters, 1) : '—'}</b></div><div>مسافة<b>${m.km ? fmt(m.km) : '—'}</b></div><div>كم/لتر<b>${m.kpl ? fmt1(m.kpl) : '—'}</b></div></div>
+        <div class="spark">${spark(m.kplSeries)}</div>
+      </button>
+      <div class="body"><div><div class="inner">${m.items.map(entryHTML).join('')}</div></div></div>
+    </div>`).join('')
+}
+
+/* ===== العرض ===== */
+let option = 1
+const DESC = {
+  1: '<b>أشهر برؤوس ثابتة.</b> الأقرب للحالي: رأس كل شهر بمجاميعه يلصق فوق وأنت تمرر، والضغط على أي عملية يفتح تفاصيلها تحتها.',
+  2: '<b>خط زمني.</b> شريط أشهر فوق (يقفز للشهر)، والعمليات على خط عمودي وبين كل تعبئتين المسافة والأيام.',
+  3: '<b>بطاقات تنطوي.</b> كل شهر بطاقة ملخّص مع منحنى الاستهلاك، مطوية ما عدا الحالي. طبقتين: الشهر ثم العملية.',
+}
+function render() {
+  derive()
+  $('#sFuel').innerHTML = fmt(entries.filter(e => e.kind === 'fuel').reduce((s, e) => s + e.cost, 0)) + '<span class="sar">ر.س</span>'
+  $('#sOil').innerHTML = fmt(entries.filter(e => e.kind === 'oil').reduce((s, e) => s + e.cost, 0)) + '<span class="sar">ر.س</span>'
+  const q = quickKey()
+  $('#quick').innerHTML = QUICK.map(([k, l]) => `<button class="press ${q === k ? 'on' : ''}" data-q="${k}">${l}</button>`).join('')
+  const adv = ['period', 'account', 'payer', 'sort'].filter(k => F[k] !== DEF[k] && !(k === 'payer' && q === 'others'))
+  $('#fDot').style.display = adv.length ? '' : 'none'
+  $('#openFilter').classList.toggle('on', adv.length > 0)
+  $('#activeF').innerHTML = adv.length ? adv.map(k => `<span>${label(k, F[k])}<button data-x="${k}"><svg class="i" width="10" height="10" viewBox="0 0 24 24" style="stroke-width:3"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>`).join('') + '<button class="clear" data-x="all">مسح الكل</button>' : ''
+  const list = apply(F)
+  $('#list').innerHTML = list.length ? (option === 1 ? renderV1(list) : option === 2 ? renderV2(list) : renderV3(list)) : '<div class="empty">ما فيه عمليات تطابق الفلترة</div>'
+  $('#optDesc').innerHTML = DESC[option]
+}
+
+/* ===== التفاعل ===== */
+$('#optSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; option = +b.dataset.o; $$('#optSeg button').forEach(x => x.classList.toggle('on', x === b)); openId = null; render(); $('#scroll').scrollTo({ top: 0 }) })
+$('#phone').addEventListener('click', e => {
+  const t = e.target.closest('[data-toggle]')
+  if (t) {
+    const id = t.dataset.toggle
+    const was = openId
+    openId = openId === id ? null : id
+    // تبديل بدون إعادة رسم حتى تشتغل الحركة: افتح الجديد واقفل القديم
+    $$('.entry').forEach(el => { const on = el.dataset.id === openId; el.classList.toggle('open', on); el.querySelector('[data-toggle]').setAttribute('aria-expanded', on) })
+    if (openId && openId !== was) setTimeout(() => { const el = $(`.entry[data-id="${openId}"]`); const sc = $('#scroll'); const r = el.getBoundingClientRect(), pr = sc.getBoundingClientRect(); if (r.bottom > pr.bottom - 10) sc.scrollBy({ top: r.bottom - pr.bottom + 24, behavior: 'smooth' }) }, 380)
+    return
+  }
+  const m = e.target.closest('[data-month]')
+  if (m) { const k = m.dataset.month; openMonths.has(k) ? openMonths.delete(k) : openMonths.add(k); m.parentElement.classList.toggle('open'); return }
+  const j = e.target.closest('[data-jump]')
+  if (j) { railPick = j.dataset.jump; $$('.sumrail button').forEach(b => b.classList.toggle('on', b === j)); const el = $('#m-' + railPick); if (el) $('#scroll').scrollTo({ top: el.offsetTop - 60, behavior: 'smooth' }); return }
+  const qb = e.target.closest('[data-q]')
+  if (qb) { setQuick(qb.dataset.q); openId = null; render(); return }
+  const x = e.target.closest('[data-x]')
+  if (x) { if (x.dataset.x === 'all') F = { ...DEF } ; else F[x.dataset.x] = DEF[x.dataset.x]; render(); return }
+  const d = e.target.closest('[data-del]')
+  if (d) { const id = d.dataset.del; const removed = entries.find(en => en.id === id); entries = entries.filter(en => en.id !== id); openId = null; render(); toast('حُذفت العملية', () => { entries.push(removed); render() }); return }
+  const ed = e.target.closest('[data-edit]')
+  if (ed) { toast('يفتح شاشة التعديل بلوحة الأرقام', null); return }
+})
+let tT, undoFn
+function toast(t, undo) { $('#islandTxt').textContent = t; undoFn = undo; $('#undoBtn').style.display = undo ? '' : 'none'; $('#island').classList.add('on'); clearTimeout(tT); tT = setTimeout(() => $('#island').classList.remove('on'), 3000) }
+$('#undoBtn').onclick = () => { if (undoFn) undoFn(); $('#island').classList.remove('on') }
+
+// ورقة الفلترة
+function renderSheet() {
+  $$('.sheet .opts').forEach(box => { const k = box.dataset.k; box.innerHTML = OPTS[k].map(([v, l]) => `<button class="press ${draft[k] === v ? 'on' : ''}" data-v="${v}">${l}</button>`).join('') })
+  $$('.sheet .opts[data-k="fill"] button').forEach(b => b.style.opacity = draft.type === 'oil' ? .35 : 1)
+  const n = apply(draft).length
+  $('#applyF').textContent = !n ? 'ما فيه نتائج' : n === 1 ? 'عرض عملية وحدة' : n === 2 ? 'عرض عمليتين' : `عرض ${n} ${n <= 10 ? 'عمليات' : 'عملية'}`
+}
+$('#openFilter').onclick = () => { draft = { ...F }; renderSheet(); $('#shade').classList.add('on'); $('#sheet').classList.add('on') }
+const closeSheet = () => { $('#shade').classList.remove('on'); $('#sheet').classList.remove('on') }
+$('#shade').onclick = closeSheet
+$('.sheet .content').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; const k = b.parentElement.dataset.k; draft[k] = b.dataset.v; if (k === 'type' && b.dataset.v === 'oil') draft.fill = 'all'; renderSheet() })
+$('#resetF').onclick = () => { draft = { ...DEF }; renderSheet() }
+$('#applyF').onclick = () => { F = { ...draft }; openId = null; closeSheet(); render() }
+
+render()
+</script>
+</body>
+</html>

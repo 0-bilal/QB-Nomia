@@ -10,6 +10,9 @@ import { ACCOUNT_ICON_BG, ACCOUNT_ICON_COLOR, ACCOUNT_TYPE_LABELS, AccountTypeIc
 import { formatMoney } from '../lib/format'
 import { colorFor } from '../components/Avatar'
 import { ContributorPicker } from '../components/ContributorPicker'
+import { DatePicker } from '../components/DatePicker'
+import { localIso } from '../lib/homeFeed'
+import { notify } from '../lib/notify'
 
 type FieldKey = 'odometer' | 'liters' | 'cost'
 
@@ -20,19 +23,25 @@ type FieldKey = 'odometer' | 'liters' | 'cost'
  */
 export function LogVehicleScreen() {
   const navigate = useNavigate()
-  const { type: rawType } = useParams<{ type: string }>()
+  const { type: rawType, id } = useParams<{ type: string; id?: string }>()
   const type: 'oil' | 'fuel' = rawType === 'fuel' ? 'fuel' : 'oil'
-  const { accounts, people, vehicleOdometerKm, logOilChange, logFuel } = useData()
+  const { accounts, people, vehicleOdometerKm, logOilChange, logFuel, updateOilChange, updateFuelLog, fuelLogs, oilChanges } = useData()
+  // تعديل عملية مسجّلة (من سجل العمليات): نفس الشاشة معبّأة بقيمها.
+  const existingFuel = type === 'fuel' && id ? fuelLogs.find((f) => f.id === id) : undefined
+  const existingOil = type === 'oil' && id ? oilChanges.find((o) => o.id === id) : undefined
+  const existing = existingFuel ?? existingOil
+  const num = (n: number | undefined) => (n === undefined ? '' : String(n))
 
-  const [odometerKm, setOdometerKm] = useState(vehicleOdometerKm !== null ? String(vehicleOdometerKm) : '')
-  const [liters, setLiters] = useState('')
-  const [cost, setCost] = useState('')
-  const [isFullTank, setIsFullTank] = useState(true)
+  const [odometerKm, setOdometerKm] = useState(existing ? String(existing.odometerKm) : vehicleOdometerKm !== null ? String(vehicleOdometerKm) : '')
+  const [liters, setLiters] = useState(num(existingFuel?.liters))
+  const [cost, setCost] = useState(num(existing?.cost))
+  const [isFullTank, setIsFullTank] = useState(existingFuel?.isFullTank ?? true)
+  const [date, setDate] = useState(existing?.date ?? localIso(new Date()))
   const [activeField, setActiveField] = useState<FieldKey>('odometer')
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
+  const [accountId, setAccountId] = useState(existing?.accountId ?? accounts[0]?.id ?? '')
   const [accountSheetOpen, setAccountSheetOpen] = useState(false)
   // تعبئة دفعها شخص آخر (مساهمة): التكلفة تُحفظ بدون خصم من أي حساب.
-  const [paidBy, setPaidBy] = useState<string | null>(null)
+  const [paidBy, setPaidBy] = useState<string | null>(existingFuel?.paidByPersonId ?? null)
   const payer = type === 'fuel' && paidBy ? people.find((p) => p.id === paidBy) : undefined
 
   const numericOdometer = Number(odometerKm)
@@ -45,18 +54,34 @@ export function LogVehicleScreen() {
   function handleSave() {
     if (!canSave) return
     if (type === 'oil') {
-      logOilChange({ odometerKm: numericOdometer, cost: hasCost ? numericCost : undefined, accountId: hasCost ? accountId : undefined })
+      const input = { odometerKm: numericOdometer, cost: hasCost ? numericCost : undefined, accountId: hasCost ? accountId : undefined, date }
+      if (existingOil) updateOilChange(existingOil.id, input)
+      else logOilChange(input)
     } else {
-      logFuel({
+      const input = {
         odometerKm: numericOdometer,
         liters: numericLiters,
         isFullTank,
         cost: hasCost ? numericCost : undefined,
         accountId: hasCost && !payer ? accountId : undefined,
         paidByPersonId: hasCost && payer ? payer.id : undefined,
-      })
+        date,
+      }
+      if (existingFuel) updateFuelLog(existingFuel.id, input)
+      else logFuel(input)
     }
-    navigate('/vehicle', { replace: true })
+    if (existing) {
+      notify('success', 'تم حفظ التعديل')
+      navigate(-1)
+    } else navigate('/vehicle', { replace: true })
+  }
+
+  if (id && !existing) {
+    return (
+      <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} />}>
+        <div className="qb-card px-6 py-10 text-center text-[13px] text-[var(--color-text-3)]">هذه العملية غير موجودة</div>
+      </ScreenScroll>
+    )
   }
 
   const fields: { key: FieldKey; label: string; value: string; unit: string | null }[] = [
@@ -73,7 +98,14 @@ export function LogVehicleScreen() {
     <ScreenScroll
       largeTitle={false}
       contentClassName="px-5"
-      header={<ScreenHeader title={type === 'oil' ? 'تسجيل تغيير الزيت' : 'تسجيل تعبئة وقود'} onBack={() => navigate(-1)} cancelLabel="إلغاء" className="pt-8 pb-6" />}
+      header={
+        <ScreenHeader
+          title={existing ? (type === 'oil' ? 'تعديل تغيير الزيت' : 'تعديل تعبئة') : type === 'oil' ? 'تسجيل تغيير الزيت' : 'تسجيل تعبئة وقود'}
+          onBack={() => navigate(-1)}
+          cancelLabel="إلغاء"
+          className="pt-8 pb-6"
+        />
+      }
       footer={
         <FixedPadDock
           amount={activeValue}
@@ -81,9 +113,11 @@ export function LogVehicleScreen() {
           color="var(--color-vehicle)"
           canSave={canSave}
           onSave={handleSave}
-          saveLabel="تسجيل"
+          saveLabel={existing ? 'حفظ' : 'تسجيل'}
           chips={
-            type === 'fuel' ? (
+            <>
+            <DatePicker chip value={date} onChange={setDate} color="var(--color-vehicle)" />
+            {type === 'fuel' ? (
               <button
                 type="button"
                 role="switch"
@@ -104,7 +138,8 @@ export function LogVehicleScreen() {
                 </span>
                 تعبئة كاملة
               </button>
-            ) : undefined
+            ) : null}
+            </>
           }
         />
       }
