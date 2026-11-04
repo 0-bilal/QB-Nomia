@@ -11,7 +11,7 @@ const DIGITS = 4
 
 export function PinSetupScreen() {
   const auth = useAuth()
-  const { importSnapshot } = useData()
+  const { importSnapshot, exportSnapshot } = useData()
   const navigate = useNavigate()
   const [stage, setStage] = useState<'enter' | 'confirm'>('enter')
   const [firstPin, setFirstPin] = useState('')
@@ -37,7 +37,7 @@ export function PinSetupScreen() {
             navigate(isProfileOnboarded() ? '/' : '/welcome', { replace: true })
             // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
             // حالة السحب تظهر كشريط عائم أعلى الشاشة (IslandHost).
-            runBackgroundPull(importSnapshot)
+            runBackgroundPull(importSnapshot, exportSnapshot)
           })
         } else {
           setError(true)

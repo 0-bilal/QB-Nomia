@@ -8,6 +8,7 @@ import type { Commitment, CommitmentIntervalUnit } from '../types'
 import { SwipeableRow } from '../components/SwipeableRow'
 import { Badge, EmptyState, HeaderAddButton, HeroCard, HeroLabel, ListGroup, RingProgress, SectionTitle, TintButton } from '../components/ui'
 import { haptic } from '../lib/haptics'
+import { MONTHS_AR } from '../lib/txFilters'
 
 function daysUntil(dateStr: string): number {
   const today = new Date()
@@ -197,7 +198,6 @@ export function CommitmentsScreen() {
   )
 }
 
-const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 function RenewIcon() {
   return (

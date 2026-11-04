@@ -3,7 +3,8 @@ import { PREVIOUS_STRIPES } from './MonthSummary'
 import { CategoryIcon } from './CategoryIcons'
 import { formatAmount } from '../lib/format'
 import { categoryColor } from '../lib/categoryStats'
-import { MONTHS_AR, type MonthNote } from '../lib/reportInsights'
+import type { MonthNote } from '../lib/reportInsights'
+import { MONTHS_AR } from '../lib/txFilters'
 import type { CategorySpendRow, TrendPoint } from '../lib/reportData'
 
 function soft(color: string, pct = 15): string {

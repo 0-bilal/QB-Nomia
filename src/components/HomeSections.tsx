@@ -9,6 +9,7 @@ import { dayLabel, daysLeftLabel, groupByDay, type UpcomingItem, type UpcomingKi
 import { netOf } from '../lib/txFilters'
 import type { ActivityItem } from '../state/DataContext'
 import type { Category } from '../types'
+import { MONTHS_AR } from '../lib/txFilters'
 
 function soft(color: string, pct = 15): string {
   return `color-mix(in srgb, ${color} ${pct}%, transparent)`
@@ -65,7 +66,6 @@ const UPCOMING_META: Record<UpcomingKind, { label: string; color: string }> = {
   renewal: { label: 'برمجيات QB', color: 'var(--color-income)' },
 }
 
-const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 /** "القادم": المدفوعات والدخل المتوقع خلال الأيام القادمة بتاريخ واضح وكم يوم باقي. */
 export function UpcomingList({ items, hidden, onOpen }: { items: UpcomingItem[]; hidden: boolean; onOpen: (item: UpcomingItem) => void }) {
