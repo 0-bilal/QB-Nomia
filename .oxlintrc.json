@@ -3,6 +3,10 @@
   "plugins": ["react", "typescript", "oxc"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    // purity: كل حالاته قراءة مقصودة لتاريخ اليوم أثناء الرسم (new Date()) — تحويلها لحالة ثابتة يخلّي "اليوم" قديم بعد منتصف الليل.
+    "react/purity": "off",
+    // immutability: كل حالاته متغير مؤقت (requestAnimationFrame/setTimeout) معرّف داخل effect ويُلغى في التنظيف — نمط سليم.
+    "react/immutability": "off"
   }
 }

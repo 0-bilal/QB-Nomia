@@ -6,9 +6,10 @@ import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
 import { ProfileAvatar } from '../../components/ProfileAvatar'
 import { getProfile } from '../../lib/profile'
-import { configuredDigits, pinLockoutRemainingMs, pinLockoutTotalMs } from '../../lib/auth'
+import { configuredDigits } from '../../lib/auth'
+import { PinWaitHint } from '../../components/PinWaitHint'
+import { usePinLockout } from '../../hooks/usePinLockout'
 import { ForgotPinSheet } from '../../components/ForgotPinSheet'
-import { waitLabel } from '../../lib/forgotPin'
 import { runBackgroundPull } from '../../lib/autoSync'
 import { isBiometricEnabled, verifyBiometric } from '../../lib/biometric'
 import { APP_VERSION } from '../../lib/version'
@@ -33,33 +34,6 @@ function useClock(enabled: boolean): Date {
 
 type Stage = 'input' | 'success'
 
-/** مهلة الانتظار بعد المحاولات الخاطئة: حلقة تنقص مع العدّاد + النص. */
-function WaitHint({ remainingMs }: { remainingMs: number }) {
-  const total = Math.max(pinLockoutTotalMs(), remainingMs)
-  const c = 2 * Math.PI * 7
-  return (
-    <span className="inline-flex items-center gap-2 text-[var(--color-text-2)]">
-      <svg width="18" height="18" viewBox="0 0 18 18" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
-        <circle cx="9" cy="9" r="7" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-        <circle
-          cx="9"
-          cy="9"
-          r="7"
-          fill="none"
-          stroke="var(--color-subscription)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - remainingMs / total)}
-          style={{ transition: 'stroke-dashoffset 1s linear' }}
-        />
-      </svg>
-      <span>
-        محاولات كثيرة، حاول بعد <span className="num">{waitLabel(remainingMs)}</span>
-      </span>
-    </span>
-  )
-}
 
 
 function FingerprintIcon({ size = 30 }: { size?: number }) {
@@ -93,13 +67,7 @@ export function PinLoginScreen() {
   const now = useClock(showClock)
   const [forgetOpen, setForgetOpen] = useState(false)
   // مهلة الانتظار بعد محاولات خاطئة كثيرة — عدّاد يتحدّث كل ثانية لين تنتهي.
-  const [lockoutMs, setLockoutMs] = useState(() => pinLockoutRemainingMs())
-  useEffect(() => {
-    if (lockoutMs <= 0) return
-    const id = window.setTimeout(() => setLockoutMs(pinLockoutRemainingMs()), Math.min(1000, lockoutMs))
-    return () => window.clearTimeout(id)
-  }, [lockoutMs])
-  const lockedOut = lockoutMs > 0
+  const { remainingMs: lockoutMs, lockedOut, refresh: refreshLockout } = usePinLockout()
   // منحنى الرصيد (الشكل فقط بدون أرقام) لخلفية «منحنى الرصيد».
   const curve = useMemo(() => {
     if (background !== 'curve') return []
@@ -152,7 +120,7 @@ export function PinLoginScreen() {
         setTimeout(() => {
           setError(false)
           setValue('')
-          setLockoutMs(pinLockoutRemainingMs())
+          refreshLockout()
         }, 700)
       }
     }
@@ -195,7 +163,7 @@ export function PinLoginScreen() {
             {error
               ? 'رقم غير صحيح، حاول مرة أخرى'
               : lockedOut && padVisible
-                ? <WaitHint remainingMs={lockoutMs} />
+                ? <PinWaitHint remainingMs={lockoutMs} />
               : biometricError
                 ? 'تعذّر التحقق بالبصمة — جرّب مرة أخرى أو استخدم الرقم السري'
                 : biometricBusy

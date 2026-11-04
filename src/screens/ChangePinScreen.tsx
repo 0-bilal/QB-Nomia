@@ -4,6 +4,8 @@ import { PinPad } from '../components/PinPad'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { useAuth } from '../state/AuthContext'
 import { configuredDigits, verifyPin } from '../lib/auth'
+import { PinWaitHint } from '../components/PinWaitHint'
+import { usePinLockout } from '../hooks/usePinLockout'
 
 type Stage = 'verify' | 'enter' | 'confirm'
 
@@ -31,6 +33,9 @@ export function ChangePinScreen() {
   const [value, setValue] = useState('')
   const [error, setError] = useState(false)
   const [done, setDone] = useState(false)
+  // نفس مهلة الانتظار في شاشة القفل — تنطبق على خطوة التحقق من الرقم الحالي فقط.
+  const { remainingMs: lockoutMs, lockedOut: lockedOutAny, refresh: refreshLockout } = usePinLockout()
+  const lockedOut = stage === 'verify' && lockedOutAny
 
   function resetToStage(next: Stage, clearFirst = false) {
     setValue('')
@@ -43,11 +48,12 @@ export function ChangePinScreen() {
     setTimeout(() => {
       setError(false)
       setValue('')
+      refreshLockout()
     }, 900)
   }
 
   function handleDigit(d: string) {
-    if (error || done) return
+    if (error || done || lockedOut) return
     if (value.length >= digits) return
     const next = value + d
     setValue(next)
@@ -124,6 +130,8 @@ export function ChangePinScreen() {
                   ? stage === 'verify'
                     ? 'رقم غير صحيح، حاول مرة أخرى'
                     : 'الرقمان غير متطابقين، حاول مرة أخرى'
+                  : lockedOut
+                    ? <PinWaitHint remainingMs={lockoutMs} />
                   : stage === 'verify'
                     ? 'للتحقق من هويتك قبل التغيير'
                     : stage === 'enter'
@@ -132,7 +140,7 @@ export function ChangePinScreen() {
               </div>
             </div>
             <div className="mt-auto">
-              <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error} error={error} />
+              <PinPad digits={digits} value={value} onDigit={handleDigit} onBackspace={handleBackspace} disabled={error || lockedOut} error={error} dimKeys={lockedOut} />
             </div>
           </>
         )}
