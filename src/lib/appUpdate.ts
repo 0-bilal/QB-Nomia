@@ -4,7 +4,7 @@ import { forceAppUpdate } from './cache'
 
 /** نسخة الويب المنشورة — مصدر الحقيقة لأحدث إصدار (يُولَّد version.json مع كل بناء في vite.config.ts). */
 const PAGES_VERSION_URL = 'https://0-bilal.github.io/QB-Nomia/version.json'
-export const APK_URL = 'https://github.com/0-bilal/QB-Nomia/releases/latest/download/app-debug.apk'
+export const APK_URL = 'https://github.com/0-bilal/QB-Nomia/releases/latest/download/qb-nomia.apk'
 
 const UNLOCK_KEY = 'qbnomia.update.unlock'
 const DONE_KEY = 'qbnomia.update.done'

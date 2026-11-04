@@ -50,14 +50,49 @@ jobs:
           # الافتراضي "tools platform-tools"، وحزمة "tools" القديمة لم تعد موجودة بأدوات SDK الحديثة فيفشل sdkmanager.
           packages: platform-tools
 
-      - name: Build debug APK
+      # المفتاح يُحفظ بـ GitHub Secrets (base64) ويُفك لملف مؤقت خارج المستودع.
+      # بدون الأسرار يُبنى APK تجريبي (debug) كالسابق حتى ما يتوقف النشر.
+      - name: Decode signing keystore
+        id: ks
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 غير مضبوط — يُبنى APK تجريبي (debug) بمفتاح مؤقت، والتحديث فوق التطبيق المثبّت لن يعمل."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build signed release APK
+        if: steps.ks.outputs.signed == 'true'
+        working-directory: android
+        env:
+          QB_KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
+          QB_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          QB_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          QB_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../qb-nomia.apk
+
+      - name: Build debug APK (no signing secrets)
+        if: steps.ks.outputs.signed != 'true'
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../qb-nomia.apk
 
-      - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk app-debug.apk
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
+
+      # الإصدارات القديمة (3.4.0 وقبل) تنزّل التحديث من app-debug.apk — نرفع نفس الملف بالاسمين حتى ما ينكسر زر التحديث فيها.
+      - name: Prepare APK files
+        run: cp qb-nomia.apk app-debug.apk
 
       - name: Publish rolling release with APK
         uses: ncipollo/release-action@v1
@@ -65,10 +100,11 @@ jobs:
           tag: android-latest
           name: "QB-Nomia (أحدث بناء أندرويد)"
           body: |
-            آخر بناء تلقائي لتطبيق أندرويد (APK) من الفرع الرئيسي — بناء تجريبي (debug) للتثبيت اليدوي المباشر على الجهاز، غير منشور على Google Play.
+            آخر بناء تلقائي لتطبيق أندرويد (APK) من الفرع الرئيسي، للتثبيت اليدوي المباشر على الجهاز، غير منشور على Google Play.
+            ${{ steps.ks.outputs.signed == 'true' && 'موقّع بمفتاح ثابت: التحديث ينزل فوق التطبيق المثبّت.' || 'بناء تجريبي (debug) بمفتاح مؤقت.' }}
 
             الالتزام: ${{ github.sha }}
-          artifacts: app-debug.apk
+          artifacts: qb-nomia.apk,app-debug.apk
           allowUpdates: true
           replacesArtifacts: true
           removeArtifacts: true
