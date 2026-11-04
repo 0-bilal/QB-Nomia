@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
-import { formatMoney, formatDate } from '../lib/format'
+import { formatMoney } from '../lib/format'
 import { computeOilChangeStatus } from '../lib/vehicleMaintenance'
-import { computeFuelGaps, computeFuelStats, computeVehicleCostStats } from '../lib/fuelConsumption'
+import { computeFuelStats, computeVehicleCostStats } from '../lib/fuelConsumption'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { AmountPad } from '../components/AmountPad'
 import { SheetHandle } from '../components/SheetHandle'
-import type { FuelLog, OilChangeLog } from '../types'
-import { Badge, EmptyState, IconBubble, ListGroup, ListItem, RingProgress, SectionTitle, Segmented, StatTile } from '../components/ui'
+import { IconBubble, RingProgress, Segmented, StatTile } from '../components/ui'
 import { rise } from '../lib/motion'
+import { VehicleLogSection } from '../components/VehicleLogSection'
 
 function EditIcon() {
   return (
@@ -98,7 +98,6 @@ function CheckGlyph() {
 }
 
 type OperationType = 'oil' | 'fuel'
-type CombinedLogEntry = { kind: 'oil'; log: OilChangeLog } | { kind: 'fuel'; log: FuelLog }
 
 export function VehicleScreen() {
   const navigate = useNavigate()
@@ -112,8 +111,6 @@ export function VehicleScreen() {
     fuelTankCapacityL,
     setFuelTankCapacityL,
     fuelLogs,
-    accounts,
-    people,
   } = useData()
 
   const [activeType, setActiveType] = useState<OperationType>('oil')
@@ -126,12 +123,7 @@ export function VehicleScreen() {
 
   const fuelStats = computeFuelStats(fuelLogs, fuelTankCapacityL)
   const costStats = computeVehicleCostStats(fuelLogs, oilChanges)
-  const fuelGaps = computeFuelGaps(fuelLogs)
 
-  const combinedLogs: CombinedLogEntry[] = [
-    ...oilChanges.map((log): CombinedLogEntry => ({ kind: 'oil', log })),
-    ...fuelLogs.map((log): CombinedLogEntry => ({ kind: 'fuel', log })),
-  ].sort((a, b) => (a.log.date === b.log.date ? b.log.odometerKm - a.log.odometerKm : a.log.date < b.log.date ? 1 : -1))
 
   const vColor = 'var(--color-vehicle)'
   const oilColor = oil ? (oil.overdue ? 'var(--color-expense)' : oil.dueSoon ? 'var(--color-subscription)' : vColor) : vColor
@@ -342,46 +334,7 @@ export function VehicleScreen() {
         </div>
       )}
 
-      <SectionTitle title="سجل العمليات" />
-      {combinedLogs.length === 0 ? (
-        <EmptyState title="لا يوجد سجل بعد" desc="كل تغيير زيت أو تعبئة وقود تسجّلها تظهر هنا." />
-      ) : (
-        <ListGroup className="qb-rise">
-          {combinedLogs.map((entry, i) => {
-            const account = entry.log.accountId ? accounts.find((a) => a.id === entry.log.accountId) : undefined
-            const gap = entry.kind === 'fuel' ? fuelGaps.get(entry.log.id) : undefined
-            const c = entry.kind === 'oil' ? vColor : 'var(--color-fuel)'
-            const details = [
-              gap ? `قطعت ${Math.round(gap.drivenKm).toLocaleString('en-US')} كم` : '',
-              gap && gap.kmPerLiter !== null ? `${gap.kmPerLiter.toLocaleString('en-US', { maximumFractionDigits: 1 })} كم/لتر` : '',
-              entry.log.cost && account ? account.name : '',
-              entry.kind === 'fuel' && entry.log.paidByPersonId ? `دفعها ${people.find((p) => p.id === entry.log.paidByPersonId)?.name ?? 'شخص'}` : '',
-            ]
-              .filter(Boolean)
-              .join(' · ')
-            return (
-              <ListItem
-                key={`${entry.kind}-${entry.log.id}`}
-                divider={i > 0}
-                leading={<IconBubble color={c}>{entry.kind === 'oil' ? <CarIcon size={19} /> : <FuelIcon size={19} />}</IconBubble>}
-                title={
-                  <span className="flex items-center gap-2">
-                    {entry.kind === 'oil' ? 'تغيير زيت' : 'تعبئة وقود'}
-                    {entry.kind === 'fuel' && entry.log.isFullTank && <Badge color={c}>كاملة</Badge>}
-                  </span>
-                }
-                subtitle={`${formatDate(entry.log.date)} · ${entry.log.odometerKm.toLocaleString('en-US')} كم${details ? ` · ${details}` : ''}`}
-                trailing={
-                  <div className="flex flex-col items-end">
-                    {entry.log.cost ? <span className="num text-[14px] font-bold">{formatMoney(entry.log.cost)}</span> : null}
-                    {entry.kind === 'fuel' && <span className="num text-[11px] text-[var(--color-text-3)]">{entry.log.liters.toLocaleString('en-US')} لتر</span>}
-                  </div>
-                }
-              />
-            )
-          })}
-        </ListGroup>
-      )}
+      <VehicleLogSection />
     </ScreenScroll>
   )
 }

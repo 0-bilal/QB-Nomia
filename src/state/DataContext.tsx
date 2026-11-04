@@ -12,6 +12,7 @@ import { localIso } from '../lib/homeFeed'
 import { reconcileDiff } from '../lib/reconcile'
 import { monthLedger, type MonthLedger } from '../lib/monthLedger'
 import { BUSINESS_NAME, BUSINESS_SOURCE_ID, clientSchedule, daysBetween, daysWord } from '../lib/business'
+import { findLogTransaction } from '../lib/vehicleLog'
 import type {
   Account,
   BillingCycle,
@@ -380,11 +381,18 @@ interface DataContextValue {
   setVehicleOilIntervalKm: (km: number) => void
   vehicleOilBaselineKm: number | null
   oilChanges: OilChangeLog[]
-  logOilChange: (input: { odometerKm: number; cost?: number; accountId?: string }) => void
+  logOilChange: (input: OilChangeInput) => void
+  updateOilChange: (id: string, input: OilChangeInput) => void
+  /** يحذف تغيير الزيت وحركته المالية (يرجّع الرصيد) — يرجّع ما يلزم للتراجع. */
+  deleteOilChange: (id: string) => VehicleLogRemoval | null
   fuelTankCapacityL: number | null
   setFuelTankCapacityL: (liters: number) => void
   fuelLogs: FuelLog[]
-  logFuel: (input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string; paidByPersonId?: string }) => void
+  logFuel: (input: FuelLogInput) => void
+  updateFuelLog: (id: string, input: FuelLogInput) => void
+  /** يحذف التعبئة وحركتها المالية أو مساهمتها — يرجّع ما يلزم للتراجع. */
+  deleteFuelLog: (id: string) => VehicleLogRemoval | null
+  restoreVehicleLog: (removal: VehicleLogRemoval) => void
   salaryAdvances: SalaryAdvance[]
   logSalaryAdvance: (input: { amount: number; accountId: string }) => void
   updateSalaryAdvance: (id: string, input: { amount: number; accountId: string }) => void
@@ -492,6 +500,29 @@ interface DataContextValue {
   importSnapshot: (snapshot: DataSnapshot) => void
 }
 
+export interface OilChangeInput {
+  odometerKm: number
+  cost?: number
+  accountId?: string
+  /** افتراضيًا اليوم. */
+  date?: string
+}
+
+export interface FuelLogInput {
+  odometerKm: number
+  liters: number
+  isFullTank: boolean
+  cost?: number
+  accountId?: string
+  paidByPersonId?: string
+  date?: string
+}
+
+/** ما يُحذف مع عملية السيارة — لإرجاعها كما كانت بالتراجع. */
+export type VehicleLogRemoval =
+  | { kind: 'fuel'; log: FuelLog; transaction?: Transaction; contribution?: Contribution }
+  | { kind: 'oil'; log: OilChangeLog; transaction?: Transaction; baselineKm: number | null }
+
 export interface BusinessClientInput {
   name: string
   kind: BusinessClientKind
@@ -533,6 +564,39 @@ export interface DataSnapshot {
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
+
+/** مصروف عملية السيارة (زيت أو وقود دفعته أنت) — يرجّع السجل مربوطًا بحركته. */
+function addVehicleExpense<T extends FuelLog | OilChangeLog>(log: T, categoryId: string, note: string, txns: Transaction[], accs: Account[]) {
+  if (!log.cost || !log.accountId) return { log, transactions: txns, accounts: accs }
+  const txn: Transaction = { id: makeId(), type: 'expense', amount: log.cost, date: log.date, accountId: log.accountId, categoryId, note, createdAt: new Date().toISOString() }
+  return { log: { ...log, transactionId: txn.id }, transactions: [txn, ...txns], accounts: withTransactionEffect(accs, txn, 1) }
+}
+
+/** يشيل حركة العملية ويرجّع أثرها على الرصيد (السجلات القديمة بالمطابقة — findLogTransaction). */
+function removeVehicleExpense(log: FuelLog | OilChangeLog, categoryId: string, txns: Transaction[], accs: Account[]) {
+  const transaction = findLogTransaction(log, categoryId, txns)
+  if (!transaction) return { transactions: txns, accounts: accs, transaction: undefined }
+  return { transactions: txns.filter((t) => t.id !== transaction.id), accounts: withTransactionEffect(accs, transaction, -1), transaction }
+}
+
+/** أثر تعبئة الوقود: مصروف من حسابك، أو مساهمة لو دفعها غيرك (بدون أثر على الرصيد). */
+function addFuelEffects(base: FuelLog, input: FuelLogInput, txns: Transaction[], accs: Account[], contribs: Contribution[]) {
+  const paidByOther = !!input.paidByPersonId
+  const log: FuelLog = { ...base, accountId: paidByOther ? undefined : input.accountId, paidByPersonId: input.paidByPersonId }
+  if (paidByOther) {
+    if (!input.cost) return { log, transactions: txns, accounts: accs, contributions: contribs }
+    const c: Contribution = { id: makeId(), personId: input.paidByPersonId!, amount: input.cost, date: log.date, categoryId: 'cat-fuel', note: 'تعبئة وقود', createdAt: new Date().toISOString(), fuelLogId: log.id }
+    return { log, transactions: txns, accounts: accs, contributions: [c, ...contribs] }
+  }
+  const fx = addVehicleExpense(log, 'cat-fuel', 'تعبئة وقود', txns, accs)
+  return { ...fx, contributions: contribs }
+}
+
+function removeFuelEffects(log: FuelLog, txns: Transaction[], accs: Account[], contribs: Contribution[]) {
+  const contribution = contribs.find((c) => c.fuelLogId === log.id)
+  const removed = removeVehicleExpense(log, 'cat-fuel', txns, accs)
+  return { ...removed, contributions: contribution ? contribs.filter((c) => c.id !== contribution.id) : contribs, contribution }
+}
 
 /** يطبّق أثر حركة مالية (مصروف/دخل/تحويل) على أرصدة الحسابات — multiplier=-1 يعكس نفس الأثر (لحذف أو تعديل حركة قائمة). */
 function withTransactionEffect(accs: Account[], txn: Transaction, multiplier: 1 | -1): Account[] {
@@ -1255,77 +1319,89 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setVehicleOilIntervalKm: persistVehicleOilIntervalKm,
       vehicleOilBaselineKm,
       oilChanges,
-      logOilChange(input: { odometerKm: number; cost?: number; accountId?: string }) {
-        const log: OilChangeLog = {
-          id: makeId(),
-          date: new Date().toISOString().slice(0, 10),
-          odometerKm: input.odometerKm,
-          cost: input.cost,
-          accountId: input.accountId,
-        }
-        persistOilChanges([log, ...oilChanges])
+      logOilChange(input: OilChangeInput) {
+        const log: OilChangeLog = { id: makeId(), date: input.date ?? localIso(new Date()), odometerKm: input.odometerKm, cost: input.cost, accountId: input.accountId }
+        const fx = addVehicleExpense(log, 'cat-vehicle', 'تغيير زيت المحرك', transactions, accounts)
+        persistOilChanges([fx.log, ...oilChanges])
         // كل تغيير زيت ينهي فترة تتبّع ويبدأ فترة جديدة من عداد السيارة عند هذا التاريخ.
-        persistVehicleOdometerKm(input.odometerKm)
+        persistVehicleOdometerKm(Math.max(vehicleOdometerKm ?? 0, input.odometerKm))
         persistVehicleOilBaselineKm(input.odometerKm)
-        if (input.cost && input.accountId) {
-          const txn: Transaction = {
-            id: makeId(),
-            type: 'expense',
-            amount: input.cost,
-            date: log.date,
-            accountId: input.accountId,
-            categoryId: 'cat-vehicle',
-            note: 'تغيير زيت المحرك',
-          }
-          persistTransactions([txn, ...transactions])
-          persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance - input.cost! } : a)))
+        if (fx.transactions !== transactions) {
+          persistTransactions(fx.transactions)
+          persistAccounts(fx.accounts)
         }
+      },
+      updateOilChange(id: string, input: OilChangeInput) {
+        const old = oilChanges.find((o) => o.id === id)
+        if (!old) return
+        const removed = removeVehicleExpense(old, 'cat-vehicle', transactions, accounts)
+        const next: OilChangeLog = { ...old, date: input.date ?? old.date, odometerKm: input.odometerKm, cost: input.cost, accountId: input.accountId, transactionId: undefined }
+        const fx = addVehicleExpense(next, 'cat-vehicle', 'تغيير زيت المحرك', removed.transactions, removed.accounts)
+        const list = oilChanges.map((o) => (o.id === id ? fx.log : o))
+        persistOilChanges(list)
+        persistTransactions(fx.transactions)
+        persistAccounts(fx.accounts)
+        // تعديل آخر تغيير زيت يحرّك بداية الفاصل الحالي معه.
+        persistVehicleOilBaselineKm(Math.max(...list.map((o) => o.odometerKm)))
+      },
+      deleteOilChange(id: string) {
+        const log = oilChanges.find((o) => o.id === id)
+        if (!log) return null
+        const removed = removeVehicleExpense(log, 'cat-vehicle', transactions, accounts)
+        const list = oilChanges.filter((o) => o.id !== id)
+        persistOilChanges(list)
+        persistTransactions(removed.transactions)
+        persistAccounts(removed.accounts)
+        // بداية الفاصل ترجع لآخر تغيير زيت باقٍ (أو تبقى لو ما بقى شيء).
+        if (list.length) persistVehicleOilBaselineKm(Math.max(...list.map((o) => o.odometerKm)))
+        return { kind: 'oil', log, transaction: removed.transaction, baselineKm: vehicleOilBaselineKm }
       },
       fuelTankCapacityL,
       setFuelTankCapacityL: persistFuelTankCapacityL,
       fuelLogs,
-      logFuel(input: { odometerKm: number; liters: number; isFullTank: boolean; cost?: number; accountId?: string; paidByPersonId?: string }) {
-        const paidByOther = !!input.paidByPersonId
-        const log: FuelLog = {
-          id: makeId(),
-          date: new Date().toISOString().slice(0, 10),
-          odometerKm: input.odometerKm,
-          liters: input.liters,
-          isFullTank: input.isFullTank,
-          cost: input.cost,
-          accountId: paidByOther ? undefined : input.accountId,
-          paidByPersonId: input.paidByPersonId,
-        }
-        persistFuelLogs([log, ...fuelLogs])
-        // دفعها شخص آخر: تُسجَّل مساهمة للتذكّر فقط — بدون مصروف ولا خصم من أي حساب.
-        if (paidByOther && input.cost) {
-          const c: Contribution = {
-            id: makeId(),
-            personId: input.paidByPersonId!,
-            amount: input.cost,
-            date: log.date,
-            categoryId: 'cat-fuel',
-            note: 'تعبئة وقود',
-            createdAt: new Date().toISOString(),
-            fuelLogId: log.id,
-          }
-          persistContributions([c, ...contributions])
-        }
+      logFuel(input: FuelLogInput) {
+        const base: FuelLog = { id: makeId(), date: input.date ?? localIso(new Date()), odometerKm: input.odometerKm, liters: input.liters, isFullTank: input.isFullTank, cost: input.cost }
+        const fx = addFuelEffects(base, input, transactions, accounts, contributions)
+        persistFuelLogs([fx.log, ...fuelLogs])
+        persistTransactions(fx.transactions)
+        persistAccounts(fx.accounts)
+        persistContributions(fx.contributions)
         // تعبئة الوقود أكثر تكرارًا من تغيير الزيت، فنحدّث عداد السيارة العام
         // منها أيضًا — يبقي حساب ممشى تغيير الزيت محدَّثًا بدون إدخال منفصل.
-        persistVehicleOdometerKm(input.odometerKm)
-        if (!paidByOther && input.cost && input.accountId) {
-          const txn: Transaction = {
-            id: makeId(),
-            type: 'expense',
-            amount: input.cost,
-            date: log.date,
-            accountId: input.accountId,
-            categoryId: 'cat-fuel',
-            note: 'تعبئة وقود',
-          }
-          persistTransactions([txn, ...transactions])
-          persistAccounts(accounts.map((a) => (a.id === input.accountId ? { ...a, balance: a.balance - input.cost! } : a)))
+        persistVehicleOdometerKm(Math.max(vehicleOdometerKm ?? 0, input.odometerKm))
+      },
+      updateFuelLog(id: string, input: FuelLogInput) {
+        const old = fuelLogs.find((f) => f.id === id)
+        if (!old) return
+        const removed = removeFuelEffects(old, transactions, accounts, contributions)
+        const base: FuelLog = { id: old.id, date: input.date ?? old.date, odometerKm: input.odometerKm, liters: input.liters, isFullTank: input.isFullTank, cost: input.cost }
+        const fx = addFuelEffects(base, input, removed.transactions, removed.accounts, removed.contributions)
+        persistFuelLogs(fuelLogs.map((f) => (f.id === id ? fx.log : f)))
+        persistTransactions(fx.transactions)
+        persistAccounts(fx.accounts)
+        persistContributions(fx.contributions)
+      },
+      deleteFuelLog(id: string) {
+        const log = fuelLogs.find((f) => f.id === id)
+        if (!log) return null
+        const removed = removeFuelEffects(log, transactions, accounts, contributions)
+        persistFuelLogs(fuelLogs.filter((f) => f.id !== id))
+        persistTransactions(removed.transactions)
+        persistAccounts(removed.accounts)
+        persistContributions(removed.contributions)
+        return { kind: 'fuel', log, transaction: removed.transaction, contribution: removed.contribution }
+      },
+      restoreVehicleLog(removal: VehicleLogRemoval) {
+        if (removal.transaction && !transactions.some((t) => t.id === removal.transaction!.id)) {
+          persistTransactions([removal.transaction, ...transactions])
+          persistAccounts(withTransactionEffect(accounts, removal.transaction, 1))
+        }
+        if (removal.kind === 'fuel') {
+          if (!fuelLogs.some((f) => f.id === removal.log.id)) persistFuelLogs([removal.log, ...fuelLogs])
+          if (removal.contribution && !contributions.some((c) => c.id === removal.contribution!.id)) persistContributions([removal.contribution, ...contributions])
+        } else {
+          if (!oilChanges.some((o) => o.id === removal.log.id)) persistOilChanges([removal.log, ...oilChanges])
+          persistVehicleOilBaselineKm(removal.baselineKm)
         }
       },
       salaryAdvances,

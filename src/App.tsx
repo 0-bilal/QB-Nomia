@@ -127,6 +127,7 @@ export default function App() {
         <Route path="calculator" element={<CalculatorScreen />} />
         <Route path="vehicle" element={<VehicleScreen />} />
         <Route path="vehicle/log/:type" element={<LogVehicleScreen />} />
+        <Route path="vehicle/log/:type/:id" element={<LogVehicleScreen />} />
         <Route path="trail" element={<MonthTreeScreen />} />
         <Route path="trail/:month" element={<MonthTreeDetailScreen />} />
       </Route>
