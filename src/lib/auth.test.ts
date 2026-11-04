@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FREE_PIN_ATTEMPTS, configuredDigits, hasPinConfigured, lockoutDurationMs, pinLockoutRemainingMs, resetPin, setupPin, verifyPin } from './auth'
+import { FREE_PIN_ATTEMPTS, configuredDigits, hasPinConfigured, lockoutDurationMs, pinLockoutRemainingMs, pinLockoutTotalMs, resetPin, setupPin, verifyPin } from './auth'
 
 describe('PIN setup / verification', () => {
   it('reports no PIN configured before setup', () => {
@@ -62,6 +62,7 @@ describe('wrong-PIN cooldown', () => {
     await setupPin('1234')
     await failTimes(FREE_PIN_ATTEMPTS)
     expect(pinLockoutRemainingMs(T0)).toBe(30_000)
+    expect(pinLockoutTotalMs()).toBe(30_000)
     expect(await verifyPin('1234', T0 + 29_000)).toBe(false)
     expect(await verifyPin('1234', T0 + 30_000)).toBe(true)
   })
