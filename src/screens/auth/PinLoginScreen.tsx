@@ -6,8 +6,9 @@ import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
 import { ProfileAvatar } from '../../components/ProfileAvatar'
 import { getProfile } from '../../lib/profile'
-import { configuredDigits, pinLockoutRemainingMs } from '../../lib/auth'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { configuredDigits, pinLockoutRemainingMs, pinLockoutTotalMs } from '../../lib/auth'
+import { ForgotPinSheet } from '../../components/ForgotPinSheet'
+import { waitLabel } from '../../lib/forgotPin'
 import { runBackgroundPull } from '../../lib/autoSync'
 import { isBiometricEnabled, verifyBiometric } from '../../lib/biometric'
 import { APP_VERSION } from '../../lib/version'
@@ -32,13 +33,34 @@ function useClock(enabled: boolean): Date {
 
 type Stage = 'input' | 'success'
 
-/** مدة الانتظار بصيغة مقروءة: «45 ثانية» أو «3 دقائق». */
-function waitLabel(ms: number): string {
-  const sec = Math.ceil(ms / 1000)
-  if (sec < 60) return `${sec} ثانية`
-  const min = Math.ceil(sec / 60)
-  return min === 1 ? 'دقيقة' : min === 2 ? 'دقيقتين' : min <= 10 ? `${min} دقائق` : `${min} دقيقة`
+/** مهلة الانتظار بعد المحاولات الخاطئة: حلقة تنقص مع العدّاد + النص. */
+function WaitHint({ remainingMs }: { remainingMs: number }) {
+  const total = Math.max(pinLockoutTotalMs(), remainingMs)
+  const c = 2 * Math.PI * 7
+  return (
+    <span className="inline-flex items-center gap-2 text-[var(--color-text-2)]">
+      <svg width="18" height="18" viewBox="0 0 18 18" style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
+        <circle cx="9" cy="9" r="7" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+        <circle
+          cx="9"
+          cy="9"
+          r="7"
+          fill="none"
+          stroke="var(--color-subscription)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - remainingMs / total)}
+          style={{ transition: 'stroke-dashoffset 1s linear' }}
+        />
+      </svg>
+      <span>
+        محاولات كثيرة، حاول بعد <span className="num">{waitLabel(remainingMs)}</span>
+      </span>
+    </span>
+  )
 }
+
 
 function FingerprintIcon({ size = 30 }: { size?: number }) {
   return (
@@ -173,7 +195,7 @@ export function PinLoginScreen() {
             {error
               ? 'رقم غير صحيح، حاول مرة أخرى'
               : lockedOut && padVisible
-                ? `محاولات كثيرة، حاول بعد ${waitLabel(lockoutMs)}`
+                ? <WaitHint remainingMs={lockoutMs} />
               : biometricError
                 ? 'تعذّر التحقق بالبصمة — جرّب مرة أخرى أو استخدم الرقم السري'
                 : biometricBusy
@@ -234,6 +256,7 @@ export function PinLoginScreen() {
             onDigit={handleDigit}
             onBackspace={handleBackspace}
             disabled={stage !== 'input' || error || lockedOut}
+            dimKeys={lockedOut}
             error={error}
             success={stage === 'success'}
             extraKey={
@@ -262,19 +285,7 @@ export function PinLoginScreen() {
         </div>
       </div>
 
-      <ConfirmDialog
-        open={forgetOpen}
-        title="نسيت الرقم السري؟"
-        message="لحماية بياناتك، راح نمسح كل بيانات التطبيق من هذا الجهاز ونبدأ من جديد. تقدر تستعيدها بعدين من نسختك الاحتياطية في Google Sheets أو من ملف النسخة."
-        confirmLabel="امسح وابدأ من جديد"
-        color="var(--color-expense)"
-        onCancel={() => setForgetOpen(false)}
-        onConfirm={() => {
-          auth.forgetPin()
-          // إعادة تحميل كاملة حتى ما يبقى شيء من البيانات في ذاكرة التطبيق.
-          window.location.replace(import.meta.env.BASE_URL)
-        }}
-      />
+      {forgetOpen && <ForgotPinSheet onClose={() => setForgetOpen(false)} onWipe={() => auth.forgetPin()} />}
 
       {stage === 'success' && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[var(--color-bg)]" style={{ animation: 'fade-in 200ms ease-out both' }}>

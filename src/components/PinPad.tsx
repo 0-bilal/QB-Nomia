@@ -13,6 +13,8 @@ interface PinPadProps {
   success?: boolean
   /** مفتاح إضافي بالخانة الفارغة أسفل اليمين (مثل زر البصمة). */
   extraKey?: ReactNode
+  /** يبهّت لوحة المفاتيح (مثل مهلة الانتظار بعد محاولات خاطئة) — المؤشر يبقى كما هو. */
+  dimKeys?: boolean
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -40,7 +42,7 @@ function Key({ children, onClick, disabled, label, plain = false }: { children: 
   )
 }
 
-export function PinPad({ digits, value, onDigit, onBackspace, disabled, error = false, success = false, extraKey }: PinPadProps) {
+export function PinPad({ digits, value, onDigit, onBackspace, disabled, error = false, success = false, extraKey, dimKeys = false }: PinPadProps) {
   return (
     <div className="flex flex-col items-center gap-12">
       <div dir="ltr" className="flex gap-3" style={{ animation: error ? 'qb-shake 420ms ease both' : undefined }}>
@@ -62,7 +64,7 @@ export function PinPad({ digits, value, onDigit, onBackspace, disabled, error = 
         })}
       </div>
 
-      <div dir="ltr" className="grid grid-cols-3 gap-x-7 gap-y-4">
+      <div dir="ltr" className="grid grid-cols-3 gap-x-7 gap-y-4" style={{ opacity: dimKeys ? 0.32 : 1, transition: 'opacity 300ms ease' }}>
         {KEYS.map((k) => (
           <Key key={k} disabled={disabled} onClick={() => onDigit(k)}>
             {k}

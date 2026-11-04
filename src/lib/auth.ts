@@ -79,6 +79,11 @@ export function pinLockoutRemainingMs(now = Date.now()): number {
   return Math.max(0, readFailures().lockedUntil - now)
 }
 
+/** مدة المهلة الحالية كاملة — لرسم حلقة العدّاد التنازلي في شاشة القفل. */
+export function pinLockoutTotalMs(): number {
+  return lockoutDurationMs(readFailures().count)
+}
+
 function recordPinFailure(now: number): void {
   const count = readFailures().count + 1
   localStorage.setItem(FAILURES_KEY, JSON.stringify({ count, lockedUntil: now + lockoutDurationMs(count) }))
