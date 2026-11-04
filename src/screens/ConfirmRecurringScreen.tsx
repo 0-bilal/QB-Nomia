@@ -10,6 +10,7 @@ import { colorFor } from '../components/Avatar'
 import { formatMoney } from '../lib/format'
 import type { TransactionType } from '../types'
 import { AmountHero } from '../components/AmountHero'
+import { localIso } from '../lib/homeFeed'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -25,7 +26,7 @@ export function ConfirmRecurringScreen() {
   const recurring = recurringTransactions.find((r) => r.id === id)
 
   const [amount, setAmount] = useState(recurring ? String(recurring.amount) : '')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(localIso(new Date()))
   const [note, setNote] = useState(recurring?.note ?? '')
   const [noteEditing, setNoteEditing] = useState(false)
 

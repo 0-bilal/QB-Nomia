@@ -10,6 +10,7 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { BigAmount } from '../../components/BigAmount'
 import { Badge, EmptyState, HeroCard, IconBubble, ListGroup, ListItem, SectionTitle, TintButton } from '../../components/ui'
 import { rise } from '../../lib/motion'
+import { localIso } from '../../lib/homeFeed'
 
 export function PersonDetailScreen() {
   const { personId } = useParams<{ personId: string }>()
@@ -35,7 +36,7 @@ export function PersonDetailScreen() {
     return categories.find((c) => c.id === exp?.categoryId)?.name ?? 'مصروف'
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localIso(new Date())
   // المساهمات: مصاريف دفعها عنك — للتذكّر فقط، لا تدخل في رصيد السلف.
   const theirContributions = contributions
     .filter((c) => c.personId === person.id)

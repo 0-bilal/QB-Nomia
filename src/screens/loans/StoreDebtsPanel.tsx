@@ -8,6 +8,7 @@ import { EmptyState, IconBubble, TintButton } from '../../components/ui'
 import { DEBT_META, softBg } from './debtTypes'
 import { DebtHero, NUM_SHADOW, SectionHead } from './DebtVisuals'
 import { useDebtHistory } from './useDebtHistory'
+import { localIso } from '../../lib/homeFeed'
 
 const color = DEBT_META.stores.color
 
@@ -28,7 +29,7 @@ function DebtRow({ debt, payments, accounts }: { debt: StoreDebt; payments: Stor
   const [expanded, setExpanded] = useState(false)
   const [confirmDeletePaymentId, setConfirmDeletePaymentId] = useState<string | null>(null)
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localIso(new Date())
   const paidTotal = payments.reduce((s, p) => s + p.amount, 0)
   const remaining = debt.amount - paidTotal
   const settled = remaining <= 0
@@ -169,7 +170,7 @@ export function StoreDebtsPanel() {
   const { storeDebts, storeDebtPayments, accounts } = useData()
   const navigate = useNavigate()
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localIso(new Date())
   const remainingOf = (debt: StoreDebt) => debt.amount - storeDebtPayments.filter((p) => p.debtId === debt.id).reduce((s, p) => s + p.amount, 0)
   const open = storeDebts.filter((d) => remainingOf(d) > 0)
   const overdueCount = open.filter((d) => d.dueDate && d.dueDate < today).length

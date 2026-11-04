@@ -16,6 +16,7 @@ import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import type { CommitmentIntervalUnit, TransactionType } from '../types'
 import { AmountHero } from '../components/AmountHero'
+import { localIso } from '../lib/homeFeed'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -163,7 +164,7 @@ function RepeatSheet({
 function defaultDueDate(): string {
   const d = new Date()
   d.setMonth(d.getMonth() + 1)
-  return d.toISOString().slice(0, 10)
+  return localIso(d)
 }
 
 export function AddRecurringScreen() {

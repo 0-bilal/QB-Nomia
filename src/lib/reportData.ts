@@ -1,6 +1,7 @@
 import type { Account, Category, Commitment, IncomeSource, LoanTransaction, RecurringTransaction, Subscription, Transaction, ZakatPayment } from '../types'
 import { formatDate } from './format'
 import { savingsSpentInMonth } from './monthLedger'
+import { localIso } from './homeFeed'
 
 export function currentMonthValue(): string {
   const d = new Date()
@@ -113,7 +114,7 @@ export function buildReportData(
 
   return {
     periodLabel: label,
-    generatedAtLabel: formatDate(new Date().toISOString().slice(0, 10)),
+    generatedAtLabel: formatDate(localIso(new Date())),
     income,
     expense,
     net,
@@ -330,7 +331,7 @@ export function upcomingObligations(
   commitments: Commitment[],
   recurringTransactions: RecurringTransaction[],
   withinDays: number,
-  todayISO = new Date().toISOString().slice(0, 10),
+  todayISO = localIso(new Date()),
 ): UpcomingObligationsResult {
   const cutoff = new Date(todayISO)
   cutoff.setDate(cutoff.getDate() + withinDays)

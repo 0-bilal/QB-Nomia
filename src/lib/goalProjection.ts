@@ -1,4 +1,5 @@
 import type { Transaction } from '../types'
+import { localIso } from './homeFeed'
 
 /** عدد الأشهر الماضية المستخدمة لحساب معدّل الإضافة الشهري الحالي لحساب ادخار — نافذة متحركة قصيرة تعكس سلوكك الأخير بدل متوسط تاريخي قد يكون قديمًا. */
 const LOOKBACK_MONTHS = 3
@@ -22,7 +23,7 @@ function addMonths(dateISO: string, months: number): string {
  * الحساب آخر 3 أشهر — بعكس "المبلغ المطلوب شهريًا" الثابت (اللي هو مجرد
  * تقسيم حسابي للمتبقي على الوقت المتبقي)، هذا يعكس سلوكك الحقيقي.
  */
-export function projectGoalCompletion(accountId: string, remaining: number, transactions: Transaction[], todayISO = new Date().toISOString().slice(0, 10)): GoalProjection {
+export function projectGoalCompletion(accountId: string, remaining: number, transactions: Transaction[], todayISO = localIso(new Date())): GoalProjection {
   const cutoff = addMonths(todayISO, -LOOKBACK_MONTHS)
   const relevant = transactions.filter((t) => t.date >= cutoff && t.date <= todayISO && (t.accountId === accountId || t.transferToAccountId === accountId))
 

@@ -20,6 +20,7 @@ import type { TransactionType } from '../types'
 import { ContributorPicker } from '../components/ContributorPicker'
 import { SheetHandle } from '../components/SheetHandle'
 import { AccountMiniField, FixedPadDock, NoteChip } from '../components/FixedPadDock'
+import { localIso } from '../lib/homeFeed'
 
 const TYPE_COLOR: Record<TransactionType, string> = {
   expense: 'var(--color-expense)',
@@ -190,7 +191,7 @@ export function AddTransactionScreen() {
     existing?.categoryId ?? existingContribution?.categoryId ?? (categoryParam && categories.some((c) => c.id === categoryParam) ? categoryParam : categories.find((c) => c.kind === 'expense')?.id) ?? '',
   )
   const [incomeSourceId, setIncomeSourceId] = useState(existing?.incomeSourceId ?? incomeSources[0]?.id ?? '')
-  const [date, setDate] = useState(existing?.date ?? existingContribution?.date ?? new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(existing?.date ?? existingContribution?.date ?? localIso(new Date()))
   const [note, setNote] = useState(existing?.note ?? existingContribution?.note ?? '')
   const [hasViolation, setHasViolation] = useState(false)
   const [violationAmount, setViolationAmount] = useState('')

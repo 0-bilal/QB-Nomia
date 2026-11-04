@@ -10,8 +10,9 @@ import { AccountSelectField, FixedPadDock, NoteChip, type DockEditor } from '../
 import { formatAmount, formatDate } from '../../lib/format'
 import { haptic } from '../../lib/haptics'
 import { DEBT_META, softBg } from './debtTypes'
+import { localIso } from '../../lib/homeFeed'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localIso(new Date())
 
 /**
  * غلاف مشترك لشاشات الديون: عنوان في كبسولة الرأس، زر حذف عند التعديل،

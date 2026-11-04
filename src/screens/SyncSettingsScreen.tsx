@@ -10,6 +10,7 @@ import { formatDate } from '../lib/format'
 import { getLastBackupExportedAt, markBackupExported } from '../lib/backup'
 import { dismissNotice, notify } from '../lib/notify'
 import { rise } from '../lib/motion'
+import { localIso } from '../lib/homeFeed'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -206,7 +207,7 @@ export function SyncSettingsScreen() {
     const href = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = href
-    a.download = `qb-nomia-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `qb-nomia-backup-${localIso(new Date())}.json`
     document.body.appendChild(a)
     a.click()
     a.remove()
