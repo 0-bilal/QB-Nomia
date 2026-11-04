@@ -15,9 +15,9 @@ import { haptic } from '../../lib/haptics'
 import { LockBackground } from '../../components/LockBackground'
 import { getBiometricFirst, getLockBackground, getLockClock } from '../../lib/lockPrefs'
 import { balanceSeries } from '../../lib/balanceHistory'
+import { MONTHS_AR } from '../../lib/txFilters'
 
 const DAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
-const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 /** الوقت بالساعة والدقيقة، يتحدّث كل دقيقة. */
 function useClock(enabled: boolean): Date {

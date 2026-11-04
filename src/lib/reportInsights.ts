@@ -1,7 +1,7 @@
 import type { Category, Transaction } from '../types'
 import { monthRange } from './reportData'
+import { MONTHS_AR } from './txFilters'
 
-export const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 /** أيام الأسبوع بترتيب getDay() (الأحد = 0). */
 const WEEKDAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
 

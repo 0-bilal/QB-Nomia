@@ -1,9 +1,6 @@
 import { useMemo, useState } from 'react'
+import { MONTHS_AR } from '../lib/txFilters'
 
-const MONTHS = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
-]
 const WEEKDAYS = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']
 
 function parseISO(value: string): Date | null {
@@ -174,7 +171,7 @@ export function DatePicker({ value, onChange, color = 'var(--color-accent)', pla
                 <ChevronIcon direction="right" />
               </button>
               <div className="num text-[14px] font-bold">
-                {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
+                {MONTHS_AR[viewDate.getMonth()]} {viewDate.getFullYear()}
               </div>
               <button
                 type="button"
