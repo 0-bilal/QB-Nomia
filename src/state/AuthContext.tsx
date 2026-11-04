@@ -3,6 +3,7 @@ import { hasPinConfigured, resetPin, setupPin, verifyPin } from '../lib/auth'
 import { resumedFromUpdate } from '../lib/appUpdate'
 import { shouldLockAfter } from '../lib/lockPrefs'
 import { biometricPromptActive } from '../lib/biometric'
+import { clearAppStorage } from '../lib/storage'
 
 interface AuthContextValue {
   hasPin: boolean
@@ -13,6 +14,7 @@ interface AuthContextValue {
   login: (pin: string) => Promise<boolean>
   unlockWithBiometric: () => void
   lock: () => void
+  /** «نسيت الرقم السري»: يمسح كل بيانات التطبيق على هذا الجهاز مع الرقم — وإلا يقدر أي أحد يتجاوز القفل. الشاشة المستدعية تعيد تحميل التطبيق بعدها. */
   forgetPin: () => void
 }
 
@@ -68,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       forgetPin() {
         resetPin()
+        clearAppStorage()
         setHasPin(false)
         setUnlocked(false)
       },

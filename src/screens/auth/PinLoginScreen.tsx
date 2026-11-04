@@ -6,7 +6,8 @@ import { useData } from '../../state/DataContext'
 import { AppLogo } from '../../components/AppLogo'
 import { ProfileAvatar } from '../../components/ProfileAvatar'
 import { getProfile } from '../../lib/profile'
-import { configuredDigits } from '../../lib/auth'
+import { configuredDigits, pinLockoutRemainingMs } from '../../lib/auth'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { runBackgroundPull } from '../../lib/autoSync'
 import { isBiometricEnabled, verifyBiometric } from '../../lib/biometric'
 import { APP_VERSION } from '../../lib/version'
@@ -31,6 +32,14 @@ function useClock(enabled: boolean): Date {
 
 type Stage = 'input' | 'success'
 
+/** مدة الانتظار بصيغة مقروءة: «45 ثانية» أو «3 دقائق». */
+function waitLabel(ms: number): string {
+  const sec = Math.ceil(ms / 1000)
+  if (sec < 60) return `${sec} ثانية`
+  const min = Math.ceil(sec / 60)
+  return min === 1 ? 'دقيقة' : min === 2 ? 'دقيقتين' : min <= 10 ? `${min} دقائق` : `${min} دقيقة`
+}
+
 function FingerprintIcon({ size = 30 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={size > 32 ? 1.5 : 1.6} strokeLinecap="round" strokeLinejoin="round">
@@ -46,7 +55,7 @@ function FingerprintIcon({ size = 30 }: { size?: number }) {
 
 export function PinLoginScreen() {
   const auth = useAuth()
-  const { importSnapshot, accounts, recentActivity, homeTotalBalance } = useData()
+  const { importSnapshot, exportSnapshot, accounts, recentActivity, homeTotalBalance } = useData()
   const navigate = useNavigate()
   const digits = configuredDigits()
   const [value, setValue] = useState('')
@@ -60,6 +69,15 @@ export function PinLoginScreen() {
   // البصمة أولًا: زر بصمة كبير بدل لوحة الأرقام، و«استخدم الرقم السري» يُظهر اللوحة.
   const [padVisible, setPadVisible] = useState(() => !(isBiometricEnabled() && getBiometricFirst()))
   const now = useClock(showClock)
+  const [forgetOpen, setForgetOpen] = useState(false)
+  // مهلة الانتظار بعد محاولات خاطئة كثيرة — عدّاد يتحدّث كل ثانية لين تنتهي.
+  const [lockoutMs, setLockoutMs] = useState(() => pinLockoutRemainingMs())
+  useEffect(() => {
+    if (lockoutMs <= 0) return
+    const id = window.setTimeout(() => setLockoutMs(pinLockoutRemainingMs()), Math.min(1000, lockoutMs))
+    return () => window.clearTimeout(id)
+  }, [lockoutMs])
+  const lockedOut = lockoutMs > 0
   // منحنى الرصيد (الشكل فقط بدون أرقام) لخلفية «منحنى الرصيد».
   const curve = useMemo(() => {
     if (background !== 'curve') return []
@@ -78,7 +96,7 @@ export function PinLoginScreen() {
       setStage('success')
       setTimeout(() => {
         navigate('/', { replace: true })
-        runBackgroundPull(importSnapshot)
+        runBackgroundPull(importSnapshot, exportSnapshot)
       }, 750)
     } else {
       setBiometricError(true)
@@ -92,7 +110,7 @@ export function PinLoginScreen() {
   }, [])
 
   async function handleDigit(d: string) {
-    if (stage !== 'input' || error || value.length >= digits) return
+    if (stage !== 'input' || error || lockedOut || value.length >= digits) return
     const next = value + d
     setValue(next)
     if (next.length === digits) {
@@ -104,7 +122,7 @@ export function PinLoginScreen() {
           navigate('/', { replace: true })
           // يسحب أحدث نسخة من جوجل شيت بالخلفية بدل ما يحجب الدخول للتطبيق —
           // حالة السحب تظهر كشريط عائم أعلى الشاشة (IslandHost).
-          runBackgroundPull(importSnapshot)
+          runBackgroundPull(importSnapshot, exportSnapshot)
         }, 750)
       } else {
         haptic('warning')
@@ -112,6 +130,7 @@ export function PinLoginScreen() {
         setTimeout(() => {
           setError(false)
           setValue('')
+          setLockoutMs(pinLockoutRemainingMs())
         }, 700)
       }
     }
@@ -153,6 +172,8 @@ export function PinLoginScreen() {
           <div className="h-5 text-[13px]" style={{ color: error || biometricError ? 'var(--color-expense)' : 'var(--color-text-2)' }}>
             {error
               ? 'رقم غير صحيح، حاول مرة أخرى'
+              : lockedOut && padVisible
+                ? `محاولات كثيرة، حاول بعد ${waitLabel(lockoutMs)}`
               : biometricError
                 ? 'تعذّر التحقق بالبصمة — جرّب مرة أخرى أو استخدم الرقم السري'
                 : biometricBusy
@@ -212,7 +233,7 @@ export function PinLoginScreen() {
             value={value}
             onDigit={handleDigit}
             onBackspace={handleBackspace}
-            disabled={stage !== 'input' || error}
+            disabled={stage !== 'input' || error || lockedOut}
             error={error}
             success={stage === 'success'}
             extraKey={
@@ -234,12 +255,26 @@ export function PinLoginScreen() {
         )}
 
         <div className="mt-8 flex w-full items-center justify-between px-2 text-[12px]">
-          <button type="button" onClick={() => auth.forgetPin()} className="text-[var(--color-text-2)]">
+          <button type="button" onClick={() => setForgetOpen(true)} className="text-[var(--color-text-2)]">
             نسيت الرقم السري؟
           </button>
           <div className="num text-[var(--color-text-3)]">v{APP_VERSION}</div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={forgetOpen}
+        title="نسيت الرقم السري؟"
+        message="لحماية بياناتك، راح نمسح كل بيانات التطبيق من هذا الجهاز ونبدأ من جديد. تقدر تستعيدها بعدين من نسختك الاحتياطية في Google Sheets أو من ملف النسخة."
+        confirmLabel="امسح وابدأ من جديد"
+        color="var(--color-expense)"
+        onCancel={() => setForgetOpen(false)}
+        onConfirm={() => {
+          auth.forgetPin()
+          // إعادة تحميل كاملة حتى ما يبقى شيء من البيانات في ذاكرة التطبيق.
+          window.location.replace(import.meta.env.BASE_URL)
+        }}
+      />
 
       {stage === 'success' && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[var(--color-bg)]" style={{ animation: 'fade-in 200ms ease-out both' }}>

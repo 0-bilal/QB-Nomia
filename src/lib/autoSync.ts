@@ -1,6 +1,6 @@
 import type { DataSnapshot } from '../state/DataContext'
 import { isSheetsSyncConfigured } from '../config/sheetsSync'
-import { pullFromSheets, pushToSheets } from './sheetsSync'
+import { hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline'
 export type SyncDirection = 'push' | 'pull'
@@ -31,6 +31,8 @@ export function subscribeSyncStatus(fn: Listener): () => void {
  */
 export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
   if (!isSheetsSyncConfigured()) return
+  // يُعلَّم فورًا (قبل التأخير) — لو انقفل التطبيق قبل الرفع، التعديل يبقى محسوب كمعلّق.
+  markPendingPush()
 
   if (debounceTimer) window.clearTimeout(debounceTimer)
   if (idleTimer) window.clearTimeout(idleTimer)
@@ -57,13 +59,28 @@ export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
  * إعداد أول رقم سري) بدل ما يحجب الدخول للتطبيق بشاشة تحميل منفصلة —
  * الدخول يصير فورًا، وحالة السحب تظهر كشريط عائم أعلى الشاشة (نفس شريط
  * حالة الرفع) بدون ما تعطّل أي شيء. onSnapshot يُستدعى فقط لو نجح السحب.
+ *
+ * لو فيه تعديلات محلية ما انرفعت بعد، نرفعها بدل السحب — السحب كان راح يستبدلها بنسخة الجدول الأقدم.
  */
-export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void): void {
+export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void, getSnapshot: () => DataSnapshot): void {
   if (!isSheetsSyncConfigured()) return
   if (pullIdleTimer) window.clearTimeout(pullIdleTimer)
 
   if (!navigator.onLine) {
-    emit('offline', 'pull')
+    emit('offline', hasPendingPush() ? 'push' : 'pull')
+    return
+  }
+  if (hasPendingPush()) {
+    emit('syncing', 'push')
+    pushToSheets(getSnapshot())
+      .then(() => {
+        emit('success', 'push')
+        pullIdleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
+      })
+      .catch(() => {
+        emit('error', 'push')
+        pullIdleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
+      })
     return
   }
   emit('syncing', 'pull')

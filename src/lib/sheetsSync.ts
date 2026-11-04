@@ -3,13 +3,28 @@ import { getSheetsSecretToken, getSheetsWebAppUrl, isSheetsSyncConfigured } from
 import { decryptJSON, encryptJSON } from './cryptoUtil'
 
 const LAST_SYNC_KEY = 'qbnomia.sync.lastSyncedAt'
+const PENDING_PUSH_KEY = 'qbnomia.sync.pendingPush'
+
+/**
+ * فيه تعديلات محلية ما انرفعت بعد (الرفع الخلفي فشل أو الجهاز كان بدون إنترنت).
+ * السحب التلقائي بعد الدخول يتخطى السحب ويرفع أولًا وقتها، حتى ما تنمسح هذي التعديلات بنسخة أقدم.
+ */
+export function hasPendingPush(): boolean {
+  return localStorage.getItem(PENDING_PUSH_KEY) === '1'
+}
+
+export function markPendingPush(): void {
+  localStorage.setItem(PENDING_PUSH_KEY, '1')
+}
 
 export function getLastSyncedAt(): string | null {
   return localStorage.getItem(LAST_SYNC_KEY)
 }
 
+/** بعد رفع ناجح أو سحب ناجح، الجهاز والجدول متطابقين — فما فيه شيء معلّق. */
 function markSynced(): void {
   localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString())
+  localStorage.removeItem(PENDING_PUSH_KEY)
 }
 
 interface ApiResult<T> {
