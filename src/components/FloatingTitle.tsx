@@ -1,8 +1,9 @@
 /**
  * كبسولة عنوان عائمة (النمط "ج") — تظهر في منتصف أعلى الشاشة بعد تمرير العنوان الكبير،
- * وتعرض اسم الصفحة فقط، مع هالة ضبابية خفيفة حولها حتى تبقى مقروءة فوق المحتوى المتمرر.
+ * وتعرض اسم الصفحة (أو القسم الحالي)، مع هالة ضبابية خفيفة حولها حتى تبقى مقروءة فوق المحتوى المتمرر.
+ * meta: جزء ثانٍ بعد فاصل (مثل شهر المجموعة اللي تمرّ عليها) — يتبدّل بنبضة خفيفة كل ما تغيّر.
  */
-export function FloatingTitle({ title, visible, dot }: { title: string; visible: boolean; dot?: string }) {
+export function FloatingTitle({ title, visible, dot, meta }: { title: string; visible: boolean; dot?: string; meta?: string }) {
   return (
     <div
       aria-hidden={!visible}
@@ -25,7 +26,7 @@ export function FloatingTitle({ title, visible, dot }: { title: string; visible:
         }}
       />
       <span
-        className="relative flex max-w-[44vw] items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[13.5px] font-bold"
+        className={`relative flex items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[13.5px] font-bold ${meta ? 'max-w-[min(64vw,250px)]' : 'max-w-[44vw]'}`}
         style={{
           background: 'rgba(28,28,33,0.82)',
           borderColor: 'var(--color-border-strong)',
@@ -36,6 +37,14 @@ export function FloatingTitle({ title, visible, dot }: { title: string; visible:
       >
         {dot && <span className="flex-shrink-0 rounded-full" style={{ width: 7, height: 7, background: dot }} />}
         <span className="truncate">{title}</span>
+        {meta && (
+          <>
+            <span className="flex-shrink-0 rounded-full bg-[var(--color-text-3)]" style={{ width: 3, height: 3 }} />
+            <span key={meta} className="num flex-shrink-0 font-semibold text-[var(--color-text-2)]" style={{ animation: 'qb-pop 260ms var(--ease-spring) both' }}>
+              {meta}
+            </span>
+          </>
+        )}
       </span>
     </div>
   )
