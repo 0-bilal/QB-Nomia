@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تعارض المزامنة</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --void:#0b0b0d; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13); --accent-line:rgba(255,255,255,.28);
+    --accent:#f4f4f6; --on-accent:#0a0a0c;
+    --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --sub:#ffbf47; --transfer:#8b7bff;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:18px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .2s var(--spring)}.press:active{transform:scale(.97)}
+
+  .intro{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.8}
+  .panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong)}
+  .seg button{flex:1;height:34px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--text-2);text-align:center;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .optdesc{font-size:12px;color:var(--text-2);line-height:1.8}
+  .optdesc b{color:var(--text)}
+  .reset{align-self:flex-start;font-size:12px;color:var(--text-3);font-weight:600;padding:4px 2px}
+
+  .phone{width:390px;max-width:100%;height:844px;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;position:relative;overflow:hidden;box-shadow:0 40px 120px -40px rgba(0,0,0,.9);isolation:isolate}
+  @media (max-width:440px){.phone{border-radius:28px;height:88vh;min-height:700px}}
+  .aurora{position:absolute;inset:-10% -10% auto;height:300px;pointer-events:none;z-index:0;background:radial-gradient(60% 70% at 70% 10%,rgba(255,255,255,.09),transparent 70%)}
+
+  /* الرئيسية المبسّطة */
+  .home{position:absolute;inset:0;z-index:1;padding:76px 20px 30px;overflow:hidden}
+  .hello{font-size:13px;color:var(--text-2)}
+  .total{font:700 34px var(--font-num);margin-top:4px}
+  .total small{font:500 14px var(--font-sans);color:var(--text-3);margin-right:4px}
+  .ghost-card{height:64px;border-radius:20px;background:var(--surface);border:1px solid var(--border);margin-top:10px}
+  .ghost-card.tall{height:150px}
+
+  /* الكبسولة الذكية */
+  .island{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 16px;border-radius:999px;background:rgba(28,28,33,.92);border:1px solid var(--border-strong);backdrop-filter:blur(20px) saturate(1.6);-webkit-backdrop-filter:blur(20px) saturate(1.6);box-shadow:0 12px 30px -12px rgba(0,0,0,.8);font-size:12.5px;font-weight:600;white-space:nowrap;animation:drop .5s var(--spring) both}
+  .island .dot{width:8px;height:8px;border-radius:50%}
+  @keyframes drop{from{opacity:0;transform:translate(-50%,-14px) scale(.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+
+  /* بطاقة التعارض في الرئيسية */
+  .conflict-card{margin-top:18px;border-radius:22px;padding:14px;display:flex;gap:12px;align-items:flex-start;background:color-mix(in srgb,var(--sub) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--sub) 32%,transparent)}
+  .conflict-card .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,var(--sub) 16%,transparent);color:var(--sub)}
+  .conflict-card b{display:block;font-size:13.5px;font-weight:600}
+  .conflict-card span{display:block;font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.7}
+  .conflict-card .go{margin-top:10px;height:34px;padding:0 14px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center}
+
+  /* طبقات */
+  .scrim{position:absolute;inset:0;z-index:20;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:fade .18s ease-out both}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes sheet{from{transform:translateY(100%)}to{transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;max-height:92%;overflow-y:auto;scrollbar-width:none;border-radius:32px 32px 0 0;border:1px solid var(--border-strong);border-bottom:0;background:var(--surface-el);padding:0 20px 24px;animation:sheet .42s var(--expo) both}
+  .sheet::-webkit-scrollbar{display:none}
+  .handle{width:38px;height:5px;border-radius:9px;background:rgba(255,255,255,.18);margin:10px auto 16px}
+  .sheet h3{font-size:17px;font-weight:600}
+  .sheet .sub{font-size:12.5px;color:var(--text-2);margin-top:4px;line-height:1.75}
+
+  /* بطاقة نسخة (خيار 1) */
+  .copies{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+  .copy{position:relative;width:100%;border-radius:20px;padding:14px;background:var(--void);border:1.5px solid var(--border);transition:border-color .2s,background .2s}
+  .copy.on{border-color:var(--accent-line);background:rgba(255,255,255,.04)}
+  .copy .top{display:flex;align-items:center;gap:10px}
+  .copy .ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:var(--text-2);flex:none}
+  .copy .ttl{flex:1;min-width:0}
+  .copy .ttl b{display:block;font-size:13.5px;font-weight:600}
+  .copy .ttl small{display:block;font-size:11.5px;color:var(--text-3);margin-top:2px}
+  .radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-strong);display:grid;place-items:center;flex:none}
+  .copy.on .radio{border-color:var(--accent)}
+  .copy.on .radio::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--accent)}
+  .badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:700;margin-right:6px;vertical-align:middle;background:color-mix(in srgb,var(--income) 16%,transparent);color:var(--income)}
+  .facts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .fact{font-size:11.5px;padding:5px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--text-2)}
+  .fact b{color:var(--text);font-weight:600}
+
+  .hold{position:relative;overflow:hidden;width:100%;height:52px;border-radius:17px;margin-top:16px;background:color-mix(in srgb,var(--sub) 14%,transparent);border:1px solid color-mix(in srgb,var(--sub) 40%,transparent);color:var(--sub);font-size:14px;font-weight:700;text-align:center;user-select:none;-webkit-user-select:none;touch-action:none}
+  .hold[disabled]{opacity:.35;pointer-events:none}
+  .hold .fill{position:absolute;inset:0;background:var(--sub);transform-origin:right;transform:scaleX(0)}
+  .hold .lbl{position:relative;z-index:1}
+  .hold.going .lbl{color:var(--text)}
+  .link{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;font-size:12.5px;color:var(--text-2);font-weight:600;padding:6px}
+  .cancel{display:block;width:100%;text-align:center;margin-top:4px;font-size:13px;color:var(--text-3);font-weight:600;padding:6px}
+
+  /* الخيار 2: خطوتين */
+  .choice{width:100%;display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:var(--void);border:1px solid var(--border);margin-top:10px}
+  .choice .ttl{flex:1}
+  .choice .ttl b{display:block;font-size:13.5px;font-weight:600}
+  .choice .ttl small{display:block;font-size:11.5px;color:var(--text-3);margin-top:3px;line-height:1.6}
+  .choice .chev{color:var(--text-3)}
+  .back{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--text-2);font-weight:600;margin-bottom:10px}
+  .lose{margin-top:14px;border-radius:18px;padding:12px 13px;background:color-mix(in srgb,var(--expense) 8%,transparent);border:1px solid color-mix(in srgb,var(--expense) 28%,transparent)}
+  .lose b{font-size:13px;font-weight:600;color:var(--expense)}
+  .lose .sub2{font-size:12px;color:var(--text-2);margin-top:3px;line-height:1.7}
+  .txlist{margin-top:10px;border-radius:14px;background:var(--void);border:1px solid var(--border);overflow:hidden}
+  .tx{display:flex;align-items:center;gap:10px;padding:9px 11px;font-size:12.5px}
+  .tx + .tx{border-top:1px solid var(--border)}
+  .tx .t{flex:1;min-width:0}
+  .tx .t small{display:block;font-size:11px;color:var(--text-3);margin-top:1px}
+  .tx .amt{font:600 13px var(--font-num)}
+  .more{font-size:11.5px;color:var(--text-3);padding:8px 11px;border-top:1px solid var(--border)}
+  .keep{margin-top:10px;border-radius:18px;padding:12px 13px;font-size:12px;color:var(--text-2);line-height:1.7;background:color-mix(in srgb,var(--income) 8%,transparent);border:1px solid color-mix(in srgb,var(--income) 26%,transparent)}
+  .keep b{color:var(--income);font-weight:600}
+
+  .note{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--text-3);z-index:2;padding:0 20px}
+</style>
+</head>
+<body>
+  <div class="intro">
+    <h1>تعارض المزامنة</h1>
+    <p>قبل كل رفع، يتأكد التطبيق إن نسخة Google Sheets ما تغيّرت من جهاز ثاني. لو تغيّرت، يوقف المزامنة ويسألك وش تعتمد. اضغط «حلّ التعارض» في الشاشة.</p>
+  </div>
+
+  <div class="panel">
+    <div class="plbl">طريقة الحل</div>
+    <div class="seg" data-seg="opt"><button data-v="1">1. مقارنة واختيار</button><button data-v="2">2. خطوتين مع تفاصيل</button></div>
+    <div class="optdesc" data-desc></div>
+    <div class="plbl">السيناريو</div>
+    <div class="seg" data-seg="newer"><button data-v="sheets">Sheets أحدث</button><button data-v="local">هذا الجهاز أحدث</button></div>
+    <button class="reset" data-reset>إعادة العرض من البداية</button>
+  </div>
+
+  <div class="phone" data-phone></div>
+
+<script>
+const svg = (p,s=18,w=1.9) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I = {
+  phone:'<rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M11 18h2"/>',
+  cloud:'<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1 0 9.5z"/>',
+  split:'<path d="M6 3v6a6 6 0 0 0 6 6h0a6 6 0 0 1 6 6"/><path d="M18 3v6a6 6 0 0 1-6 6"/><circle cx="6" cy="3" r="1"/><circle cx="18" cy="3" r="1"/>',
+  down:'<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+  chev:'<path d="m15 6-6 6 6 6"/>',
+  fwd:'<path d="m9 6 6 6-6 6"/>',
+  check:'<path d="M5 13l4 4L19 7"/>',
+}
+const DESC = {
+  1:'<b>بطاقتين جنب بعض:</b> «هذا الجهاز» و«Google Sheets»، لكل وحدة وقت آخر تعديل وكم حركة فيها مو موجودة بالثانية، و«الأحدث» عليها شارة. تختار وحدة، ثم <b>ضغط مطوّل</b> للاعتماد.',
+  2:'<b>خطوتين:</b> تختار النسخة اللي تبيها، وبعدها صفحة توضّح بالضبط <b>وش راح ينمسح</b> (أول الحركات اللي بتضيع، بأسمائها ومبالغها) قبل الضغط المطوّل.',
+}
+const S = { opt:'1', newer:'sheets', step:'home', pick:null, hold:0 }
+const phone = document.querySelector('[data-phone]')
+
+const D = () => S.newer==='sheets'
+  ? { local:{ ago:'قبل 3 ساعات', only:2 }, remote:{ ago:'قبل 12 دقيقة', device:'أندرويد', only:5 } }
+  : { local:{ ago:'قبل 4 دقائق', only:3 }, remote:{ ago:'أمس 9:40م', device:'آيفون', only:1 } }
+
+const LOCAL_ONLY = [['قهوة','2 نوفمبر','-18'],['بنزين','2 نوفمبر','-120'],['راتب جزئي','1 نوفمبر','+500']]
+const REMOTE_ONLY = [['سوبرماركت','4 نوفمبر','-236'],['مطعم','4 نوفمبر','-95'],['تحويل للادخار','3 نوفمبر','-1,000'],['صيدلية','3 نوفمبر','-42'],['غسيل سيارة','3 نوفمبر','-30']]
+
+function home(){
+  return `<div class="aurora"></div><div class="home">
+    <div class="hello">مساء الخير</div>
+    <div class="total num">24,380<small>ر.س</small></div>
+    <div class="conflict-card">
+      <span class="ic">${svg(I.split,20,1.9)}</span>
+      <div style="flex:1">
+        <b>المزامنة متوقفة</b>
+        <span>فيه تعديلات انحفظت في Google Sheets من جهاز ثاني، وهذا الجهاز عنده تعديلات ما انرفعت. اختر وش تعتمد.</span>
+        <button class="go press" data-open>حلّ التعارض</button>
+      </div>
+    </div>
+    <div class="ghost-card tall"></div><div class="ghost-card"></div><div class="ghost-card"></div>
+  </div>
+  <div class="island"><span class="dot" style="background:var(--sub)"></span>المزامنة متوقفة · نسختين مختلفتين</div>`
+}
+
+function copyCard(kind){
+  const d=D(), isLocal=kind==='local', x=isLocal?d.local:d.remote
+  const newer = (S.newer==='sheets') !== isLocal
+  return `<button class="copy press ${S.pick===kind?'on':''}" data-pick="${kind}">
+    <div class="top">
+      <span class="ic">${svg(isLocal?I.phone:I.cloud,18)}</span>
+      <div class="ttl"><b>${isLocal?'هذا الجهاز':'Google Sheets'}${newer?'<span class="badge">الأحدث</span>':''}</b>
+        <small>${isLocal?`آخر تعديل ${x.ago}`:`آخر حفظ ${x.ago} من ${x.device}`}</small></div>
+      <span class="radio"></span>
+    </div>
+    <div class="facts"><span class="fact"><b class="num">${x.only}</b> ${x.only===1?'حركة':x.only===2?'حركتين':'حركات'} مو موجودة ${isLocal?'في Sheets':'هنا'}</span></div>
+  </button>`
+}
+
+function holdBtn(label){
+  return `<button class="hold" data-hold ${S.pick?'':'disabled'}><span class="fill"></span><span class="lbl">${label}</span></button>`
+}
+
+function sheet1(){
+  const lbl = !S.pick ? 'اختر نسخة أولًا' : S.pick==='local' ? 'اضغط مطوّلًا: اعتمد نسخة هذا الجهاز' : 'اضغط مطوّلًا: اعتمد نسخة Sheets'
+  return `<div class="scrim" data-close></div><div class="sheet">
+    <div class="handle"></div>
+    <h3>نسختين مختلفتين</h3>
+    <div class="sub">هذا الجهاز وGoogle Sheets تعدّلوا كل واحد لحاله. ما نقدر ندمجهم بأمان، فاختر النسخة اللي تبقى، والثانية تنستبدل.</div>
+    <div class="copies">${copyCard('local')}${copyCard('remote')}</div>
+    ${holdBtn(lbl)}
+    <button class="link" data-dl>${svg(I.down,16)}نزّل نسخة هذا الجهاز كملف أولًا</button>
+    <button class="cancel" data-close>بعدين (تبقى المزامنة متوقفة)</button>
+  </div>`
+}
+
+function sheet2(){
+  const d=D()
+  if(S.step==='sheet'){
+    const row=(kind)=>{const isLocal=kind==='local',x=isLocal?d.local:d.remote,newer=(S.newer==='sheets')!==isLocal
+      return `<button class="choice press" data-pick2="${kind}"><span class="ic" style="width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.06);color:var(--text-2)">${svg(isLocal?I.phone:I.cloud,18)}</span>
+        <div class="ttl"><b>اعتمد ${isLocal?'نسخة هذا الجهاز':'نسخة Google Sheets'}${newer?'<span class="badge">الأحدث</span>':''}</b>
+        <small>${isLocal?`آخر تعديل ${x.ago} · فيها <span class="num">${x.only}</span> حركات مو موجودة في Sheets`:`آخر حفظ ${x.ago} من ${x.device} · فيها <span class="num">${x.only}</span> حركات مو موجودة هنا`}</small></div>
+        <span class="chev">${svg(I.chev,18)}</span></button>`}
+    return `<div class="scrim" data-close></div><div class="sheet">
+      <div class="handle"></div>
+      <h3>نسختين مختلفتين</h3>
+      <div class="sub">هذا الجهاز وGoogle Sheets تعدّلوا كل واحد لحاله. أي وحدة تبقى؟ بنوريك وش بيضيع قبل ما تأكد.</div>
+      ${row('local')}${row('remote')}
+      <button class="cancel" style="margin-top:14px" data-close>بعدين (تبقى المزامنة متوقفة)</button>
+    </div>`
+  }
+  // خطوة التأكيد
+  const keepLocal=S.pick==='local'
+  const lost = keepLocal ? REMOTE_ONLY : LOCAL_ONLY
+  const n = keepLocal ? d.remote.only : d.local.only
+  const shown = lost.slice(0,3)
+  return `<div class="scrim" data-close></div><div class="sheet" style="animation:rise .3s var(--expo) both">
+    <div class="handle"></div>
+    <button class="back" data-back>${svg(I.fwd,16)}رجوع</button>
+    <h3>${keepLocal?'اعتماد نسخة هذا الجهاز':'اعتماد نسخة Google Sheets'}</h3>
+    <div class="lose"><b>${keepLocal?'بينمسح من Google Sheets':'بينمسح من هذا الجهاز'}</b>
+      <div class="sub2"><span class="num">${n}</span> ${n===1?'حركة':n===2?'حركتين':'حركات'} ${keepLocal?'انسجلت من الجهاز الثاني':'انسجلت هنا وما انرفعت'}، ومعها أي تعديل أو حذف سويته ${keepLocal?'هناك':'هنا'}.</div>
+      <div class="txlist">${shown.map(([t,dt,a])=>`<div class="tx"><div class="t">${t}<small>${dt}</small></div><span class="amt" style="color:${a.startsWith('+')?'var(--income)':'var(--text)'}">${a}</span></div>`).join('')}
+      ${lost.length>3?`<div class="more">و<span class="num">${lost.length-3}</span> غيرها</div>`:''}</div>
+    </div>
+    <div class="keep"><b>يبقى:</b> ${keepLocal?'كل اللي على هذا الجهاز، وينرفع لـ Sheets':'نسخة Sheets كاملة، وتنحفظ على هذا الجهاز'}، والمزامنة ترجع تشتغل.</div>
+    ${holdBtn('اضغط مطوّلًا للتأكيد')}
+    ${keepLocal?'':`<button class="link" data-dl>${svg(I.down,16)}نزّل نسخة هذا الجهاز كملف أولًا</button>`}
+  </div>`
+}
+
+function done(){
+  const keepLocal=S.pick==='local'
+  return `<div class="aurora"></div><div class="home">
+    <div class="hello">مساء الخير</div>
+    <div class="total num">${keepLocal?'24,380':'23,027'}<small>ر.س</small></div>
+    <div class="ghost-card tall" style="margin-top:18px"></div><div class="ghost-card"></div><div class="ghost-card"></div>
+  </div>
+  <div class="island"><span class="dot" style="background:var(--income)"></span>${keepLocal?'انرفعت نسخة هذا الجهاز · المزامنة رجعت':'انحفظت نسخة Sheets · المزامنة رجعت'}</div>
+  <div class="note">بعد الحل ترجع الرئيسية بالبيانات المعتمدة، وتختفي بطاقة التعارض.</div>`
+}
+
+function render(){
+  let h=''
+  if(S.step==='done') h=done()
+  else { h=home(); if(S.step!=='home') h+= S.opt==='1'?sheet1():sheet2() }
+  phone.innerHTML=h
+  document.querySelectorAll('[data-seg]').forEach(seg=>{const k=seg.dataset.seg;seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===S[k]))})
+  document.querySelector('[data-desc]').innerHTML=DESC[S.opt]
+  bindHold()
+}
+
+function bindHold(){
+  const h=phone.querySelector('[data-hold]'); if(!h||h.disabled) return
+  const fill=h.querySelector('.fill'); let raf=0,t0=0
+  const step=t=>{const p=Math.min(1,(t-t0)/1500);fill.style.transform=`scaleX(${p})`;if(p<1)raf=requestAnimationFrame(step);else{S.step='done';render()}}
+  const down=e=>{e.preventDefault();h.classList.add('going');t0=performance.now();raf=requestAnimationFrame(step)}
+  const up=()=>{cancelAnimationFrame(raf);h.classList.remove('going');fill.style.transition='transform .3s var(--expo)';fill.style.transform='scaleX(0)';setTimeout(()=>fill.style.transition='',300)}
+  h.addEventListener('pointerdown',down);h.addEventListener('pointerup',up);h.addEventListener('pointerleave',up);h.addEventListener('pointercancel',up)
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,[data-close]'); if(!t) return
+  if(t.closest('[data-seg]')){const k=t.closest('[data-seg]').dataset.seg;S[k]=t.dataset.v;S.step='home';S.pick=null;render();return}
+  if(t.matches('[data-reset]')){S.step='home';S.pick=null;render();return}
+  if(!phone.contains(t)) return
+  if(t.matches('[data-open]')){S.step='sheet';S.pick=null;render();return}
+  if(t.matches('[data-close]')){S.step='home';S.pick=null;render();return}
+  if(t.matches('[data-pick]')){S.pick=t.dataset.pick;render();return}
+  if(t.matches('[data-pick2]')){S.pick=t.dataset.pick2;S.step='confirm';render();return}
+  if(t.matches('[data-back]')){S.step='sheet';S.pick=null;render();return}
+  if(t.matches('[data-dl]')){t.innerHTML=svg(I.check,16)+' تم تنزيل الملف';return}
+})
+render()
+</script>
+</body>
+</html>
