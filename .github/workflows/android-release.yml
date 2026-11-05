@@ -49,6 +49,22 @@ jobs:
           # الافتراضي "tools platform-tools"، وحزمة "tools" القديمة لم تعد موجودة بأدوات SDK الحديثة فيفشل sdkmanager.
           packages: platform-tools
 
+      # تشخيص: يطبع لكل سر «موجود» أو «ناقص» فقط — بدون أي قيمة.
+      - name: Check signing secrets
+        env:
+          S_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          S_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          S_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          S_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            var="S_$name"
+            if [ -n "${!var}" ]; then echo "ANDROID_$name: موجود"; else echo "::warning::ANDROID_$name: ناقص"; fi
+          done
+          if [ -n "$S_KEYSTORE_BASE64" ]; then
+            if echo "$S_KEYSTORE_BASE64" | base64 -d > /dev/null 2>&1; then echo "ANDROID_KEYSTORE_BASE64: نص base64 سليم"; else echo "::warning::ANDROID_KEYSTORE_BASE64: موجود لكنه مو نص base64 سليم"; fi
+          fi
+
       # المفتاح يُحفظ بـ GitHub Secrets (base64) ويُفك لملف مؤقت خارج المستودع.
       # بدون الأسرار يُبنى APK تجريبي (debug) كالسابق حتى ما يتوقف النشر.
       - name: Decode signing keystore
