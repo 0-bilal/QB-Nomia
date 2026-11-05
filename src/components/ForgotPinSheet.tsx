@@ -1,10 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { SheetHandle } from './SheetHandle'
+import { HoldToConfirm } from './HoldToConfirm'
 import { agoLabel, backupStatus, type BackupStatus } from '../lib/forgotPin'
-import { haptic } from '../lib/haptics'
-
-/** مدة الضغط المطوّل اللازمة للمسح — تمنع المسح بضغطة بالغلط. */
-const HOLD_MS = 1500
 
 function Icon({ d, size = 16, width = 1.9 }: { d: ReactNode; size?: number; width?: number }) {
   return (
@@ -51,66 +48,6 @@ function BackupCard({ status }: { status: BackupStatus }) {
         </div>
       </div>
     </div>
-  )
-}
-
-/** زر المسح: يتعبّى بالأحمر أثناء الضغط المطوّل، والرفع قبل الاكتمال يلغي. */
-function HoldToConfirm({ onConfirm }: { onConfirm: () => void }) {
-  const [progress, setProgress] = useState(0)
-  const [holding, setHolding] = useState(false)
-  const raf = useRef(0)
-
-  useEffect(() => () => cancelAnimationFrame(raf.current), [])
-
-  function start() {
-    haptic('tick')
-    setHolding(true)
-    const t0 = performance.now()
-    const step = (t: number) => {
-      const p = Math.min(1, (t - t0) / HOLD_MS)
-      setProgress(p)
-      if (p < 1) raf.current = requestAnimationFrame(step)
-      else {
-        setHolding(false)
-        haptic('success')
-        onConfirm()
-      }
-    }
-    raf.current = requestAnimationFrame(step)
-  }
-
-  function stop() {
-    if (!holding) return
-    cancelAnimationFrame(raf.current)
-    setHolding(false)
-    setProgress(0)
-  }
-
-  return (
-    <button
-      type="button"
-      onPointerDown={(e) => {
-        e.preventDefault()
-        start()
-      }}
-      onPointerUp={stop}
-      onPointerLeave={stop}
-      onPointerCancel={stop}
-      onContextMenu={(e) => e.preventDefault()}
-      className="relative mt-4 h-[52px] w-full touch-none select-none overflow-hidden rounded-[17px] text-center text-[14px] font-bold"
-      style={{
-        background: 'color-mix(in srgb, var(--color-expense) 14%, transparent)',
-        border: '1px solid color-mix(in srgb, var(--color-expense) 40%, transparent)',
-        color: holding ? 'var(--color-text)' : 'var(--color-expense)',
-      }}
-    >
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 origin-right"
-        style={{ background: 'var(--color-expense)', transform: `scaleX(${progress})`, transition: holding ? 'none' : 'transform 300ms var(--ease-out-expo)' }}
-      />
-      <span className="relative">اضغط مطوّلًا للمسح</span>
-    </button>
   )
 }
 
@@ -183,6 +120,8 @@ export function ForgotPinSheet({ onClose, onWipe }: { onClose: () => void; onWip
         </div>
         <BackupCard status={status} />
         <HoldToConfirm
+          label="اضغط مطوّلًا للمسح"
+          color="var(--color-expense)"
           onConfirm={() => {
             onWipe()
             setWiped(true)

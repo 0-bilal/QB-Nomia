@@ -1,6 +1,19 @@
 import type { DataSnapshot } from '../state/DataContext'
 import { getSheetsSecretToken, getSheetsWebAppUrl, isSheetsSyncConfigured } from '../config/sheetsSync'
 import { decryptJSON, encryptJSON } from './cryptoUtil'
+import {
+  LEGACY_REV,
+  SyncConflictError,
+  clearConflict,
+  getBaseRev,
+  getConflict,
+  isConflict,
+  markLocalEdited,
+  newSyncMeta,
+  setBaseRev,
+  setConflict,
+  type SyncMeta,
+} from './syncConflict'
 
 const LAST_SYNC_KEY = 'qbnomia.sync.lastSyncedAt'
 const PENDING_PUSH_KEY = 'qbnomia.sync.pendingPush'
@@ -15,6 +28,7 @@ export function hasPendingPush(): boolean {
 
 export function markPendingPush(): void {
   localStorage.setItem(PENDING_PUSH_KEY, '1')
+  markLocalEdited()
 }
 
 export function getLastSyncedAt(): string | null {
@@ -43,8 +57,16 @@ async function fetchSafe(input: string, init?: RequestInit): Promise<Response> {
 
 export { isSheetsSyncConfigured }
 
-/** يسحب البيانات من الجدول ويفكّ تشفيرها — الجدول نفسه لا يخزّن سوى نص مشفّر. */
-export async function pullFromSheets(): Promise<DataSnapshot> {
+type RemotePayload = DataSnapshot & { syncMeta?: SyncMeta }
+
+export interface RemoteCopy {
+  snapshot: DataSnapshot
+  /** null لو النسخة رفعها إصدار قديم بدون syncMeta. */
+  meta: SyncMeta | null
+}
+
+/** يقرأ نسخة الجدول ويفك تشفيرها بدون أي أثر على حالة المزامنة المحلية. null لو الجدول فاضي. */
+export async function fetchRemoteCopy(): Promise<RemoteCopy | null> {
   if (!isSheetsSyncConfigured()) throw new Error('لم يتم ربط حساب Google Sheets بعد')
   const webAppUrl = getSheetsWebAppUrl()
   const secretToken = getSheetsSecretToken()
@@ -54,20 +76,46 @@ export async function pullFromSheets(): Promise<DataSnapshot> {
   if (!res.ok) throw new Error(`فشل الاتصال (HTTP ${res.status})`)
 
   const json = (await res.json()) as ApiResult<string>
-  if (!json.ok || !json.data) throw new Error(json.error ?? 'استجابة غير متوقعة من الخادم')
+  if (!json.ok) throw new Error(json.error ?? 'استجابة غير متوقعة من الخادم')
+  if (!json.data) return null
 
-  const snapshot = await decryptJSON<DataSnapshot>(secretToken, json.data)
-  markSynced()
-  return snapshot
+  const { syncMeta, ...snapshot } = await decryptJSON<RemotePayload>(secretToken, json.data)
+  return { snapshot: snapshot as DataSnapshot, meta: syncMeta ?? null }
 }
 
-/** يشفّر البيانات محليًا قبل إرسالها — جوجل شيت يخزّن النص المشفّر فقط. */
-export async function pushToSheets(snapshot: DataSnapshot): Promise<void> {
+/** يسحب البيانات من الجدول ويفكّ تشفيرها — الجدول نفسه لا يخزّن سوى نص مشفّر. السحب يعني اعتماد نسخة الجدول، فتصير هي نقطة المزامنة. */
+export async function pullFromSheets(): Promise<DataSnapshot> {
+  const remote = await fetchRemoteCopy()
+  if (!remote) throw new Error('استجابة غير متوقعة من الخادم')
+  setBaseRev(remote.meta?.rev ?? null)
+  clearConflict()
+  markSynced()
+  return remote.snapshot
+}
+
+/**
+ * يشفّر البيانات محليًا قبل إرسالها — جوجل شيت يخزّن النص المشفّر فقط.
+ * قبل الرفع يتأكد إن نسخة الجدول ما تغيّرت من جهاز ثاني منذ آخر مزامنة؛ لو تغيّرت يرمي
+ * SyncConflictError ويعلّم التعارض بدل ما يكتب فوقها. `force` = المستخدم قرر يعتمد نسخة هذا الجهاز.
+ */
+export async function pushToSheets(snapshot: DataSnapshot, { force = false }: { force?: boolean } = {}): Promise<void> {
   if (!isSheetsSyncConfigured()) throw new Error('لم يتم ربط حساب Google Sheets بعد')
   const webAppUrl = getSheetsWebAppUrl()
   const secretToken = getSheetsSecretToken()
 
-  const ciphertext = await encryptJSON(secretToken, snapshot)
+  if (!force) {
+    if (getConflict()) throw new SyncConflictError()
+    const remote = await fetchRemoteCopy()
+    const remoteRev = remote ? (remote.meta?.rev ?? LEGACY_REV) : null
+    if (isConflict(remoteRev, getBaseRev())) {
+      setConflict(remote?.meta ?? null)
+      throw new SyncConflictError()
+    }
+  }
+
+  const meta = newSyncMeta(getBaseRev())
+  const payload: RemotePayload = { ...snapshot, syncMeta: meta }
+  const ciphertext = await encryptJSON(secretToken, payload)
 
   // Content-Type: text/plain يتجنّب preflight CORS اللي Apps Script ما يدعمه
   const res = await fetchSafe(webAppUrl, {
@@ -85,6 +133,8 @@ export async function pushToSheets(snapshot: DataSnapshot): Promise<void> {
     }
     throw new Error(json.error ?? 'استجابة غير متوقعة من الخادم')
   }
+  setBaseRev(meta.rev)
+  clearConflict()
   markSynced()
 }
 
