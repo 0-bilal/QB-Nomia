@@ -716,8 +716,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setPeople(next)
     saveJSON(PEOPLE_KEY, next)
   }
-  function persistLoans(next: LoanTransaction[]) {
-    next = stampNew(loanTransactions, next)
+  // stamp: يختم وقت الإنشاء على العناصر الجديدة — الاستيراد يطفيه حتى تبقى الأوقات المحفوظة كما هي.
+  function persistLoans(next: LoanTransaction[], stamp = true) {
+    if (stamp) next = stampNew(loanTransactions, next)
     setLoanTransactions(next)
     saveJSON(LOANS_KEY, next)
   }
@@ -729,8 +730,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIncomeSources(next)
     saveJSON(INCOME_SOURCES_KEY, next)
   }
-  function persistTransactions(next: Transaction[]) {
-    next = stampNew(transactions, next)
+  function persistTransactions(next: Transaction[], stamp = true) {
+    if (stamp) next = stampNew(transactions, next)
     setTransactions(next)
     saveJSON(TRANSACTIONS_KEY, next)
   }
@@ -2258,10 +2259,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         skipNextAutoSync.current = true
         persistAccounts(snapshot.accounts ?? [])
         persistPeople(snapshot.people ?? [])
-        persistLoans(snapshot.loanTransactions ?? [])
+        persistLoans(snapshot.loanTransactions ?? [], false)
         persistCategories(ensureDefaultCategories(snapshot.categories ?? []))
         persistIncomeSources(ensureDefaultIncomeSources(snapshot.incomeSources ?? []))
-        persistTransactions(snapshot.transactions ?? [])
+        persistTransactions(snapshot.transactions ?? [], false)
         persistSubscriptions(snapshot.subscriptions ?? [])
         persistCommitments(snapshot.commitments ?? [])
         persistRecurringTransactions(snapshot.recurringTransactions ?? [])

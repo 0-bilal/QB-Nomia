@@ -117,17 +117,40 @@ describe('importSnapshot', () => {
     const snap = fullSnapshot()
     importSnap(snap)
 
-    // الحركات بدون createdAt ياخذون وقت الاستيراد (stampNew في persistTransactions) — نقارن بدونه.
-    const withoutCreatedAt = (list: { createdAt?: string }[]) => list.map(({ createdAt: _c, ...rest }) => (void _c, rest))
     expect(probe.data!.accounts).toEqual(snap.accounts)
-    expect(withoutCreatedAt(probe.data!.transactions)).toEqual(snap.transactions)
+    expect(probe.data!.transactions).toEqual(snap.transactions)
     expect(probe.data!.subscriptions).toEqual(snap.subscriptions)
     expect(stored('qbnomia.accounts')).toEqual(snap.accounts)
-    expect(withoutCreatedAt(stored('qbnomia.transactions'))).toEqual(snap.transactions)
+    expect(stored('qbnomia.transactions')).toEqual(snap.transactions)
     expect(stored('qbnomia.people')).toEqual(snap.people)
     expect(stored('qbnomia.monthlyBudgetLimit')).toBe(5000)
     expect(stored('qbnomia.vehicle.odometerKm')).toBe(120000)
     expect(getProfile()?.name).toBe('بلال')
+  })
+
+  it('يحتفظ بوقت إنشاء الحركات والسلف كما هو — ما يختمها بوقت الاستيراد', () => {
+    const loans = [
+      { id: 'l-old', personId: 'p1', direction: 'given', amount: 100, date: '2026-10-02' },
+      { id: 'l-new', personId: 'p1', direction: 'given', amount: 50, date: '2026-10-03', createdAt: '2026-10-03T08:00:00.000Z' },
+    ] as unknown as DataSnapshot['loanTransactions']
+    const transactions = [
+      { id: 'old', type: 'expense', amount: 5, date: '2026-11-01', accountId: 'acc-cash' },
+      { id: 'new', type: 'expense', amount: 7, date: '2026-11-01', accountId: 'acc-cash', createdAt: '2026-11-01T10:00:00.000Z' },
+    ] as DataSnapshot['transactions']
+    importSnap({ ...fullSnapshot(), transactions, loanTransactions: loans })
+
+    expect(probe.data!.transactions.find((t) => t.id === 'old')?.createdAt).toBeUndefined()
+    expect(probe.data!.transactions.find((t) => t.id === 'new')?.createdAt).toBe('2026-11-01T10:00:00.000Z')
+    expect(stored('qbnomia.loanTransactions')).toEqual(loans)
+  })
+
+  it('الحركة اللي تنضاف بعد الاستيراد تاخذ وقت إنشائها كالعادة', () => {
+    importSnap(fullSnapshot())
+    act(() =>
+      probe.data!.addTransaction({ type: 'expense', amount: 12, date: '2026-11-05', accountId: 'acc-cash', categoryId: 'cat-food' } as Parameters<Data['addTransaction']>[0]),
+    )
+    const added = probe.data!.transactions.find((t) => t.amount === 12)
+    expect(added?.createdAt).toBe('2026-11-05T09:00:00.000Z')
   })
 
   it('تصدير ثم استيراد ثم تصدير يرجّع نفس البيانات بالضبط', () => {
