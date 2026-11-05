@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../state/DataContext'
 import { formatAmount, formatDate } from '../lib/format'
@@ -110,8 +110,61 @@ function Chip({ children, color }: { children: ReactNode; color?: string }) {
   )
 }
 
+/** وين وصل التمرير داخل السجل: عنوان القسم مرّ تحت الرأس العائم، والشهر اللي فوق القائمة الحين. */
+export interface LogScrollContext {
+  month: string | null
+}
+
+/**
+ * يتابع تمرير الشاشة ويبلّغ بالشهر الحالي لما يمرّ عنوان «سجل العمليات» تحت الرأس
+ * العائم — حتى يظهر في كبسولة العنوان بدل رأس لاصق يتداخل مع أزرار الرأس.
+ * الخط المرجعي = أعلى حاوية التمرير + حشوتها العلوية (المنطقة الآمنة + الرأس).
+ */
+function useScrollContext(ref: RefObject<HTMLElement | null>, onChange: ((ctx: LogScrollContext | null) => void) | undefined, monthsCount: number) {
+  const last = useRef<string>('')
+  useEffect(() => {
+    const section = ref.current
+    if (!section || !onChange) return
+    let scroller: HTMLElement | null = section.parentElement
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement
+    if (!scroller) return
+    const el = scroller
+    let raf = 0
+    const measure = () => {
+      raf = 0
+      const line = el.getBoundingClientRect().top + parseFloat(getComputedStyle(el).paddingTop || '0')
+      const title = section.querySelector('[data-vlog-title]')
+      let ctx: LogScrollContext | null = null
+      if (title && title.getBoundingClientRect().bottom <= line) {
+        let month: string | null = null
+        section.querySelectorAll<HTMLElement>('[data-vlog-month]').forEach((m) => {
+          if (m.getBoundingClientRect().top <= line + 4) month = m.dataset.vlogMonth ?? null
+        })
+        // بعد نهاية السجل (تحت آخر بطاقة) ترجع الكبسولة لاسم الشاشة.
+        ctx = section.getBoundingClientRect().bottom > line + 40 ? { month } : null
+      }
+      const key = ctx ? `m:${ctx.month ?? ''}` : ''
+      if (key !== last.current) {
+        last.current = key
+        onChange(ctx)
+      }
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(measure)
+    }
+    measure()
+    el.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [ref, onChange, monthsCount])
+}
+
 /** سجل العمليات في صيانة السيارة: مقسّم بالشهر (بالرقم)، بفلاتر سريعة ومتقدمة، وكل عملية تنسدل بتفاصيلها. */
-export function VehicleLogSection() {
+export function VehicleLogSection({ onContextChange }: { onContextChange?: (ctx: LogScrollContext | null) => void } = {}) {
   const navigate = useNavigate()
   const { fuelLogs, oilChanges, accounts, people, vehicleOilIntervalKm, vehicleOdometerKm, deleteFuelLog, deleteOilChange } = useData()
   const [filter, setFilter] = useState<VehicleLogFilter>(DEFAULT_LOG_FILTER)
@@ -124,6 +177,8 @@ export function VehicleLogSection() {
   const avg = useMemo(() => averageKmPerLiter(entries), [entries])
   const list = useMemo(() => filterVehicleEntries(entries, filter, today), [entries, filter, today])
   const months = useMemo(() => groupVehicleByMonth(list), [list])
+  const sectionRef = useRef<HTMLElement>(null)
+  useScrollContext(sectionRef, onContextChange, months.length)
   const draftCount = useMemo(() => filterVehicleEntries(entries, draft, today).length, [entries, draft, today])
   const quick = filterToQuick(filter)
   const advanced = advancedKeys(filter)
@@ -329,9 +384,9 @@ export function VehicleLogSection() {
   const card = (items: VehicleEntry[]) => <div className="qb-card overflow-hidden">{items.map(row)}</div>
 
   return (
-    <section className="qb-rise">
+    <section ref={sectionRef} className="qb-rise">
       <div className="mb-3 flex items-center justify-between px-1">
-        <div className="qb-section-title">سجل العمليات</div>
+        <div data-vlog-title className="qb-section-title">سجل العمليات</div>
         {entries.length > 0 && (
           <button
             onClick={() => {
@@ -394,9 +449,8 @@ export function VehicleLogSection() {
           ) : byDate ? (
             months.map((m) => (
               <div key={m.key} className="mb-3">
-                {/* رأس الشهر يلصق تحت الرأس العائم (top: -8px داخل ScreenScroll). */}
-                <div className="sticky z-[3] -mx-5 mb-2 bg-[var(--color-bg)] px-5 pb-2 pt-2.5" style={{ top: -8 }}>
-                  <span className="pointer-events-none absolute inset-x-0 top-full h-3" style={{ background: 'linear-gradient(var(--color-bg), transparent)' }} aria-hidden="true" />
+                {/* رأس الشهر عادي (ما يلصق) — الشهر الحالي أثناء التمرير يظهر في كبسولة العنوان (onContextChange). */}
+                <div data-vlog-month={m.label} className="mb-2 px-1 pt-1">
                   <div className="flex items-baseline justify-between">
                     <b className="num text-[15px] font-semibold">{m.label}</b>
                     <span className="num text-[13px] font-bold">

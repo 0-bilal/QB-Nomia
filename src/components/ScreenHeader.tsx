@@ -21,6 +21,8 @@ interface ScreenHeaderProps {
   capsuleTitle?: string
   /** نقطة لون اختيارية داخل الكبسولة. */
   capsuleDot?: string
+  /** جزء ثانٍ في الكبسولة بعد العنوان (مثل الشهر الحالي في قائمة مقسّمة بالأشهر). */
+  capsuleMeta?: string
 }
 
 /**
@@ -28,7 +30,7 @@ interface ScreenHeaderProps {
  * عريض بلا كبسولة بجانبه، وخانة إجراء اختيارية بالطرف المقابل. اسحب من حافة
  * الشاشة اليمنى للرجوع (ScreenScroll) كبديل للزر.
  */
-export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'pt-8 pb-5', capsuleTitle, capsuleDot }: ScreenHeaderProps) {
+export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'pt-8 pb-5', capsuleTitle, capsuleDot, capsuleMeta }: ScreenHeaderProps) {
   // داخل ScreenScroll: العنوان الكبير بالمحتوى (يتمرر)، وهنا كبسولة تظهر بعد تمريره — النمط "ج".
   const { managed, scrolled } = useContext(ScreenTitleContext)
   return (
@@ -38,7 +40,7 @@ export function ScreenHeader({ title, onBack, cancelLabel, right, className = 'p
     >
       {managed && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3" style={{ height: 40 }}>
-          <FloatingTitle title={capsuleTitle ?? title} dot={capsuleDot} visible={scrolled} />
+          <FloatingTitle title={capsuleTitle ?? title} dot={capsuleDot} meta={capsuleMeta} visible={scrolled} />
         </div>
       )}
       <div className="pointer-events-auto flex min-w-0 items-center gap-3">

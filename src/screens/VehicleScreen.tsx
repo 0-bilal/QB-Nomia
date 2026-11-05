@@ -10,7 +10,7 @@ import { AmountPad } from '../components/AmountPad'
 import { SheetHandle } from '../components/SheetHandle'
 import { IconBubble, RingProgress, Segmented, StatTile } from '../components/ui'
 import { rise } from '../lib/motion'
-import { VehicleLogSection } from '../components/VehicleLogSection'
+import { VehicleLogSection, type LogScrollContext } from '../components/VehicleLogSection'
 
 function EditIcon() {
   return (
@@ -114,6 +114,8 @@ export function VehicleScreen() {
   } = useData()
 
   const [activeType, setActiveType] = useState<OperationType>('oil')
+  // الكبسولة العائمة تعرض «سجل العمليات · 11/2026» أثناء التمرير داخل السجل.
+  const [logCtx, setLogCtx] = useState<LogScrollContext | null>(null)
   const [editing, setEditing] = useState<'odometer' | 'interval' | 'fuelCapacity' | null>(null)
 
   const hasBaseline = vehicleOdometerKm !== null && vehicleOilBaselineKm !== null
@@ -129,7 +131,7 @@ export function VehicleScreen() {
   const oilColor = oil ? (oil.overdue ? 'var(--color-expense)' : oil.dueSoon ? 'var(--color-subscription)' : vColor) : vColor
 
   return (
-    <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} />}>
+    <ScreenScroll header={<ScreenHeader title="صيانة السيارة" onBack={() => navigate(-1)} capsuleTitle={logCtx ? 'سجل العمليات' : undefined} capsuleMeta={logCtx?.month ?? undefined} />}>
       {editing === 'odometer' && (
         <NumberSheet
           label="عداد السيارة الحالي"
@@ -334,7 +336,7 @@ export function VehicleScreen() {
         </div>
       )}
 
-      <VehicleLogSection />
+      <VehicleLogSection onContextChange={setLogCtx} />
     </ScreenScroll>
   )
 }
