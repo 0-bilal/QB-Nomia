@@ -12,6 +12,7 @@ import type { LoanDirection } from '../../types'
 import { Segmented } from '../../components/ui'
 import { AmountHero } from '../../components/AmountHero'
 import { Avatar } from '../../components/Avatar'
+import { localIso } from '../../lib/homeFeed'
 
 export function AddLoanScreen() {
   const { personId, loanId } = useParams<{ personId: string; loanId?: string }>()
@@ -27,7 +28,7 @@ export function AddLoanScreen() {
   const [direction, setDirection] = useState<LoanDirection>(initialDirection)
   const [amount, setAmount] = useState(existing ? String(existing.amount) : '')
   const [accountId, setAccountId] = useState(existing?.accountId ?? accounts[0]?.id ?? '')
-  const [date, setDate] = useState(existing?.date ?? new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(existing?.date ?? localIso(new Date()))
   const [dueDate, setDueDate] = useState(existing?.dueDate ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)

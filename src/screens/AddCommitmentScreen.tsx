@@ -13,11 +13,12 @@ import { formatMoney } from '../lib/format'
 import { showUndoToast } from '../lib/undoToast'
 import type { CommitmentIntervalUnit } from '../types'
 import { Segmented } from '../components/ui'
+import { localIso } from '../lib/homeFeed'
 
 function defaultDueDate(): string {
   const d = new Date()
   d.setMonth(d.getMonth() + 1)
-  return d.toISOString().slice(0, 10)
+  return localIso(d)
 }
 
 const UNIT_OPTIONS: [CommitmentIntervalUnit, string][] = [

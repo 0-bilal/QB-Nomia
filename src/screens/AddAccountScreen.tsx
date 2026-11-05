@@ -10,6 +10,7 @@ import type { AccountType } from '../types'
 import { BankCardFace } from '../components/BankCardFace'
 import { ACCOUNT_ICON_COLOR, AccountTypeIcon } from '../components/AccountVisuals'
 import { haptic } from '../lib/haptics'
+import { localIso } from '../lib/homeFeed'
 
 const TYPE_OPTIONS: [AccountType, string][] = [
   ['cash', 'كاش'],
@@ -41,7 +42,7 @@ export function AddAccountScreen() {
   // تاريخ بداية حول الزكاة: يُفترض تلقائيًا تاريخ إنشاء الهدف (حساب جديد)، وإلا يبقى فارغًا
   // لحين ما يحدده المستخدم بنفسه (حساب قديم قبل إضافة هذه الميزة).
   const [zakatHawlStartDate, setZakatHawlStartDate] = useState(
-    existing?.zakatHawlStartDate ?? (isEditing ? '' : new Date().toISOString().slice(0, 10)),
+    existing?.zakatHawlStartDate ?? (isEditing ? '' : localIso(new Date())),
   )
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 

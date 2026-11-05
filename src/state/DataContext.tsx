@@ -1068,7 +1068,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
      */
     function buildNotifications(): AppNotification[] {
       const list: AppNotification[] = []
-      const today = new Date().toISOString().slice(0, 10)
+      const today = localIso(new Date())
 
       function daysUntil(dateStr: string): number {
         const t = new Date()
@@ -1305,7 +1305,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const payment: ZakatPayment = {
           id: makeId(),
           accountId,
-          date: new Date().toISOString().slice(0, 10),
+          date: localIso(new Date()),
           amount,
           hawlStartDate: account.zakatHawlStartDate,
         }
@@ -1409,7 +1409,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       storeDebts,
       storeDebtPayments,
       logSalaryAdvance(input: { amount: number; accountId: string }) {
-        const date = new Date().toISOString().slice(0, 10)
+        const date = localIso(new Date())
         const txnId = makeId()
         const advance: SalaryAdvance = {
           id: makeId(),
@@ -2015,7 +2015,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           id: makeId(),
           type: 'expense',
           amount: sub.cost,
-          date: new Date().toISOString().slice(0, 10),
+          date: localIso(new Date()),
           accountId: sub.accountId,
           categoryId: 'cat-subscriptions',
           note: sub.name,
@@ -2082,7 +2082,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             id: makeId(),
             type: 'expense',
             amount: commitment.cost,
-            date: new Date().toISOString().slice(0, 10),
+            date: localIso(new Date()),
             accountId: commitment.accountId,
             categoryId: 'cat-commitments',
             note: commitment.name,

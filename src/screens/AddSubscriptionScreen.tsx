@@ -13,11 +13,12 @@ import { showUndoToast } from '../lib/undoToast'
 import type { BillingCycle } from '../types'
 import { BigAmount } from '../components/BigAmount'
 import { IconBubble, Segmented } from '../components/ui'
+import { localIso } from '../lib/homeFeed'
 
 function defaultRenewalDate(): string {
   const d = new Date()
   d.setDate(d.getDate() + 30)
-  return d.toISOString().slice(0, 10)
+  return localIso(d)
 }
 
 export function AddSubscriptionScreen() {
