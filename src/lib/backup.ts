@@ -1,3 +1,5 @@
+import type { DataSnapshot } from '../state/DataContext'
+
 const LAST_EXPORT_KEY = 'qbnomia.backup.lastExportedAt'
 const FIRST_SEEN_KEY = 'qbnomia.backup.firstSeenAt'
 
@@ -17,4 +19,11 @@ export function getOrInitFirstSeenAt(): string {
     localStorage.setItem(FIRST_SEEN_KEY, v)
   }
   return v
+}
+
+/** فحص أولي لملف نسخة احتياطية قبل الاستيراد: لازم يكون كائن فيه الحسابات والحركات والأشخاص كقوائم. */
+export function isDataSnapshot(value: unknown): value is DataSnapshot {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return Array.isArray(v.accounts) && Array.isArray(v.transactions) && Array.isArray(v.people)
 }

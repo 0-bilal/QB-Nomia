@@ -11,6 +11,7 @@ import { getLastBackupExportedAt, markBackupExported } from '../lib/backup'
 import { dismissNotice, notify } from '../lib/notify'
 import { rise } from '../lib/motion'
 import { localIso } from '../lib/homeFeed'
+import { isDataSnapshot } from '../lib/backup'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -42,12 +43,6 @@ function shortenUrl(url: string): string {
   } catch {
     return url
   }
-}
-
-function isDataSnapshot(value: unknown): value is DataSnapshot {
-  if (!value || typeof value !== 'object') return false
-  const v = value as Record<string, unknown>
-  return Array.isArray(v.accounts) && Array.isArray(v.transactions) && Array.isArray(v.people)
 }
 
 function Svg({ size = 18, children, strokeWidth = 1.9 }: { size?: number; children: ReactNode; strokeWidth?: number }) {
