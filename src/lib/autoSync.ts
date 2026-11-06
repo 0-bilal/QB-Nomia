@@ -1,8 +1,10 @@
 import type { DataSnapshot } from '../state/DataContext'
 import { isSheetsSyncConfigured } from '../config/sheetsSync'
 import { hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
+import { SyncConflictError, getConflict } from './syncConflict'
 
-export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline'
+/** conflict = نسخة الجدول تغيّرت من جهاز ثاني — المزامنة متوقفة لين يختار المستخدم (SyncConflictSheet). */
+export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline' | 'conflict'
 export type SyncDirection = 'push' | 'pull'
 
 /** `manual` = بدأها المستخدم بنفسه (زر المزامنة) — الرفع الخلفي الناجح يبقى صامتًا، أما اليدوي فيُؤكَّد له. */
@@ -38,6 +40,8 @@ export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
   if (idleTimer) window.clearTimeout(idleTimer)
 
   debounceTimer = window.setTimeout(async () => {
+    // تعارض معروف: المزامنة متوقفة بصمت (البطاقة بالرئيسية تذكّر) — التعديل يبقى معلّق لين الحل.
+    if (getConflict()) return
     if (!navigator.onLine) {
       emit('offline', 'push')
       return
@@ -47,8 +51,8 @@ export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
       await pushToSheets(getSnapshot())
       emit('success', 'push')
       idleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
-    } catch {
-      emit('error', 'push')
+    } catch (err) {
+      emit(err instanceof SyncConflictError ? 'conflict' : 'error', 'push')
       idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
     }
   }, 1200)
@@ -66,19 +70,25 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void, 
   if (!isSheetsSyncConfigured()) return
   if (pullIdleTimer) window.clearTimeout(pullIdleTimer)
 
+  // تعارض لسا ما انحل: نذكّر عند الدخول بدون رفع ولا سحب.
+  if (getConflict()) {
+    emit('conflict', 'push')
+    return
+  }
   if (!navigator.onLine) {
     emit('offline', hasPendingPush() ? 'push' : 'pull')
     return
   }
   if (hasPendingPush()) {
+    // pushToSheets يتأكد قبل الرفع إن الجدول ما تغيّر من جهاز ثاني — لو تغيّر يصير تعارض.
     emit('syncing', 'push')
     pushToSheets(getSnapshot())
       .then(() => {
         emit('success', 'push')
         pullIdleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
       })
-      .catch(() => {
-        emit('error', 'push')
+      .catch((err) => {
+        emit(err instanceof SyncConflictError ? 'conflict' : 'error', 'push')
         pullIdleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
       })
     return
@@ -104,6 +114,10 @@ export async function syncNow(snapshot: DataSnapshot): Promise<boolean> {
   if (!isSheetsSyncConfigured()) return false
   if (debounceTimer) window.clearTimeout(debounceTimer)
   if (idleTimer) window.clearTimeout(idleTimer)
+  if (getConflict()) {
+    emit('conflict', 'push', true)
+    return false
+  }
   if (!navigator.onLine) {
     emit('offline', 'push', true)
     idleTimer = window.setTimeout(() => emit('idle', 'push', true), 3000)
@@ -115,8 +129,8 @@ export async function syncNow(snapshot: DataSnapshot): Promise<boolean> {
     emit('success', 'push', true)
     idleTimer = window.setTimeout(() => emit('idle', 'push', true), 1800)
     return true
-  } catch {
-    emit('error', 'push', true)
+  } catch (err) {
+    emit(err instanceof SyncConflictError ? 'conflict' : 'error', 'push', true)
     idleTimer = window.setTimeout(() => emit('idle', 'push', true), 3000)
     return false
   }

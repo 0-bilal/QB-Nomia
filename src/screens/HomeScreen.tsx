@@ -27,6 +27,7 @@ import { ledgerDaySeries, savingsAccountIds, savingsSpentByAccount } from '../li
 import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSummary'
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { SetupCard } from '../components/onboarding/SetupCard'
+import { SyncConflictCard } from '../components/SyncConflict'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 
@@ -453,6 +454,8 @@ export function HomeScreen() {
       </div>
 
       <div ref={balanceEndRef} aria-hidden="true" />
+
+      <SyncConflictCard className="qb-rise mb-5" />
 
       <SetupCard />
 

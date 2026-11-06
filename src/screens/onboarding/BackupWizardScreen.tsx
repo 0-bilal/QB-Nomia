@@ -180,7 +180,8 @@ export function BackupWizardScreen() {
     setLine(2, 'ok')
     setLine(3, 'run')
     try {
-      await pushToSheets(exportSnapshot())
+      // المستخدم اختار هنا يرفع نسخته (جدول فاضي أو «استبدل المحفوظة») — بدون فحص التعارض.
+      await pushToSheets(exportSnapshot(), { force: true })
       setLine(3, 'ok')
       haptic('success')
     } catch (err) {

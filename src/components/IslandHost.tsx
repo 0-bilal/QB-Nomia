@@ -78,6 +78,7 @@ export function IslandHost() {
         if (status === 'success' && (manual || direction === 'pull')) notify('success', SYNC_TEXT[direction].success)
         else if (status === 'error') notify('warn', SYNC_TEXT[direction].error)
         else if (status === 'offline' && manual) notify('warn', 'لا يوجد اتصال — جرّب المزامنة لاحقًا')
+        else if (status === 'conflict') notify('warn', 'المزامنة متوقفة · نسختين مختلفتين')
       }),
     [],
   )

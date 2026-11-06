@@ -7,11 +7,10 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
 import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
-import { getLastBackupExportedAt, markBackupExported } from '../lib/backup'
 import { dismissNotice, notify } from '../lib/notify'
 import { rise } from '../lib/motion'
-import { localIso } from '../lib/homeFeed'
-import { isDataSnapshot } from '../lib/backup'
+import { downloadSnapshotFile, getLastBackupExportedAt, isDataSnapshot, markBackupExported } from '../lib/backup'
+import { SyncConflictCard } from '../components/SyncConflict'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -197,16 +196,7 @@ export function SyncSettingsScreen() {
   }
 
   function handleExportBackup() {
-    const json = JSON.stringify(backupSnapshot, null, 2)
-    const blob = new Blob([json], { type: 'application/json' })
-    const href = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = href
-    a.download = `qb-nomia-backup-${localIso(new Date())}.json`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(href), 2000)
+    downloadSnapshotFile(backupSnapshot)
     markBackupExported()
     setLastExported(getLastBackupExportedAt())
     setStatus({ kind: 'ok', label: 'تم تصدير النسخة الاحتياطية على جهازك' })
@@ -318,6 +308,8 @@ export function SyncSettingsScreen() {
           setPendingImport(null)
         }}
       />
+
+      <SyncConflictCard className="qb-rise mb-4" />
 
       {/* بطاقة الحالة */}
       <div className="qb-card-elevated qb-rise p-5">
