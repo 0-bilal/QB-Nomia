@@ -261,7 +261,7 @@ export function BackupWizardScreen() {
             </Kicker>
             <Title>هذا مفتاح بياناتك</Title>
             <Lead>سوّينا لك رمزًا عشوائيًا قويًا. منه نحسب «مفتاح دخول» ينكتب داخل الكود اللي بتلصقه، أما مفتاح التشفير فيبقى على جهازك وما يوصل لجوجل. ما تحتاج تكتب شي بيدك.</Lead>
-            <div dir="ltr" className="rounded-[18px] border border-[var(--color-border-strong)] bg-[var(--color-void)] p-4 text-left font-mono text-[15px] leading-[1.6] tracking-[0.04em]">
+            <div dir="ltr" className="select-text rounded-[18px] border border-[var(--color-border-strong)] bg-[var(--color-void)] p-4 text-left font-mono text-[15px] leading-[1.6] tracking-[0.04em]">
               {groupToken(token)}
             </div>
             <div className="mt-2.5 flex gap-2">

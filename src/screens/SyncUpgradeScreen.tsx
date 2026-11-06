@@ -206,7 +206,7 @@ export function SyncUpgradeScreen() {
             <Lead>
               نسوي رمز جديد بدل القديم، لأن القديم انكتب في كود السكربت ويبقى في سجل نسخه. <Em>احفظه</Em>، تحتاجه لو ربطت جهاز ثاني أو رجعت بياناتك.
             </Lead>
-            <div dir="ltr" className="rounded-[18px] border border-[var(--color-border-strong)] bg-[var(--color-void)] p-4 text-left font-mono text-[15px] leading-[1.6] tracking-wide">
+            <div dir="ltr" className="select-text rounded-[18px] border border-[var(--color-border-strong)] bg-[var(--color-void)] p-4 text-left font-mono text-[15px] leading-[1.6] tracking-wide">
               {groupToken(token)}
             </div>
             <div className="mt-2.5 flex gap-2">
