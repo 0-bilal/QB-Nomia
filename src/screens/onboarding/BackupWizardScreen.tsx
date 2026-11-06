@@ -5,81 +5,27 @@ import { ScreenScroll } from '../../components/ScreenScroll'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { GuideDemo } from '../../components/onboarding/GuideDemo'
 import { CheckIcon, Icons, ObGhost, ObIcon, ObLink, ObNote, ObPrimary } from '../../components/onboarding/ObUi'
+import { CheckLines, Em, Kbd, Kicker, Lead, Ordered, Title, type LineState } from '../../components/onboarding/WizardUi'
+import { copyText, useCopied } from '../../lib/clipboard'
 import { UrlField } from '../../components/onboarding/UrlField'
-import { clearSheetsSyncCredentials, setSheetsSyncCredentials } from '../../config/sheetsSync'
+import { clearSheetsSyncCredentials } from '../../config/sheetsSync'
+import { ScriptCodeView } from '../../components/onboarding/ScriptCodeView'
+import { useAuthKey } from '../../hooks/useAuthKey'
 import { haptic } from '../../lib/haptics'
 import { notify } from '../../lib/notify'
 import { clearWizardDraft, getWizardDraft, saveWizardDraft } from '../../lib/onboarding'
 import { APPS_SCRIPT_CREATE_URL, buildScriptCode, checkWebAppUrl, generateSyncToken, groupToken } from '../../lib/scriptCode'
-import { probeSheets, pullFromSheets, pushToSheets, SheetsProbeError } from '../../lib/sheetsSync'
+import { probeSheets, pullFromSheets, pushToSheets, saveSyncCredentials, SheetsProbeError } from '../../lib/sheetsSync'
 import { useData } from '../../state/DataContext'
 import { DEPLOY_FRAMES, EDITOR_URL, OPEN_FRAMES, PASTE_FRAMES, RUN_FRAMES } from './backupGuideFrames'
 
 const LAST = 7
 const NEXT_LABELS = ['يلا نبدأ', 'التالي', 'فتحته، التالي', 'لصقته وحفظته', 'شغّلته ووافقت', 'نشرته ونسخت الرابط', 'اختبر الاتصال', 'تم']
 
-type LineState = 'idle' | 'run' | 'ok' | 'fail'
 const TEST_LINES = ['الوصول للسكربت', 'تطابق الرمز السري', 'تشفير بياناتك', 'أول نسخة احتياطية']
 
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    // متصفحات قديمة أو WebView بدون صلاحية الحافظة.
-    const ta = document.createElement('textarea')
-    ta.value = text
-    ta.style.position = 'fixed'
-    ta.style.opacity = '0'
-    document.body.appendChild(ta)
-    ta.select()
-    const ok = document.execCommand('copy')
-    ta.remove()
-    return ok
-  }
-}
 
-function useCopied(): [boolean, () => void] {
-  const [on, setOn] = useState(false)
-  useEffect(() => {
-    if (!on) return
-    const t = window.setTimeout(() => setOn(false), 1600)
-    return () => clearTimeout(t)
-  }, [on])
-  return [on, () => setOn(true)]
-}
 
-function Kicker({ children }: { children: ReactNode }) {
-  return <div className="mt-1 text-[11.5px] font-semibold text-[var(--color-text-3)]">{children}</div>
-}
-function Title({ children }: { children: ReactNode }) {
-  return <h1 className="mt-0.5 text-[24px] font-bold leading-[1.4]">{children}</h1>
-}
-function Lead({ children }: { children: ReactNode }) {
-  return <p className="mb-3.5 mt-1 text-[12.5px] leading-[1.8] text-[var(--color-text-3)]">{children}</p>
-}
-function Em({ children }: { children: ReactNode }) {
-  return <b className="font-semibold text-[var(--color-text)]">{children}</b>
-}
-function Kbd({ children }: { children: ReactNode }) {
-  return (
-    <span dir="ltr" className="num inline-block rounded-[5px] border border-[var(--color-border-strong)] bg-[var(--color-surface-high)] px-1.5 text-[10.5px] text-[var(--color-text)]">
-      {children}
-    </span>
-  )
-}
-function Ordered({ items }: { items: ReactNode[] }) {
-  return (
-    <div className="mt-3 flex flex-col gap-2">
-      {items.map((it, i) => (
-        <div key={i} className="flex gap-2.5 text-[12px] leading-[1.7] text-[var(--color-text-2)]">
-          <span className="num mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-[var(--color-surface-high)] text-[10.5px] font-bold text-[var(--color-text)]">{i + 1}</span>
-          <span>{it}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
 function Point({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
   return (
     <div className="flex items-start gap-3">
@@ -95,39 +41,6 @@ function Point({ icon, title, body }: { icon: ReactNode; title: string; body: st
 }
 
 /** يلوّن Code.gs بشكل بسيط: التعليقات خافتة، وسطر الرمز مميّز. */
-function CodeView({ code, token }: { code: string; token: string }) {
-  // ترويسة الشرح الطويلة تنسخ مع الكود لكن ما تُعرض هنا — العرض يبدأ من سطر الرمز.
-  const lines = useMemo(() => {
-    const all = code.split('\n')
-    const start = all.findIndex((l) => l.startsWith('var SECRET_TOKEN'))
-    return start > 0 ? all.slice(start) : all
-  }, [code])
-  return (
-    <pre dir="ltr" className="max-h-[220px] overflow-auto px-3 py-2.5 text-left font-mono text-[10.5px] leading-[1.7] text-[var(--color-text-2)]">
-      {lines.map((l, i) => {
-        if (l.includes(`'${token}'`) && l.includes('SECRET_TOKEN =')) {
-          const [a, b] = l.split(`'${token}'`)
-          return (
-            <div key={i}>
-              {a}
-              <span className="rounded-[4px] px-0.5" style={{ background: 'color-mix(in srgb, var(--color-income) 16%, transparent)', color: 'var(--color-income)' }}>
-                '{token}'
-              </span>
-              {b}
-            </div>
-          )
-        }
-        const comment = /^\s*(\/\/|\/\*\*?|\*)/.test(l)
-        return (
-          // التعليقات العربية بالخط العادي — الخط الأحادي يفكّك الحروف العربية.
-          <div key={i} style={comment ? { color: 'var(--color-text-3)', fontFamily: 'var(--font-sans)' } : undefined}>
-            {l || ' '}
-          </div>
-        )
-      })}
-    </pre>
-  )
-}
 
 /**
  * معالج النسخة الاحتياطية خطوة بخطوة: يولّد الرمز ويحقنه في الكود، ويعرض
@@ -151,7 +64,9 @@ export function BackupWizardScreen() {
   const [tokenCopied, flashToken] = useCopied()
   const [codeCopied, flashCode] = useCopied()
 
-  const code = useMemo(() => buildScriptCode(token), [token])
+  // الكود فيه مفتاح الدخول المشتق من الرمز (v2) — الرمز نفسه ومفتاح التشفير ما ينكتبون فيه.
+  const authKey = useAuthKey(token)
+  const code = useMemo(() => (authKey ? buildScriptCode(authKey) : ''), [authKey])
   const tested = lines[3] === 'ok'
 
   useEffect(() => {
@@ -197,9 +112,9 @@ export function BackupWizardScreen() {
     setExisting(false)
     setLines(['run', 'idle', 'idle', 'idle'])
     try {
-      const { hasData } = await probeSheets(url, token)
+      const { hasData, scheme } = await probeSheets(url, token)
       setLines(['ok', 'ok', 'idle', 'idle'])
-      setSheetsSyncCredentials(url, token)
+      saveSyncCredentials(url, token, scheme)
       if (hasData) setExisting(true)
       else await upload()
     } catch (err) {
@@ -345,7 +260,7 @@ export function BackupWizardScreen() {
               الخطوة <span className="num">1</span> · رمزك السري
             </Kicker>
             <Title>هذا مفتاح بياناتك</Title>
-            <Lead>سوّينا لك رمزًا عشوائيًا قويًا. نفس الرمز بيكون داخل الكود اللي بتلصقه، وبه تتشفّر النسخة وتنفك. ما تحتاج تكتبه بيدك.</Lead>
+            <Lead>سوّينا لك رمزًا عشوائيًا قويًا. منه نحسب «مفتاح دخول» ينكتب داخل الكود اللي بتلصقه، أما مفتاح التشفير فيبقى على جهازك وما يوصل لجوجل. ما تحتاج تكتب شي بيدك.</Lead>
             <div dir="ltr" className="rounded-[18px] border border-[var(--color-border-strong)] bg-[var(--color-void)] p-4 text-left font-mono text-[15px] leading-[1.6] tracking-[0.04em]">
               {groupToken(token)}
             </div>
@@ -414,7 +329,7 @@ export function BackupWizardScreen() {
               الخطوة <span className="num">3</span> · الكود
             </Kicker>
             <Title>انسخ الكود والصقه</Title>
-            <Lead>الكود جاهز وفيه رمزك (السطر الملوّن). امسح الموجود في المحرر والصق هذا مكانه.</Lead>
+            <Lead>الكود جاهز وفيه مفتاح الدخول المشتق من رمزك (السطر الملوّن). امسح الموجود في المحرر والصق هذا مكانه.</Lead>
             <GuideDemo url={EDITOR_URL} frames={PASTE_FRAMES} />
             <div className="mt-3 overflow-hidden rounded-[18px] border border-[var(--color-border-strong)] bg-[var(--color-void)]">
               <div className="flex items-center justify-between border-b border-[var(--color-border)] py-2 pe-2.5 ps-3">
@@ -423,7 +338,7 @@ export function BackupWizardScreen() {
                 </span>
                 <button
                   onClick={async () => {
-                    if (await copyText(code)) {
+                    if (code && (await copyText(code))) {
                       flashCode()
                       haptic('success')
                     }
@@ -435,7 +350,7 @@ export function BackupWizardScreen() {
                   {codeCopied ? 'انتسخ الكود' : 'انسخ الكود كاملًا'}
                 </button>
               </div>
-              <CodeView code={code} token={token} />
+              {authKey && <ScriptCodeView code={code} highlight={authKey} />}
             </div>
             <Ordered
               items={[
@@ -522,29 +437,7 @@ export function BackupWizardScreen() {
               }}
             />
             <div className="mt-3 flex flex-col">
-              {TEST_LINES.map((label, i) => {
-                const s = lines[i]
-                return (
-                  <div key={label} className="flex items-center gap-2.5 px-1 py-2.5 text-[12.5px]" style={{ color: s === 'idle' ? 'var(--color-text-3)' : s === 'run' ? 'var(--color-text)' : 'var(--color-text-2)' }}>
-                    <span
-                      className="grid h-[22px] w-[22px] flex-none place-items-center rounded-full border-[1.5px]"
-                      style={
-                        s === 'ok'
-                          ? { background: 'var(--color-income)', borderColor: 'var(--color-income)', color: 'var(--color-on-accent)' }
-                          : s === 'fail'
-                            ? { background: 'var(--color-expense)', borderColor: 'var(--color-expense)', color: 'var(--color-on-accent)' }
-                            : s === 'run'
-                              ? { borderColor: 'rgba(255,255,255,.15)', borderTopColor: '#fff', animation: 'spin 800ms linear infinite' }
-                              : { borderColor: 'var(--color-surface-high)' }
-                      }
-                    >
-                      {s === 'ok' && <CheckIcon size={12} />}
-                      {s === 'fail' && <ObIcon size={11} width={3}>{Icons.close}</ObIcon>}
-                    </span>
-                    {label}
-                  </div>
-                )
-              })}
+              <CheckLines labels={TEST_LINES} states={lines} />
             </div>
             {testError && (
               <div

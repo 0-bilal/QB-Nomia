@@ -56,7 +56,7 @@ export const PASTE_FRAMES: GuideFrame[] = [
       <>
         <GBar />
         <GCode>
-          <GTarget>{"var SECRET_TOKEN = '••••••••'\n\nvar SHEET_NAME = 'sync_data'\n…\nfunction setup() {\n  var ss = getSpreadsheet()"}</GTarget>
+          <GTarget>{"var AUTH_KEY = '••••••••'\n\nvar SHEET_NAME = 'sync_data'\n…\nfunction setup() {\n  var ss = getSpreadsheet()"}</GTarget>
         </GCode>
       </>
     ),
@@ -68,7 +68,7 @@ export const PASTE_FRAMES: GuideFrame[] = [
         <GBar>
           <GBtn target>Save</GBtn>
         </GBar>
-        <GCode>{"var SECRET_TOKEN = '••••••••'\n\nvar SHEET_NAME = 'sync_data'\n…"}</GCode>
+        <GCode>{"var AUTH_KEY = '••••••••'\n\nvar SHEET_NAME = 'sync_data'\n…"}</GCode>
       </>
     ),
     caption: 'احفظ المشروع: Ctrl + S أو أيقونة الحفظ.',

@@ -28,6 +28,8 @@ import { CategoryRings, MonthFlowCard, SummaryTile } from '../components/MonthSu
 import { useActivitySwipe } from '../hooks/useActivitySwipe'
 import { SetupCard } from '../components/onboarding/SetupCard'
 import { SyncConflictCard } from '../components/SyncConflict'
+import { SyncTokenChangedCard } from '../components/SyncSecurity'
+import { useSyncUpgradeNotice } from '../hooks/useSyncUpgradeNotice'
 import { getHideBalancesDefault } from '../lib/privacy'
 import { daysInMonth, MIN_DAYS_ELAPSED_FOR_PROJECTION, projectedMonthEndPct } from '../lib/budgetPace'
 
@@ -158,6 +160,8 @@ function SectionTitle({ title, action, onAction }: { title: string; action?: str
 }
 
 export function HomeScreen() {
+  // تنبيه مرة وحدة: فيه تحديث لحماية المزامنة (لمستخدمي الصيغة القديمة).
+  useSyncUpgradeNotice()
   const {
     accounts,
     homeTotalBalance,
@@ -456,6 +460,7 @@ export function HomeScreen() {
       <div ref={balanceEndRef} aria-hidden="true" />
 
       <SyncConflictCard className="qb-rise mb-5" />
+      <SyncTokenChangedCard compact className="qb-rise mb-5" />
 
       <SetupCard />
 

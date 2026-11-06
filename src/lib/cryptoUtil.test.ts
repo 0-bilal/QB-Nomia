@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decryptJSON, encryptJSON } from './cryptoUtil'
+import { decryptJSON, deriveAuthKey, encryptJSON, payloadScheme } from './cryptoUtil'
 
 describe('encryptJSON / decryptJSON', () => {
   it('round-trips arbitrary JSON data with the correct secret', async () => {
@@ -46,3 +46,41 @@ describe('encryptJSON / decryptJSON', () => {
     expect(await decryptJSON(secret, legacyPayload)).toEqual({ x: 'قديم' })
   })
 })
+
+describe('الصيغة v2: مفتاح دخول منفصل عن مفتاح التشفير', () => {
+  const token = 'Kp7mWx2QnR9vTz4HbJ8sLd3FgY6cAe5N'
+
+  it('مفتاح الدخول ثابت لنفس الرمز، 64 خانة hex، ومختلف عن الرمز نفسه', async () => {
+    const a = await deriveAuthKey(token)
+    expect(a).toMatch(/^[0-9a-f]{64}$/)
+    expect(await deriveAuthKey(token)).toBe(a)
+    expect(a).not.toContain(token)
+    expect(await deriveAuthKey(token + 'x')).not.toBe(a)
+  })
+
+  it('يشفّر ويفك بالرمز، والحمولة تبدأ ببادئة v2', async () => {
+    const data = { accounts: [{ id: 'a1', balance: 500 }] }
+    const payload = await encryptJSON(token, data, 'v2')
+    expect(payload.startsWith('v2')).toBe(true)
+    expect(payloadScheme(payload)).toBe('v2')
+    expect(await decryptJSON(token, payload)).toEqual(data)
+  })
+
+  it('مفتاح الدخول (اللي يعرفه السكربت) ما يقدر يفك الحمولة', async () => {
+    const payload = await encryptJSON(token, { secret: 1 }, 'v2')
+    await expect(decryptJSON(await deriveAuthKey(token), payload)).rejects.toThrow()
+  })
+
+  it('الحمولة القديمة (v1) تبقى تنقرأ بنفس الرمز', async () => {
+    const old = await encryptJSON(token, { legacy: true })
+    expect(payloadScheme(old)).toBe('v1')
+    expect(await decryptJSON(token, old)).toEqual({ legacy: true })
+  })
+
+  it('مفتاح v2 مختلف عن مفتاح v1: نفس البيانات بالصيغتين ما تتشابه', async () => {
+    const v1 = await encryptJSON(token, { x: 1 })
+    const v2 = await encryptJSON(token, { x: 1 }, 'v2')
+    expect(v1.replace(/^gz1:/, '')).not.toBe(v2.replace(/^v2g?:/, ''))
+  })
+})
+

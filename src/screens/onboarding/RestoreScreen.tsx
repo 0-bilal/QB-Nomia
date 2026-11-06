@@ -5,11 +5,11 @@ import { ScreenHeader } from '../../components/ScreenHeader'
 import { ScreenScroll } from '../../components/ScreenScroll'
 import { Icons, ObIcon, ObNote, ObPrimary } from '../../components/onboarding/ObUi'
 import { UrlField } from '../../components/onboarding/UrlField'
-import { clearSheetsSyncCredentials, setSheetsSyncCredentials } from '../../config/sheetsSync'
+import { clearSheetsSyncCredentials } from '../../config/sheetsSync'
 import { haptic } from '../../lib/haptics'
 import { markIntroSeen } from '../../lib/onboarding'
 import { checkWebAppUrl } from '../../lib/scriptCode'
-import { probeSheets, pullFromSheets } from '../../lib/sheetsSync'
+import { probeSheets, pullFromSheets, saveSyncCredentials } from '../../lib/sheetsSync'
 import { notify } from '../../lib/notify'
 import { useData } from '../../state/DataContext'
 
@@ -35,9 +35,9 @@ function RestoreScreenInner() {
     setError('')
     const cleanToken = token.replace(/\s+/g, '')
     try {
-      const { hasData } = await probeSheets(url, cleanToken)
+      const { hasData, scheme } = await probeSheets(url, cleanToken)
       if (!hasData) throw new Error('الربط سليم، لكن ما فيه نسخة محفوظة بهذا الجدول بعد')
-      setSheetsSyncCredentials(url, cleanToken)
+      saveSyncCredentials(url, cleanToken, scheme)
       importSnapshot(await pullFromSheets())
       markIntroSeen()
       haptic('success')

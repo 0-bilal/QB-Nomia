@@ -2,9 +2,22 @@ import type { DataSnapshot } from '../state/DataContext'
 import { isSheetsSyncConfigured } from '../config/sheetsSync'
 import { hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
 import { SyncConflictError, getConflict } from './syncConflict'
+import { SyncAuthError, isTokenChanged } from './syncAuth'
 
-/** conflict = نسخة الجدول تغيّرت من جهاز ثاني — المزامنة متوقفة لين يختار المستخدم (SyncConflictSheet). */
-export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline' | 'conflict'
+/**
+ * conflict = نسخة الجدول تغيّرت من جهاز ثاني — المزامنة متوقفة لين يختار المستخدم (SyncConflictSheet).
+ * auth = السكربت رفض الرمز (غالبًا تحدّثت الحماية من جهاز ثاني) — متوقفة لين يدخّل الرمز الجديد.
+ */
+export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline' | 'conflict' | 'auth'
+
+function failureStatus(err: unknown): SyncStatus {
+  return err instanceof SyncConflictError ? 'conflict' : err instanceof SyncAuthError ? 'auth' : 'error'
+}
+
+/** المزامنة متوقفة بانتظار قرار المستخدم (تعارض أو رمز تغيّر). */
+function pausedStatus(): SyncStatus | null {
+  return getConflict() ? 'conflict' : isTokenChanged() ? 'auth' : null
+}
 export type SyncDirection = 'push' | 'pull'
 
 /** `manual` = بدأها المستخدم بنفسه (زر المزامنة) — الرفع الخلفي الناجح يبقى صامتًا، أما اليدوي فيُؤكَّد له. */
@@ -40,8 +53,8 @@ export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
   if (idleTimer) window.clearTimeout(idleTimer)
 
   debounceTimer = window.setTimeout(async () => {
-    // تعارض معروف: المزامنة متوقفة بصمت (البطاقة بالرئيسية تذكّر) — التعديل يبقى معلّق لين الحل.
-    if (getConflict()) return
+    // تعارض أو رمز تغيّر: المزامنة متوقفة بصمت (البطاقة تذكّر) — التعديل يبقى معلّق لين الحل.
+    if (pausedStatus()) return
     if (!navigator.onLine) {
       emit('offline', 'push')
       return
@@ -52,7 +65,7 @@ export function scheduleBackgroundSync(getSnapshot: () => DataSnapshot): void {
       emit('success', 'push')
       idleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
     } catch (err) {
-      emit(err instanceof SyncConflictError ? 'conflict' : 'error', 'push')
+      emit(failureStatus(err), 'push')
       idleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
     }
   }, 1200)
@@ -70,9 +83,10 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void, 
   if (!isSheetsSyncConfigured()) return
   if (pullIdleTimer) window.clearTimeout(pullIdleTimer)
 
-  // تعارض لسا ما انحل: نذكّر عند الدخول بدون رفع ولا سحب.
-  if (getConflict()) {
-    emit('conflict', 'push')
+  // تعارض أو رمز تغيّر لسا ما انحل: نذكّر عند الدخول بدون رفع ولا سحب.
+  const paused = pausedStatus()
+  if (paused) {
+    emit(paused, 'push')
     return
   }
   if (!navigator.onLine) {
@@ -88,7 +102,7 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void, 
         pullIdleTimer = window.setTimeout(() => emit('idle', 'push'), 1800)
       })
       .catch((err) => {
-        emit(err instanceof SyncConflictError ? 'conflict' : 'error', 'push')
+        emit(failureStatus(err), 'push')
         pullIdleTimer = window.setTimeout(() => emit('idle', 'push'), 3000)
       })
     return
@@ -100,8 +114,8 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void, 
       emit('success', 'pull')
       pullIdleTimer = window.setTimeout(() => emit('idle', 'pull'), 1800)
     })
-    .catch(() => {
-      emit('error', 'pull')
+    .catch((err) => {
+      emit(err instanceof SyncAuthError ? 'auth' : 'error', 'pull')
       pullIdleTimer = window.setTimeout(() => emit('idle', 'pull'), 3000)
     })
 }
@@ -114,8 +128,9 @@ export async function syncNow(snapshot: DataSnapshot): Promise<boolean> {
   if (!isSheetsSyncConfigured()) return false
   if (debounceTimer) window.clearTimeout(debounceTimer)
   if (idleTimer) window.clearTimeout(idleTimer)
-  if (getConflict()) {
-    emit('conflict', 'push', true)
+  const paused = pausedStatus()
+  if (paused) {
+    emit(paused, 'push', true)
     return false
   }
   if (!navigator.onLine) {
@@ -130,7 +145,7 @@ export async function syncNow(snapshot: DataSnapshot): Promise<boolean> {
     idleTimer = window.setTimeout(() => emit('idle', 'push', true), 1800)
     return true
   } catch (err) {
-    emit(err instanceof SyncConflictError ? 'conflict' : 'error', 'push', true)
+    emit(failureStatus(err), 'push', true)
     idleTimer = window.setTimeout(() => emit('idle', 'push', true), 3000)
     return false
   }

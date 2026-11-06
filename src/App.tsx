@@ -36,6 +36,7 @@ import { ProfileScreen } from './screens/ProfileScreen'
 import { ProfileSetupScreen } from './screens/ProfileSetupScreen'
 import { SecurityScreen } from './screens/SecurityScreen'
 import { ChangePinScreen } from './screens/ChangePinScreen'
+import { SyncUpgradeScreen } from './screens/SyncUpgradeScreen'
 import { CalculatorScreen } from './screens/CalculatorScreen'
 import { VehicleScreen } from './screens/VehicleScreen'
 import { LogVehicleScreen } from './screens/LogVehicleScreen'
@@ -113,6 +114,7 @@ export default function App() {
         <Route path="debts/violations/:id/edit" element={<ViolationEditScreen />} />
         <Route path="sync-settings" element={<SyncSettingsScreen />} />
         <Route path="sync-settings/setup" element={<BackupWizardScreen />} />
+        <Route path="sync-settings/upgrade" element={<SyncUpgradeScreen />} />
         <Route path="business" element={<BusinessScreen />} />
         <Route path="business/new" element={<BusinessClientFormScreen />} />
         <Route path="business/:id" element={<BusinessClientScreen />} />

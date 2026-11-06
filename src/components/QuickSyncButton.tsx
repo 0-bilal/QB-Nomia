@@ -27,8 +27,8 @@ export function QuickSyncButton() {
     haptic(ok ? 'success' : 'tick')
   }
 
-  const color = status === 'success' ? 'var(--color-income)' : status === 'conflict' ? 'var(--color-subscription)' : status === 'error' || status === 'offline' ? 'var(--color-expense)' : 'var(--color-text)'
-  const label = status === 'syncing' ? 'جارٍ المزامنة' : status === 'success' ? 'تمت المزامنة' : status === 'conflict' ? 'المزامنة متوقفة' : status === 'error' ? 'فشلت المزامنة' : status === 'offline' ? 'لا يوجد اتصال' : 'مزامنة الآن'
+  const color = status === 'success' ? 'var(--color-income)' : status === 'conflict' || status === 'auth' ? 'var(--color-subscription)' : status === 'error' || status === 'offline' ? 'var(--color-expense)' : 'var(--color-text)'
+  const label = status === 'syncing' ? 'جارٍ المزامنة' : status === 'success' ? 'تمت المزامنة' : status === 'conflict' || status === 'auth' ? 'المزامنة متوقفة' : status === 'error' ? 'فشلت المزامنة' : status === 'offline' ? 'لا يوجد اتصال' : 'مزامنة الآن'
 
   return (
     <button onClick={onClick} aria-label={label} title={label} className="qb-glass-circle qb-press flex items-center justify-center rounded-full border" style={{ width: 40, height: 40, color }}>
@@ -36,7 +36,7 @@ export function QuickSyncButton() {
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <path d="M5 12.5 10 17l9-10" />
         </svg>
-      ) : status === 'error' || status === 'offline' || status === 'conflict' ? (
+      ) : status === 'error' || status === 'offline' || status === 'conflict' || status === 'auth' ? (
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4-1.8A4 4 0 0 0 6.5 16" />
           <path d="M12 12v3.5M12 18h.01" />
