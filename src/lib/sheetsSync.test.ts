@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DataSnapshot } from '../state/DataContext'
 import { setSheetsSyncCredentials } from '../config/sheetsSync'
 import { deriveAuthKey, encryptJSON, payloadScheme } from './cryptoUtil'
-import { SyncAuthError, fetchRemoteCopy, hasPendingPush, markPendingPush, probeSheets, pullFromSheets, pushToSheets } from './sheetsSync'
+import { SheetsProbeError, SyncAuthError, fetchRemoteCopy, hasPendingPush, markPendingPush, probeSheets, pullFromSheets, pushToSheets, storedCredsStillWork } from './sheetsSync'
 import { getSyncScheme } from '../config/sheetsSync'
 import { isTokenChanged } from './syncAuth'
 import { SyncConflictError, getBaseRev, getConflict, setBaseRev, type SyncMeta } from './syncConflict'
@@ -223,6 +223,44 @@ describe('تحديث الحماية (v1 ← v2) والأجهزة الثانية'
     vi.mocked(fetch).mockClear()
     await expect(pushToSheets(snap('ج'))).rejects.toBeInstanceOf(SyncAuthError)
     expect(fetch).not.toHaveBeenCalled()
+  })
+})
+
+describe('تشخيص فشل تحديث الحماية', () => {
+  const NEW = 'NewToken-ABCDEFGH-12345678'
+  const probeReason = async () => {
+    try {
+      await probeSheets(SCRIPT_URL, NEW)
+      return 'ok'
+    } catch (err) {
+      return err instanceof SheetsProbeError ? err.reason : 'other'
+    }
+  }
+
+  it('النشر الجديد ما وصل الرابط: المفتاح الجديد مرفوض، والرمز القديم لسا مقبول', async () => {
+    await pushToSheets(snap('أ')) // الجهاز على v1 بالرمز القديم، والسكربت لسا قديم
+    expect(await probeReason()).toBe('auth')
+    expect(await storedCredsStillWork()).toBe(true)
+  })
+
+  it('الكود المنشور من رمز ثاني: لا الجديد ولا القديم مقبول', async () => {
+    await pushToSheets(snap('أ'))
+    script = { version: 2, key: await deriveAuthKey('رمز-ثالث-ما-له-علاقة') }
+    expect(await probeReason()).toBe('auth')
+    expect(await storedCredsStillWork()).toBe(false)
+  })
+
+  it('الكود المنشور بدون مفتاح (القيمة الافتراضية): سبب placeholder', async () => {
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify({ ok: false, error: 'Error: لازم تنسخ الكود من التطبيق (فيه AUTH_KEY) قبل الاستخدام' }))),
+    )
+    expect(await probeReason()).toBe('placeholder')
+  })
+
+  it('النشر صحيح: الاختبار ينجح بالصيغة الجديدة', async () => {
+    await pushToSheets(snap('أ'))
+    script = { version: 2, key: await deriveAuthKey(NEW) }
+    expect((await probeSheets(SCRIPT_URL, NEW)).scheme).toBe('v2')
   })
 })
 
