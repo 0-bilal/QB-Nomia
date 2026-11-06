@@ -4,13 +4,14 @@ import { useData, type DataSnapshot } from '../state/DataContext'
 import { ScreenScroll } from '../components/ScreenScroll'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
-import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl, setSheetsSyncCredentials } from '../config/sheetsSync'
+import { getLastSyncedAt, isSheetsSyncConfigured, pullFromSheets, pushToSheets, saveSyncCredentials } from '../lib/sheetsSync'
+import { clearSheetsSyncCredentials, getSheetsSecretToken, getSheetsWebAppUrl } from '../config/sheetsSync'
 import { formatDate } from '../lib/format'
 import { dismissNotice, notify } from '../lib/notify'
 import { rise } from '../lib/motion'
 import { downloadSnapshotFile, getLastBackupExportedAt, isDataSnapshot, markBackupExported } from '../lib/backup'
 import { SyncConflictCard } from '../components/SyncConflict'
+import { SyncTokenChangedCard, SyncUpgradeCard } from '../components/SyncSecurity'
 
 type Status = { kind: 'idle' } | { kind: 'busy'; label: string } | { kind: 'ok'; label: string } | { kind: 'error'; label: string }
 
@@ -236,7 +237,8 @@ export function SyncSettingsScreen() {
       setStatus({ kind: 'error', label: 'أدخل رابط Web App والرمز السري أولًا' })
       return
     }
-    setSheetsSyncCredentials(url, token)
+    // الصيغة (قديم/جديد) تنكشف تلقائيًا أول مزامنة.
+    saveSyncCredentials(url, token)
     setConfigured(true)
     setConnOpen(false)
     setStatus({ kind: 'ok', label: 'تم حفظ إعدادات الربط على هذا الجهاز' })
@@ -310,6 +312,7 @@ export function SyncSettingsScreen() {
       />
 
       <SyncConflictCard className="qb-rise mb-4" />
+      <SyncTokenChangedCard className="qb-rise mb-4" />
 
       {/* بطاقة الحالة */}
       <div className="qb-card-elevated qb-rise p-5">
@@ -384,6 +387,8 @@ export function SyncSettingsScreen() {
           </>
         )}
       </div>
+
+      <SyncUpgradeCard className="qb-rise mt-4" />
 
       {/* قبل الربط: المعالج خطوة بخطوة (الرمز والكود جاهزين)، والحقول تحت للربط اليدوي. */}
       {!configured && (

@@ -1,25 +1,42 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DataSnapshot } from '../state/DataContext'
 import { setSheetsSyncCredentials } from '../config/sheetsSync'
-import { encryptJSON } from './cryptoUtil'
-import { fetchRemoteCopy, hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
+import { deriveAuthKey, encryptJSON, payloadScheme } from './cryptoUtil'
+import { SyncAuthError, fetchRemoteCopy, hasPendingPush, markPendingPush, probeSheets, pullFromSheets, pushToSheets } from './sheetsSync'
+import { getSyncScheme } from '../config/sheetsSync'
+import { isTokenChanged } from './syncAuth'
 import { SyncConflictError, getBaseRev, getConflict, setBaseRev, type SyncMeta } from './syncConflict'
 
-const URL = 'https://script.google.com/macros/s/fake/exec'
+const SCRIPT_URL = 'https://script.google.com/macros/s/fake/exec'
 const TOKEN = 'secret-token'
 
-/** Apps Script وهمي: يخزّن النص المشفّر كما هو ويرجّعه — نفس سلوك Code.gs. */
+/**
+ * Apps Script وهمي بنفس سلوك Code.gs: الإصدار 1 (يعرف الرمز نفسه، السحب بـ GET) والإصدار 2
+ * (يعرف مفتاح الدخول المشتق فقط، كل شيء بـ POST، وGET ما يرجّع بيانات).
+ */
 let stored = ''
 let pushes = 0
+let script: { version: 1 | 2; key: string } = { version: 1, key: TOKEN }
+const requests: { method: string; url: string; body: string }[] = []
 
-function fakeScript(_input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const ok = (data: unknown) => Promise.resolve(new Response(JSON.stringify({ ok: true, data }), { status: 200 }))
-  if (!init || init.method === 'GET') return ok(stored)
-  const body = JSON.parse(String(init.body)) as { action: string; token: string; data: string }
-  if (body.token !== TOKEN) return Promise.resolve(new Response(JSON.stringify({ ok: false, error: 'رمز الدخول غير صحيح' })))
-  stored = body.data
-  pushes++
-  return ok(null)
+function fakeScript(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const reply = (obj: unknown) => Promise.resolve(new Response(JSON.stringify(obj), { status: 200 }))
+  const method = init?.method ?? 'GET'
+  requests.push({ method, url: String(input), body: String(init?.body ?? '') })
+  if (method === 'GET') {
+    const token = new URL(String(input)).searchParams.get('token')
+    if (token !== script.key) return reply({ ok: false, error: 'Error: رمز الدخول غير صحيح' })
+    return script.version === 1 ? reply({ ok: true, data: stored }) : reply({ ok: false, error: 'هذا السكربت (الإصدار 2) يستقبل الطلبات بـ POST' })
+  }
+  const body = JSON.parse(String(init!.body)) as { action: string; token: string; data: string }
+  if (body.token !== script.key) return reply({ ok: false, error: 'Error: رمز الدخول غير صحيح' })
+  if (body.action === 'pull' && script.version === 2) return reply({ ok: true, data: stored })
+  if (body.action === 'push') {
+    stored = body.data
+    pushes++
+    return reply({ ok: true })
+  }
+  return reply({ ok: false, error: 'إجراء غير معروف: ' + body.action })
 }
 
 const snap = (accountName: string): DataSnapshot =>
@@ -42,7 +59,9 @@ async function otherDeviceSaves(name: string, meta: Partial<SyncMeta> | null) {
 beforeEach(() => {
   stored = ''
   pushes = 0
-  setSheetsSyncCredentials(URL, TOKEN)
+  requests.length = 0
+  script = { version: 1, key: TOKEN }
+  setSheetsSyncCredentials(SCRIPT_URL, TOKEN)
   vi.stubGlobal('fetch', vi.fn(fakeScript))
 })
 afterEach(() => vi.unstubAllGlobals())
@@ -140,3 +159,70 @@ describe('نسخ من إصدار قديم (بدون syncMeta)', () => {
     expect(pushes).toBe(1)
   })
 })
+
+describe('الصيغة v2: السكربت يعرف مفتاح دخول فقط', () => {
+  beforeEach(async () => {
+    script = { version: 2, key: await deriveAuthKey(TOKEN) }
+  })
+
+  it('يكشف الصيغة تلقائيًا ويحفظها، والرمز ما يطلع أبدًا (لا في رابط ولا في طلب)', async () => {
+    await pushToSheets(snap('أ'))
+    expect(getSyncScheme()).toBe('v2')
+    expect(payloadScheme(stored)).toBe('v2')
+    expect((await fetchRemoteCopy())?.snapshot.accounts[0].name).toBe('أ')
+    for (const r of requests) {
+      expect(r.url).not.toContain(TOKEN)
+      expect(r.body).not.toContain(TOKEN)
+      expect(r.url).not.toContain('token=')
+    }
+  })
+
+  it('السكربت (بمفتاح الدخول وحده) ما يقدر يفك البيانات المخزّنة', async () => {
+    await pushToSheets(snap('سري'))
+    const { decryptJSON } = await import('./cryptoUtil')
+    await expect(decryptJSON(script.key, stored)).rejects.toThrow()
+  })
+
+  it('probeSheets يكشف v2 للسكربت الجديد وv1 للقديم', async () => {
+    expect((await probeSheets(SCRIPT_URL, TOKEN)).scheme).toBe('v2')
+    script = { version: 1, key: TOKEN }
+    expect((await probeSheets(SCRIPT_URL, TOKEN)).scheme).toBe('v1')
+  })
+
+  it('رمز غلط: probeSheets يرفض بمرحلة الرمز', async () => {
+    await expect(probeSheets(SCRIPT_URL, 'wrong')).rejects.toMatchObject({ stage: 'token' })
+  })
+})
+
+describe('تحديث الحماية (v1 ← v2) والأجهزة الثانية', () => {
+  it('الترقية: الرفع بالبيانات الجديدة يحفظها فقط بعد النجاح، والبيانات صارت v2', async () => {
+    await pushToSheets(snap('قبل'))
+    expect(getSyncScheme()).toBe('v1')
+    const NEW = 'NewToken-ABCDEFGH-12345678'
+    script = { version: 2, key: await deriveAuthKey(NEW) } // المستخدم نشر الكود الجديد
+
+    await pushToSheets(snap('بعد'), { force: true, creds: { url: SCRIPT_URL, token: NEW, scheme: 'v2' } })
+    expect(getSyncScheme()).toBe('v2')
+    expect(payloadScheme(stored)).toBe('v2')
+    expect((await fetchRemoteCopy())?.snapshot.accounts[0].name).toBe('بعد')
+  })
+
+  it('لو فشل رفع الترقية، البيانات القديمة تبقى محفوظة كما هي', async () => {
+    await pushToSheets(snap('قبل'))
+    script = { version: 2, key: 'مفتاح-ما-يطابق' }
+    await expect(pushToSheets(snap('x'), { force: true, creds: { url: SCRIPT_URL, token: 'NEW', scheme: 'v2' } })).rejects.toBeInstanceOf(SyncAuthError)
+    expect(getSyncScheme()).toBe('v1')
+  })
+
+  it('جهاز ثاني بالرمز القديم: يرفض بـ SyncAuthError، يعلّم «الرمز تغيّر»، ويوقف بدون شبكة', async () => {
+    await pushToSheets(snap('أ'))
+    script = { version: 2, key: await deriveAuthKey('رمز-جديد-من-جهاز-ثاني') }
+    markPendingPush()
+    await expect(pushToSheets(snap('ب'))).rejects.toBeInstanceOf(SyncAuthError)
+    expect(isTokenChanged()).toBe(true)
+    vi.mocked(fetch).mockClear()
+    await expect(pushToSheets(snap('ج'))).rejects.toBeInstanceOf(SyncAuthError)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})
+

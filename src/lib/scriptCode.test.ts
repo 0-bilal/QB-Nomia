@@ -21,17 +21,23 @@ describe('groupToken', () => {
 })
 
 describe('buildScriptCode', () => {
-  it('يحقن الرمز مكان القيمة الافتراضية في Code.gs الحقيقي', () => {
-    const code = buildScriptCode('MyToken123')
-    expect(code).toContain("var SECRET_TOKEN = 'MyToken123'")
+  it('يحقن مفتاح الدخول مكان القيمة الافتراضية في Code.gs الحقيقي', () => {
+    const code = buildScriptCode('9f3a1c7eb04d')
+    expect(code).toContain("var AUTH_KEY = '9f3a1c7eb04d'")
     expect(code).toContain('function doPost(e)')
     expect(code).toContain('function getSpreadsheet()')
     // فحص القيمة الافتراضية في checkToken يبقى كما هو
-    expect(code).toContain(`SECRET_TOKEN === '${TOKEN_PLACEHOLDER}'`)
+    expect(code).toContain(`AUTH_KEY === '${TOKEN_PLACEHOLDER}'`)
+  })
+
+  it('الإصدار 2: السحب عبر POST فقط، وGET ما يرجّع بيانات', () => {
+    const code = buildScriptCode('k')
+    expect(code).toContain("body.action === 'pull'")
+    expect(code).not.toMatch(/doGet[\s\S]*readValue\(\)[\s\S]*function doPost/)
   })
 
   it('ما يسمح بكسر النص بعلامة اقتباس', () => {
-    expect(buildScriptCode("a'b\\c", `var SECRET_TOKEN = '${TOKEN_PLACEHOLDER}'`)).toBe("var SECRET_TOKEN = 'abc'")
+    expect(buildScriptCode("a'b\\c", `var AUTH_KEY = '${TOKEN_PLACEHOLDER}'`)).toBe("var AUTH_KEY = 'abc'")
   })
 })
 

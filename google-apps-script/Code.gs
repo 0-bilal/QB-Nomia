@@ -4,16 +4,17 @@
  *
  * هذا السكربت لا يخزّن أي بيانات مالية مقروءة إطلاقًا — التطبيق يشفّر كل
  * بياناته محليًا (AES-GCM) قبل ما يرسلها، والسكربت يخزّن فقط النص المشفّر
- * الناتج كما هو، ويرجّعه كما هو عند الطلب. فك التشفير يصير فقط داخل
- * التطبيق نفسه بنفس الرمز السري — جوجل شيت (وأي شخص يشوفه) يرى نصًا
- * عشوائيًا غير مفهوم فقط.
+ * الناتج كما هو، ويرجّعه كما هو عند الطلب.
  *
- * التركيب (الأسهل من داخل التطبيق: المزيد ← المزامنة ← «إعداد خطوة بخطوة»،
- * يعطيك هذا الكود جاهزًا وفيه رمزك):
+ * الإصدار 2: AUTH_KEY بالأسفل «مفتاح دخول» مشتق من رمزك (HKDF) — يفتح هذا
+ * السكربت فقط، وما يقدر يفك تشفير بياناتك. مفتاح التشفير ينحسب من رمزك على
+ * أجهزتك ولا يوصل هنا أبدًا، فحتى اللي يشوف هذا الكود أو الجدول ما يقدر يقرأ شي.
+ *
+ * التركيب من داخل التطبيق فقط: المزيد ← المزامنة ← «إعداد خطوة بخطوة» يعطيك
+ * هذا الكود جاهزًا وفيه مفتاح الدخول المشتق من رمزك (ما ينحسب باليد):
  *   1. افتح script.google.com/create (أو من أي جدول: Extensions ← Apps Script).
  *   2. احذف كل محتوى Code.gs الافتراضي، والصق محتوى هذا الملف كاملًا.
- *   3. غيّر قيمة SECRET_TOKEN بالأسفل لنص عشوائي طويل — نفس الرمز اللي تدخله
- *      بإعدادات التطبيق، لأنه مفتاح التشفير ورمز الدخول في نفس الوقت.
+ *   3. (الكود اللي ينسخه التطبيق فيه AUTH_KEY جاهز — لا تغيّره.)
  *   4. اختر الدالة setup ثم ▶ Run ووافق على الصلاحيات — تنشئ جدول
  *      "QB-Nomia Backup" (لو السكربت مو مربوط بجدول) وورقة sync_data.
  *   5. Deploy ← New deployment ← Web app:
@@ -25,8 +26,8 @@
  *      ← ✎ تعديل ← Version: New version ← Deploy.
  */
 
-// نفس الرمز السري المحفوظ بإعدادات التطبيق (المزيد ← المزامنة)
-var SECRET_TOKEN = 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET'
+// مفتاح دخول مشتق من رمزك — يفتح السكربت فقط وما يفك تشفير بياناتك (الإصدار 2)
+var AUTH_KEY = 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET'
 
 var SHEET_NAME = 'sync_data'
 var ROW_KEY = 'snapshot'
@@ -61,13 +62,11 @@ function getSpreadsheet() {
   return ss
 }
 
+// الإصدار 2 ما يرجّع بيانات عبر GET — حتى ما يمر مفتاح الدخول في أي رابط (سجلات، سجل المتصفح).
 function doGet(e) {
   try {
     checkToken(e.parameter.token)
-    if (e.parameter.action === 'pull') {
-      return jsonResponse({ ok: true, data: readValue() })
-    }
-    return jsonResponse({ ok: false, error: 'إجراء غير معروف: ' + e.parameter.action })
+    return jsonResponse({ ok: false, error: 'هذا السكربت (الإصدار 2) يستقبل الطلبات بـ POST — حدّث التطبيق' })
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err) })
   }
@@ -78,6 +77,9 @@ function doPost(e) {
     var body = JSON.parse(e.postData.contents)
     checkToken(body.token)
 
+    if (body.action === 'pull') {
+      return jsonResponse({ ok: true, data: readValue(), version: 2 })
+    }
     if (body.action === 'push') {
       writeValue(body.data)
       return jsonResponse({ ok: true })
@@ -89,10 +91,10 @@ function doPost(e) {
 }
 
 function checkToken(token) {
-  if (!SECRET_TOKEN || SECRET_TOKEN === 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET') {
-    throw new Error('لازم تغيّر SECRET_TOKEN بالكود قبل الاستخدام')
+  if (!AUTH_KEY || AUTH_KEY === 'CHANGE-ME-TO-A-LONG-RANDOM-SECRET') {
+    throw new Error('لازم تنسخ الكود من التطبيق (فيه AUTH_KEY) قبل الاستخدام')
   }
-  if (token !== SECRET_TOKEN) {
+  if (token !== AUTH_KEY) {
     throw new Error('رمز الدخول غير صحيح')
   }
 }

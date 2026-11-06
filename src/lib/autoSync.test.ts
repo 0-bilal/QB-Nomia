@@ -8,6 +8,7 @@ vi.mock('./sheetsSync', async (importOriginal) => {
 
 import { runBackgroundPull, scheduleBackgroundSync, subscribeSyncStatus, syncNow } from './autoSync'
 import { SyncConflictError, getConflict, setConflict } from './syncConflict'
+import { SyncAuthError, setTokenChanged } from './syncAuth'
 import { hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
 import { setSheetsSyncCredentials } from '../config/sheetsSync'
 
@@ -120,6 +121,41 @@ describe('تعارض المزامنة في المزامنة التلقائية',
     unsub()
     expect(statuses[0]).toBe('conflict:true')
     expect(pushToSheets).not.toHaveBeenCalled()
+  })
+})
+
+describe('الرمز تغيّر من جهاز ثاني', () => {
+  beforeEach(() => {
+    setSheetsSyncCredentials('https://script.google.com/macros/s/x/exec', 'token')
+  })
+  afterEach(() => {
+    vi.clearAllMocks()
+    vi.useRealTimers()
+  })
+
+  it('رفض الرمز عند الدخول يعلن auth بدل خطأ عادي', async () => {
+    vi.mocked(pullFromSheets).mockRejectedValue(new SyncAuthError())
+    const statuses: string[] = []
+    const unsub = subscribeSyncStatus((s) => statuses.push(s))
+    runBackgroundPull(vi.fn(), () => local)
+    await flush()
+    unsub()
+    expect(statuses).toContain('auth')
+    expect(statuses).not.toContain('error')
+  })
+
+  it('بعد تعليم «الرمز تغيّر»: الدخول يذكّر، والرفع الخلفي يتوقف بصمت', async () => {
+    setTokenChanged()
+    const statuses: string[] = []
+    const unsub = subscribeSyncStatus((s) => statuses.push(s))
+    runBackgroundPull(vi.fn(), () => local)
+    vi.useFakeTimers()
+    scheduleBackgroundSync(() => local)
+    await vi.advanceTimersByTimeAsync(2000)
+    unsub()
+    expect(statuses).toEqual(['auth'])
+    expect(pushToSheets).not.toHaveBeenCalled()
+    expect(pullFromSheets).not.toHaveBeenCalled()
   })
 })
 
