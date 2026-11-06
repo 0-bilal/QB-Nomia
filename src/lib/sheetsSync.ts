@@ -218,12 +218,37 @@ export function currentSyncScheme(): SyncScheme | null {
 }
 
 export type ProbeStage = 'reach' | 'token'
+/**
+ * سبب فشل الاختبار بدقة — حتى تعرض الشاشة نصيحة تناسب السبب بدل رسالة عامة:
+ * reach = ما وصلنا للسكربت، auth = السكربت رفض المفتاح، placeholder = الكود المنشور بدون مفتاح،
+ * script = خطأ ثاني من السكربت (نصه في message).
+ */
+export type ProbeReason = 'reach' | 'auth' | 'placeholder' | 'script'
 
 export class SheetsProbeError extends Error {
   readonly stage: ProbeStage
-  constructor(stage: ProbeStage, message: string) {
+  readonly reason: ProbeReason
+  constructor(stage: ProbeStage, message: string, reason: ProbeReason = stage === 'reach' ? 'reach' : 'script') {
     super(message)
     this.stage = stage
+    this.reason = reason
+  }
+}
+
+/**
+ * هل الرابط المحفوظ لسا يقبل الرمز المحفوظ على الجهاز؟ يُستخدم لما يفشل تحديث الحماية:
+ * لو يقبله، فالسكربت على هذا الرابط لسا يشغّل الكود القديم (النشر الجديد ما وصله).
+ * بدون أي أثر على حالة المزامنة.
+ */
+export async function storedCredsStillWork(): Promise<boolean> {
+  if (!isSheetsSyncConfigured()) return false
+  const scheme = getSyncScheme()
+  if (!scheme) return false
+  try {
+    const json = await callScript<string>({ url: getSheetsWebAppUrl(), token: getSheetsSecretToken(), scheme }, 'pull')
+    return json.ok
+  } catch {
+    return false
   }
 }
 
@@ -236,7 +261,7 @@ export async function probeSheets(webAppUrl: string, secretToken: string): Promi
   try {
     detected = await detectScheme(webAppUrl.trim(), secretToken)
   } catch (err) {
-    if (err instanceof SyncAuthError) throw new SheetsProbeError('token', 'الرمز ما يطابق الكود المنشور. انسخ الكود من التطبيق مرة ثانية وانشر نسخة جديدة')
+    if (err instanceof SyncAuthError) throw new SheetsProbeError('token', 'الرمز ما يطابق الكود المنشور. انسخ الكود من التطبيق مرة ثانية وانشر نسخة جديدة', 'auth')
     if (err instanceof ScriptUnreachableError) {
       if (err.kind === 'network') throw new SheetsProbeError('reach', 'ما قدرنا نوصل للسكربت. تأكد إنك نشرته بـ «Who has access: Anyone» ونسخت رابط /exec')
       if (err.kind === 'parse') throw new SheetsProbeError('reach', 'الرابط ما يرجّع رد السكربت. غالبًا السكربت يطلب تسجيل دخول: خلّ «Who has access» على Anyone')
@@ -247,8 +272,8 @@ export async function probeSheets(webAppUrl: string, secretToken: string): Promi
   const { json, scheme } = detected
   if (!json.ok) {
     const err = json.error ?? ''
-    if (err.includes('AUTH_KEY') || err.includes('SECRET_TOKEN')) throw new SheetsProbeError('token', 'الكود المنشور ما فيه مفتاحك. انسخ الكود من التطبيق مرة ثانية وانشر نسخة جديدة')
-    throw new SheetsProbeError('token', err || 'رد غير متوقع من السكربت')
+    if (err.includes('AUTH_KEY') || err.includes('SECRET_TOKEN')) throw new SheetsProbeError('token', 'الكود المنشور ما فيه مفتاحك. انسخ الكود من التطبيق مرة ثانية وانشر نسخة جديدة', 'placeholder')
+    throw new SheetsProbeError('token', err || 'رد غير متوقع من السكربت', 'script')
   }
   return { hasData: Boolean(json.data), scheme }
 }

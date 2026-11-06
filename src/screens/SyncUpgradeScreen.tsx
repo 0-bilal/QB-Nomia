@@ -8,7 +8,7 @@ import { ScriptCodeView } from '../components/onboarding/ScriptCodeView'
 import { useAuthKey } from '../hooks/useAuthKey'
 import { copyText, useCopied } from '../lib/clipboard'
 import { buildScriptCode, generateSyncToken, groupToken } from '../lib/scriptCode'
-import { SheetsProbeError, hasPendingPush, probeSheets, pullFromSheets, pushToSheets } from '../lib/sheetsSync'
+import { SheetsProbeError, hasPendingPush, probeSheets, pullFromSheets, pushToSheets, storedCredsStillWork } from '../lib/sheetsSync'
 import { SyncConflictError, getConflict } from '../lib/syncConflict'
 import { getSheetsWebAppUrl, isSheetsSyncConfigured } from '../config/sheetsSync'
 import { haptic } from '../lib/haptics'
@@ -29,6 +29,20 @@ function loadDraft(): string {
   } catch {
     return generateSyncToken()
   }
+}
+
+const OLD_CODE_LIVE =
+  'الرابط المحفوظ لسا يشغّل الكود القديم، فالنشر الجديد ما وصله. افتح Deploy ← Manage deployments، عدّل النشر الموجود (القلم) واختر Version: New version ثم Deploy. لا تسوي «New deployment» لأنه يطلع رابط ثاني.'
+const KEY_MISMATCH =
+  'السكربت ما يقبل الرمز القديم ولا الجديد. غالبًا الكود المنشور من رمز ثاني (ضغطت «رمز جديد» بعد ما نسخت الكود؟) أو انلصق في مشروع ثاني. ارجع للخطوة 2 وانسخ الكود من جديد، والصقه في نفس المشروع اللي رابطه محفوظ في التطبيق، واحفظ وانشر New version.'
+
+/**
+ * رسالة فشل الاختبار حسب السبب الحقيقي. لو السكربت رفض مفتاح الدخول الجديد، نشيك هل الرابط لسا يقبل
+ * الرمز القديم: لو يقبله = النشر الجديد ما وصل هذا الرابط، وإلا = الكود المنشور من رمز ثاني أو مشروع ثاني.
+ */
+async function upgradeErrorMessage(err: unknown): Promise<string> {
+  if (err instanceof SheetsProbeError && err.reason === 'auth') return (await storedCredsStillWork()) ? OLD_CODE_LIVE : KEY_MISMATCH
+  return err instanceof Error ? err.message : 'فشل التحديث'
 }
 
 type Prep = 'run' | 'ok' | { error: string; conflict?: boolean }
@@ -90,7 +104,7 @@ export function SyncUpgradeScreen() {
     try {
       const { scheme } = await probeSheets(url, token)
       setLines(['ok', 'run', 'idle', 'idle'])
-      if (scheme !== 'v2') throw new SheetsProbeError('token', 'السكربت لسا على الكود القديم. تأكد إنك لصقت الكود الجديد ونشرت «New version».')
+      if (scheme !== 'v2') throw new SheetsProbeError('token', OLD_CODE_LIVE, 'script')
       setLines(['ok', 'ok', 'run', 'idle'])
       await new Promise((r) => setTimeout(r, 400))
       setLines(['ok', 'ok', 'ok', 'run'])
@@ -110,13 +124,7 @@ export function SyncUpgradeScreen() {
         const failAt = stage === 'reach' ? 0 : stage === 'token' ? 1 : prev.findIndex((s) => s === 'run')
         return prev.map((_s, i) => (i < failAt ? 'ok' : i === failAt ? 'fail' : 'idle'))
       })
-      setTestError(
-        stage === 'token' && !(err instanceof Error && err.message.includes('الكود القديم'))
-          ? 'السكربت ما قبل مفتاح الدخول الجديد. تأكد إنك لصقت الكود من الخطوة 2 كاملًا ونشرت «New version».'
-          : err instanceof Error
-            ? err.message
-            : 'فشل التحديث',
-      )
+      setTestError(await upgradeErrorMessage(err))
       haptic('warning')
     } finally {
       setTesting(false)
