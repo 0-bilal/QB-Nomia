@@ -88,6 +88,23 @@ body {
   -webkit-tap-highlight-color: transparent;
   /* يمنع إيماءة الزوم بالنقر المزدوج — التطبيق مقفول بحجم الشاشة أصلًا فما فيه داعي له. */
   touch-action: manipulation;
+  /*
+    تطبيق، مو صفحة نصوص: لمس أي نص كان يحدده، فيطلع «البحث باللمس» (Touch to Search) في Chrome
+    أو قائمة النسخ مع الضغط المطوّل. نلغي التحديد عمومًا ونرجّعه للحقول وللي ينحتاج نسخه (.select-text).
+  */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* الحقول لازم تبقى قابلة للتحديد صراحة — Safari/iOS يمنع الكتابة في حقل يرث user-select: none. */
+input,
+textarea,
+[contenteditable='true'],
+.select-text {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /*

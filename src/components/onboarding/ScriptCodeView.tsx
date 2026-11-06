@@ -9,7 +9,7 @@ export function ScriptCodeView({ code, highlight }: { code: string; highlight: s
     return start > 0 ? all.slice(start) : all
   }, [code])
   return (
-    <pre dir="ltr" className="max-h-[220px] overflow-auto px-3 py-2.5 text-left font-mono text-[10.5px] leading-[1.7] text-[var(--color-text-2)]">
+    <pre dir="ltr" className="select-text max-h-[220px] overflow-auto px-3 py-2.5 text-left font-mono text-[10.5px] leading-[1.7] text-[var(--color-text-2)]">
       {lines.map((l, i) => {
         if (l.includes(`'${highlight}'`) && l.includes('AUTH_KEY =')) {
           const [a, b] = l.split(`'${highlight}'`)
