@@ -149,19 +149,55 @@ async function readRemote(creds: SyncCreds): Promise<RemoteCopy | null> {
   return { snapshot: snapshot as DataSnapshot, meta: syncMeta ?? null }
 }
 
-/** يقرأ نسخة الجدول ويفك تشفيرها بدون أي أثر على حالة المزامنة المحلية. null لو الجدول فاضي. */
-export async function fetchRemoteCopy(): Promise<RemoteCopy | null> {
-  return withStoredCreds(readRemote)
+/**
+ * طابور واحد لكل عمليات المزامنة على الجهاز: Apps Script بطيء، وبدون طابور كانت العمليات تتداخل —
+ * سحب الدخول يرجّع نسخة قديمة فوق حركة انسجلت أثناءه، أو رفعين متتاليين يشوف الثاني رفع الأول كأنه
+ * «جهاز ثاني». كل عملية تبدأ بعد ما تخلص اللي قبلها (نجحت أو فشلت).
+ */
+let syncQueue: Promise<unknown> = Promise.resolve()
+function serialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = syncQueue.then(fn, fn)
+  syncQueue = run.catch(() => undefined)
+  return run
 }
 
-/** يسحب البيانات من الجدول ويفكّ تشفيرها — الجدول نفسه لا يخزّن سوى نص مشفّر. السحب يعني اعتماد نسخة الجدول، فتصير هي نقطة المزامنة. */
-export async function pullFromSheets(): Promise<DataSnapshot> {
-  const remote = await fetchRemoteCopy()
-  if (!remote) throw new Error('استجابة غير متوقعة من الخادم')
+/** يقرأ نسخة الجدول ويفك تشفيرها بدون أي أثر على حالة المزامنة المحلية. null لو الجدول فاضي. */
+export function fetchRemoteCopy(): Promise<RemoteCopy | null> {
+  return serialized(() => withStoredCreds(readRemote))
+}
+
+/** اعتماد نسخة الجدول: تصير هي نقطة المزامنة، وما فيه تعديل معلّق. */
+function adoptRemote(remote: RemoteCopy): DataSnapshot {
   setBaseRev(remote.meta?.rev ?? null)
   clearConflict()
   markSynced()
   return remote.snapshot
+}
+
+/** يسحب البيانات من الجدول ويفكّ تشفيرها — الجدول نفسه لا يخزّن سوى نص مشفّر. السحب يعني اعتماد نسخة الجدول، فتصير هي نقطة المزامنة. */
+export function pullFromSheets(): Promise<DataSnapshot> {
+  return serialized(async () => {
+    const remote = await withStoredCreds(readRemote)
+    if (!remote) throw new Error('استجابة غير متوقعة من الخادم')
+    return adoptRemote(remote)
+  })
+}
+
+/**
+ * سحب الدخول التلقائي: يعتمد نسخة الجدول فقط لو المستخدم ما سجّل شي أثناء السحب. لو سجّل (صار فيه
+ * تعديل معلّق)، ما نلمس بياناته — رفعه المنتظر بالطابور يكمّل، ولو الجدول تغيّر من جهاز ثاني بنفس
+ * الوقت نعلّم تعارض بدل ما نكتب فوقه. يرجّع النسخة اللي انعتمدت، أو null لو ما فيه شي ينطبق.
+ */
+export function pullForLogin(): Promise<DataSnapshot | null> {
+  return serialized(async () => {
+    const remote = await withStoredCreds(readRemote)
+    if (hasPendingPush()) {
+      const remoteRev = remote ? (remote.meta?.rev ?? LEGACY_REV) : null
+      if (isConflict(remoteRev, getBaseRev())) setConflict(remote?.meta ?? null)
+      return null
+    }
+    return remote ? adoptRemote(remote) : null
+  })
 }
 
 async function writeRemote(creds: SyncCreds, snapshot: DataSnapshot, force: boolean): Promise<string> {
@@ -193,17 +229,19 @@ async function writeRemote(creds: SyncCreds, snapshot: DataSnapshot, force: bool
  * SyncConflictError ويعلّم التعارض بدل ما يكتب فوقها. `force` = المستخدم قرر يعتمد نسخة هذا الجهاز.
  * `creds` = بيانات اتصال جديدة (تحديث الحماية): تنحفظ على الجهاز فقط بعد نجاح الرفع.
  */
-export async function pushToSheets(snapshot: DataSnapshot, { force = false, creds }: { force?: boolean; creds?: SyncCreds } = {}): Promise<void> {
-  if (creds) {
-    const rev = await writeRemote(creds, snapshot, force)
-    setSheetsSyncCredentials(creds.url, creds.token, creds.scheme)
-    clearTokenChanged()
-    setBaseRev(rev)
-  } else {
-    setBaseRev(await withStoredCreds((c) => writeRemote(c, snapshot, force)))
-  }
-  clearConflict()
-  markSynced()
+export function pushToSheets(snapshot: DataSnapshot, { force = false, creds }: { force?: boolean; creds?: SyncCreds } = {}): Promise<void> {
+  return serialized(async () => {
+    if (creds) {
+      const rev = await writeRemote(creds, snapshot, force)
+      setSheetsSyncCredentials(creds.url, creds.token, creds.scheme)
+      clearTokenChanged()
+      setBaseRev(rev)
+    } else {
+      setBaseRev(await withStoredCreds((c) => writeRemote(c, snapshot, force)))
+    }
+    clearConflict()
+    markSynced()
+  })
 }
 
 /** يحفظ بيانات اتصال أدخلها المستخدم (إعداد، استعادة، رمز جديد) ويرجّع المزامنة لو كانت موقوفة بسبب الرمز. */

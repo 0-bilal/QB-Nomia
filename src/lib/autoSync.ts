@@ -1,6 +1,6 @@
 import type { DataSnapshot } from '../state/DataContext'
 import { isSheetsSyncConfigured } from '../config/sheetsSync'
-import { hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
+import { hasPendingPush, markPendingPush, pullForLogin, pushToSheets } from './sheetsSync'
 import { SyncConflictError, getConflict } from './syncConflict'
 import { SyncAuthError, isTokenChanged } from './syncAuth'
 
@@ -108,10 +108,11 @@ export function runBackgroundPull(onSnapshot: (snapshot: DataSnapshot) => void, 
     return
   }
   emit('syncing', 'pull')
-  pullFromSheets()
+  // pullForLogin ما يعتمد نسخة الجدول لو المستخدم سجّل شي أثناء السحب — رفعه بالطابور يكمّل.
+  pullForLogin()
     .then((snapshot) => {
-      onSnapshot(snapshot)
-      emit('success', 'pull')
+      if (snapshot) onSnapshot(snapshot)
+      emit(getConflict() ? 'conflict' : 'success', 'pull')
       pullIdleTimer = window.setTimeout(() => emit('idle', 'pull'), 1800)
     })
     .catch((err) => {

@@ -3,13 +3,13 @@ import type { DataSnapshot } from '../state/DataContext'
 
 vi.mock('./sheetsSync', async (importOriginal) => {
   const real = await importOriginal<typeof import('./sheetsSync')>()
-  return { ...real, pullFromSheets: vi.fn(), pushToSheets: vi.fn() }
+  return { ...real, pullFromSheets: vi.fn(), pullForLogin: vi.fn(), pushToSheets: vi.fn() }
 })
 
 import { runBackgroundPull, scheduleBackgroundSync, subscribeSyncStatus, syncNow } from './autoSync'
 import { SyncConflictError, getConflict, setConflict } from './syncConflict'
 import { SyncAuthError, setTokenChanged } from './syncAuth'
-import { hasPendingPush, markPendingPush, pullFromSheets, pushToSheets } from './sheetsSync'
+import { hasPendingPush, markPendingPush, pullForLogin, pushToSheets } from './sheetsSync'
 import { setSheetsSyncCredentials } from '../config/sheetsSync'
 
 const local = { accounts: [] } as unknown as DataSnapshot
@@ -20,7 +20,7 @@ describe('background sync never overwrites unpushed local changes', () => {
   beforeEach(() => {
     setSheetsSyncCredentials('https://script.google.com/macros/s/x/exec', 'token')
     vi.mocked(pushToSheets).mockResolvedValue(undefined)
-    vi.mocked(pullFromSheets).mockResolvedValue(remote)
+    vi.mocked(pullForLogin).mockResolvedValue(remote)
   })
   afterEach(() => {
     vi.clearAllMocks()
@@ -37,7 +37,7 @@ describe('background sync never overwrites unpushed local changes', () => {
     const onSnapshot = vi.fn()
     runBackgroundPull(onSnapshot, () => local)
     await flush()
-    expect(pullFromSheets).toHaveBeenCalled()
+    expect(pullForLogin).toHaveBeenCalled()
     expect(onSnapshot).toHaveBeenCalledWith(remote)
   })
 
@@ -47,7 +47,7 @@ describe('background sync never overwrites unpushed local changes', () => {
     runBackgroundPull(onSnapshot, () => local)
     await flush()
     expect(pushToSheets).toHaveBeenCalledWith(local)
-    expect(pullFromSheets).not.toHaveBeenCalled()
+    expect(pullForLogin).not.toHaveBeenCalled()
     expect(onSnapshot).not.toHaveBeenCalled()
   })
 
@@ -57,7 +57,7 @@ describe('background sync never overwrites unpushed local changes', () => {
     const onSnapshot = vi.fn()
     runBackgroundPull(onSnapshot, () => local)
     await flush()
-    expect(pullFromSheets).not.toHaveBeenCalled()
+    expect(pullForLogin).not.toHaveBeenCalled()
     expect(onSnapshot).not.toHaveBeenCalled()
   })
 })
@@ -65,7 +65,7 @@ describe('background sync never overwrites unpushed local changes', () => {
 describe('تعارض المزامنة في المزامنة التلقائية', () => {
   beforeEach(() => {
     setSheetsSyncCredentials('https://script.google.com/macros/s/x/exec', 'token')
-    vi.mocked(pullFromSheets).mockResolvedValue(remote)
+    vi.mocked(pullForLogin).mockResolvedValue(remote)
   })
   afterEach(() => {
     vi.clearAllMocks()
@@ -82,7 +82,7 @@ describe('تعارض المزامنة في المزامنة التلقائية',
     await flush()
     unsub()
     expect(statuses).toContain('conflict')
-    expect(pullFromSheets).not.toHaveBeenCalled()
+    expect(pullForLogin).not.toHaveBeenCalled()
     expect(onSnapshot).not.toHaveBeenCalled()
     expect(hasPendingPush()).toBe(true)
   })
@@ -96,7 +96,7 @@ describe('تعارض المزامنة في المزامنة التلقائية',
     unsub()
     expect(statuses).toEqual(['conflict'])
     expect(pushToSheets).not.toHaveBeenCalled()
-    expect(pullFromSheets).not.toHaveBeenCalled()
+    expect(pullForLogin).not.toHaveBeenCalled()
   })
 
   it('تعارض قائم: الرفع الخلفي بعد التعديل يتوقف بصمت والتعديل يبقى معلّق', async () => {
@@ -134,7 +134,7 @@ describe('الرمز تغيّر من جهاز ثاني', () => {
   })
 
   it('رفض الرمز عند الدخول يعلن auth بدل خطأ عادي', async () => {
-    vi.mocked(pullFromSheets).mockRejectedValue(new SyncAuthError())
+    vi.mocked(pullForLogin).mockRejectedValue(new SyncAuthError())
     const statuses: string[] = []
     const unsub = subscribeSyncStatus((s) => statuses.push(s))
     runBackgroundPull(vi.fn(), () => local)
@@ -155,7 +155,7 @@ describe('الرمز تغيّر من جهاز ثاني', () => {
     unsub()
     expect(statuses).toEqual(['auth'])
     expect(pushToSheets).not.toHaveBeenCalled()
-    expect(pullFromSheets).not.toHaveBeenCalled()
+    expect(pullForLogin).not.toHaveBeenCalled()
   })
 })
 
