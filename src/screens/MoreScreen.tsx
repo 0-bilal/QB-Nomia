@@ -241,6 +241,25 @@ interface MoreItem {
   icon: ReactElement
 }
 
+/** «تجديدين متأخرين» — تمييز العدد بالعربي. */
+function lateLabel(n: number): string {
+  if (n === 1) return 'تجديد متأخر'
+  if (n === 2) return 'تجديدين متأخرين'
+  return `${n} ${n <= 10 ? 'تجديدات متأخرة' : 'تجديد متأخر'}`
+}
+
+function LateChip({ count }: { count: number }) {
+  return (
+    <span
+      className="mt-1 inline-flex h-[22px] items-center gap-1.5 rounded-full px-2 text-[11px] font-bold"
+      style={{ background: 'color-mix(in srgb, var(--color-expense) 15%, transparent)', color: 'var(--color-expense)' }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-expense)]" />
+      <span className="num">{lateLabel(count)}</span>
+    </span>
+  )
+}
+
 /** أقسام تعلّمها جولة التعريف (CoachTour). */
 const MORE_TOUR: Record<string, string | undefined> = { المالية: 'more-finance', التقارير: 'more-reports', النظام: 'more-system' }
 
@@ -252,8 +271,12 @@ const SECTIONS: { title: string; items: MoreItem[] }[] = [
       { label: 'الفئات', full: 'فئات المصاريف', desc: 'الفئات والميزانيات', to: '/categories', icon: <TagIcon /> },
       { label: 'الدخل', full: 'مصادر الدخل', desc: 'مصادر دخلك المتعددة', to: '/income-sources', icon: <IncomeIcon /> },
       { label: 'الأهداف', full: 'أهداف الادخار', desc: 'تتبّع الأهداف والزكاة', to: '/goals', icon: <GoalIcon /> },
-      { label: 'برمجيات QB', full: 'برمجيات QB', desc: 'العملاء والاشتراكات والتحصيل', to: '/business', icon: <BusinessIcon /> },
     ],
+  },
+  {
+    // النشاط: الشغل الخاص (برمجيات QB) — قسم بزر واحد فيظهر صفًّا بعرض الشاشة مثل «شجرة العلاقات».
+    title: 'النشاط',
+    items: [{ label: 'برمجيات QB', full: 'برمجيات QB', desc: 'العملاء والاشتراكات والتحصيل', to: '/business', icon: <BusinessIcon /> }],
   },
   {
     // شجرة العلاقات: شاشات تربط الفلوس بما حدث لها — المساحة محجوزة لشاشات قادمة.
@@ -527,7 +550,10 @@ export function MoreScreen() {
                         <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[14px] bg-[var(--color-surface-high)] text-[var(--color-text)]">{item.icon}</span>
                       }
                       title={item.full}
-                      subtitle={item.desc}
+                      subtitle={
+                        // تجديدات متأخرة: كبسولة حمراء مكان الوصف (design/more-business-section.html).
+                        item.to === '/business' && businessLate > 0 ? <LateChip count={businessLate} /> : item.desc
+                      }
                       chevron
                     />
                   ))}

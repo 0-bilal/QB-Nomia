@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>قسم برمجيات QB</title>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050506; --surface:#121215; --surface-el:#1a1a1f; --surface-hi:#24242a;
+    --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.13);
+    --accent:#f4f4f6; --on-accent:#0a0a0c; --text:#f4f4f6; --text-2:#a1a1ad; --text-3:#62626d;
+    --income:#3ee08f; --expense:#ff5f6d; --transfer:#8b7bff; --owed-to:#2ee6c8; --sub:#ffbf47;
+    --font-sans:'Readex Pro',system-ui,sans-serif; --font-num:'Inter',system-ui,sans-serif;
+    --spring:cubic-bezier(.34,1.56,.64,1); --expo:cubic-bezier(.16,1,.3,1); --calm:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#000}
+  body{font-family:var(--font-sans);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;gap:16px}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .press{transition:transform .18s var(--spring)}.press:active{transform:scale(.97)}
+  .intro,.panel,.note{width:100%;max-width:420px}
+  .intro h1{font-size:22px;font-weight:700}
+  .intro p{font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.7}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .plbl{font-size:11.5px;color:var(--text-3);font-weight:500}
+  .seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(28,28,33,.9);border:1px solid var(--border-strong);overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap;transition:background .3s var(--spring),color .2s}
+  .seg button.on{background:var(--accent);color:var(--on-accent)}
+  .phone{width:390px;max-width:100%;background:var(--bg);border-radius:40px;border:1px solid #1d1d22;padding:22px 16px 30px}
+  @media (max-width:440px){.phone{border-radius:28px;padding:18px 14px 24px}}
+  .h1{font-size:30px;font-weight:700;margin:6px 4px 16px}
+  .sec{margin-bottom:24px;animation:fade .45s var(--expo) both}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .st{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0 4px 14px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 8px}
+  .tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .tile i{width:60px;height:60px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(160deg,var(--surface-hi),var(--surface));border:1px solid var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .tile span{font-size:11.5px;font-weight:500;color:var(--text-2);line-height:1.25;min-height:30px}
+  .tile .dot{position:absolute;top:-2px;left:calc(50% - 34px);width:12px;height:12px;border-radius:50%;background:var(--expense);border:2px solid var(--bg)}
+  .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:20px;background:var(--surface);border:1px solid var(--border);width:100%;text-align:right}
+  .row .ic{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;flex-shrink:0;background:var(--surface-hi)}
+  .wt{font-size:14px;font-weight:600}
+  .wd{font-size:11.5px;color:var(--text-3);margin-top:2px}
+  .chev{color:var(--text-3);margin-inline-start:auto;display:grid;place-items:center}
+  .late{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;background:color-mix(in srgb,var(--expense) 15%,transparent);color:var(--expense);white-space:nowrap}
+  .late i{width:6px;height:6px;border-radius:50%;background:var(--expense)}
+
+  /* بطاقة حيّة */
+  .wide{display:block;width:100%;text-align:right;border-radius:22px;border:1px solid var(--border);padding:14px;background:radial-gradient(90% 80% at 100% 0%,color-mix(in srgb,var(--income) 9%,transparent),transparent 60%),linear-gradient(165deg,var(--surface-el),var(--bg))}
+  .wh{display:flex;align-items:center;gap:12px}
+  .wide .ic{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;flex-shrink:0;background:color-mix(in srgb,var(--income) 12%,transparent);color:var(--income);border:1px solid color-mix(in srgb,var(--income) 22%,transparent)}
+  .big{display:flex;align-items:baseline;gap:6px;margin-top:12px}
+  .big b{font:700 24px var(--font-num)}
+  .big small{font-size:12px;color:var(--text-3)}
+  .bar{position:relative;height:8px;border-radius:99px;overflow:hidden;background:var(--surface-hi);margin-top:10px}
+  .bar b{position:absolute;inset:0 0 0 auto;border-radius:99px;background:var(--income);transform-origin:right;animation:growx .7s var(--calm) both}
+  @keyframes growx{from{transform:scaleX(0)}}
+  .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .fact{font-size:11.5px;padding:5px 9px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--text-2)}
+  .fact em{font-style:normal;font-weight:700;color:var(--text)}
+
+  .note{font-size:12px;color:var(--text-2);line-height:1.85;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:12px 14px}
+  .note .k{color:var(--text-3);font-size:11px;display:block;margin-bottom:4px}
+  .note b{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>قسم برمجيات QB</h1>
+  <p>المشكلة: «برمجيات QB» زر خامس في قسم المالية، فينزل لحاله بصف ثاني وجنبه ثلاث خانات فاضية — نفس مشكلة «شجرة العلاقات» قبل. الأرقام أمثلة.</p>
+</div>
+
+<div class="panel">
+  <div class="plbl">الاقتراح</div>
+  <div class="seg" data-seg="v">
+    <button data-v="0"><span class="num">1</span> · صف بعرض الشاشة</button>
+    <button data-v="1"><span class="num">2</span> · بطاقة حيّة</button>
+    <button data-v="2">الحالي</button>
+  </div>
+  <div class="plbl">تجديدات متأخرة</div>
+  <div class="seg" data-seg="late"><button data-v="0">ما فيه</button><button data-v="2">تجديدين متأخرين</button></div>
+  <div class="plbl">إخفاء المبالغ (العين)</div>
+  <div class="seg" data-seg="hide"><button data-v="0">ظاهرة</button><button data-v="1">مخفية</button></div>
+</div>
+
+<div class="phone"><div class="h1">المزيد</div><div id="root"></div></div>
+<div class="note" id="note"></div>
+
+<script>
+const svg = (p, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`
+const I = {
+  tx: svg('<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>'), tag: svg('<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.2"/>'),
+  inc: svg('<path d="M12 19V5M6 11l6-6 6 6"/>'), goal: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/>'),
+  code: svg('<path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 6l-3 12"/>'),
+  sub: svg('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>'), com: svg('<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
+  rec: svg('<path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/>'), car: svg('<path d="M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2M19 16v2"/><circle cx="8" cy="13" r=".8"/><circle cx="16" cy="13" r=".8"/>'),
+  tree: svg('<path d="M12 21v-8M12 13 7 9M12 13l5-4M7 9V5M17 9V5M12 13V8"/><circle cx="7" cy="4" r="1.4"/><circle cx="17" cy="4" r="1.4"/><circle cx="12" cy="7" r="1.4"/>'),
+  chev: svg('<path d="m15 6-6 6 6 6"/>', 18),
+}
+const S = { v: '0', late: '0', hide: '0' }
+const money = (n) => S.hide === '1' ? '••••' : n
+const tiles = (arr) => `<div class="grid">${arr.map(([l, ic, dot]) => `<button class="tile press"><i>${I[ic]}</i>${dot ? '<b class="dot"></b>' : ''}<span>${l}</span></button>`).join('')}</div>`
+const sec = (t, body, d = 0) => `<section class="sec" style="animation-delay:${d * 50}ms"><div class="st">${t}</div>${body}</section>`
+const lateChip = () => S.late === '2' ? `<span class="late"><i></i>تجديدين متأخرين</span>` : ''
+// المتأخر يظهر مكان سطر الوصف (كبسولة حمراء) بدل ما يزاحمه
+const row = (ic, t, d, late = '') => `<button class="row press"><span class="ic">${I[ic]}</span><div style="flex:1;min-width:0"><div class="wt">${t}</div>${late ? `<div style="margin-top:4px">${late}</div>` : `<div class="wd">${d}</div>`}</div><span class="chev">${I.chev}</span></button>`
+
+const FIN4 = sec('المالية', tiles([['الحركات', 'tx'], ['الفئات', 'tag'], ['الدخل', 'inc'], ['الأهداف', 'goal']]))
+const FIN5 = sec('المالية', tiles([['الحركات', 'tx'], ['الفئات', 'tag'], ['الدخل', 'inc'], ['الأهداف', 'goal'], ['برمجيات QB', 'code', S.late === '2']]))
+const TREE = (d) => sec('شجرة العلاقات', row('tree', 'شجرة المصاريف', 'كل شهر: اللي دخل ووين راح'), d)
+const REC = (d) => sec('الدوري', tiles([['اشتراكات', 'sub'], ['التزامات', 'com'], ['متكررة', 'rec'], ['السيارة', 'car']]), d)
+
+const live = () => `<button class="wide press">
+  <div class="wh"><span class="ic">${I.code}</span><div style="flex:1;min-width:0"><div class="wt" style="font-size:14.5px">برمجيات QB</div>${S.late === '2' ? `<div style="margin-top:4px">${lateChip()}</div>` : '<div class="wd">العملاء والاشتراكات والتحصيل</div>'}</div><span class="chev">${I.chev}</span></div>
+  <div class="big"><b class="num">${money('3,200')}</b><small>ر.س تحصّلت هذا الشهر من <span class="num">${money('4,500')}</span></small></div>
+  <div class="bar"><b style="width:71%"></b></div>
+  <div class="facts"><span class="fact"><em class="num">8</em> عملاء نشطين</span><span class="fact">التجديد الجاي <em>14 نوفمبر</em></span></div>
+</button>`
+
+const V = [
+  () => FIN4 + sec('النشاط', row('code', 'برمجيات QB', 'العملاء والاشتراكات والتحصيل', lateChip()), 1) + TREE(2) + REC(3),
+  () => FIN4 + sec('النشاط', live(), 1) + TREE(2) + REC(3),
+  () => FIN5 + TREE(1) + REC(2),
+]
+const N = [
+  '<span class="k">١ · صف بعرض الشاشة (مطابق لشجرة العلاقات)</span>«برمجيات QB» تطلع من المالية لقسم خاص اسمه <b>«النشاط»</b> تحت المالية مباشرة، بنفس صف الشجرة: أيقونة ووصف وسهم. لو فيه تجديدات متأخرة تظهر <b>كبسولة حمراء</b> مكان سطر الوصف بدل النقطة الصغيرة. المالية ترجع أربع خانات مكتملة.',
+  '<span class="k">٢ · بطاقة حيّة</span>نفس القسم، لكن البطاقة تعرض <b>تحصيل الشهر من المتوقع</b> بشريط أخضر، وعدد العملاء النشطين وموعد التجديد الجاي، والكبسولة الحمراء للمتأخر. مفيدة بنظرة، لكنها أطول وتكرر جزء من شاشة برمجيات QB نفسها. تحترم إخفاء المبالغ.',
+  '<span class="k">الحالي</span>زر خامس في المالية ينزل لحاله بصف ثاني، وجنبه ثلاث خانات فاضية. المتأخر نقطة حمراء صغيرة على الزر.',
+]
+function render() {
+  document.getElementById('root').innerHTML = V[+S.v]()
+  document.getElementById('note').innerHTML = N[+S.v]
+  document.querySelectorAll('[data-seg]').forEach((seg) => seg.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.v === S[seg.dataset.seg])))
+}
+document.querySelectorAll('[data-seg]').forEach((seg) => seg.querySelectorAll('button').forEach((b) => (b.onclick = () => { S[seg.dataset.seg] = b.dataset.v; render() })))
+render()
+</script>
+</body>
+</html>
